@@ -204,13 +204,13 @@ namespace RasterPropMonitorGenerator
 			case "ECCENTRICITY":
 				return vessel.orbit.eccentricity;
 			case "TARGETDISTANCE":
-				if (FlightGlobals.fetch.VesselTarget != null) {
-					return Vector3.Distance (FlightGlobals.fetch.VesselTarget.GetTransform ().position, vessel.GetTransform ().position);
+				if (target != null) {
+					return Vector3.Distance (target.GetTransform ().position, vessel.GetTransform ().position);
 				} else
 					return Double.NaN;
 			case "RELATIVEINCLINATION":
-				if (FlightGlobals.fetch.VesselTarget != null) {
-					Orbit targetorbit = FlightGlobals.fetch.VesselTarget.GetOrbit ();
+				if (target != null) {
+					Orbit targetorbit = target.GetOrbit ();
 					if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 						return Double.NaN;
 					// Not finished.
