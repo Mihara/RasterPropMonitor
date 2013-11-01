@@ -100,7 +100,7 @@ namespace RasterPropMonitorGenerator
 				}
 
 				try {
-					pages [i] = String.Join (Environment.NewLine, File.ReadAllLines (KSPUtil.ApplicationRootPath + "GameData/" + pageData [i], System.Text.Encoding.ASCII));
+					pages [i] = String.Join (Environment.NewLine, File.ReadAllLines (KSPUtil.ApplicationRootPath + "GameData/" + pageData [i], System.Text.Encoding.UTF8));
 				} catch {
 					pages [i] = pageData [i].Replace ("<=", "{").Replace ("=>", "}").Replace ("$$$", Environment.NewLine);
 				}
@@ -120,6 +120,22 @@ namespace RasterPropMonitorGenerator
 			updateForced = true;
 		}
 
+		// Some snippets from MechJeb...
+		private double ClampDegrees360(double angle)
+		{
+			angle = angle % 360.0;
+			if (angle < 0) return angle + 360.0;
+			else return angle;
+		}
+
+		//keeps angles in the range -180 to 180
+		private double ClampDegrees180(double angle)
+		{
+			angle = ClampDegrees360(angle);
+			if (angle > 180) angle -= 360;
+			return angle;
+		}
+
 		private object processVariable (string input)
 		{
 			switch (input) {
@@ -127,29 +143,47 @@ namespace RasterPropMonitorGenerator
 			// It's a bit crude, but it's simple enough to populate.
 			// Would be a bit smoother if I had eval() :)
 			case "ALTITUDE":
-				return Math.Floor (FlightGlobals.ship_altitude);
+				return FlightGlobals.ship_altitude;
 			case "RADARALT":
-				return Math.Floor (vessel.altitude - Math.Max (vessel.pqsAltitude, 0D));
+				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
 			case "VERTSPEED":
-				return Math.Round (FlightGlobals.ship_verticalSpeed, 1);
+				return FlightGlobals.ship_verticalSpeed;
 			case "SURFSPEED":
-				return Math.Round (FlightGlobals.ship_srfSpeed, 1);
+				return FlightGlobals.ship_srfSpeed;
 			case "ORBTSPEED":
-				return Math.Round (FlightGlobals.ship_obtSpeed, 1);
+				return FlightGlobals.ship_obtSpeed;
 			case "TRGTSPEED":
-				return Math.Round (FlightGlobals.ship_tgtSpeed, 1);
+				return FlightGlobals.ship_tgtSpeed;
 			case "PERIAPSIS":
-				return Math.Round (FlightGlobals.ship_orbit.PeA, 1);
+				return FlightGlobals.ship_orbit.PeA;
 			case "APOAPSIS":
-				return Math.Round (FlightGlobals.ship_orbit.ApA, 1);
+				return FlightGlobals.ship_orbit.ApA;
 			case "INCLINATION":
-				return Math.Round (FlightGlobals.ship_orbit.inclination, 1);
+				return FlightGlobals.ship_orbit.inclination;
 			case "LATITUDE":
 				return vessel.mainBody.GetLatitude (vessel.findWorldCenterOfMass());
 			case "LONGITUDE":
-				return vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass());
+				return ClampDegrees180(vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass()));
+			case "TARGETNAME":
+				return FlightGlobals.fetch.VesselTarget.GetName();
+			case "ORBITBODY":
+				return vessel.orbit.referenceBody.name;
+			case "TARGETDISTANCE":
+				if (FlightGlobals.fetch.VesselTarget != null) {
+					return Vector3.Distance (FlightGlobals.fetch.VesselTarget.GetTransform ().position, vessel.GetTransform ().position);
+				} else
+					return Double.NaN;
+			case "RELATIVEINCLINATION":
+				if (FlightGlobals.fetch.VesselTarget != null) {
+					Orbit targetorbit = FlightGlobals.fetch.VesselTarget.GetOrbit ();
+					if (targetorbit.referenceBody != vessel.orbit.referenceBody)
+						return Double.NaN;
+					// Not finished.
+					return "Dunno...";
+				} else
+					return Double.NaN;
 			}
-			return "!??";
+			return input;
 		}
 
 		private string processString (string input)
