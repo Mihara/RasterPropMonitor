@@ -21,17 +21,14 @@ namespace RasterPropMonitor
 		public int screenPixelWidth = 512;
 		[KSPField]
 		public int screenPixelHeight = 256;
-
 		[KSPField]
 		public int fontLetterWidth = 16;
 		[KSPField]
 		public int fontLetterHeight = 32;
-
 		[KSPField]
 		public string[] screenText;
 		[KSPField]
 		public bool screenUpdateRequired = false;
-
 		private Texture2D fontTexture;
 		private Texture2D screenTexture;
 		private int firstCharacter = 32;
@@ -42,7 +39,7 @@ namespace RasterPropMonitor
 		{
 			// With that we should be able to get a texture by URL instead of asking for a transform, needs testing.
 			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
-				fontTexture = GameDatabase.Instance.GetTexture (fontTransform,false);
+				fontTexture = GameDatabase.Instance.GetTexture (fontTransform, false);
 				Debug.Log ("RasterPropMonitor: Loading font texture from URL, " + fontTransform);
 			} else {
 				fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
@@ -68,14 +65,20 @@ namespace RasterPropMonitor
 			//screen.SetTextureOffset ("_MainTex", new Vector2 (0f, 0f));
 
 			Debug.Log ("RasterMonitor initialised.");
-			Debug.Log ("fontLettersX: " + fontLettersX.ToString ()+" fontLettersY: " + fontLettersY.ToString ());
+			Debug.Log ("fontLettersX: " + fontLettersX.ToString () + " fontLettersY: " + fontLettersY.ToString ());
 		}
 
 		private void drawChar (char letter, int x, int y)
 		{
-			int charCode = ((int)letter) - firstCharacter;
+			int charCode = (ushort)letter;
+			// Clever bit.
+			if (charCode >= 128)
+				charCode -= 32;
+
+			charCode -= firstCharacter;
+
 			if (charCode < 0) {
-				Debug.Log ("RasterMonitor: Attempted to print an illegal character " + letter);
+				Debug.Log ("RasterMonitor: Attempted to print an illegal character " + letter + " with raw value of " + (int)letter);
 				return;
 			}
 			int xSource = charCode % fontLettersX;
