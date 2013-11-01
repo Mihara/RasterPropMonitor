@@ -119,20 +119,21 @@ namespace RasterPropMonitorGenerator
 			activePage = buttonID;
 			updateForced = true;
 		}
-
 		// Some snippets from MechJeb...
-		private double ClampDegrees360(double angle)
+		private double ClampDegrees360 (double angle)
 		{
 			angle = angle % 360.0;
-			if (angle < 0) return angle + 360.0;
-			else return angle;
+			if (angle < 0)
+				return angle + 360.0;
+			else
+				return angle;
 		}
-
 		//keeps angles in the range -180 to 180
-		private double ClampDegrees180(double angle)
+		private double ClampDegrees180 (double angle)
 		{
-			angle = ClampDegrees360(angle);
-			if (angle > 180) angle -= 360;
+			angle = ClampDegrees360 (angle);
+			if (angle > 180)
+				angle -= 360;
 			return angle;
 		}
 
@@ -161,11 +162,19 @@ namespace RasterPropMonitorGenerator
 			case "INCLINATION":
 				return FlightGlobals.ship_orbit.inclination;
 			case "LATITUDE":
-				return vessel.mainBody.GetLatitude (vessel.findWorldCenterOfMass());
+				return vessel.mainBody.GetLatitude (vessel.findWorldCenterOfMass ());
 			case "LONGITUDE":
-				return ClampDegrees180(vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass()));
+				return ClampDegrees180 (vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass ()));
 			case "TARGETNAME":
-				return FlightGlobals.fetch.VesselTarget.GetName();
+				ITargetable target = FlightGlobals.fetch.VesselTarget;
+				if (target == null)
+					return "";
+				if (target is Vessel || target is CelestialBody)
+					return target.GetName ();
+					// Later, I think I want to get this to return the ship's name, not the docking node name...
+				if (target is ModuleDockingNode)
+					return target.GetName ();
+				return "???!";
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
 			case "TARGETDISTANCE":
