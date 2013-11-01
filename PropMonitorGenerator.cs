@@ -62,6 +62,13 @@ namespace RasterPropMonitorGenerator
 		private int updateCountdown;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
+		// Data common for various variable calculations
+		Vector3d CoM;
+		Vector3d up;
+		Vector3d north;
+		Quaternion rotationVesselSurface;
+		Quaternion rotationSurface;
+		ITargetable target;
 
 		public void Start ()
 		{
@@ -136,6 +143,16 @@ namespace RasterPropMonitorGenerator
 				angle -= 360;
 			return angle;
 		}
+		// Has quite a bit of MechJeb code which I barely understand.
+		private void fetchCommonData ()
+		{
+			CoM = vessel.findWorldCenterOfMass ();
+			up = (CoM - vessel.mainBody.position).normalized;
+			north = Vector3d.Exclude (up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - CoM).normalized;
+			rotationSurface = Quaternion.LookRotation (north, up);
+			rotationVesselSurface = Quaternion.Inverse (Quaternion.Euler (90, 0, 0) * Quaternion.Inverse (vessel.GetTransform ().rotation) * rotationSurface);
+			target = FlightGlobals.fetch.VesselTarget;
+		}
 
 		private object processVariable (string input)
 		{
@@ -144,7 +161,7 @@ namespace RasterPropMonitorGenerator
 			// It's a bit crude, but it's simple enough to populate.
 			// Would be a bit smoother if I had eval() :)
 			case "ALTITUDE":
-				return FlightGlobals.ship_altitude;
+				return vessel.mainBody.GetAltitude(CoM);
 			case "RADARALT":
 				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
 			case "VERTSPEED":
@@ -155,6 +172,8 @@ namespace RasterPropMonitorGenerator
 				return FlightGlobals.ship_obtSpeed;
 			case "TRGTSPEED":
 				return FlightGlobals.ship_tgtSpeed;
+			case "HORZVELOCITY":
+				return  Vector3d.Exclude (up, vessel.orbit.GetVel ().normalized - vessel.mainBody.getRFrmVel (CoM)).normalized;
 			case "PERIAPSIS":
 				return FlightGlobals.ship_orbit.PeA;
 			case "APOAPSIS":
@@ -162,11 +181,16 @@ namespace RasterPropMonitorGenerator
 			case "INCLINATION":
 				return FlightGlobals.ship_orbit.inclination;
 			case "LATITUDE":
-				return vessel.mainBody.GetLatitude (vessel.findWorldCenterOfMass ());
+				return vessel.mainBody.GetLatitude (CoM);
 			case "LONGITUDE":
-				return ClampDegrees180 (vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass ()));
+				return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
+			case "HEADING":
+				return rotationVesselSurface.eulerAngles.y;
+			case "PITCH":
+				return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
+			case "ROLL":
+				return (rotationVesselSurface.eulerAngles.z > 180) ? (rotationVesselSurface.eulerAngles.z - 360.0) : rotationVesselSurface.eulerAngles.z;
 			case "TARGETNAME":
-				ITargetable target = FlightGlobals.fetch.VesselTarget;
 				if (target == null)
 					return "";
 				if (target is Vessel || target is CelestialBody)
@@ -177,6 +201,8 @@ namespace RasterPropMonitorGenerator
 				return "???!";
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
+			case "ECCENTRICITY":
+				return vessel.orbit.eccentricity;
 			case "TARGETDISTANCE":
 				if (FlightGlobals.fetch.VesselTarget != null) {
 					return Vector3.Distance (FlightGlobals.fetch.VesselTarget.GetTransform ().position, vessel.GetTransform ().position);
@@ -263,6 +289,7 @@ namespace RasterPropMonitorGenerator
 					}
 				} else {
 					string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
+					fetchCommonData (); // Doesn't seem to be a better place to do it in...
 					for (int i=0; i<linesArray.Length && i<linesPerPage; i++) {
 						textArray [i] = processString (linesArray [i]) + spacebuffer;
 					}
