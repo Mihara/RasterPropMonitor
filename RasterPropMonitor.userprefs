@@ -2,14 +2,15 @@
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Release" />
   <MonoDevelop.Ide.Workbench ActiveDocument="PropMonitorGenerator.cs">
     <Files>
-      <File FileName="PropMonitor.cs" Line="2" Column="1" />
-      <File FileName="Properties\AssemblyInfo.cs" Line="11" Column="38" />
-      <File FileName="PropMonitorGenerator.cs" Line="23" Column="25" />
+      <File FileName="PropMonitor.cs" Line="35" Column="33" />
+      <File FileName="Properties\AssemblyInfo.cs" Line="23" Column="1" />
+      <File FileName="PropMonitorGenerator.cs" Line="29" Column="13" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
           <Node name="RasterPropMonitor" expanded="True">
+            <Node name="References" expanded="True" />
             <Node name="Properties" expanded="True" />
             <Node name="PropMonitorGenerator.cs" selected="True" />
           </Node>

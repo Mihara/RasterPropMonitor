@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using UnityEngine;
 
@@ -43,7 +44,8 @@ namespace RasterPropMonitorGenerator
 		[KSPField]
 		public string button8 = "";
 		// Config syntax.
-		private string[] lineSeparator = { "$$$" };
+		//private string[] lineSeparator = { "$$$" };
+		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "###" };
 		private string[] variableSeparator = { "|" };
 		private InternalModule targetScript;
@@ -96,8 +98,14 @@ namespace RasterPropMonitorGenerator
 					pageButton.ID = i;
 					pageButton.handlerFunction = buttonClick;
 				}
-				pages [i] = pageData [i];
+
+				try {
+					pages [i] = String.Join (Environment.NewLine, File.ReadAllLines (KSPUtil.ApplicationRootPath + "GameData/" + pageData [i], System.Text.Encoding.ASCII));
+				} catch {
+					pages [i] = pageData [i].Replace ("<=", "{").Replace ("=>", "}").Replace ("$$$", Environment.NewLine);
+				}
 			}
+
 
 			textArray = new string[linesPerPage];
 			for (int i = 0; i < textArray.Length; i++) {
@@ -153,9 +161,6 @@ namespace RasterPropMonitorGenerator
 			// what it should look like can be found here: http://blog.stevex.net/string-formatting-in-csharp/
 
 			if (input.IndexOf (variableListSeparator [0]) >= 0) {
-
-				// I'm looking for more sensible candidates to replace these.
-				input = input.Replace ("<=", "{").Replace ("=>", "}");
 
 				string[] tokens = input.Split (variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {

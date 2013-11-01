@@ -40,7 +40,15 @@ namespace RasterPropMonitor
 
 		private void Start ()
 		{
-			fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
+			// With that we should be able to get a texture by URL instead of asking for a transform, needs testing.
+			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
+				fontTexture = GameDatabase.Instance.GetTexture (fontTransform,false);
+				Debug.Log ("RasterPropMonitor: Loading font texture from URL, " + fontTransform);
+			} else {
+				fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
+				Debug.Log ("RasterPropMonitor: Loading font texture from transform, " + fontTransform);
+			}
+
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
 			fontLettersY = (int)(fontTexture.height / fontLetterHeight);
 
