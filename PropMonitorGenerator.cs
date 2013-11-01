@@ -144,7 +144,10 @@ namespace RasterPropMonitorGenerator
 				return Math.Round (FlightGlobals.ship_orbit.ApA, 1);
 			case "INCLINATION":
 				return Math.Round (FlightGlobals.ship_orbit.inclination, 1);
-
+			case "LATITUDE":
+				return vessel.mainBody.GetLatitude (vessel.findWorldCenterOfMass());
+			case "LONGITUDE":
+				return vessel.mainBody.GetLongitude (vessel.findWorldCenterOfMass());
 			}
 			return "!??";
 		}
