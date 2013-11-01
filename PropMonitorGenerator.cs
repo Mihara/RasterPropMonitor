@@ -44,7 +44,6 @@ namespace RasterPropMonitorGenerator
 		[KSPField]
 		public string button8 = "";
 		// Config syntax.
-		//private string[] lineSeparator = { "$$$" };
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "###" };
 		private string[] variableSeparator = { "|" };
@@ -102,6 +101,7 @@ namespace RasterPropMonitorGenerator
 				try {
 					pages [i] = String.Join (Environment.NewLine, File.ReadAllLines (KSPUtil.ApplicationRootPath + "GameData/" + pageData [i], System.Text.Encoding.UTF8));
 				} catch {
+					// Notice that this will also happen if the referenced file is not found.
 					pages [i] = pageData [i].Replace ("<=", "{").Replace ("=>", "}").Replace ("$$$", Environment.NewLine);
 				}
 			}
@@ -197,12 +197,16 @@ namespace RasterPropMonitorGenerator
 
 		private string processString (string input)
 		{
-			// Each separate output line is delimited by "$$$".
-			// Within each line, if it contains any variables, it looks like this:
-			// "Insert <=0:0.0=> variables <=0:0.0=> into this string###VARIABLE|VARIABLE"
+			// Each separate output line is delimited by Environment.NewLine.
+			// When loading from a config file, you can't have newlines in it, so they're represented by "$$$".
+			//
+			// Within each line, if it contains any variables, it contains String.Format's format codes:
+			// "Insert {0:0.0} variables {0:0.0} into this string###VARIABLE|VARIABLE"
 			// 
-			// <= will be replaced by {.
-			// => will be replaced by }.
+			// <= has to be substituted for { and => for } when defining a screen in a config file.
+			// It is much easier to write a text file and reference it by URL instead, writing 
+			// screen definitions in a config file is only good enough for very small screens.
+			// 
 			// A more readable string format reference detailing where each variable is to be inserted and 
 			// what it should look like can be found here: http://blog.stevex.net/string-formatting-in-csharp/
 
@@ -213,7 +217,6 @@ namespace RasterPropMonitorGenerator
 					return "FORMAT ERROR";
 				} else {
 					string[] vars = tokens [1].Split (variableSeparator, StringSplitOptions.RemoveEmptyEntries);
-					//Debug.Log ("PropMonitorGenerator: So we got " + vars.Length.ToString () + " variables...");
 
 					object[] variables = new object[vars.Length];
 					for (int i=0; i<vars.Length; i++) {
@@ -251,7 +254,6 @@ namespace RasterPropMonitorGenerator
 
 				for (int i = 0; i < textArray.Length; i++)
 					textArray [i] = spacebuffer;
-				// And here we actually populate the array with data by an undisclosed method.
 
 				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
