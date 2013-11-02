@@ -35,8 +35,9 @@ namespace RasterPropMonitor
 		private int fontLettersX = 16;
 		private int fontLettersY = 8;
 		private int lastCharacter = 255;
-		float letterSpanX = 1f;
-		float letterSpanY = 1f;
+		private float letterSpanX = 1f;
+		private float letterSpanY = 1f;
+		private Color emptyColor = new Color (0, 0, 0, 0);
 
 		private void Start ()
 		{
@@ -44,10 +45,10 @@ namespace RasterPropMonitor
 			Debug.Log ("RasterPropMonitor: Trying to locate " + fontTransform + " in GameDatabase...");
 			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
 				fontTexture = GameDatabase.Instance.GetTexture (fontTransform, false);
-				Debug.Log ("RasterPropMonitor: Loading font texture from URL, " + fontTransform);
+				Debug.Log (String.Format ("RasterPropMonitor: Loading font texture from URL, \"{0}\"", fontTransform));
 			} else {
 				fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
-				Debug.Log ("RasterPropMonitor: Loading font texture from transform, " + fontTransform);
+				Debug.Log (String.Format ("RasterPropMonitor: Loading font texture from a transform named, \"{0}\"", fontTransform));
 			}
 
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
@@ -70,7 +71,7 @@ namespace RasterPropMonitor
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
 
-			Debug.Log (String.Format("RasterMonitor initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.",fontLettersX,fontLettersY,letterSpanX,letterSpanY));
+			Debug.Log (String.Format ("RasterMonitor initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY));
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -83,7 +84,7 @@ namespace RasterPropMonitor
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode > lastCharacter) {
-				Debug.Log (String.Format ("RasterMonitor: Attempted to print a character \"{0}\"not present in the font, raw value {1} ", letter, (int)letter));
+				Debug.Log (String.Format ("RasterMonitor: Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter));
 				return;
 			}
 			int xSource = charCode % fontLettersX;
@@ -111,6 +112,9 @@ namespace RasterPropMonitor
 			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
 			GL.PushMatrix ();
 			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
+
+			// Clear the texture now. It saves computrons compared to printing spaces.
+			GL.Clear (true, true, emptyColor);
 
 			for (int y=0; y<screenHeight; y++) {
 				char[] line = screenText [y].ToCharArray ();
