@@ -172,6 +172,8 @@ namespace RasterPropMonitorGenerator
 		ManeuverNode node;
 		double time;
 		ProtoCrewMember[] VesselCrew;
+		double altitudeASL;
+		double altitudeTrue;
 
 		private void fetchCommonData ()
 		{
@@ -191,6 +193,8 @@ namespace RasterPropMonitorGenerator
 			else
 				node = null;
 			time = Planetarium.GetUniversalTime ();
+			altitudeASL = vessel.mainBody.GetAltitude (CoM);
+			fetchTrueAltitude ();
 		}
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
@@ -307,6 +311,21 @@ namespace RasterPropMonitorGenerator
 			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
 		}
 
+		// Another piece from MechJeb.
+		private void fetchTrueAltitude() {
+			RaycastHit sfc;
+			if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
+			{
+				altitudeTrue = sfc.distance;
+			}
+			else if (vessel.mainBody.pqsController != null)
+			{
+				// from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
+				altitudeTrue = vessel.mainBody.GetAltitude(CoM) - (vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(CoM), Vector3d.down) * QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(CoM), Vector3d.forward) * Vector3d.right) - vessel.mainBody.pqsController.radius);
+			}
+			else altitudeTrue = vessel.mainBody.GetAltitude(CoM);
+		}
+
 		private object processVariable (string input)
 		{
 			switch (input) {
@@ -327,9 +346,9 @@ namespace RasterPropMonitorGenerator
 				return (velocityVesselSurface - (speedVertical * up)).magnitude;
 			// Altitudes
 			case "ALTITUDE":
-				return vessel.mainBody.GetAltitude (CoM);
+				return altitudeASL;
 			case "RADARALT":
-				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
+				return altitudeTrue;
 			
 			// Masses.
 			case "MASSDRY":
