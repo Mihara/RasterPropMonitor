@@ -253,6 +253,36 @@ namespace RasterPropMonitorGenerator
 				return 0;
 		}
 
+		private static string AngleToDMS (double angle)
+		{
+			int degrees = (int)Math.Floor (Math.Abs (angle));
+			int minutes = (int)Math.Floor (60 * (Math.Abs (angle) - degrees));
+			int seconds = (int)Math.Floor (3600 * (Math.Abs (angle) - degrees - minutes / 60.0));
+
+			return String.Format ("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
+		}
+
+		private string latitudeDMS (double latitude)
+		{
+			return AngleToDMS (latitude) + (latitude > 0 ? " N" : " S");
+		}
+
+		private string longitudeDMS (double longitude)
+		{
+			double clampedLongitude = ClampDegrees180 (longitude);
+			return AngleToDMS (clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
+		}
+
+		private Vector3d SwapYZ (Vector3d v)
+		{
+			return v.xzy;
+		}
+
+		private Vector3d SwappedOrbitNormal (Orbit o)
+		{
+			return -SwapYZ (o.GetOrbitNormal ()).normalized;
+		}
+
 		private object processVariable (string input)
 		{
 			switch (input) {
@@ -330,6 +360,12 @@ namespace RasterPropMonitorGenerator
 			case "LONGITUDE":
 				return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
 
+			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
+			case "LATITUDE_DMS":
+				return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
+			case "LONGITUDE_DMS":
+				return longitudeDMS (vessel.mainBody.GetLongitude (CoM));
+
 			// Orientation
 			case "HEADING":
 				return rotationVesselSurface.eulerAngles.y;
@@ -358,8 +394,7 @@ namespace RasterPropMonitorGenerator
 					Orbit targetorbit = target.GetOrbit ();
 					if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 						return Double.NaN;
-					// Not finished.
-					return "Dunno...";
+					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
 				} else
 					return Double.NaN;
 			
