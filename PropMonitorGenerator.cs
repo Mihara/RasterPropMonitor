@@ -10,9 +10,9 @@ namespace RasterPropMonitorGenerator
 	public class RasterPropMonitorGenerator: InternalModule
 	{
 		[KSPField]
-		public int refreshRate = 20;
+		public int refreshRate = 3;
 		//[KSPField]
-		public int refreshDataRate = 20;
+		public int refreshDataRate = 10;
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
@@ -159,8 +159,8 @@ namespace RasterPropMonitorGenerator
 		Vector3d velocityVesselSurface;
 		Vector3d velocityVesselOrbit;
 		double speedVertical;
-
 		ITargetable target;
+		ManeuverNode node;
 
 		private void fetchCommonData ()
 		{
@@ -170,36 +170,39 @@ namespace RasterPropMonitorGenerator
 			rotationSurface = Quaternion.LookRotation (north, up);
 			rotationVesselSurface = Quaternion.Inverse (Quaternion.Euler (90, 0, 0) * Quaternion.Inverse (vessel.GetTransform ().rotation) * rotationSurface);
 
-			velocityVesselOrbit = vessel.orbit.GetVel();
-			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(CoM);
+			velocityVesselOrbit = vessel.orbit.GetVel ();
+			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel (CoM);
 
-			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
+			speedVertical = Vector3d.Dot (velocityVesselSurface, up);
 			target = FlightGlobals.fetch.VesselTarget;
+			node = vessel.patchedConicSolver.maneuverNodes.First ();
 		}
 
 		private Dictionary<string,Vector2d> resources;
 		string[] resourcesAlphabetic;
 		double totalShipDryMass;
 		double totalShipWetMass;
-		double totalAvailableThrust;
-
+		double totalCurrentThrust;
+		double totalMaximumThrust;
 		// Sigh. MechJeb math.
-		float atmP0; // pressure now
-
-		private double getThrust(ModuleEngines engine){
-			if ((!engine.EngineIgnited) || (!engine.isEnabled))
+		private double getCurrentThrust (ModuleEngines engine)
+		{
+			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
-			float Isp = engine.atmosphereCurve.Evaluate(atmP0);
-			return engine.maxThrust / (Isp * 9.82 * engine.mixtureDensity);
+			return engine.finalThrust;
+		}
+
+		private double getMaximumThrust (ModuleEngines engine)
+		{
+			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+				return 0;
+			return engine.maxThrust;
 		}
 
 		private void fetchPerPartData ()
 		{
 			resources = new Dictionary<string,Vector2d> ();
-			totalShipDryMass = totalShipWetMass = totalAvailableThrust = 0;
-
-			// Simplified for the moment from how MechJeb does it...
-			atmP0 = (float)FlightGlobals.getStaticPressure();
+			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
 
 			foreach (Part part in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
@@ -212,12 +215,14 @@ namespace RasterPropMonitorGenerator
 						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
 				}
 				totalShipDryMass += part.mass;
-				totalShipWetMass += part.mass + part.GetResourceMass();
+				totalShipWetMass += part.mass + part.GetResourceMass ();
 
 				foreach (PartModule pm in part.Modules) {
-					if (!pm.isEnabled) continue;
+					if (!pm.isEnabled)
+						continue;
 					if (pm is ModuleEngines) {
-						totalAvailableThrust+=getThrust (pm as ModuleEngines);
+						totalCurrentThrust += getCurrentThrust (pm as ModuleEngines);
+						totalMaximumThrust += getMaximumThrust (pm as ModuleEngines);
 					}
 				}
 
@@ -261,7 +266,7 @@ namespace RasterPropMonitorGenerator
 			case "TRGTSPEED":
 				return FlightGlobals.ship_tgtSpeed;
 			case "HORZVELOCITY":
-					return (velocityVesselSurface - (speedVertical * up)).magnitude;
+				return (velocityVesselSurface - (speedVertical * up)).magnitude;
 			// Altitudes
 			case "ALTITUDE":
 				return vessel.mainBody.GetAltitude (CoM);
@@ -276,10 +281,25 @@ namespace RasterPropMonitorGenerator
 
 			// Thrust and related
 			case "THRUST":
-				return totalAvailableThrust;
+				return totalCurrentThrust;
+			case "THRUSTMAX":
+				return totalMaximumThrust;
 			case "TWR":
-				return totalAvailableThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
-			
+				return totalCurrentThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+			case "TWRMAX":
+				return totalMaximumThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+
+			// Maneuvers
+			case "MNODETIME":
+				if (node != null)
+					return new DateTime (TimeSpan.FromSeconds (node.UT - Planetarium.GetUniversalTime ()).Ticks);
+				else
+					return 0;
+			case "MNODEDV":
+				if (node != null)
+					return node.GetBurnVector (vessel.orbit).magnitude;
+				else
+					return 0;
 			// Orbital parameters
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
