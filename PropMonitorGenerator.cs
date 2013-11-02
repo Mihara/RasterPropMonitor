@@ -13,7 +13,6 @@ namespace RasterPropMonitorGenerator
 		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
-
 		// I wish I could get rid of this particular mess, because in theory I can support an unlimited number of pages.
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
@@ -167,6 +166,7 @@ namespace RasterPropMonitorGenerator
 		Quaternion rotationSurface;
 		Vector3d velocityVesselSurface;
 		Vector3d velocityVesselOrbit;
+		Vector3d velocityRelativeTarget;
 		double speedVertical;
 		ITargetable target;
 		ManeuverNode node;
@@ -195,6 +195,7 @@ namespace RasterPropMonitorGenerator
 			time = Planetarium.GetUniversalTime ();
 			altitudeASL = vessel.mainBody.GetAltitude (CoM);
 			fetchTrueAltitude ();
+			velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
 		}
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
@@ -310,20 +311,17 @@ namespace RasterPropMonitorGenerator
 		{
 			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
 		}
-
 		// Another piece from MechJeb.
-		private void fetchTrueAltitude() {
+		private void fetchTrueAltitude ()
+		{
 			RaycastHit sfc;
-			if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
-			{
+			if (Physics.Raycast (CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
 				altitudeTrue = sfc.distance;
-			}
-			else if (vessel.mainBody.pqsController != null)
-			{
+			} else if (vessel.mainBody.pqsController != null) {
 				// from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
-				altitudeTrue = vessel.mainBody.GetAltitude(CoM) - (vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(CoM), Vector3d.down) * QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(CoM), Vector3d.forward) * Vector3d.right) - vessel.mainBody.pqsController.radius);
-			}
-			else altitudeTrue = vessel.mainBody.GetAltitude(CoM);
+				altitudeTrue = vessel.mainBody.GetAltitude (CoM) - (vessel.mainBody.pqsController.GetSurfaceHeight (QuaternionD.AngleAxis (vessel.mainBody.GetLongitude (CoM), Vector3d.down) * QuaternionD.AngleAxis (vessel.mainBody.GetLatitude (CoM), Vector3d.forward) * Vector3d.right) - vessel.mainBody.pqsController.radius);
+			} else
+				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
 		}
 
 		private object processVariable (string input)
@@ -341,9 +339,28 @@ namespace RasterPropMonitorGenerator
 			case "ORBTSPEED":
 				return velocityVesselOrbit.magnitude;
 			case "TRGTSPEED":
-				return FlightGlobals.ship_tgtSpeed;
+				if (target != null) {
+					return velocityRelativeTarget.magnitude;
+				} else
+					return 0;
 			case "HORZVELOCITY":
 				return (velocityVesselSurface - (speedVertical * up)).magnitude;
+			case "TGTRELX":
+				if (target != null) {
+					return velocityRelativeTarget.x;
+				} else
+					return 0;
+			case "TGTRELY":
+				if (target != null) {
+					return velocityRelativeTarget.x;
+				} else
+					return 0;
+			case "TGTRELZ":
+				if (target != null) {
+					return velocityRelativeTarget.z;
+				} else
+					return 0;
+
 			// Altitudes
 			case "ALTITUDE":
 				return altitudeASL;
@@ -388,7 +405,7 @@ namespace RasterPropMonitorGenerator
 					return "";
 			case "MNODEDV":
 				if (node != null)
-					return node.GetBurnVector(vessel.orbit).magnitude;
+					return node.GetBurnVector (vessel.orbit).magnitude;
 				else
 					return 0;
 			// Orbital parameters
@@ -427,12 +444,34 @@ namespace RasterPropMonitorGenerator
 				return vessel.mainBody.GetLatitude (CoM);
 			case "LONGITUDE":
 				return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
+			case "LATITUDETGT":
+				if (target is Vessel) {
+					return target.GetVessel ().mainBody.GetLatitude (target.GetTransform ().position);
+				} else
+					return vessel.mainBody.GetLatitude (CoM);
+			case "LONGITUDETGT":
+				if (target is Vessel) {
+					return ClampDegrees180 (target.GetVessel ().mainBody.GetLatitude (target.GetTransform ().position));
+				} else
+					return ClampDegrees180 (vessel.mainBody.GetLatitude (CoM));
+
 
 			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
 			case "LATITUDE_DMS":
 				return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
 			case "LONGITUDE_DMS":
 				return longitudeDMS (vessel.mainBody.GetLongitude (CoM));
+			case "LATITUDETGT_DMS":
+				if (target is Vessel) {
+					return latitudeDMS (target.GetVessel ().mainBody.GetLatitude (target.GetVessel ().GetWorldPos3D ()));
+				} else
+					return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
+			case "LONGITUDETGT_DMS":
+				if (target is Vessel) {
+					return ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ()));
+				} else
+					return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
+
 
 			// Orientation
 			case "HEADING":
@@ -465,6 +504,22 @@ namespace RasterPropMonitorGenerator
 					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
 				} else
 					return Double.NaN;
+			case "TARGETDISTANCEX":
+				if (target != null) {
+					return  (vessel.GetTransform ().position - target.GetTransform ().position).x;
+				} else
+					return Double.NaN;
+			case "TARGETDISTANCEY":
+				if (target != null) {
+					return  (vessel.GetTransform ().position - target.GetTransform ().position).y;
+				} else
+					return Double.NaN;
+			case "TARGETDISTANCEZ":
+				if (target != null) {
+					return  (vessel.GetTransform ().position - target.GetTransform ().position).z;
+				} else
+					return Double.NaN;
+
 			
 			// Stock resources by name.
 			case "ELECTRIC":
