@@ -175,7 +175,11 @@ namespace RasterPropMonitorGenerator
 
 			speedVertical = Vector3d.Dot (velocityVesselSurface, up);
 			target = FlightGlobals.fetch.VesselTarget;
-			node = vessel.patchedConicSolver.maneuverNodes.First ();
+			if (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+				node = vessel.patchedConicSolver.maneuverNodes.First ();
+			else
+				node = null;
+
 		}
 
 		private Dictionary<string,Vector2d> resources;
