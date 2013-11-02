@@ -179,19 +179,48 @@ namespace RasterPropMonitorGenerator
 
 		private Dictionary<string,Vector2d> resources;
 		string[] resourcesAlphabetic;
+		double totalShipDryMass;
+		double totalShipWetMass;
+		double totalAvailableThrust;
+
+		// Sigh. MechJeb math.
+		float atmP0; // pressure now
+
+		private double getThrust(ModuleEngines engine){
+			if ((!engine.EngineIgnited) || (!engine.isEnabled))
+				return 0;
+			float Isp = engine.atmosphereCurve.Evaluate(atmP0);
+			return engine.maxThrust / (Isp * 9.82 * engine.mixtureDensity);
+		}
 
 		private void fetchPerPartData ()
 		{
 			resources = new Dictionary<string,Vector2d> ();
+			totalShipDryMass = totalShipWetMass = totalAvailableThrust = 0;
+
+			// Simplified for the moment from how MechJeb does it...
+			atmP0 = (float)FlightGlobals.getStaticPressure();
+
 			foreach (Part part in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
 				foreach (PartResource resource in part.Resources) {
+
 					if (!resources.ContainsKey ((resource.resourceName)))
 						resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
 					else
 						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
 				}
+				totalShipDryMass += part.mass;
+				totalShipWetMass += part.mass + part.GetResourceMass();
+
+				foreach (PartModule pm in part.Modules) {
+					if (!pm.isEnabled) continue;
+					if (pm is ModuleEngines) {
+						totalAvailableThrust+=getThrust (pm as ModuleEngines);
+					}
+				}
+
 			}
 			resourcesAlphabetic = resources.Keys.ToArray ();
 			Array.Sort (resourcesAlphabetic);
@@ -238,7 +267,19 @@ namespace RasterPropMonitorGenerator
 				return vessel.mainBody.GetAltitude (CoM);
 			case "RADARALT":
 				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
+			
+			// Masses.
+			case "MASSDRY":
+				return totalShipDryMass;
+			case "MASSWET":
+				return totalShipWetMass;
 
+			// Thrust and related
+			case "THRUST":
+				return totalAvailableThrust;
+			case "TWR":
+				return totalAvailableThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+			
 			// Orbital parameters
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
