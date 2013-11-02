@@ -30,15 +30,17 @@ namespace RasterPropMonitor
 		[KSPField]
 		public bool screenUpdateRequired = false;
 		private Texture2D fontTexture;
-		private Texture2D screenTexture;
+		private RenderTexture screenTexture;
 		private int firstCharacter = 32;
 		private int fontLettersX = 16;
 		private int fontLettersY = 8;
 		private int lastCharacter = 255;
-
+		float letterSpanX = 1f;
+		float letterSpanY = 1f;
 		private void Start ()
 		{
-			// With that we should be able to get a texture by URL instead of asking for a transform, needs testing.
+
+			Debug.Log ("RasterPropMonitor: Trying to locate " + fontTransform + " in GameDatabase...");
 			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
 				fontTexture = GameDatabase.Instance.GetTexture (fontTransform, false);
 				Debug.Log ("RasterPropMonitor: Loading font texture from URL, " + fontTransform);
@@ -50,6 +52,9 @@ namespace RasterPropMonitor
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
 			fontLettersY = (int)(fontTexture.height / fontLetterHeight);
 
+			letterSpanX = 1f / fontLettersX;
+			letterSpanY = 1f / fontLettersY;
+
 			lastCharacter = fontLettersX * fontLettersY;
 
 			screenText = new string[screenHeight];
@@ -59,7 +64,7 @@ namespace RasterPropMonitor
 			screenText [0] = "RasterMonitor initializing...";
 			screenUpdateRequired = true;
 
-			screenTexture = new Texture2D (screenPixelWidth, screenPixelHeight, TextureFormat.RGB24, false);
+			screenTexture = new RenderTexture (screenPixelWidth, screenPixelHeight, 0, RenderTextureFormat.ARGB32);
 
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
@@ -83,25 +88,34 @@ namespace RasterPropMonitor
 			}
 			int xSource = charCode % fontLettersX;
 			int ySource = (charCode - xSource) / fontLettersX;
-			//Debug.Log ("RasterMonitor char plate ID:" + charCode.ToString () + "X " + xSource.ToString () + " Y " + ySource.ToString ());
 
-			Color[] pixelBlock = fontTexture.GetPixels (xSource * fontLetterWidth, fontTexture.height - ((ySource + 1) * fontLetterHeight), fontLetterWidth, fontLetterHeight);
-			//Debug.Log ("RasterMonitor: copying from " + (xSource * fontLetterWidth).ToString () + "," + (fontTexture.height - ((ySource + 1) * fontLetterHeight)).ToString ());
-			//Debug.Log ("RasterMonitor: Pasting char '" + letter.ToString () + "' at pos " + x.ToString () + "," + y.ToString () + " at " + (x * fontLetterWidth).ToString () + "," + (fontLetterHeight * (screenHeight - 1) - y * fontLetterHeight).ToString ());
-			screenTexture.SetPixels (x * fontLetterWidth, fontLetterHeight * (screenHeight - 1) - y * fontLetterHeight, fontLetterWidth, fontLetterHeight, pixelBlock);
-			//Debug.Log ("RasterMonitor: Pasted.");
+			Graphics.DrawTexture (
+				new Rect (x * fontLetterWidth, y * fontLetterHeight, fontLetterWidth, fontLetterHeight),
+				fontTexture,
+				new Rect (letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY),
+				0, 0, 0, 0
+			);
 
 		}
 
 		private void updateScreen ()
 		{
+			// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
+			// But I'll wait until anyone complains before doing that.
+			RenderTexture.active = screenTexture;
+
+			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
+			GL.PushMatrix ();
+			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight,0);
+
 			for (int y=0; y<screenHeight; y++) {
 				char[] line = screenText [y].ToCharArray ();
 				for (int x=0; x<screenWidth && x<line.Length; x++) {
 					drawChar (line [x], x, y);
 				}
 			}
-			screenTexture.Apply ();
+			GL.PopMatrix ();
+			RenderTexture.active = null;
 		}
 
 		public override void OnUpdate ()
