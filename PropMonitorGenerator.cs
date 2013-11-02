@@ -355,7 +355,7 @@ namespace RasterPropMonitorGenerator
 					return "";
 			case "MNODEDV":
 				if (node != null)
-					return node.GetBurnVector (vessel.orbit).magnitude;
+					return node.DeltaV.magnitude;
 				else
 					return 0;
 			// Orbital parameters
@@ -582,11 +582,10 @@ namespace RasterPropMonitorGenerator
 
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA && vessel == FlightGlobals.ActiveVessel) {
 
-				for (int i = 0; i < textArray.Length; i++)
-					textArray [i] = spacebuffer;
-
 				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
+						for (int i = 0; i < textArray.Length; i++)
+							textArray [i] = spacebuffer;
 						screenWasBlanked = true;
 						remoteArray.SetValue (targetScript, textArray);
 						remoteFlag.SetValue (targetScript, true);
@@ -595,8 +594,11 @@ namespace RasterPropMonitorGenerator
 					fetchCommonData (); // Doesn't seem to be a better place to do it in...
 
 					string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
-					for (int i=0; i<linesArray.Length && i<linesPerPage; i++) {
-						textArray [i] = processString (linesArray [i]) + spacebuffer;
+					for (int i=0; i<linesPerPage; i++) {
+						if (i < linesArray.Length) {
+							textArray [i] = processString (linesArray [i]) + spacebuffer;
+						} else
+							textArray [i] = spacebuffer;
 					}
 					remoteArray.SetValue (targetScript, textArray);
 					remoteFlag.SetValue (targetScript, true);
