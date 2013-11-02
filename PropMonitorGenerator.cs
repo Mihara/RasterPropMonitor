@@ -96,6 +96,8 @@ namespace RasterPropMonitorGenerator
 				}
 			}
 
+
+			// Everything from there on is just my idea of doing it and can be done in a myriad different ways.
 			spacebuffer = new String (' ', charPerLine);
 
 			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
@@ -185,11 +187,9 @@ namespace RasterPropMonitorGenerator
 			else
 				node = null;
 			time = Planetarium.GetUniversalTime ();
-			var activecrew = FlightGlobals.ActiveVessel.GetVesselCrew ();
-			VesselCrew = activecrew.ToArray ();
 		}
 
-		private Dictionary<string,Vector2d> resources;
+		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
 		string[] resourcesAlphabetic;
 		double totalShipDryMass;
 		double totalShipWetMass;
@@ -212,7 +212,7 @@ namespace RasterPropMonitorGenerator
 
 		private void fetchPerPartData ()
 		{
-			resources = new Dictionary<string,Vector2d> ();
+			resources.Clear ();
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
 
 			foreach (Part part in vessel.parts) {
@@ -220,10 +220,16 @@ namespace RasterPropMonitorGenerator
 				// Hey, it works.
 				foreach (PartResource resource in part.Resources) {
 
-					if (!resources.ContainsKey ((resource.resourceName)))
+					try { // I wonder if that's faster.
 						resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
-					else
+					} catch (ArgumentException) {
 						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
+					}
+
+					//if (!resources.ContainsKey ((resource.resourceName)))
+					//	resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
+					//else
+					//	resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
 				}
 				totalShipDryMass += part.mass;
 				totalShipWetMass += part.mass + part.GetResourceMass ();
@@ -240,6 +246,8 @@ namespace RasterPropMonitorGenerator
 			}
 			resourcesAlphabetic = resources.Keys.ToArray ();
 			Array.Sort (resourcesAlphabetic);
+			// I seriously hope you don't have crew jumping in and out more than once per second.
+			VesselCrew = (FlightGlobals.ActiveVessel.GetVesselCrew ()).ToArray ();
 		}
 
 		private double getResourceByName (string name)
@@ -435,7 +443,7 @@ namespace RasterPropMonitorGenerator
 				} else
 					return Double.NaN;
 			
-			// Resources by name.
+			// Stock resources by name.
 			case "ELECTRIC":
 				return getResourceByName ("ElectricCharge");
 			case "ELECTRICMAX":
@@ -472,7 +480,7 @@ namespace RasterPropMonitorGenerator
 				return FlightGlobals.ActiveVessel.ActionGroups.groups [lightGroupNumber];
 			
 			}
-			// If input starts with "LISTR" we're handling it specially...
+			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
 			// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
 			string[] tokens = input.Split ('_');
 
