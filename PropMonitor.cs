@@ -34,6 +34,7 @@ namespace RasterPropMonitor
 		private int firstCharacter = 32;
 		private int fontLettersX = 16;
 		private int fontLettersY = 8;
+		private int lastCharacter = 255;
 
 		private void Start ()
 		{
@@ -49,6 +50,8 @@ namespace RasterPropMonitor
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
 			fontLettersY = (int)(fontTexture.height / fontLetterHeight);
 
+			lastCharacter = fontLettersX * fontLettersY;
+
 			screenText = new string[screenHeight];
 			for (int i = 0; i < screenText.Length; i++)
 				screenText [i] = "";
@@ -60,9 +63,6 @@ namespace RasterPropMonitor
 
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
-
-			//screen.SetTextureScale ("_MainTex", new Vector2 (1f, 1f));
-			//screen.SetTextureOffset ("_MainTex", new Vector2 (0f, 0f));
 
 			Debug.Log ("RasterMonitor initialised.");
 			Debug.Log ("fontLettersX: " + fontLettersX.ToString () + " fontLettersY: " + fontLettersY.ToString ());
@@ -77,7 +77,7 @@ namespace RasterPropMonitor
 
 			charCode -= firstCharacter;
 
-			if (charCode < 0) {
+			if (charCode < 0 || charCode > lastCharacter) {
 				Debug.Log ("RasterMonitor: Attempted to print an illegal character " + letter + " with raw value of " + (int)letter);
 				return;
 			}
