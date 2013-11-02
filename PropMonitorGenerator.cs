@@ -64,6 +64,8 @@ namespace RasterPropMonitorGenerator
 		private int dataUpdateCountdown = 0;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
+		private bool currentPageIsMutable = false;
+		private bool currentPageFirstPassComplete = false;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -136,6 +138,8 @@ namespace RasterPropMonitorGenerator
 		{
 			activePage = buttonID;
 			updateForced = true;
+			currentPageIsMutable = false;
+			currentPageFirstPassComplete = false;
 		}
 		// Some snippets from MechJeb...
 		private double ClampDegrees360 (double angle)
@@ -546,6 +550,7 @@ namespace RasterPropMonitorGenerator
 			// what it should look like can be found here: http://blog.stevex.net/string-formatting-in-csharp/
 
 			if (input.IndexOf (variableListSeparator [0]) >= 0) {
+				currentPageIsMutable = true;
 
 				string[] tokens = input.Split (variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {
@@ -571,7 +576,9 @@ namespace RasterPropMonitorGenerator
 				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0) {
 					dataUpdateCountdown = refreshDataRate;
 					vesselNumParts = vessel.Parts.Count;
-					fetchPerPartData ();
+					if (currentPageIsMutable || !currentPageFirstPassComplete) {
+						fetchPerPartData ();
+					}
 				}
 				updateForced = false;
 				return true;
@@ -601,18 +608,21 @@ namespace RasterPropMonitorGenerator
 						remoteFlag.SetValue (targetScript, true);
 					}
 				} else {
-					fetchCommonData (); // Doesn't seem to be a better place to do it in...
+					if (!currentPageFirstPassComplete || currentPageIsMutable) {
+						fetchCommonData (); // Doesn't seem to be a better place to do it in...
 
-					string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
-					for (int i=0; i<linesPerPage; i++) {
-						if (i < linesArray.Length) {
-							textArray [i] = processString (linesArray [i]) + spacebuffer;
-						} else
-							textArray [i] = spacebuffer;
+						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
+						for (int i=0; i<linesPerPage; i++) {
+							if (i < linesArray.Length) {
+								textArray [i] = processString (linesArray [i]) + spacebuffer;
+							} else
+								textArray [i] = spacebuffer;
+						}
+						remoteArray.SetValue (targetScript, textArray);
+						remoteFlag.SetValue (targetScript, true);
+						screenWasBlanked = false;
+						currentPageFirstPassComplete = true;
 					}
-					remoteArray.SetValue (targetScript, textArray);
-					remoteFlag.SetValue (targetScript, true);
-					screenWasBlanked = false;
 				}
 
 			}
