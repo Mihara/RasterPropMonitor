@@ -10,7 +10,7 @@ namespace RasterPropMonitorGenerator
 	public class RasterPropMonitorGenerator: InternalModule
 	{
 		[KSPField]
-		public int refreshRate = 3;
+		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
 		[KSPField]
@@ -80,6 +80,9 @@ namespace RasterPropMonitorGenerator
 			// are in the same assembly, but instead I'm leaving the reflection-based mechanism here
 			// so that you could make your own screen driver module
 			// by simply copy-pasting the relevant sections.
+			//
+			// Once you have that you're golden -- you can populate the array of lines,
+			// and trigger the screen update by writing a boolean when it needs updating.
 			foreach (InternalModule intModule in base.internalProp.internalModules) {
 				if (intModule.ClassName == "RasterPropMonitor") {
 					targetScript = intModule;
@@ -161,6 +164,8 @@ namespace RasterPropMonitorGenerator
 		double speedVertical;
 		ITargetable target;
 		ManeuverNode node;
+		double time;
+		ProtoCrewMember[] VesselCrew;
 
 		private void fetchCommonData ()
 		{
@@ -179,7 +184,9 @@ namespace RasterPropMonitorGenerator
 				node = vessel.patchedConicSolver.maneuverNodes.First ();
 			else
 				node = null;
-
+			time = Planetarium.GetUniversalTime ();
+			var activecrew = FlightGlobals.ActiveVessel.GetVesselCrew ();
+			VesselCrew = activecrew.ToArray ();
 		}
 
 		private Dictionary<string,Vector2d> resources;
@@ -283,6 +290,11 @@ namespace RasterPropMonitorGenerator
 			return -SwapYZ (o.GetOrbitNormal ()).normalized;
 		}
 
+		private DateTime ToDateTime (double seconds)
+		{
+			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
+		}
+
 		private object processVariable (string input)
 		{
 			switch (input) {
@@ -322,13 +334,25 @@ namespace RasterPropMonitorGenerator
 				return totalCurrentThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
 			case "TWRMAX":
 				return totalMaximumThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+			case "ACCEL":
+				return totalCurrentThrust / totalShipWetMass;
+			case "MAXACCEL":
+				return totalMaximumThrust / totalShipWetMass;
 
 			// Maneuvers
-			case "MNODETIME":
+			case "MNODETIMEVAL":
 				if (node != null)
-					return new DateTime (TimeSpan.FromSeconds (node.UT - Planetarium.GetUniversalTime ()).Ticks);
+					return ToDateTime (Math.Abs (node.UT - time));
 				else
-					return 0;
+					return ToDateTime (0);
+			case "MNODETIMESIGN":
+				if (node != null) {
+					if ((node.UT - time) < 0)
+						return "+";
+					else
+						return "-";
+				} else
+					return "";
 			case "MNODEDV":
 				if (node != null)
 					return node.GetBurnVector (vessel.orbit).magnitude;
@@ -347,12 +371,23 @@ namespace RasterPropMonitorGenerator
 				return vessel.orbit.eccentricity;
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
 			case "TIMETOAP":
-				return new DateTime (TimeSpan.FromSeconds (vessel.orbit.timeToAp).Ticks); 
+				return ToDateTime (vessel.orbit.timeToAp); 
 			case "TIMETOPE":
 				if (vessel.orbit.eccentricity < 1)
-					return new DateTime (TimeSpan.FromSeconds (vessel.orbit.timeToPe).Ticks);
+					return ToDateTime (vessel.orbit.timeToPe);
 				else
-					return new DateTime (TimeSpan.FromSeconds (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period)).Ticks);
+					return ToDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+			
+			// Time
+			case "UT":
+				return ToDateTime (time);
+			case "MET":
+				return ToDateTime (vessel.missionTime);
+			
+			// Names!
+			case "NAME":
+				return vessel.vesselName;
+
 
 			// Coordinates.
 			case "LATITUDE":
@@ -419,7 +454,10 @@ namespace RasterPropMonitorGenerator
 				return getResourceByName ("XenonGas");
 			case "XENONMAX":
 				return getMaxResourceByName ("XenonGas");
-
+			
+			// Staging
+			case "STAGE":
+				return Staging.CurrentStage;
 
 			// Action group flags. If I got that right, upon entering string format it should get cast to something sensible...
 			case "GEAR":
@@ -457,6 +495,25 @@ namespace RasterPropMonitorGenerator
 				}
 
 
+			}
+
+			// We do similar things for crew rosters.
+			if (tokens.Length == 3 && tokens [0] == "CREW") { 
+				ushort crewSeatID = Convert.ToUInt16 (tokens [1]);
+				if (crewSeatID >= VesselCrew.Length)
+					return "";
+				string kerbalname = VesselCrew [crewSeatID].name;
+				string[] tokenisedname = kerbalname.Split ();
+				switch (tokens [2]) {
+				case "FIRST":
+					return tokenisedname [0];
+				case "LAST":
+					return tokenisedname [1];
+				case "FULL":
+					return kerbalname;
+				default:
+					return "???!";
+				}
 			}
 
 			// Didn't recognise anything so we return the string we got, that helps debugging.
