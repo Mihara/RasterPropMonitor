@@ -13,6 +13,8 @@ namespace RasterPropMonitorGenerator
 		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
+
+		// I wish I could get rid of this particular mess, because in theory I can support an unlimited number of pages.
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
@@ -59,7 +61,6 @@ namespace RasterPropMonitorGenerator
 		private int activePage = 0;
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
-		private string spacebuffer;
 		private int updateCountdown = 0;
 		private int dataUpdateCountdown = 0;
 		private bool updateForced = false;
@@ -100,7 +101,6 @@ namespace RasterPropMonitorGenerator
 
 
 			// Everything from there on is just my idea of doing it and can be done in a myriad different ways.
-			spacebuffer = new String (' ', charPerLine);
 
 			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
@@ -388,7 +388,7 @@ namespace RasterPropMonitorGenerator
 					return "";
 			case "MNODEDV":
 				if (node != null)
-					return node.DeltaV.magnitude;
+					return node.GetBurnVector(vessel.orbit).magnitude;
 				else
 					return 0;
 			// Orbital parameters
@@ -621,7 +621,7 @@ namespace RasterPropMonitorGenerator
 				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
-							textArray [i] = spacebuffer;
+							textArray [i] = "";
 						screenWasBlanked = true;
 						remoteArray.SetValue (targetScript, textArray);
 						remoteFlag.SetValue (targetScript, true);
@@ -633,9 +633,9 @@ namespace RasterPropMonitorGenerator
 						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {
-								textArray [i] = processString (linesArray [i]) + spacebuffer;
+								textArray [i] = processString (linesArray [i]);
 							} else
-								textArray [i] = spacebuffer;
+								textArray [i] = "";
 						}
 						remoteArray.SetValue (targetScript, textArray);
 						remoteFlag.SetValue (targetScript, true);
