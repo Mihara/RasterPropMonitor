@@ -60,8 +60,8 @@ namespace RasterPropMonitorGenerator
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
 		private string spacebuffer;
-		private int updateCountdown;
-		private int dataUpdateCountdown;
+		private int updateCountdown = 0;
+		private int dataUpdateCountdown = 0;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
 		// Local data fetching variables...
@@ -168,11 +168,12 @@ namespace RasterPropMonitorGenerator
 			target = FlightGlobals.fetch.VesselTarget;
 		}
 
-		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
+		private Dictionary<string,Vector2d> resources;
 		string[] resourcesAlphabetic;
 
 		private void fetchPerPartData ()
 		{
+			resources = new Dictionary<string,Vector2d> ();
 			foreach (Part part in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
