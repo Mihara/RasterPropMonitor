@@ -156,6 +156,10 @@ namespace RasterPropMonitorGenerator
 		Vector3d north;
 		Quaternion rotationVesselSurface;
 		Quaternion rotationSurface;
+		Vector3d velocityVesselSurface;
+		Vector3d velocityVesselOrbit;
+		double speedVertical;
+
 		ITargetable target;
 
 		private void fetchCommonData ()
@@ -165,6 +169,11 @@ namespace RasterPropMonitorGenerator
 			north = Vector3d.Exclude (up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - CoM).normalized;
 			rotationSurface = Quaternion.LookRotation (north, up);
 			rotationVesselSurface = Quaternion.Inverse (Quaternion.Euler (90, 0, 0) * Quaternion.Inverse (vessel.GetTransform ().rotation) * rotationSurface);
+
+			velocityVesselOrbit = vessel.orbit.GetVel();
+			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(CoM);
+
+			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
 			target = FlightGlobals.fetch.VesselTarget;
 		}
 
@@ -215,16 +224,15 @@ namespace RasterPropMonitorGenerator
 
 			// Speeds.
 			case "VERTSPEED":
-				return FlightGlobals.ship_verticalSpeed;
+				return speedVertical;
 			case "SURFSPEED":
-				return FlightGlobals.ship_srfSpeed;
+				return velocityVesselSurface.magnitude;
 			case "ORBTSPEED":
-				return FlightGlobals.ship_obtSpeed;
+				return velocityVesselOrbit.magnitude;
 			case "TRGTSPEED":
 				return FlightGlobals.ship_tgtSpeed;
 			case "HORZVELOCITY":
-				return  Vector3d.Exclude (up, vessel.orbit.GetVel ().normalized - vessel.mainBody.getRFrmVel (CoM)).normalized;
-			
+					return (velocityVesselSurface - (speedVertical * up)).magnitude;
 			// Altitudes
 			case "ALTITUDE":
 				return vessel.mainBody.GetAltitude (CoM);
@@ -242,6 +250,14 @@ namespace RasterPropMonitorGenerator
 				return FlightGlobals.ship_orbit.inclination;
 			case "ECCENTRICITY":
 				return vessel.orbit.eccentricity;
+			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
+			case "TIMETOAP":
+				return new DateTime (TimeSpan.FromSeconds (vessel.orbit.timeToAp).Ticks); 
+			case "TIMETOPE":
+				if (vessel.orbit.eccentricity < 1)
+					return new DateTime (TimeSpan.FromSeconds (vessel.orbit.timeToPe).Ticks);
+				else
+					return new DateTime (TimeSpan.FromSeconds (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period)).Ticks);
 
 			// Coordinates.
 			case "LATITUDE":
