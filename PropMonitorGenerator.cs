@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -10,7 +12,7 @@ namespace RasterPropMonitorGenerator
 		[KSPField]
 		public int refreshRate = 20;
 		//[KSPField]
-		//public int refreshResourceRate = 20;
+		public int refreshDataRate = 20;
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
@@ -58,17 +60,16 @@ namespace RasterPropMonitorGenerator
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
 		private string spacebuffer;
-		private int vesselNumParts;
 		private int updateCountdown;
+		private int dataUpdateCountdown;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
-		// Data common for various variable calculations
-		Vector3d CoM;
-		Vector3d up;
-		Vector3d north;
-		Quaternion rotationVesselSurface;
-		Quaternion rotationSurface;
-		ITargetable target;
+		// Local data fetching variables...
+		private int gearGroupNumber;
+		private int brakeGroupNumber;
+		private int SASGroupNumber;
+		private int lightGroupNumber;
+		private int vesselNumParts;
 
 		public void Start ()
 		{
@@ -119,6 +120,11 @@ namespace RasterPropMonitorGenerator
 				textArray [i] = "";
 			}
 
+			// Well, it looks like we have to do that bit just like in Firespitter.
+			gearGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Gear);
+			brakeGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Brakes);
+			SASGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.SAS);
+			lightGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Light);
 		}
 
 		public void buttonClick (int buttonID)
@@ -144,6 +150,14 @@ namespace RasterPropMonitorGenerator
 			return angle;
 		}
 		// Has quite a bit of MechJeb code which I barely understand.
+		// Data common for various variable calculations
+		Vector3d CoM;
+		Vector3d up;
+		Vector3d north;
+		Quaternion rotationVesselSurface;
+		Quaternion rotationSurface;
+		ITargetable target;
+
 		private void fetchCommonData ()
 		{
 			CoM = vessel.findWorldCenterOfMass ();
@@ -154,16 +168,51 @@ namespace RasterPropMonitorGenerator
 			target = FlightGlobals.fetch.VesselTarget;
 		}
 
+		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
+		string[] resourcesAlphabetic;
+
+		private void fetchPerPartData ()
+		{
+			foreach (Part part in vessel.parts) {
+				// The cute way of using vector2d in place of a tuple is from Firespitter.
+				// Hey, it works.
+				foreach (PartResource resource in part.Resources) {
+					if (!resources.ContainsKey ((resource.resourceName)))
+						resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
+					else
+						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
+				}
+			}
+			resourcesAlphabetic = resources.Keys.ToArray ();
+			Array.Sort (resourcesAlphabetic);
+		}
+
+		private double getResourceByName (string name)
+		{
+			Vector2d result;
+			if (resources.TryGetValue (name, out result))
+				return result.x;
+			else
+				return 0;
+		}
+
+		private double getMaxResourceByName (string name)
+		{
+			Vector2d result;
+			if (resources.TryGetValue (name, out result))
+				return result.y;
+			else
+				return 0;
+		}
+
 		private object processVariable (string input)
 		{
 			switch (input) {
 
 			// It's a bit crude, but it's simple enough to populate.
 			// Would be a bit smoother if I had eval() :)
-			case "ALTITUDE":
-				return vessel.mainBody.GetAltitude(CoM);
-			case "RADARALT":
-				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
+
+			// Speeds.
 			case "VERTSPEED":
 				return FlightGlobals.ship_verticalSpeed;
 			case "SURFSPEED":
@@ -174,22 +223,40 @@ namespace RasterPropMonitorGenerator
 				return FlightGlobals.ship_tgtSpeed;
 			case "HORZVELOCITY":
 				return  Vector3d.Exclude (up, vessel.orbit.GetVel ().normalized - vessel.mainBody.getRFrmVel (CoM)).normalized;
+			
+			// Altitudes
+			case "ALTITUDE":
+				return vessel.mainBody.GetAltitude (CoM);
+			case "RADARALT":
+				return vessel.altitude - Math.Max (vessel.pqsAltitude, 0D);
+
+			// Orbital parameters
+			case "ORBITBODY":
+				return vessel.orbit.referenceBody.name;
 			case "PERIAPSIS":
 				return FlightGlobals.ship_orbit.PeA;
 			case "APOAPSIS":
 				return FlightGlobals.ship_orbit.ApA;
 			case "INCLINATION":
 				return FlightGlobals.ship_orbit.inclination;
+			case "ECCENTRICITY":
+				return vessel.orbit.eccentricity;
+
+			// Coordinates.
 			case "LATITUDE":
 				return vessel.mainBody.GetLatitude (CoM);
 			case "LONGITUDE":
 				return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
+
+			// Orientation
 			case "HEADING":
 				return rotationVesselSurface.eulerAngles.y;
 			case "PITCH":
 				return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
 			case "ROLL":
 				return (rotationVesselSurface.eulerAngles.z > 180) ? (rotationVesselSurface.eulerAngles.z - 360.0) : rotationVesselSurface.eulerAngles.z;
+
+			// Targeting. Probably the most finicky bit right now.
 			case "TARGETNAME":
 				if (target == null)
 					return "";
@@ -199,10 +266,6 @@ namespace RasterPropMonitorGenerator
 				if (target is ModuleDockingNode)
 					return target.GetName ();
 				return "???!";
-			case "ORBITBODY":
-				return vessel.orbit.referenceBody.name;
-			case "ECCENTRICITY":
-				return vessel.orbit.eccentricity;
 			case "TARGETDISTANCE":
 				if (target != null) {
 					return Vector3.Distance (target.GetTransform ().position, vessel.GetTransform ().position);
@@ -217,7 +280,69 @@ namespace RasterPropMonitorGenerator
 					return "Dunno...";
 				} else
 					return Double.NaN;
+			
+			// Resources by name.
+			case "ELECTRIC":
+				return getResourceByName ("ElectricCharge");
+			case "ELECTRICMAX":
+				return getMaxResourceByName ("ElectricCharge");
+			case "FUEL":
+				return getResourceByName ("LiquidFuel");
+			case "FUELMAX":
+				return getMaxResourceByName ("LiquidFuel");
+			case "OXIDIZER":
+				return getResourceByName ("Oxidizer");
+			case "OXIDIZERMAX":
+				return getMaxResourceByName ("Oxidizer");
+			case "MONOPROP":
+				return getResourceByName ("MonoPropellant");
+			case "MONOPROPMAX":
+				return getMaxResourceByName ("MonoPropellant");
+			case "XENON":
+				return getResourceByName ("XenonGas");
+			case "XENONMAX":
+				return getMaxResourceByName ("XenonGas");
+
+
+			// Action group flags. If I got that right, upon entering string format it should get cast to something sensible...
+			case "GEAR":
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+			case "BRAKES":
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+			case "SAS":
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+			case "LIGHTS":
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+			
 			}
+			// If input starts with "LISTR" we're handling it specially...
+			// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
+			string[] tokens = input.Split ('_');
+
+			if (tokens.Length == 3 && tokens [0] == "LISTR") {
+				ushort resourceID = Convert.ToUInt16 (tokens [1]);
+				switch (tokens [2]) {
+				case "NAME":
+					if (resourceID >= resources.Count)
+						return "";
+					else
+						return resourcesAlphabetic [resourceID];
+				case "VAL":
+					if (resourceID >= resources.Count)
+						return 0;
+					else
+						return resources [resourcesAlphabetic [resourceID]].x;
+				case "MAX":
+					if (resourceID >= resources.Count)
+						return 0;
+					else
+						return resources [resourcesAlphabetic [resourceID]].y;
+				}
+
+
+			}
+
+			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
 		}
 
@@ -257,12 +382,17 @@ namespace RasterPropMonitorGenerator
 		// Update according to the given refresh rate or when number of parts changes.
 		private bool updateCheck ()
 		{
-			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || updateForced) {
+			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced) {
 				updateCountdown = refreshRate;
-				vesselNumParts = vessel.Parts.Count;
+				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0) {
+					dataUpdateCountdown = refreshDataRate;
+					vesselNumParts = vessel.Parts.Count;
+					fetchPerPartData ();
+				}
 				updateForced = false;
 				return true;
 			} else {
+				dataUpdateCountdown--;
 				updateCountdown--;
 				return false;
 			}
@@ -288,8 +418,9 @@ namespace RasterPropMonitorGenerator
 						remoteFlag.SetValue (targetScript, true);
 					}
 				} else {
-					string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 					fetchCommonData (); // Doesn't seem to be a better place to do it in...
+
+					string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 					for (int i=0; i<linesArray.Length && i<linesPerPage; i++) {
 						textArray [i] = processString (linesArray [i]) + spacebuffer;
 					}
