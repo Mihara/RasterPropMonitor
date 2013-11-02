@@ -195,7 +195,10 @@ namespace RasterPropMonitorGenerator
 			time = Planetarium.GetUniversalTime ();
 			altitudeASL = vessel.mainBody.GetAltitude (CoM);
 			fetchTrueAltitude ();
-			velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
+			if (target != null) {
+				velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
+			} else
+				velocityRelativeTarget = new Vector3d (0, 0, 0);
 		}
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
@@ -339,27 +342,27 @@ namespace RasterPropMonitorGenerator
 			case "ORBTSPEED":
 				return velocityVesselOrbit.magnitude;
 			case "TRGTSPEED":
-				if (target != null) {
-					return velocityRelativeTarget.magnitude;
-				} else
-					return 0;
+				return velocityRelativeTarget.magnitude;
 			case "HORZVELOCITY":
 				return (velocityVesselSurface - (speedVertical * up)).magnitude;
 			case "TGTRELX":
-				if (target != null) {
-					return velocityRelativeTarget.x;
-				} else
-					return 0;
+				return velocityRelativeTarget.x;
 			case "TGTRELY":
-				if (target != null) {
-					return velocityRelativeTarget.x;
-				} else
-					return 0;
+				return velocityRelativeTarget.x;
 			case "TGTRELZ":
-				if (target != null) {
-					return velocityRelativeTarget.z;
+				return velocityRelativeTarget.z;
+
+			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
+			// If anyone's up to doing that smoothly be my guest.
+			case "TIMETOIMPACT":
+				if (speedVertical < 0) {
+					double secondsToImpact = (altitudeTrue / speedVertical) * 0.9;
+					if (secondsToImpact > 86400 || secondsToImpact < 0) {
+						return ToDateTime (0);
+					} else
+						return ToDateTime (secondsToImpact); // 0.9 is a fudge factor, so that you know you have AT LEAST this long until you die.
 				} else
-					return 0;
+					return ToDateTime (0);
 
 			// Altitudes
 			case "ALTITUDE":
