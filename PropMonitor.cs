@@ -37,6 +37,7 @@ namespace RasterPropMonitor
 		private int lastCharacter = 255;
 		float letterSpanX = 1f;
 		float letterSpanY = 1f;
+
 		private void Start ()
 		{
 
@@ -69,8 +70,7 @@ namespace RasterPropMonitor
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
 
-			Debug.Log ("RasterMonitor initialised.");
-			Debug.Log ("fontLettersX: " + fontLettersX.ToString () + " fontLettersY: " + fontLettersY.ToString ());
+			Debug.Log (String.Format("RasterMonitor initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.",fontLettersX,fontLettersY,letterSpanX,letterSpanY));
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -83,12 +83,16 @@ namespace RasterPropMonitor
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode > lastCharacter) {
-				Debug.Log ("RasterMonitor: Attempted to print an illegal character " + letter + " with raw value of " + (int)letter);
+				Debug.Log (String.Format ("RasterMonitor: Attempted to print a character \"{0}\"not present in the font, raw value {1} ", letter, (int)letter));
 				return;
 			}
 			int xSource = charCode % fontLettersX;
 			int ySource = (charCode - xSource) / fontLettersX;
 
+			// This is complicated.
+			// The destination rectangle has coordinates given in pixels, from top left corner of the texture.
+			// The source rectangle has coordinates in floats (!) from bottom left corner of the texture!
+			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture (
 				new Rect (x * fontLetterWidth, y * fontLetterHeight, fontLetterWidth, fontLetterHeight),
 				fontTexture,
@@ -106,7 +110,7 @@ namespace RasterPropMonitor
 
 			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
 			GL.PushMatrix ();
-			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight,0);
+			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
 
 			for (int y=0; y<screenHeight; y++) {
 				char[] line = screenText [y].ToCharArray ();
