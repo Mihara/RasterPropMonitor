@@ -11,7 +11,7 @@ namespace RasterPropMonitorGenerator
 	{
 		[KSPField]
 		public int refreshRate = 3;
-		//[KSPField]
+		[KSPField]
 		public int refreshDataRate = 10;
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
@@ -386,11 +386,11 @@ namespace RasterPropMonitorGenerator
 			case "GEAR":
 				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
 			case "BRAKES":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [brakeGroupNumber];
 			case "SAS":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [SASGroupNumber];
 			case "LIGHTS":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [lightGroupNumber];
 			
 			}
 			// If input starts with "LISTR" we're handling it specially...
