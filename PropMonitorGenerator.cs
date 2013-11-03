@@ -122,6 +122,11 @@ namespace RasterPropMonitorGenerator
 
 
 			// Until I know how to limit this search to a single capsule, I'll have to put it off.
+			// Note for the future. InternalModel is a feature of a Part.
+			// Which means I should be able to limit it to a single capsule by traversing the part tree --
+			// if I can identify the InternalModel which contains the prop this module is attached to
+			// when looking through parts, this should be feasible.
+
 			/*
 			foreach (InternalProp other in FindObjectsOfType (typeof(InternalProp)) as InternalProp[]) {
 				if (other.vessel == FlightGlobals.ActiveVessel) {

@@ -491,15 +491,16 @@ namespace RasterPropMonitorGenerator
 			case "SCIENCEDATA":
 				return totalDataAmount;
 
-			// Action group flags. If I got that right, upon entering string format it should get cast to something sensible...
+			// Action group flags. To properly format those, use this format:
+			// {0:on;0;OFF}
 			case "GEAR":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [gearGroupNumber].GetHashCode ();
 			case "BRAKES":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [brakeGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [brakeGroupNumber].GetHashCode ();
 			case "SAS":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [SASGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [SASGroupNumber].GetHashCode ();
 			case "LIGHTS":
-				return FlightGlobals.ActiveVessel.ActionGroups.groups [lightGroupNumber];
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [lightGroupNumber].GetHashCode ();
 
 			}
 			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
