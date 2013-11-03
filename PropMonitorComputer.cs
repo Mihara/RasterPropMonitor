@@ -245,7 +245,7 @@ namespace RasterPropMonitorGenerator
 			case "TGTRELX":
 				return velocityRelativeTarget.x;
 			case "TGTRELY":
-				return velocityRelativeTarget.x;
+				return velocityRelativeTarget.y;
 			case "TGTRELZ":
 				return velocityRelativeTarget.z;
 
