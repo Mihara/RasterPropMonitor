@@ -19,6 +19,7 @@ namespace RasterPropMonitorGenerator
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
 		private ITargetable target;
+		private Vector3d targetSeparation;
 		private ManeuverNode node;
 		private double time;
 		private ProtoCrewMember[] VesselCrew;
@@ -103,8 +104,10 @@ namespace RasterPropMonitorGenerator
 			fetchTrueAltitude ();
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
-			} else
-				velocityRelativeTarget = new Vector3d (0, 0, 0);
+				targetSeparation = vessel.GetTransform ().position - target.GetTransform ().position;
+			} else {
+				velocityRelativeTarget = targetSeparation = new Vector3d (0, 0, 0);
+			}
 		}
 
 		public void fetchPerPartData ()
@@ -404,21 +407,13 @@ namespace RasterPropMonitorGenerator
 					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
 				} else
 					return Double.NaN;
+			// Ok, what are X, Y and Z here anyway?
 			case "TARGETDISTANCEX":
-				if (target != null) {
-					return  (vessel.GetTransform ().position - target.GetTransform ().position).x;
-				} else
-					return Double.NaN;
+				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().right);
 			case "TARGETDISTANCEY":
-				if (target != null) {
-					return  (vessel.GetTransform ().position - target.GetTransform ().position).y;
-				} else
-					return Double.NaN;
+				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().forward);
 			case "TARGETDISTANCEZ":
-				if (target != null) {
-					return  (vessel.GetTransform ().position - target.GetTransform ().position).z;
-				} else
-					return Double.NaN;
+				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().up);
 
 
 			// Stock resources by name.
