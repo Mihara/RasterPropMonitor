@@ -66,7 +66,7 @@ namespace RasterPropMonitorGenerator
 			return engine.maxThrust;
 		}
 		// Some snippets from MechJeb...
-		private double ClampDegrees360 (double angle)
+		private static double ClampDegrees360 (double angle)
 		{
 			angle = angle % 360.0;
 			if (angle < 0)
@@ -189,7 +189,7 @@ namespace RasterPropMonitorGenerator
 			return String.Format ("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
 		}
 
-		private string latitudeDMS (double latitude)
+		private static string latitudeDMS (double latitude)
 		{
 			return AngleToDMS (latitude) + (latitude > 0 ? " N" : " S");
 		}
@@ -200,17 +200,17 @@ namespace RasterPropMonitorGenerator
 			return AngleToDMS (clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
 		}
 
-		private Vector3d SwapYZ (Vector3d v)
+		private static Vector3d SwapYZ (Vector3d v)
 		{
 			return v.xzy;
 		}
 
-		private Vector3d SwappedOrbitNormal (Orbit o)
+		private static Vector3d SwappedOrbitNormal (Orbit o)
 		{
 			return -SwapYZ (o.GetOrbitNormal ()).normalized;
 		}
 
-		private DateTime ToDateTime (double seconds)
+		private static DateTime ToDateTime (double seconds)
 		{
 			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
 		}
@@ -228,6 +228,10 @@ namespace RasterPropMonitorGenerator
 				Vector3d.right) - vessel.mainBody.pqsController.radius);
 			} else
 				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
+		}
+
+		private string SIFormat(double value) {
+			return "";
 		}
 
 		public object processVariable (string input)
