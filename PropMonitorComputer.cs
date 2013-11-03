@@ -245,12 +245,13 @@ namespace RasterPropMonitorGenerator
 				return velocityRelativeTarget.magnitude;
 			case "HORZVELOCITY":
 				return (velocityVesselSurface - (speedVertical * up)).magnitude;
+			// The way Engineer does it...
 			case "TGTRELX":
-				return velocityRelativeTarget.x;
+				return FlightGlobals.ship_tgtVelocity.x;
 			case "TGTRELY":
-				return velocityRelativeTarget.y;
+				return FlightGlobals.ship_tgtVelocity.y;
 			case "TGTRELZ":
-				return velocityRelativeTarget.z;
+				return FlightGlobals.ship_tgtVelocity.z;
 
 			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
 			// If anyone's up to doing that smoothly be my guest.
