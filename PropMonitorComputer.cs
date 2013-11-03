@@ -25,6 +25,7 @@ namespace RasterPropMonitorGenerator
 		private ProtoCrewMember[] VesselCrew;
 		private double altitudeASL;
 		private double altitudeTrue;
+		Orbit targetorbit;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -105,6 +106,7 @@ namespace RasterPropMonitorGenerator
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
 				targetSeparation = vessel.GetTransform ().position - target.GetTransform ().position;
+				targetorbit = target.GetOrbit ();
 			} else {
 				velocityRelativeTarget = targetSeparation = new Vector3d (0, 0, 0);
 			}
@@ -325,6 +327,8 @@ namespace RasterPropMonitorGenerator
 			case "ECCENTRICITY":
 				return vessel.orbit.eccentricity;
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
+			case "ORBPERIOD":
+				return ToDateTime (vessel.orbit.period);
 			case "TIMETOAP":
 				return ToDateTime (vessel.orbit.timeToAp); 
 			case "TIMETOPE":
@@ -403,7 +407,6 @@ namespace RasterPropMonitorGenerator
 					return Double.NaN;
 			case "RELATIVEINCLINATION":
 				if (target != null) {
-					Orbit targetorbit = target.GetOrbit ();
 					if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 						return Double.NaN;
 					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
@@ -416,6 +419,46 @@ namespace RasterPropMonitorGenerator
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().forward);
 			case "TARGETDISTANCEZ":
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().up);
+			
+			// There goes the neighbourhood...
+			case "TARGETAPOAPSIS":
+				if (target != null)
+					return targetorbit.ApA;
+				else
+					return 0;
+			case "TARGETPERIAPSIS":
+				if (target != null)
+					return targetorbit.PeA;
+				else
+					return 0;
+			case "TARGETINCLINATION":
+				if (target != null)
+					return targetorbit.inclination;
+				else
+					return 0;
+			case "TARGETORBITALVEL":
+				if (target != null)
+					return targetorbit.orbitalSpeed;
+				else
+					return 0;
+			case "TARGETTIMETOAP":
+				if (target != null)
+					return ToDateTime (targetorbit.timeToAp);
+				else
+					return 0;
+			case "TARGETORBPERIOD":
+				if (target != null)
+					return ToDateTime (targetorbit.period);
+				else
+					return 0;
+			case "TARGETTIMETOPE":
+				if (target != null) {
+					if (vessel.orbit.eccentricity < 1)
+						return ToDateTime (targetorbit.timeToPe);
+					else
+						return ToDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period));
+				} else
+					return 0;
 
 
 			// Stock resources by name.
