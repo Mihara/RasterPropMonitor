@@ -48,7 +48,7 @@ namespace RasterPropMonitorGenerator
 		private double totalShipWetMass;
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
-		private double totalDataAmount;
+		//private double totalDataAmount;
 		// SCIENCE!
 		// Sigh. MechJeb math.
 		private double getCurrentThrust (ModuleEngines engine)
@@ -113,7 +113,8 @@ namespace RasterPropMonitorGenerator
 		public void fetchPerPartData ()
 		{
 			resources.Clear ();
-			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = totalDataAmount = 0;
+			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
+			// totalDataAmount = 0;
 
 			foreach (Part part in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
@@ -143,20 +144,20 @@ namespace RasterPropMonitorGenerator
 					} 
 				}
 
-				// there's a different way of finding modules, maybe I can do the same for engines?
-
+				/* Ok, science doesn't work, I'm doing something wrong here...
 				foreach (IScienceDataContainer container in part.FindModulesImplementing<IScienceDataContainer>().ToList()) {
 					ScienceData[] data = container.GetData ();
 					foreach (ScienceData datapoint in data) {
 						totalDataAmount += datapoint.dataAmount;
 					}
 				}
+				*/
 
 			}
 			resourcesAlphabetic = resources.Keys.ToArray ();
 			Array.Sort (resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
-			VesselCrew = (FlightGlobals.ActiveVessel.GetVesselCrew ()).ToArray ();
+			VesselCrew = (vessel.GetVesselCrew ()).ToArray ();
 		}
 
 		private double getResourceByName (string name)
@@ -444,8 +445,10 @@ namespace RasterPropMonitorGenerator
 				return Staging.CurrentStage;
 
 			// SCIENCE!!
+			/*
 			case "SCIENCEDATA":
 				return totalDataAmount;
+				*/
 
 			// Action group flags. If I got that right, upon entering string format it should get cast to something sensible...
 			case "GEAR":
