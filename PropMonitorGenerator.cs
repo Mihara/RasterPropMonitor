@@ -237,7 +237,7 @@ namespace RasterPropMonitorGenerator
 						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {
-								textArray [i] = processString (linesArray [i]);
+								textArray [i] = processString (linesArray [i]).TrimEnd();
 							} else
 								textArray [i] = "";
 						}
