@@ -154,9 +154,16 @@ namespace RasterPropMonitorGenerator
 					}
 				}
 
-
 			}
+
 			resourcesAlphabetic = resources.Keys.ToArray ();
+
+			// Turns out, all those extra small tails in resources interfere with string formatting.
+			foreach (string resource in resourcesAlphabetic) {
+				Vector2d values = resources [resource];
+				resources [resource] = new Vector2d (Math.Round (values.x, 3), values.y);
+			}
+
 			Array.Sort (resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
 			VesselCrew = (vessel.GetVesselCrew ()).ToArray ();
@@ -228,10 +235,6 @@ namespace RasterPropMonitorGenerator
 				Vector3d.right) - vessel.mainBody.pqsController.radius);
 			} else
 				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
-		}
-
-		private string SIFormat(double value) {
-			return "";
 		}
 
 		public object processVariable (string input)
