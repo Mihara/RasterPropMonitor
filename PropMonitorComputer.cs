@@ -43,14 +43,12 @@ namespace RasterPropMonitorGenerator
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
 		private string[] resourcesAlphabetic;
-
 		private double totalShipDryMass;
 		private double totalShipWetMass;
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
-
-		private double totalDataAmount; // SCIENCE!
-
+		private double totalDataAmount;
+		// SCIENCE!
 		// Sigh. MechJeb math.
 		private double getCurrentThrust (ModuleEngines engine)
 		{
@@ -146,7 +144,7 @@ namespace RasterPropMonitorGenerator
 
 				foreach (IScienceDataContainer container in part.FindModulesImplementing<IScienceDataContainer>().ToList()) {
 					ScienceData[] data = container.GetData ();
-					foreach(ScienceData datapoint in data) {
+					foreach (ScienceData datapoint in data) {
 						totalDataAmount += datapoint.dataAmount;
 					}
 				}
@@ -370,9 +368,9 @@ namespace RasterPropMonitorGenerator
 					return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
 			case "LONGITUDETGT_DMS":
 				if (target is Vessel) {
-					return ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ()));
+					return latitudeDMS (ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ())));
 				} else
-					return ClampDegrees180 (vessel.mainBody.GetLongitude (CoM));
+					return latitudeDMS (ClampDegrees180 (vessel.mainBody.GetLongitude (CoM)));
 
 
 			// Orientation
