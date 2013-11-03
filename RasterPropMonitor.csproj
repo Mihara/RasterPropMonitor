@@ -42,6 +42,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropMonitor.cs" />
     <Compile Include="PropMonitorGenerator.cs" />
+    <Compile Include="PropMonitorComputer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
