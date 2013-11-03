@@ -65,7 +65,6 @@ namespace RasterPropMonitorGenerator
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
 		private int vesselNumParts;
-
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
 
@@ -210,7 +209,9 @@ namespace RasterPropMonitorGenerator
 			if (!updateCheck ())
 				return;
 
-			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA && vessel == FlightGlobals.ActiveVessel) {
+			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
+			    vessel == FlightGlobals.ActiveVessel) {
 
 				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {

@@ -143,7 +143,11 @@ namespace RasterPropMonitor
 		public override void OnUpdate ()
 		{
 
-			if (!HighLogic.LoadedSceneIsFlight || !(vessel == FlightGlobals.ActiveVessel && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA))
+			if (!HighLogic.LoadedSceneIsFlight ||
+			    !(vessel == FlightGlobals.ActiveVessel &&
+			    (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
+			    ))
 				return;
 
 			if (screenUpdateRequired) {
