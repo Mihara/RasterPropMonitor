@@ -427,32 +427,32 @@ namespace RasterPropMonitorGenerator
 				else
 					return 0;
 			case "TARGETPERIAPSIS":
-				if (target != null)
+				if (target != null && targetorbit != null)
 					return targetorbit.PeA;
 				else
 					return 0;
 			case "TARGETINCLINATION":
-				if (target != null)
+				if (target != null && targetorbit != null)
 					return targetorbit.inclination;
 				else
 					return 0;
 			case "TARGETORBITALVEL":
-				if (target != null)
+				if (target != null && targetorbit != null)
 					return targetorbit.orbitalSpeed;
 				else
 					return 0;
 			case "TARGETTIMETOAP":
-				if (target != null)
+				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.timeToAp);
 				else
 					return 0;
 			case "TARGETORBPERIOD":
-				if (target != null)
+				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.period);
 				else
 					return 0;
 			case "TARGETTIMETOPE":
-				if (target != null) {
+				if (target != null && targetorbit != null) {
 					if (vessel.orbit.eccentricity < 1)
 						return ToDateTime (targetorbit.timeToPe);
 					else
