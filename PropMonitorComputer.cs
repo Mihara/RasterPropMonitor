@@ -20,10 +20,10 @@ namespace RasterPropMonitorGenerator
 		private double speedVertical;
 		private ITargetable target;
 		private ManeuverNode node;
-		double time;
+		private double time;
 		private ProtoCrewMember[] VesselCrew;
-		double altitudeASL;
-		double altitudeTrue;
+		private double altitudeASL;
+		private double altitudeTrue;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -42,13 +42,14 @@ namespace RasterPropMonitorGenerator
 		}
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
-		string[] resourcesAlphabetic;
-		double totalShipDryMass;
-		double totalShipWetMass;
-		double totalCurrentThrust;
-		double totalMaximumThrust;
+		private string[] resourcesAlphabetic;
 
-		double totalDataAmount; // SCIENCE!
+		private double totalShipDryMass;
+		private double totalShipWetMass;
+		private double totalCurrentThrust;
+		private double totalMaximumThrust;
+
+		private double totalDataAmount; // SCIENCE!
 
 		// Sigh. MechJeb math.
 		private double getCurrentThrust (ModuleEngines engine)
@@ -491,6 +492,7 @@ namespace RasterPropMonitorGenerator
 			}
 
 			// We do similar things for crew rosters.
+			// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
 			if (tokens.Length == 3 && tokens [0] == "CREW") { 
 				ushort crewSeatID = Convert.ToUInt16 (tokens [1]);
 				if (crewSeatID >= VesselCrew.Length)
