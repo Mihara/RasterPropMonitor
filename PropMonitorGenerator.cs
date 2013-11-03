@@ -46,7 +46,7 @@ namespace RasterPropMonitorGenerator
 		public string button8 = "";
 		// Config syntax.
 		private string[] lineSeparator = { Environment.NewLine };
-		private string[] variableListSeparator = { "###" };
+		private string[] variableListSeparator = { "$&$" };
 		private string[] variableSeparator = { "|" };
 		private InternalModule targetScript;
 		private string[] textArray;
