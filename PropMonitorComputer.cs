@@ -47,6 +47,9 @@ namespace RasterPropMonitorGenerator
 		double totalShipWetMass;
 		double totalCurrentThrust;
 		double totalMaximumThrust;
+
+		double totalDataAmount; // SCIENCE!
+
 		// Sigh. MechJeb math.
 		private double getCurrentThrust (ModuleEngines engine)
 		{
@@ -108,7 +111,7 @@ namespace RasterPropMonitorGenerator
 		public void fetchPerPartData ()
 		{
 			resources.Clear ();
-			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
+			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = totalDataAmount = 0;
 
 			foreach (Part part in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
@@ -135,6 +138,15 @@ namespace RasterPropMonitorGenerator
 					if (pm is ModuleEngines) {
 						totalCurrentThrust += getCurrentThrust (pm as ModuleEngines);
 						totalMaximumThrust += getMaximumThrust (pm as ModuleEngines);
+					} 
+				}
+
+				// there's a different way of finding modules, maybe I can do the same for engines?
+
+				foreach (IScienceDataContainer container in part.FindModulesImplementing<IScienceDataContainer>().ToList()) {
+					ScienceData[] data = container.GetData ();
+					foreach(ScienceData datapoint in data) {
+						totalDataAmount += datapoint.dataAmount;
 					}
 				}
 
@@ -435,6 +447,10 @@ namespace RasterPropMonitorGenerator
 			// Staging
 			case "STAGE":
 				return Staging.CurrentStage;
+
+			// SCIENCE!!
+			case "SCIENCEDATA":
+				return totalDataAmount;
 
 			// Action group flags. If I got that right, upon entering string format it should get cast to something sensible...
 			case "GEAR":
