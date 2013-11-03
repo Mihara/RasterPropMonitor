@@ -120,7 +120,9 @@ namespace RasterPropMonitorGenerator
 				textArray [i] = "";
 			}
 
-			// Let's try something...
+
+			// Until I know how to limit this search to a single capsule, I'll have to put it off.
+			/*
 			foreach (InternalProp other in FindObjectsOfType (typeof(InternalProp)) as InternalProp[]) {
 				if (other.vessel == FlightGlobals.ActiveVessel) {
 					RasterPropMonitorGenerator othermodule = other.FindModelComponent<RasterPropMonitorGenerator> ();
@@ -131,6 +133,7 @@ namespace RasterPropMonitorGenerator
 					}
 				}
 			}
+			*/
 			if (comp == null) {
 				Debug.Log ("RasterPropMonitorGenerator: Instantiating a new calculator.");
 				comp = new RasterPropMonitorComputer ();
