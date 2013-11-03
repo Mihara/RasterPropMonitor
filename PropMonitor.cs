@@ -14,6 +14,8 @@ namespace RasterPropMonitor
 		[KSPField]
 		public string textureLayerID = "_MainTex";
 		[KSPField]
+		public string blankingColor = "0,0,0,255";
+		[KSPField]
 		public int screenWidth = 32;
 		[KSPField]
 		public int screenHeight = 8;
@@ -37,7 +39,7 @@ namespace RasterPropMonitor
 		private int lastCharacter = 255;
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
-		private Color emptyColor = new Color (0, 0, 0, 0);
+		private Color emptyColor = new Color (0, 0, 0, 255);
 
 		private void Start ()
 		{
@@ -62,6 +64,18 @@ namespace RasterPropMonitor
 			screenText = new string[screenHeight];
 			for (int i = 0; i < screenText.Length; i++)
 				screenText [i] = "";
+
+			string[] tokens = blankingColor.Split (',');
+			if (tokens.Length != 4) {
+				Debug.LogWarning ("RasterPropMonitor: Blanking color does not make sense, ignoring.");
+			} else {
+				emptyColor = new Color (
+					Convert.ToInt16 (tokens [0]),
+					Convert.ToInt16 (tokens [1]),
+					Convert.ToInt16 (tokens [2]),
+					Convert.ToInt16 (tokens [3])
+				);
+			}
 
 			screenText [0] = "RasterMonitor initializing...";
 			screenUpdateRequired = true;
