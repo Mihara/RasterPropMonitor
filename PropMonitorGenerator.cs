@@ -67,7 +67,7 @@ namespace RasterPropMonitorGenerator
 		private int vesselNumParts;
 
 		// All computations are split into a separate class, because it was getting a mite too big.
-		private PropMonitorComputer comp;
+		public RasterPropMonitorComputer comp;
 
 		public void Start ()
 		{
@@ -121,7 +121,20 @@ namespace RasterPropMonitorGenerator
 				textArray [i] = "";
 			}
 
-			comp = new PropMonitorComputer ();
+			// Let's try something...
+			foreach (InternalProp other in FindObjectsOfType (typeof(InternalProp)) as InternalProp[]) {
+				if (other.vessel == FlightGlobals.ActiveVessel) {
+					RasterPropMonitorGenerator othermodule = other.FindModelComponent<RasterPropMonitorGenerator> ();
+					if (othermodule != null && othermodule.comp != null) {
+						comp = othermodule.comp;
+						Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
+					}
+				}
+			}
+			if (comp == null) {
+				Debug.Log ("RasterPropMonitorGenerator: Instantiating a new calculator.");
+				comp = new RasterPropMonitorComputer ();
+			}
 
 		}
 

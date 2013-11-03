@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace RasterPropMonitorGenerator
 {
-	public class PropMonitorComputer
+	public class RasterPropMonitorComputer
 	{
 		// Data common for various variable calculations
 		private Vessel vessel;
@@ -31,7 +31,7 @@ namespace RasterPropMonitorGenerator
 		private int SASGroupNumber;
 		private int lightGroupNumber;
 
-		public PropMonitorComputer ()
+		public RasterPropMonitorComputer ()
 		{
 			vessel = FlightGlobals.ActiveVessel;
 
@@ -373,9 +373,9 @@ namespace RasterPropMonitorGenerator
 					return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
 			case "LONGITUDETGT_DMS":
 				if (target is Vessel) {
-					return latitudeDMS (ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ())));
+					return longitudeDMS (ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ())));
 				} else
-					return latitudeDMS (ClampDegrees180 (vessel.mainBody.GetLongitude (CoM)));
+					return longitudeDMS (ClampDegrees180 (vessel.mainBody.GetLongitude (CoM)));
 
 
 			// Orientation
