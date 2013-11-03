@@ -43,6 +43,7 @@
     <Compile Include="PropMonitor.cs" />
     <Compile Include="PropMonitorGenerator.cs" />
     <Compile Include="PropMonitorComputer.cs" />
+    <Compile Include="InternalCameraTargetHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
