@@ -126,6 +126,7 @@ namespace RasterPropMonitorGenerator
 				if (other.vessel == FlightGlobals.ActiveVessel) {
 					RasterPropMonitorGenerator othermodule = other.FindModelComponent<RasterPropMonitorGenerator> ();
 					if (othermodule != null && othermodule.comp != null) {
+						// Not going further with that until I know what happens when two IVAs separate.
 						comp = othermodule.comp;
 						Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
 					}
