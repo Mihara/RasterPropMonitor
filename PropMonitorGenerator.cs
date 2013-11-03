@@ -47,7 +47,8 @@ namespace RasterPropMonitorGenerator
 		// Config syntax.
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
-		private string[] variableSeparator = { "|" };
+		//private string[] variableSeparator = { "|" };
+		private string[] variableSeparator = {};
 		private InternalModule targetScript;
 		private string[] textArray;
 		// Important pointers to the screen's data structures.
