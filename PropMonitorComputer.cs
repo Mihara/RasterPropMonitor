@@ -159,10 +159,12 @@ namespace RasterPropMonitorGenerator
 			resourcesAlphabetic = resources.Keys.ToArray ();
 
 			// Turns out, all those extra small tails in resources interfere with string formatting.
+			/* I'm not sure even rounding helps.
 			foreach (string resource in resourcesAlphabetic) {
 				Vector2d values = resources [resource];
 				resources [resource] = new Vector2d (Math.Round (values.x, 3), values.y);
 			}
+			*/
 
 			Array.Sort (resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
