@@ -172,3 +172,20 @@ An alphabetically sorted list of all resources present in the craft is available
 * **GEAR**, **BRAKES**, **SAS**, **LIGHTS** -- Status of the said systems returned as 1 if they are turned on and 0 if they are turned off. To format it in a smooth fashion, use a variation on {0:on;;OFF} format string.
 
 Whew, that's about all of them.
+
+### InternalCameraTargetHelper
+
+A helper module included in the plugin. 
+
+**Problem**: You wish to use an InternalCameraSwitch for docking. 
+To activate this camera, you need to doubleclick on something. Unfortunately, 
+doubleclick resets your target, and you can't doubleclick again to re-target, since the camera switched to
+by InternalCameraSwitch won't let you.
+
+**Solution** Insert
+
+    MODULE {
+	    name = InternalCameraTargetHelper
+	}
+	
+into your internal.cfg. Problem gone. :)
