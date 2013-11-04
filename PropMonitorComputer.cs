@@ -9,15 +9,12 @@ namespace RasterPropMonitorGenerator
 	{
 		// Data common for various variable calculations
 		//private Vessel vessel;
-
 		private int vesselNumParts;
 		private int updateCountdown = 0;
 		private int dataUpdateCountdown = 0;
-		private int refreshRate =int.MaxValue;
+		private int refreshRate = int.MaxValue;
 		private int refreshDataRate = int.MaxValue;
-
 		public bool updateForced = false;
-
 		private Vector3d CoM;
 		private Vector3d up;
 		private Vector3d north;
@@ -53,8 +50,9 @@ namespace RasterPropMonitorGenerator
 			lightGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Light);
 		}
 
-		public void updateRefreshRates(int rate, int dataRate) {
-			refreshRate = Math.Min (rate,refreshRate);
+		public void updateRefreshRates (int rate, int dataRate)
+		{
+			refreshRate = Math.Min (rate, refreshRate);
 			refreshDataRate = Math.Min (dataRate, refreshDataRate);
 		}
 
@@ -85,14 +83,12 @@ namespace RasterPropMonitorGenerator
 				return;
 
 			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			     CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
 			    vessel == FlightGlobals.ActiveVessel) {
 
 				fetchCommonData ();
 			}
 		}
-	
-
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
 		private string[] resourcesAlphabetic;

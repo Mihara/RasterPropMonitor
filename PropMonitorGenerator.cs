@@ -158,7 +158,7 @@ namespace RasterPropMonitorGenerator
 				}
 			}
 
-			comp.updateRefreshRates (refreshRate,refreshDataRate);
+			comp.updateRefreshRates (refreshRate, refreshDataRate);
 
 		}
 
