@@ -7,14 +7,6 @@ namespace RasterPropMonitor
 	{
 		ITargetable target;
 
-		// Problem: You wish to use an InternalCameraSwitch for docking.
-		// To activate this camera, you need to doubleclick on something.
-		// Unfortunately, doubleclick resets your camera, and you can't doubleclick again
-		// to re-target.
-		// Solution:
-		// Insert MODULE {name = InternalCameraTargetHelper} into your internal.cfg
-		// Problem gone. :)
-
 		public override void OnUpdate ()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
