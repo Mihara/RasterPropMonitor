@@ -129,7 +129,7 @@ None of these parameters know anything about vectors and orientations, mind.
 #### Names
 
 * **NAME** -- Name of the current vessel.
-* **CREW_**<*id*>**_**<*FULL*|*FIRST*|*LAST*> -- Names of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a capsule, CREW_0_FIRST will produce "Jebediah". An empty string if the seat is unoccupied.
+* **CREW_**<*id*>**_**<**FULL**|**FIRST**|**LAST**> -- Names of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a capsule, CREW_0_FIRST will produce "Jebediah". An empty string if the seat is unoccupied.
 * **TARGETNAME** -- Name of the target.
 
 #### Coordinates
@@ -141,7 +141,7 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Orientation
 
-* **HEADING**, **PITCH**, **ROLL* -- should be obvious.
+* **HEADING**, **PITCH**, **ROLL** -- should be obvious.
 
 #### Rendezvous and docking
 
@@ -163,7 +163,7 @@ Notice that resource quantities are rounded down to 0.01, because otherwise they
 
 An alphabetically sorted list of all resources present in the craft is available as well:
 
-* **LISTR_**<*id*>**_**<*NAME*|*VAL*|*MAX*> -- where id's start with 0, VAL is the current value and MAX is the total storable quantity, so LISTR_0_NAME is the name of the first resource in an alphabetically sorted list.
+* **LISTR_**<*id*>**_**<**NAME**|**VAL**|**MAX**> -- where id's start with 0, VAL is the current value and MAX is the total storable quantity, so LISTR_0_NAME is the name of the first resource in an alphabetically sorted list.
 
 #### Miscellanneous
 
