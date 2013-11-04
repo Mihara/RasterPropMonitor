@@ -41,6 +41,7 @@ namespace RasterPropMonitorGenerator
 		private int brakeGroupNumber;
 		private int SASGroupNumber;
 		private int lightGroupNumber;
+		private int RCSGroupNumber;
 
 		public void Start ()
 		{
@@ -51,6 +52,7 @@ namespace RasterPropMonitorGenerator
 			brakeGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Brakes);
 			SASGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.SAS);
 			lightGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Light);
+			RCSGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.RCS);
 		}
 
 		public void updateRefreshRates (int rate, int dataRate)
@@ -629,6 +631,8 @@ namespace RasterPropMonitorGenerator
 				return FlightGlobals.ActiveVessel.ActionGroups.groups [SASGroupNumber].GetHashCode ();
 			case "LIGHTS":
 				return FlightGlobals.ActiveVessel.ActionGroups.groups [lightGroupNumber].GetHashCode ();
+			case "RCS":
+				return FlightGlobals.ActiveVessel.ActionGroups.groups [RCSGroupNumber].GetHashCode ();
 
 			}
 			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
