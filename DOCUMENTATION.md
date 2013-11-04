@@ -268,7 +268,7 @@ To activate this camera, you need to doubleclick on something. Unfortunately,
 doubleclick resets your target, and you can't doubleclick again to re-target,
 since the camera switched to by InternalCameraSwitch won't let you.
 
-**Solution** Insert
+**Solution**: Insert
 
     MODULE {
 	    name = InternalCameraTargetHelper
