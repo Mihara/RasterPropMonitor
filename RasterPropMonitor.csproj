@@ -48,5 +48,6 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="DOCUMENTATION.md" />
   </ItemGroup>
 </Project>
