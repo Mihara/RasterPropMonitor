@@ -55,9 +55,68 @@ how String.Format works and some examples you can see [this handy blog post](htt
 
     Altitude is {0:##0.00} $&$ ALTITUDE
 
-The special sequence of symbols "*$&$*" separates the text to be printed from a space-separated list of variables to be inserted into the format specifiers on the line.
+The special sequence of symbols "**$&$**" separates the text to be printed from a space-separated list of variables to be inserted into the format specifiers on the line.
 
 ### Known variables
 
 Boy, this list got long.
+
+#### Speeds
+
+* **VERTSPEED** -- Vertical speed in m/s.
+* **SURFSPEED** -- Surface speed in m/s.
+* **ORBTSPEED** -- Orbital speed in m/s.
+* **TRGTSPEED** -- Speed relative to target in m/s.
+* **HORZVELOCITY** -- Horizontal component of surface velocity in m/s.
+* **TGTRELX**, **TGTRELY**, **TGTRELZ**, -- Components of speed relative to target, in m/s.
+
+#### Altitudes
+
+* **ALTITUDE** -- Altitude above sea level in meters.
+* **RADARALT** -- Altitude above the ground in meters.
+
+#### Masses
+
+* **MASSDRY** -- Dry mass of the ship, i.e. excluding resources.
+* **MASSWET** -- Total mass of the ship.
+
+#### Thrust and related parameters
+
+None of these parameters know anything about vectors and orientations, mind.
+
+* **THRUST** -- Total amount of thrust currently produced by the engines.
+* **THRUSTMAX** -- Maximum amount of thrust the currently enabled engines can produce. 
+* **TWR** -- Thrust to weight relative to the body currently being orbited calculated from the current throttle level.
+* **TWRMAX** -- TWR you would get at full throttle.
+* **ACCEL** -- Current acceleration in m/s^2
+* **MAXACCEL** -- Maximum acceleration in m/s^2
+* **GFORCE** -- G forces being experienced by the vessel in g.
+
+#### Maneuver node
+
+* **MNODETIMEVAL** -- time until the current maneuver node. This is a DateTime value, so [format accordingly](http://msdn.microsoft.com/en-us/library/8kb3ddd4(v=vs.90).aspx).
+* **MNODEDV** -- Since the time until maneuver node can be positive or negative, but DateTime can't be, this variable produces a "+" string if you're currently past the node marker, "-" string if you aren't and a space otherwise.
+
+#### Orbit parameters
+
+* **ORBITBODY** -- Name of the body we're orbiting.
+* **PERIAPSIS** -- Periapsis of the current orbit in meters.
+* **APOAPSIS** -- Periapsis of the current orbit in meters.
+* **INCLINATION** -- Inclination of the current orbit in degrees.
+* **ECCENTRICITY** -- Eccentricity of the current orbit.
+* **ORBPERIOD** -- Period of the current orbit, a DateTime value.
+* **TIMETOAP** -- Time to apoapsis, a DateTime value.
+* **TIMETOPE** -- Time to periapsis, a DateTime value.
+
+#### Time
+
+* **UT** -- Universal time, a DateTime value.
+* **MET** -- Mission Elapsed Time, a DateTime value.
+
+#### Names
+
+* **NAME** -- Name of the current vessel.
+* **CREW_**<*id*>**_**<*FULL*|*FIRST*|*LAST*> -- Names of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a capsule, CREW_0_FIRST will produce "Jebediah".
+
+#### Coordinates
 

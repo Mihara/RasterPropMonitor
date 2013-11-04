@@ -395,7 +395,7 @@ namespace RasterPropMonitorGenerator
 					else
 						return "-";
 				} else
-					return "";
+					return " ";
 			case "MNODEDV":
 				if (node != null)
 					return node.GetBurnVector (vessel.orbit).magnitude;
