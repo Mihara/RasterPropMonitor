@@ -25,7 +25,8 @@ namespace RasterPropMonitorGenerator
 		private ProtoCrewMember[] VesselCrew;
 		private double altitudeASL;
 		private double altitudeTrue;
-		Orbit targetorbit;
+		private Orbit targetorbit;
+		private Boolean orbitSensibility = false;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -110,6 +111,7 @@ namespace RasterPropMonitorGenerator
 			} else {
 				velocityRelativeTarget = targetSeparation = new Vector3d (0, 0, 0);
 			}
+			orbitSensibility = orbitMakesSense ();
 		}
 
 		public void fetchPerPartData ()
@@ -237,6 +239,17 @@ namespace RasterPropMonitorGenerator
 				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
 		}
 
+		private Boolean orbitMakesSense ()
+		{
+			if (vessel.situation == Vessel.Situations.FLYING ||
+			    vessel.situation == Vessel.Situations.SUB_ORBITAL ||
+			    vessel.situation == Vessel.Situations.ORBITING ||
+			    vessel.situation == Vessel.Situations.ESCAPING ||
+			    vessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
+				return true;
+			return false;
+		}
+
 		public object processVariable (string input)
 		{
 			switch (input) {
@@ -326,23 +339,44 @@ namespace RasterPropMonitorGenerator
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
 			case "PERIAPSIS":
-				return FlightGlobals.ship_orbit.PeA;
+				if (orbitSensibility)
+					return FlightGlobals.ship_orbit.PeA;
+				else
+					return 0;
 			case "APOAPSIS":
-				return FlightGlobals.ship_orbit.ApA;
+				if (orbitSensibility)
+					return FlightGlobals.ship_orbit.ApA;
+				else
+					return 0;
 			case "INCLINATION":
-				return FlightGlobals.ship_orbit.inclination;
+				if (orbitSensibility)
+					return FlightGlobals.ship_orbit.inclination;
+				else
+					return 0;
 			case "ECCENTRICITY":
-				return vessel.orbit.eccentricity;
+				if (orbitSensibility)
+					return vessel.orbit.eccentricity;
+				else
+					return 0;
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
 			case "ORBPERIOD":
-				return ToDateTime (vessel.orbit.period);
-			case "TIMETOAP":
-				return ToDateTime (vessel.orbit.timeToAp); 
-			case "TIMETOPE":
-				if (vessel.orbit.eccentricity < 1)
-					return ToDateTime (vessel.orbit.timeToPe);
+				if (orbitSensibility)
+					return ToDateTime (vessel.orbit.period);
 				else
-					return ToDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+					return ToDateTime (0);
+			case "TIMETOAP":
+				if (orbitSensibility)
+					return ToDateTime (vessel.orbit.timeToAp);
+				else
+					return ToDateTime (0);
+			case "TIMETOPE":
+				if (orbitSensibility) {
+					if (vessel.orbit.eccentricity < 1)
+						return ToDateTime (vessel.orbit.timeToPe);
+					else
+						return ToDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+				} else
+					return ToDateTime (0);
 
 			// Time
 			case "UT":
