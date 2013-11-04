@@ -523,6 +523,11 @@ namespace RasterPropMonitorGenerator
 					return targetorbit.inclination;
 				else
 					return 0;
+			case "TARGETECCENTRICITY":
+				if (target != null && targetorbit != null)
+					return targetorbit.eccentricity;
+				else
+					return 0;
 			case "TARGETORBITALVEL":
 				if (target != null && targetorbit != null)
 					return targetorbit.orbitalSpeed;
@@ -532,12 +537,12 @@ namespace RasterPropMonitorGenerator
 				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.timeToAp);
 				else
-					return 0;
+					return ToDateTime(0);
 			case "TARGETORBPERIOD":
 				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.period);
 				else
-					return 0;
+					return ToDateTime(0);
 			case "TARGETTIMETOPE":
 				if (target != null && targetorbit != null) {
 					if (vessel.orbit.eccentricity < 1)
@@ -545,7 +550,7 @@ namespace RasterPropMonitorGenerator
 					else
 						return ToDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period));
 				} else
-					return 0;
+					return ToDateTime(0);
 
 
 			// Stock resources by name.
