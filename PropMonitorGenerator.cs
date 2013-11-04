@@ -60,12 +60,10 @@ namespace RasterPropMonitorGenerator
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
 		private int updateCountdown = 0;
-		private int dataUpdateCountdown = 0;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
-		private int vesselNumParts;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
 
@@ -122,6 +120,7 @@ namespace RasterPropMonitorGenerator
 			}
 
 			// The semi-clever bit: Recycling computational module.
+			InternalProp currentProp = null;
 			foreach (Part part in vessel.parts) {
 				Part currentpod = null;
 				if (part.internalModel != null) {
@@ -137,20 +136,29 @@ namespace RasterPropMonitorGenerator
 				// This should leave us with a reference to the particular pod we're in at some point. From there...
 				if (currentpod != null) {
 					foreach (InternalProp prop in currentpod.internalModel.props) {
-						RasterPropMonitorGenerator other = prop.FindModelComponent<RasterPropMonitorGenerator> ();
-						if (other != null && other != this && other.comp != null) {
+						RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer> ();
+						if (other != null) {
+							currentProp = prop;
 							Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
-							comp = other.comp;
+							comp = other;
 							break;
 						}
 					}
 				}
+				if (comp != null)
+					break;
 			}
 
 			if (comp == null) {
 				Debug.Log ("RasterPropMonitorGenerator: Instantiating a new calculator.");
-				comp = new RasterPropMonitorComputer ();
+				base.internalProp.AddModule ("RasterPropMonitorComputer");
+				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer> ();
+				if (comp == null) {
+					Debug.Log ("RasterPropMonitorGenerator: Failed to instantiate a calculator, wtf?");
+				}
 			}
+
+			comp.updateRefreshRates (refreshRate,refreshDataRate);
 
 		}
 
@@ -158,6 +166,7 @@ namespace RasterPropMonitorGenerator
 		{
 			activePage = buttonID;
 			updateForced = true;
+			comp.updateForced = true;
 			currentPageIsMutable = false;
 			currentPageFirstPassComplete = false;
 		}
@@ -196,22 +205,13 @@ namespace RasterPropMonitorGenerator
 			} else
 				return input;
 		}
-		// Update according to the given refresh rate or when number of parts changes.
+		// Update according to the given refresh rate.
 		private bool updateCheck ()
 		{
-			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced) {
-				updateCountdown = refreshRate;
-				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0) {
-					dataUpdateCountdown = refreshDataRate;
-					vesselNumParts = vessel.Parts.Count;
-					if (currentPageIsMutable || !currentPageFirstPassComplete) {
-						comp.fetchPerPartData ();
-					}
-				}
+			if (updateCountdown <= 0 || updateForced) {
 				updateForced = false;
 				return true;
 			} else {
-				dataUpdateCountdown--;
 				updateCountdown--;
 				return false;
 			}
@@ -222,12 +222,12 @@ namespace RasterPropMonitorGenerator
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
-			if (!updateCheck ())
-				return;
-
 			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
 			    vessel == FlightGlobals.ActiveVessel) {
+
+				if (!updateCheck ())
+					return;
 
 				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
@@ -239,8 +239,6 @@ namespace RasterPropMonitorGenerator
 					}
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
-						comp.fetchCommonData (); // Doesn't seem to be a better place to do it in...
-
 						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {

@@ -5,10 +5,19 @@ using UnityEngine;
 
 namespace RasterPropMonitorGenerator
 {
-	public class RasterPropMonitorComputer
+	public class RasterPropMonitorComputer: InternalModule
 	{
 		// Data common for various variable calculations
-		private Vessel vessel;
+		//private Vessel vessel;
+
+		private int vesselNumParts;
+		private int updateCountdown = 0;
+		private int dataUpdateCountdown = 0;
+		private int refreshRate =int.MaxValue;
+		private int refreshDataRate = int.MaxValue;
+
+		public bool updateForced = false;
+
 		private Vector3d CoM;
 		private Vector3d up;
 		private Vector3d north;
@@ -33,9 +42,9 @@ namespace RasterPropMonitorGenerator
 		private int SASGroupNumber;
 		private int lightGroupNumber;
 
-		public RasterPropMonitorComputer ()
+		public void Start ()
 		{
-			vessel = FlightGlobals.ActiveVessel;
+			//vessel = FlightGlobals.ActiveVessel;
 
 			// Well, it looks like we have to do that bit just like in Firespitter.
 			gearGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Gear);
@@ -43,6 +52,47 @@ namespace RasterPropMonitorGenerator
 			SASGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.SAS);
 			lightGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Light);
 		}
+
+		public void updateRefreshRates(int rate, int dataRate) {
+			refreshRate = Math.Min (rate,refreshRate);
+			refreshDataRate = Math.Min (dataRate, refreshDataRate);
+		}
+
+		private bool updateCheck ()
+		{
+			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced) {
+				updateCountdown = refreshRate;
+				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced) {
+					dataUpdateCountdown = refreshDataRate;
+					vesselNumParts = vessel.Parts.Count;
+					fetchPerPartData ();
+				}
+				updateForced = false;
+				return true;
+			} else {
+				dataUpdateCountdown--;
+				updateCountdown--;
+				return false;
+			}
+		}
+
+		public override void OnUpdate ()
+		{
+			if (!HighLogic.LoadedSceneIsFlight)
+				return;
+
+			if (!updateCheck ())
+				return;
+
+			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+			     CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
+			    vessel == FlightGlobals.ActiveVessel) {
+
+				fetchCommonData ();
+			}
+		}
+	
+
 
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
 		private string[] resourcesAlphabetic;
