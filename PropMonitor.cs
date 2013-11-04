@@ -27,9 +27,7 @@ namespace RasterPropMonitor
 		public int fontLetterWidth = 16;
 		[KSPField]
 		public int fontLetterHeight = 32;
-		[KSPField]
 		public string[] screenText;
-		[KSPField]
 		public bool screenUpdateRequired = false;
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;

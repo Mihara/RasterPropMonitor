@@ -16,5 +16,22 @@
    
 ## Configuring a monitor
 
-Monitors are created using two modules: RasterPropMonitor and RasterPropMonitorGenerator in a prop configuration file. RasterPropMonitor 
-takes care of the display
+Monitors are created using two modules: **RasterPropMonitor** and **RasterPropMonitorGenerator** in a prop configuration file. RasterPropMonitor 
+takes care of the display, while RasterPropMonitorGenerator feeds it with the data to display.
+
+### RasterPropMonitor configuration
+
+* **screenTransform** -- the name of the screen object.
+* **textureLayerID** -- Unity name of a texture ID in the object's material that the screen will be printed on. Defaults to "_MainTex".
+* **fontTransform** -- Where to get the font bitmap. You can either place a texture somewhere in GameData and refer to it exactly like 
+  you would in a MODEL configuration node *(KSP reads everything that looks like a texture and is stored outside of a PluginData directory)*
+  or put the texture on a model transform and give it's name. 
+* **blankingColor** -- R,G,B,A of a color that will be used to blank out a screen between refreshes.
+* **screenWidth**/**screenHeight** -- Number of characters in a line and number of lines.
+* **screenPixelWidth**/**screenPixelHeight** -- Width and height of the texture to be generated for the screen.
+* **fontLetterWidth**/**fontLetterHeight** -- Width and height of a font cell in pixels.
+
+Letters are printed on the screen in pixel-perfect mapping, so one pixel of a font texture will always correspond to one pixel of the generated screen texture -- as a result, you can have less characters in a line than would fit into screenPixelWidth, but can't have more.
+
+### RasterPropMonitorGenerator configuration
+
