@@ -17,6 +17,8 @@ namespace RasterPropMonitorGenerator
 		public bool updateForced = false;
 		private Vector3d CoM;
 		private Vector3d up;
+		private Vector3d forward;
+		private Vector3d right;
 		private Vector3d north;
 		private Quaternion rotationVesselSurface;
 		private Quaternion rotationSurface;
@@ -26,6 +28,7 @@ namespace RasterPropMonitorGenerator
 		private double speedVertical;
 		private ITargetable target;
 		private Vector3d targetSeparation;
+		private Quaternion targetOrientation;
 		private ManeuverNode node;
 		private double time;
 		private ProtoCrewMember[] VesselCrew;
@@ -134,6 +137,8 @@ namespace RasterPropMonitorGenerator
 		{
 			CoM = vessel.findWorldCenterOfMass ();
 			up = (CoM - vessel.mainBody.position).normalized;
+			forward = vessel.GetTransform ().up;
+			right = vessel.GetTransform ().right;
 			north = Vector3d.Exclude (up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - CoM).normalized;
 			rotationSurface = Quaternion.LookRotation (north, up);
 			rotationVesselSurface = Quaternion.Inverse (Quaternion.Euler (90, 0, 0) * Quaternion.Inverse (vessel.GetTransform ().rotation) * rotationSurface);
@@ -153,9 +158,11 @@ namespace RasterPropMonitorGenerator
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
 				targetSeparation = vessel.GetTransform ().position - target.GetTransform ().position;
+				targetOrientation = target.GetTransform ().rotation;
 				targetorbit = target.GetOrbit ();
 			} else {
-				velocityRelativeTarget = targetSeparation = new Vector3d (0, 0, 0);
+				velocityRelativeTarget = targetSeparation = Vector3d.zero;
+				targetOrientation = new Quaternion ();
 			}
 			orbitSensibility = orbitMakesSense ();
 		}
@@ -294,6 +301,19 @@ namespace RasterPropMonitorGenerator
 			    vessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
 				return true;
 			return false;
+		}
+
+		private static float normalAngle (Vector3 a, Vector3 b, Vector3 up)
+		{
+			return signedAngle (Vector3.Cross (up, a), Vector3.Cross (up, b), up);
+		}
+
+
+		private static float signedAngle (Vector3 v1, Vector3 v2, Vector3 up)
+		{
+			if (Vector3.Dot (Vector3.Cross (v1, v2), up) < 0)
+				return -Vector3.Angle (v1, v2);
+			return Vector3.Angle (v1, v2);
 		}
 
 		public object processVariable (string input)
@@ -506,6 +526,22 @@ namespace RasterPropMonitorGenerator
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().forward);
 			case "TARGETDISTANCEZ":
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().up);
+
+			case "TARGETANGLEX":
+				if (target != null && target is ModuleDockingNode)
+					return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, up);
+				else
+					return 0;
+			case "TARGETANGLEY":
+				if (target != null && target is ModuleDockingNode)
+					return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, -right);
+				else
+					return 0;
+			case "TARGETANGLEZ":
+				if (target != null && target is ModuleDockingNode)
+					return normalAngle ((target as ModuleDockingNode).GetTransform ().up, up, -forward);
+				else
+					return 0;
 			
 			// There goes the neighbourhood...
 			case "TARGETAPOAPSIS":
@@ -537,12 +573,12 @@ namespace RasterPropMonitorGenerator
 				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.timeToAp);
 				else
-					return ToDateTime(0);
+					return ToDateTime (0);
 			case "TARGETORBPERIOD":
 				if (target != null && targetorbit != null)
 					return ToDateTime (targetorbit.period);
 				else
-					return ToDateTime(0);
+					return ToDateTime (0);
 			case "TARGETTIMETOPE":
 				if (target != null && targetorbit != null) {
 					if (vessel.orbit.eccentricity < 1)
@@ -550,7 +586,7 @@ namespace RasterPropMonitorGenerator
 					else
 						return ToDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period));
 				} else
-					return ToDateTime(0);
+					return ToDateTime (0);
 
 
 			// Stock resources by name.
