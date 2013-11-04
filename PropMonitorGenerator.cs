@@ -48,7 +48,7 @@ namespace RasterPropMonitorGenerator
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
 		//private string[] variableSeparator = { "|" };
-		private string[] variableSeparator = {};
+		private string[] variableSeparator = { };
 		private InternalModule targetScript;
 		private string[] textArray;
 		// Important pointers to the screen's data structures.
@@ -121,25 +121,32 @@ namespace RasterPropMonitorGenerator
 				textArray [i] = "";
 			}
 
-
-			// Until I know how to limit this search to a single capsule, I'll have to put it off.
-			// Note for the future. InternalModel is a feature of a Part.
-			// Which means I should be able to limit it to a single capsule by traversing the part tree --
-			// if I can identify the InternalModel which contains the prop this module is attached to
-			// when looking through parts, this should be feasible.
-
-			/*
-			foreach (InternalProp other in FindObjectsOfType (typeof(InternalProp)) as InternalProp[]) {
-				if (other.vessel == FlightGlobals.ActiveVessel) {
-					RasterPropMonitorGenerator othermodule = other.FindModelComponent<RasterPropMonitorGenerator> ();
-					if (othermodule != null && othermodule.comp != null) {
-						// Not going further with that until I know what happens when two IVAs separate.
-						comp = othermodule.comp;
-						Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
+			// The semi-clever bit: Recycling computational module.
+			foreach (Part part in vessel.parts) {
+				Part currentpod = null;
+				if (part.internalModel != null) {
+					// I'm not sure I'm not doing something radically silly here.
+					foreach (InternalProp prop in part.internalModel.props) {
+						RasterPropMonitorGenerator myself = prop.FindModelComponent<RasterPropMonitorGenerator> ();
+						if (myself != null && myself == this) {
+							currentpod = part;
+							break;
+						}
+					}
+				}
+				// This should leave us with a reference to the particular pod we're in at some point. From there...
+				if (currentpod != null) {
+					foreach (InternalProp prop in currentpod.internalModel.props) {
+						RasterPropMonitorGenerator other = prop.FindModelComponent<RasterPropMonitorGenerator> ();
+						if (other != null && other != this && other.comp != null) {
+							Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
+							comp = other.comp;
+							break;
+						}
 					}
 				}
 			}
-			*/
+
 			if (comp == null) {
 				Debug.Log ("RasterPropMonitorGenerator: Instantiating a new calculator.");
 				comp = new RasterPropMonitorComputer ();
@@ -237,7 +244,7 @@ namespace RasterPropMonitorGenerator
 						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {
-								textArray [i] = processString (linesArray [i]).TrimEnd();
+								textArray [i] = processString (linesArray [i]).TrimEnd ();
 							} else
 								textArray [i] = "";
 						}
