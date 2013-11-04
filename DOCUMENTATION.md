@@ -1,3 +1,14 @@
+## Usage recommendations
+
+Please, if you use this plugin to create a screen of your own, distribute a copy of the plugin in this fashion with your mod package:
+
+* GameData\YourGamedataDirectory\Whatever
+* GameData\JSI\RasterPropMonitor\Plugins\RasterPropMonitor.dll
+
+and include, in whichever readme file you distribute, the link to this GitHub repository:
+
+https://github.com/Mihara/RasterPropMonitor/
+
 ## Creating a display model for RasterPropMonitor
 
 1. You need a font bitmap. The plugin treats fonts as if they were fixed width, so it's best to take a fixed width font to start with.
@@ -142,3 +153,22 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Resources
 
+Notice that resource quantities are rounded down to 0.01, because otherwise they never become properly zero. If your resource requires a more fine grained measurement, poke me and we'll talk about it.
+
+* **ELECTRIC**, **ELECTRICMAX** -- Current and maximum quantity of ElectricCharge.
+* **FUEL**, **FUELMAX** -- Same for LiquidFuel
+* **OXIDIZER**, **OXIDIZERMAX** -- Same for Oxidizer
+* **MONOPROP**, **MONOPROPMAX** -- Same for MonoPropellant
+* **XENON**, **XENONMAX** -- Same for XenonGas
+
+An alphabetically sorted list of all resources present in the craft is available as well:
+
+* **LISTR_**<*id*>**_**<*NAME*|*VAL*|*MAX*> -- where id's start with 0, VAL is the current value and MAX is the total storable quantity, so LISTR_0_NAME is the name of the first resource in an alphabetically sorted list.
+
+#### Miscellanneous
+
+* **STAGE** -- Number of current stage.
+* **SCIENCEDATA** -- Amount of science data in Mits stored in the entire vessel.
+* **GEAR**, **BRAKES**, **SAS**, **LIGHTS** -- Status of the said systems returned as 1 if they are turned on and 0 if they are turned off. To format it in a smooth fashion, use a variation on {0:on;;OFF} format string.
+
+Whew, that's about all of them.
