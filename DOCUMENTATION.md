@@ -11,7 +11,7 @@
    
 2. You need a model for your screen. If it's to have buttons, they need to be named transforms with isTrigger on them enabled.
    The screen must be a named transform, arranged in such a way that the texture's 0,1 coordinates are the top left corner of the screen.
-   It must already have a texture in the layer ("_MainTex", "_Emissive", etc) that the plugin will replace. To save memory, that
+   It must already have a texture in the layer ("\_MainTex", "\_Emissive", etc) that the plugin will replace. To save memory, that
    placeholder texture should be the minimum size possible, which for KSP appears to be 32x32 pixels.
    
 ## Configuring a monitor
@@ -34,4 +34,30 @@ takes care of the display, while RasterPropMonitorGenerator feeds it with the da
 Letters are printed on the screen in pixel-perfect mapping, so one pixel of a font texture will always correspond to one pixel of the generated screen texture -- as a result, you can have less characters in a line than would fit into screenPixelWidth, but can't have more.
 
 ### RasterPropMonitorGenerator configuration
+
+* **refreshRate** -- The screen will be redrawn no more often than once this number of frames.
+* **refreshDataRate** -- Various computationally intensive tasks will be performed no more often than once this number of frames.
+* **page1,page2...page8** -- Page definitions.
+* **button1,button2...button8** -- Button transform names that correspond to pages.
+
+You need to have at least one page (page1). Clicking on button2 will cause page2 to be rendered, etc. If there is a button2 option, but no page2 defined, the screen will be blanked.
+
+Pages can be defined in one of two ways -- by referencing a text file that contains a complete screen definition, or directly in the page parameter.
+Text file reference is just like a texture URL, the only difference is that it must have a file extension.
+
+If you wish to insert a line break in the page definition written directly in a prop config file, you need to replace it with "**$$$**". If you wish to use the { and } format string characters in such a screen definition, you need to replace **{** with **<=** and **}** with **=>**, because KSP mangles them upon reading from prop.cfg files.
+
+### Screen definitions
+
+Screen definitions are normal text files in UTF-8 encoding, lines are separated by normal line break characters.
+The real power of screen definitions comes from String.Format: various pieces of data can be inserted anywhere into the text. For a quick reference of 
+how String.Format works and some examples you can see [this handy blog post](http://blog.stevex.net/string-formatting-in-csharp/). An example:
+
+    Altitude is {0:##0.00} $&$ ALTITUDE
+
+The special sequence of symbols "*$&$*" separates the text to be printed from a space-separated list of variables to be inserted into the format specifiers on the line.
+
+### Known variables
+
+Boy, this list got long.
 
