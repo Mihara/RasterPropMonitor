@@ -59,7 +59,9 @@ The special sequence of symbols "**$&$**" separates the text to be printed from 
 
 ### Known variables
 
-Boy, this list got long.
+Boy, this list got long. 
+
+I am warning you that my understanding of the mathematics involved is practically nonexistent. If any parameter isn't what you expect it should be, please detail in what way and if possible, what should I do to fix it.
 
 #### Speeds
 
@@ -116,7 +118,27 @@ None of these parameters know anything about vectors and orientations, mind.
 #### Names
 
 * **NAME** -- Name of the current vessel.
-* **CREW_**<*id*>**_**<*FULL*|*FIRST*|*LAST*> -- Names of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a capsule, CREW_0_FIRST will produce "Jebediah".
+* **CREW_**<*id*>**_**<*FULL*|*FIRST*|*LAST*> -- Names of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a capsule, CREW_0_FIRST will produce "Jebediah". An empty string if the seat is unoccupied.
+* **TARGETNAME** -- Name of the target.
 
 #### Coordinates
+
+* **LATITUDE** -- Latitude of the vessel in degrees. Negative is south.
+* **LONGITUDE** -- Longitude of the vessel in degrees. Negative is west.
+* **LATITUDE_DMS**,**LONGITUDE_DMS** -- Same, but as a string converted to degrees, minutes and seconds.
+* **LATITUDETGT**,**LONGITUDETGT**,**LATITUDETGT_DMS**,**LONGITUDETGT_DMS** -- Same as above, but of a target vessel.
+
+#### Orientation
+
+* **HEADING**, **PITCH**, **ROLL* -- should be obvious.
+
+#### Rendezvous and docking
+
+* **TARGETDISTANCE** -- Distance to the target in meters.
+* **TARGETDISTANCEX**, **TARGETDISTANCEY**, **TARGETDISTANCEZ** -- Distance to the target separated by axis.
+* **RELATIVEINCLINATION** -- Relative inclination of the target orbit.
+* **TARGETANGLEX**, **TARGETANGLEY**, **TARGETANGLEZ** -- Angles between axes of the capsule and a target docking port.
+* **TARGETAPOAPSIS**, **TARGETPERIAPSIS**, **TARGETINCLINATION**,  **TARGETECCENTRICITY**,  **TARGETORBITALVEL**,  **TARGETIMETOAP**,  **TARGETORBPERIOD**,  **TARGETTIMETOPE**,  **TARGETTIMETOAP** -- parameters of the target's orbit, if one exists. Same considerations as for the vessel's own orbital parameters apply.
+
+#### Resources
 
