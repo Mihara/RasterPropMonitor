@@ -273,11 +273,6 @@ namespace RasterPropMonitorGenerator
 		{
 			return -SwapYZ (o.GetOrbitNormal ()).normalized;
 		}
-
-		private static DateTime ToDateTime (double seconds)
-		{
-			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
-		}
 		// Another piece from MechJeb.
 		private void fetchTrueAltitude ()
 		{
@@ -310,12 +305,29 @@ namespace RasterPropMonitorGenerator
 			return signedAngle (Vector3.Cross (up, a), Vector3.Cross (up, b), up);
 		}
 
-
 		private static float signedAngle (Vector3 v1, Vector3 v2, Vector3 up)
 		{
 			if (Vector3.Dot (Vector3.Cross (v1, v2), up) < 0)
 				return -Vector3.Angle (v1, v2);
 			return Vector3.Angle (v1, v2);
+		}
+		/*
+		private static DateTime ToDateTime (double seconds)
+		{
+			return new DateTime (TimeSpan.FromSeconds (seconds).Ticks);
+		}
+		*/
+		private static string FormatDateTime (double seconds, Boolean signed, Boolean noyears, Boolean plusskip)
+		{
+			TimeSpan span = TimeSpan.FromSeconds (Math.Abs (seconds));
+			int years = (int)Math.Floor (span.TotalDays / 365);
+			span -= new TimeSpan (365 * years, 0, 0, 0);
+			double fracseconds = Math.Round (span.TotalSeconds - Math.Floor (span.TotalSeconds), 1);
+
+			string formatstring = (signed ? (plusskip?"{0:+;-; }":"{0: ;-; }") : "") + (noyears ? "" : "{1:00}:") + "{2:000}:{3:00}:{4:00}:{5:00.0}";
+
+			return String.Format (formatstring, Math.Sign (seconds), years, span.TotalDays, span.TotalHours, span.Minutes, span.Seconds + fracseconds);
+
 		}
 
 		public object processVariable (string input)
@@ -350,11 +362,11 @@ namespace RasterPropMonitorGenerator
 				if (speedVertical < 0) {
 					double secondsToImpact = (altitudeTrue / speedVertical) * 0.9;
 					if (secondsToImpact > 86400 || secondsToImpact < 0) {
-						return ToDateTime (0);
+						return FormatDateTime (0,false,true,false);
 					} else
-						return ToDateTime (secondsToImpact); // 0.9 is a fudge factor, so that you know you have AT LEAST this long until you die.
+						return FormatDateTime (secondsToImpact,false,true,false); // 0.9 is a fudge factor, so that you know you have AT LEAST this long until you die.
 				} else
-					return ToDateTime (0);
+					return FormatDateTime (0,false,true,false);
 
 			// Altitudes
 			case "ALTITUDE":
@@ -385,19 +397,11 @@ namespace RasterPropMonitorGenerator
 				return vessel.geeForce_immediate;
 
 			// Maneuvers
-			case "MNODETIMEVAL":
+			case "MNODETIME":
 				if (node != null)
-					return ToDateTime (Math.Abs (node.UT - time));
+					return FormatDateTime (node.UT - time, true, false,true);
 				else
-					return ToDateTime (0);
-			case "MNODETIMESIGN":
-				if (node != null) {
-					if ((node.UT - time) < 0)
-						return "+";
-					else
-						return "-";
-				} else
-					return " ";
+					return FormatDateTime (0, true, false,true);
 			case "MNODEDV":
 				if (node != null)
 					return node.GetBurnVector (vessel.orbit).magnitude;
@@ -429,28 +433,28 @@ namespace RasterPropMonitorGenerator
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
 			case "ORBPERIOD":
 				if (orbitSensibility)
-					return ToDateTime (vessel.orbit.period);
+					return FormatDateTime (vessel.orbit.period,false,false,false);
 				else
-					return ToDateTime (0);
+					return FormatDateTime (0,false,false,false);
 			case "TIMETOAP":
 				if (orbitSensibility)
-					return ToDateTime (vessel.orbit.timeToAp);
+					return FormatDateTime (vessel.orbit.timeToAp,false,false,false);
 				else
-					return ToDateTime (0);
+					return FormatDateTime (0,false,false,false);
 			case "TIMETOPE":
 				if (orbitSensibility) {
 					if (vessel.orbit.eccentricity < 1)
-						return ToDateTime (vessel.orbit.timeToPe);
+						return FormatDateTime (vessel.orbit.timeToPe,true,false,false);
 					else
-						return ToDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+						return FormatDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period),true,false,false);
 				} else
-					return ToDateTime (0);
+					return FormatDateTime (0,true,false,false);
 
 			// Time
 			case "UT":
-				return ToDateTime (time);
+				return FormatDateTime (time+365*24*60*60,false,false,false);
 			case "MET":
-				return ToDateTime (vessel.missionTime);
+				return FormatDateTime (vessel.missionTime,false,false,false);
 
 			// Names!
 			case "NAME":
@@ -573,22 +577,22 @@ namespace RasterPropMonitorGenerator
 					return 0;
 			case "TARGETTIMETOAP":
 				if (target != null && targetorbit != null)
-					return ToDateTime (targetorbit.timeToAp);
+					return FormatDateTime (targetorbit.timeToAp,false,false,false);
 				else
-					return ToDateTime (0);
+					return FormatDateTime (0,false,false,false);
 			case "TARGETORBPERIOD":
 				if (target != null && targetorbit != null)
-					return ToDateTime (targetorbit.period);
+					return FormatDateTime (targetorbit.period,false,false,false);
 				else
-					return ToDateTime (0);
+					return FormatDateTime (0,false,false,false);
 			case "TARGETTIMETOPE":
 				if (target != null && targetorbit != null) {
 					if (vessel.orbit.eccentricity < 1)
-						return ToDateTime (targetorbit.timeToPe);
+						return FormatDateTime (targetorbit.timeToPe,true,false,false);
 					else
-						return ToDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period));
+						return FormatDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period),true,false,false);
 				} else
-					return ToDateTime (0);
+					return FormatDateTime (0,true,false,false);
 
 
 			// Stock resources by name.

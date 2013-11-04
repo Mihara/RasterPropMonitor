@@ -107,8 +107,8 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Maneuver node
 
-* **MNODETIMEVAL** -- time until the current maneuver node. This is a DateTime value, so [format accordingly](http://msdn.microsoft.com/en-us/library/8kb3ddd4(v=vs.90).aspx).
-* **MNODEDV** -- Since the time until maneuver node can be positive or negative, but DateTime can't be, this variable produces a "+" string if you're currently past the node marker, "-" string if you aren't and a space otherwise.
+* **MNODETIME** -- time until/after the current maneuver node. Due to pecuilarities of Kerbal calendar this, as well as other timespans, is returned as a pre-formatted string in the vein of <sign><number of whole years>:<number of whole days>:<hours>:<minutes>:<seconds>.<10ths of a second>.
+* **MNODEDV** -- Delta V remaining in the current maneuver node.
 
 #### Orbit parameters
 
@@ -117,14 +117,14 @@ None of these parameters know anything about vectors and orientations, mind.
 * **APOAPSIS** -- Periapsis of the current orbit in meters.
 * **INCLINATION** -- Inclination of the current orbit in degrees.
 * **ECCENTRICITY** -- Eccentricity of the current orbit.
-* **ORBPERIOD** -- Period of the current orbit, a DateTime value.
-* **TIMETOAP** -- Time to apoapsis, a DateTime value.
-* **TIMETOPE** -- Time to periapsis, a DateTime value.
+* **ORBPERIOD** -- Period of the current orbit, a formatted timespan.
+* **TIMETOAP** -- Time to apoapsis, a formatted timespan.
+* **TIMETOPE** -- Time to periapsis, a formatted timespan.
 
 #### Time
 
-* **UT** -- Universal time, a DateTime value.
-* **MET** -- Mission Elapsed Time, a DateTime value.
+* **UT** -- Universal time.
+* **MET** -- Mission Elapsed Time.
 
 #### Names
 
@@ -169,7 +169,7 @@ An alphabetically sorted list of all resources present in the craft is available
 
 * **STAGE** -- Number of current stage.
 * **SCIENCEDATA** -- Amount of science data in Mits stored in the entire vessel.
-* **GEAR**, **BRAKES**, **SAS**, **LIGHTS** -- Status of the said systems returned as 1 if they are turned on and 0 if they are turned off. To format it in a smooth fashion, use a variation on {0:on;;OFF} format string.
+* **GEAR**, **BRAKES**, **SAS**, **LIGHTS**, **RCS** -- Status of the said systems returned as 1 if they are turned on and 0 if they are turned off. To format it in a smooth fashion, use a variation on {0:on;;OFF} format string.
 
 Whew, that's about all of them.
 
