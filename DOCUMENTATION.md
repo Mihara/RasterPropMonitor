@@ -169,7 +169,7 @@ None of these parameters know anything about vectors and orientations, mind.
 * **MNODETIME** -- time until/after the current maneuver node. Due to
   peculiarities of Kerbal calendar this, as well as other timespans, is
   returned as a pre-formatted string in the vein of
-  <sign><number of whole years>:<number of whole days>:<hours>:<minutes>:<seconds>.<10ths of a second>.
+  `<sign><number of whole years>:<number of whole days>:<hours>:<minutes>:<seconds>.<10ths of a second>`
   MNODETIME and TIMETOPE/TARGETTIMETOPE are the only ones that come
   with a sign.
 * **MNODEDV** -- Delta V remaining in the current maneuver node.
@@ -256,6 +256,8 @@ sorted list.
   systems returned as 1 if they are turned on and 0 if they are turned off.
   To format it in a smooth fashion, use a variation on {0:on;;OFF}
   format string.
+* *TIMETOIMPACT* -- A very, very rough estimate of the time of contact
+  with the ground. Does not currently take gravity acceleration into account.
 
 Whew, that's about all of them.
 

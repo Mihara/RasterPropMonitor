@@ -350,14 +350,11 @@ namespace RasterPropMonitorGenerator
 			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
 			// If anyone's up to doing that smoothly be my guest.
 			case "TIMETOIMPACT":
-				if (speedVertical < 0) {
-					double secondsToImpact = (altitudeTrue / speedVertical) * 0.9;
-					if (secondsToImpact > 86400 || secondsToImpact < 0) {
-						return FormatDateTime (0, false, true, false);
-					} else
-						return FormatDateTime (secondsToImpact, false, true, false); // 0.9 is a fudge factor, so that you know you have AT LEAST this long until you die.
-				} else
+				double secondsToImpact = -(altitudeTrue / speedVertical);
+				if (secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 					return FormatDateTime (0, false, true, false);
+				} else
+					return FormatDateTime (secondsToImpact, false, true, false); 
 
 			// Altitudes
 			case "ALTITUDE":
