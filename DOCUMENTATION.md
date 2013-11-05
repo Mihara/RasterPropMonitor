@@ -30,13 +30,12 @@ https://github.com/Mihara/RasterPropMonitor/
    peculiarities of how KSP treats strings.
    
 2. You need a model for your screen. If it's to have buttons, they need to
-   be named transforms with isTrigger on them enabled. The screen must be
-   a named transform, arranged in such a way that the texture's 0,1
-   coordinates are the top left corner of the screen.
-   It must already have a texture in the layer ("\_MainTex", "\_Emissive",
-   etc) that the plugin will replace. To save memory, that placeholder
-   texture should be the minimum size possible, which for KSP appears
-   to be 32x32 pixels.
+   be named colliders and isTrigger on them enabled. The screen must be a
+   named transform, arranged in such a way that the texture's 0,1
+   coordinates are the top left corner of the screen. It must already have
+   a texture in the layer ("\_MainTex", "\_Emissive", etc) that the plugin
+   will replace. To save memory, that placeholder texture should be the
+   minimum size possible, which for KSP appears to be 32x32 pixels.
    
 ## Configuring a monitor
 
@@ -83,8 +82,8 @@ fit into screenPixelWidth, but can't have more.
   pages.
 
 You need to have at least one page (page1). Clicking on button2 will cause
-page2 to be rendered, etc. If there is a button2 option, but no page2 defined,
-the screen will be blanked.
+page2 to be rendered, etc. If there is a button option, but no corresponding
+page defined, the screen will be blanked.
 
 Pages can be defined in one of two ways -- by referencing a text file that
 contains a complete screen definition, or directly in the page parameter.
@@ -94,9 +93,13 @@ it must have a file extension.
 
 If you wish to insert a line break in the screen definition written directly
 in a prop config file, you need to replace it with "**$$$**". If you wish to
-use the { and } format string characters in such a screen definition, you
-need to replace **{** with **<=** and **}** with **=>**, because KSP mangles
-them upon reading from prop.cfg files.
+use the **{** and **}** format string characters in such a screen definition,
+you need to replace **{** with **<=** and **}** with **=>**, because KSP
+mangles them upon reading from prop.cfg files.
+
+Multiple screens in the same IVA will share their computing modules, but
+this also means that the lowest refreshRate and refreshDataRate among all
+those given will be used.
 
 ### Screen definitions
 
@@ -127,8 +130,11 @@ even simply switch to an out of range vessel and back.
 Boy, this list got long. 
 
 I am warning you that my understanding of the mathematics involved is
-practically nonexistent. If any parameter isn't what you expect it should
+practically nonexistent. If any variable isn't what you expect it should
 be, please detail in what way and if possible, what should I do to fix it.
+
+If you feel a useful variable is missing, I'm ready to add it in, provided
+I don't need to write more than a page of code to acquire it.
 
 #### Speeds
 
@@ -256,7 +262,7 @@ sorted list.
   systems returned as 1 if they are turned on and 0 if they are turned off.
   To format it in a smooth fashion, use a variation on {0:on;;OFF}
   format string.
-* *TIMETOIMPACT* -- A very, very rough estimate of the time of contact
+* **TIMETOIMPACT** -- A very, very rough estimate of the time of contact
   with the ground. Does not currently take gravity acceleration into account.
 
 Whew, that's about all of them.
@@ -265,15 +271,12 @@ Whew, that's about all of them.
 
 A helper module included in the plugin. 
 
-**Problem**: You wish to use an InternalCameraSwitch for docking. 
-To activate this camera, you need to doubleclick on something. Unfortunately, 
-doubleclick resets your target, and you can't doubleclick again to re-target,
-since the camera switched to by InternalCameraSwitch won't let you.
+**Problem**: You wish to use an InternalCameraSwitch for docking, now that
+you have that nice monitor to help you with aligning. To activate this camera,
+you need to doubleclick on something. Unfortunately, doubleclick resets your
+target, and you can't doubleclick again to re-target, since the camera
+switched to by InternalCameraSwitch won't let you.
 
-**Solution**: Insert
-
-    MODULE {
-	    name = InternalCameraTargetHelper
-	}
-	
-into your internal.cfg. Problem gone. :)
+**Solution**: Insert `MODULE { name = InternalCameraTargetHelper }` into your
+internal.cfg. Problem gone. :) It will keep track of your target and restore it
+upon switching the camera in this fashion.
