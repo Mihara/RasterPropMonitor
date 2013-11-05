@@ -39,16 +39,21 @@ namespace RasterPropMonitor
 		private float letterSpanY = 1f;
 		private Color emptyColor = new Color (0, 0, 0, 255);
 
+		private void logMessage (string line, params object[] list)
+		{
+			Debug.Log (String.Format (this.ClassName + ": " + line, list));
+		}
+
 		private void Start ()
 		{
 
-			Debug.Log ("RasterPropMonitor: Trying to locate " + fontTransform + " in GameDatabase...");
+			logMessage ("Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
 				fontTexture = GameDatabase.Instance.GetTexture (fontTransform, false);
-				Debug.Log (String.Format ("RasterPropMonitor: Loading font texture from URL, \"{0}\"", fontTransform));
+				logMessage ("Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
 				fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
-				Debug.Log (String.Format ("RasterPropMonitor: Loading font texture from a transform named, \"{0}\"", fontTransform));
+				logMessage ("Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
@@ -65,7 +70,7 @@ namespace RasterPropMonitor
 
 			string[] tokens = blankingColor.Split (',');
 			if (tokens.Length != 4) {
-				Debug.LogWarning ("RasterPropMonitor: Blanking color does not make sense, ignoring.");
+				logMessage ("Blanking color \"{0}\" does not make sense, ignoring.", blankingColor);
 			} else {
 				emptyColor = new Color (
 					Convert.ToInt16 (tokens [0]),
@@ -75,7 +80,7 @@ namespace RasterPropMonitor
 				);
 			}
 
-			screenText [0] = "RasterMonitor initializing...";
+			screenText [0] = "Monitor initializing...";
 			screenUpdateRequired = true;
 
 			screenTexture = new RenderTexture (screenPixelWidth, screenPixelHeight, 0, RenderTextureFormat.ARGB32);
@@ -83,7 +88,7 @@ namespace RasterPropMonitor
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
 
-			Debug.Log (String.Format ("RasterMonitor initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY));
+			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -96,7 +101,7 @@ namespace RasterPropMonitor
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode > lastCharacter) {
-				Debug.Log (String.Format ("RasterMonitor: Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter));
+				logMessage ("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter);
 				return;
 			}
 			int xSource = charCode % fontLettersX;
