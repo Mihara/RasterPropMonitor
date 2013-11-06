@@ -80,6 +80,9 @@ fit into screenPixelWidth, but can't have more.
 * **page1,page2...page8** -- Page definitions.
 * **button1,button2...button8** -- Button transform names that correspond to
   pages.
+* **activePage** -- Page to display on startup, 0 by default. *(Due to KSP
+  limitations, currently active page cannot be made persistent without
+  jumping through a lot of hoops I'm not ready for yet.)*
 
 You need to have at least one page (page1). Clicking on button2 will cause
 page2 to be rendered, etc. If there is a button option, but no corresponding

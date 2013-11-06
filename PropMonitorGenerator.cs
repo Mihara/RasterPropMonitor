@@ -44,10 +44,12 @@ namespace RasterPropMonitorGenerator
 		public string page8 = "";
 		[KSPField]
 		public string button8 = "";
+		[KSPField]
+		public int activePage = 0;
+
 		// Config syntax.
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
-		//private string[] variableSeparator = { "|" };
 		private string[] variableSeparator = { };
 		private InternalModule targetScript;
 		private string[] textArray;
@@ -56,7 +58,6 @@ namespace RasterPropMonitorGenerator
 		FieldInfo remoteFlag;
 		// Local variables
 		private string[] pages = { "", "", "", "", "", "", "", "" };
-		private int activePage = 0;
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
 		private int updateCountdown = 0;
