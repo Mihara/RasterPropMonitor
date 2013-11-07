@@ -86,6 +86,8 @@ fit into screenPixelWidth, but can't have more.
 * **activePage** -- Page to display on startup, 0 by default. *(Due to KSP
   limitations, currently active page cannot be made persistent without
   jumping through a lot of hoops I'm not ready for yet.)*
+* **camera1,camera2...camera8** -- Names of cameras, if any.
+  *(See the section on cameras for details)*
 
 You need to have at least one page (page1). Clicking on button2 will cause
 page2 to be rendered, etc. If there is a button option, but no corresponding
@@ -273,6 +275,23 @@ sorted list.
   with the ground. Does not currently take gravity acceleration into account.
 
 Whew, that's about all of them.
+
+### Cameras
+
+If a page comes with the corresponding camera option, the plugin will attempt
+to find a transform by that name containing a Unity camera anywhere within
+the vessel, outside the IVA -- it doesn't have to be the same part, though
+currently, no checks are performed so I can't tell you what happens when it
+falls off -- and render it onto the screen at the moment when it would
+otherwise clear it with the blanking color. If your font has an alpha
+background, it will overprint the camera image just like one would expect.
+No attempt to modify the camera settings is made, and the same pixel-by-pixel
+rendering matrix is retained, so what you see is going to precisely depend on
+how you configure the camera and the screen, and trying to display the same
+camera on multiple different-sized screens might not work.
+
+To work correctly, the camera needs to be present, but *disabled* in the
+model -- the plugin will request it to render during screen refresh.
 
 ### InternalCameraTargetHelper
 
