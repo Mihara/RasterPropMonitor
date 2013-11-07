@@ -38,6 +38,11 @@ namespace RasterPropMonitor
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
 		private Color emptyColor = new Color (0, 0, 0, 255);
+		// Camera support!
+		public string cameraName = null;
+		public bool setCamera = false;
+		private GameObject cameraTransform;
+		private Camera cameraSource;
 
 		private void logMessage (string line, params object[] list)
 		{
@@ -89,6 +94,7 @@ namespace RasterPropMonitor
 			screen.SetTexture (textureLayerID, screenTexture);
 
 			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
+
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -131,7 +137,11 @@ namespace RasterPropMonitor
 			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
 
 			// Clear the texture now. It saves computrons compared to printing spaces.
-			GL.Clear (true, true, emptyColor);
+			if (cameraSource != null) {
+				cameraSource.Render ();
+			} else {
+				GL.Clear (true, true, emptyColor);
+			}
 
 			for (int y=0; y<screenHeight; y++) {
 				char[] line = screenText [y].ToCharArray ();
@@ -139,6 +149,7 @@ namespace RasterPropMonitor
 					drawChar (line [x], x, y);
 				}
 			}
+
 			GL.PopMatrix ();
 			RenderTexture.active = null;
 		}
@@ -152,6 +163,29 @@ namespace RasterPropMonitor
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
 			    ))
 				return;
+
+			if (setCamera) {
+				if (cameraName != null) {
+					foreach (Part part in vessel.Parts) {
+						Transform location = part.FindModelTransform (cameraName);
+						if (location != null) {
+							cameraTransform = location.gameObject;
+							break;
+						}
+					}
+					if (cameraTransform != null) {
+						cameraSource = cameraTransform.GetComponent<Camera> ();
+						if (cameraSource != null) {
+							logMessage ("Switching to camera \"{0}\".", cameraTransform);
+							cameraSource.enabled = false;
+							cameraSource.targetTexture = screenTexture;
+						} else
+							logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
+					}
+				} else
+					cameraSource = null;
+				setCamera = false;
+			}
 
 			if (screenUpdateRequired) {
 				updateScreen ();

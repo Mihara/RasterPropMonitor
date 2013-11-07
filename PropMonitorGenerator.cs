@@ -46,7 +46,22 @@ namespace RasterPropMonitorGenerator
 		public string button8 = "";
 		[KSPField]
 		public int activePage = 0;
-
+		[KSPField]
+		public string camera1 = null;
+		[KSPField]
+		public string camera2 = null;
+		[KSPField]
+		public string camera3 = null;
+		[KSPField]
+		public string camera4 = null;
+		[KSPField]
+		public string camera5 = null;
+		[KSPField]
+		public string camera6 = null;
+		[KSPField]
+		public string camera7 = null;
+		[KSPField]
+		public string camera8 = null;
 		// Config syntax.
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
@@ -56,8 +71,11 @@ namespace RasterPropMonitorGenerator
 		// Important pointers to the screen's data structures.
 		FieldInfo remoteArray;
 		FieldInfo remoteFlag;
+		FieldInfo remoteCameraName;
+		FieldInfo remoteCameraSet;
 		// Local variables
 		private string[] pages = { "", "", "", "", "", "", "", "" };
+		private string[] cameras;
 		private int charPerLine = 23;
 		private int linesPerPage = 17;
 		private int updateCountdown = 0;
@@ -83,8 +101,12 @@ namespace RasterPropMonitorGenerator
 			foreach (InternalModule intModule in base.internalProp.internalModules) {
 				if (intModule.ClassName == "RasterPropMonitor") {
 					targetScript = intModule;
+					// These are for text.
 					remoteArray = intModule.GetType ().GetField ("screenText");
 					remoteFlag = intModule.GetType ().GetField ("screenUpdateRequired");
+					// And these are to tell which camera to show on the background!
+					remoteCameraName = intModule.GetType ().GetField ("cameraName");
+					remoteCameraSet = intModule.GetType ().GetField ("setCamera");
 
 					charPerLine = (int)intModule.GetType ().GetField ("screenWidth").GetValue (intModule);
 					linesPerPage = (int)intModule.GetType ().GetField ("screenHeight").GetValue (intModule);
@@ -97,6 +119,7 @@ namespace RasterPropMonitorGenerator
 
 			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
+
 			for (int i=0; i<8; i++) {
 				//Debug.Log ("RasterMonitor: Page " + i.ToString () + " data is \"" + pageData [i] + "\" button name is " + buttonName [i]);
 				if (buttonName [i] != "") {
@@ -161,11 +184,26 @@ namespace RasterPropMonitorGenerator
 
 			comp.updateRefreshRates (refreshRate, refreshDataRate);
 
+			// So camera support.
+			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
+			setCamera (cameras [activePage]);
+		}
+
+		private void setCamera (string name)
+		{
+			if (name != "" && name != null) {
+				remoteCameraName.SetValue (targetScript, name);
+				remoteCameraSet.SetValue (targetScript, true);
+			} else {
+				remoteCameraName.SetValue (targetScript, null);
+				remoteCameraSet.SetValue (targetScript, true);
+			}
 		}
 
 		public void buttonClick (int buttonID)
 		{
 			activePage = buttonID;
+			setCamera (cameras [activePage]);
 			updateForced = true;
 			comp.updateForced = true;
 			currentPageIsMutable = false;
@@ -230,7 +268,10 @@ namespace RasterPropMonitorGenerator
 				if (!updateCheck ())
 					return;
 
-				if (pages [activePage] == "") { // In case the page is empty, the screen is treated as turned off and blanked once.
+				if (cameras [activePage] != "" && cameras [activePage] != null)
+					currentPageIsMutable = true;
+
+				if (pages [activePage] == "" && !currentPageIsMutable) { // In case the page is empty, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
 							textArray [i] = "";
