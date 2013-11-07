@@ -138,6 +138,7 @@ namespace RasterPropMonitor
 
 			// Clear the texture now. It saves computrons compared to printing spaces.
 			if (cameraSource != null) {
+				cameraSource.targetTexture = screenTexture;
 				cameraSource.Render ();
 			} else {
 				GL.Clear (true, true, emptyColor);
@@ -178,9 +179,10 @@ namespace RasterPropMonitor
 						if (cameraSource != null) {
 							logMessage ("Switching to camera \"{0}\".", cameraTransform);
 							cameraSource.enabled = false;
-							cameraSource.targetTexture = screenTexture;
-						} else
+						} else {
 							logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
+							cameraName = null;
+						}
 					}
 				} else
 					cameraSource = null;

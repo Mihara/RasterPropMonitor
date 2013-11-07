@@ -206,7 +206,10 @@ namespace RasterPropMonitorGenerator
 			setCamera (cameras [activePage]);
 			updateForced = true;
 			comp.updateForced = true;
-			currentPageIsMutable = false;
+			if (cameras [activePage] != "" && cameras [activePage] != null)
+				currentPageIsMutable = true;
+			else
+				currentPageIsMutable = false;
 			currentPageFirstPassComplete = false;
 		}
 
@@ -268,10 +271,7 @@ namespace RasterPropMonitorGenerator
 				if (!updateCheck ())
 					return;
 
-				if (cameras [activePage] != "" && cameras [activePage] != null)
-					currentPageIsMutable = true;
-
-				if (pages [activePage] == "" && !currentPageIsMutable) { // In case the page is empty, the screen is treated as turned off and blanked once.
+				if (pages [activePage] == "" && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
 							textArray [i] = "";
