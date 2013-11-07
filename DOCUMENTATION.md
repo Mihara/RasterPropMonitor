@@ -11,6 +11,9 @@ GitHub repository:
 
 https://github.com/Mihara/RasterPropMonitor/
 
+While GPLv3 license leaves your hands free to do more or less whatever,
+this way at least avoids the dll conflicts.
+
 ## Creating a display model for RasterPropMonitor
 
 1. You need a font bitmap. The plugin treats fonts as if they were fixed
@@ -21,7 +24,7 @@ https://github.com/Mihara/RasterPropMonitor/
    more suitable to your taste.
    
    Every letter is assumed to occupy a block of **fontLetterWidth** by
-   fontLetterHeight pixels on the bitmap. Font texture size must be
+   **fontLetterHeight** pixels on the bitmap. Font texture size must be
    evenly divisible by fontLetterWidth/fontLetterHeight respectively.
    For Unity reasons, the font bitmap has to have sizes that are a power
    of 2, but it doesn't have to be square. Characters are read from the font
@@ -56,8 +59,8 @@ your way, but you probably don't want to.
   texture somewhere in GameData and refer to it exactly like you would in a
   MODEL configuration node *(KSP reads in everything that looks like a texture
   and is stored outside of a PluginData directory, and assigns it an URL)*
-  or put the texture on a model transform and give it's name. 
-* **blankingColor** -- R,G,B,A of a color that will be used to blank out a
+  or put the texture on a model transform and give the name of that transform. 
+* **blankingColor** -- R,G,B,A of a color that will be used to blank out the
   screen between refreshes.
 * **screenWidth**/**screenHeight** -- Number of characters in a line and number
   of lines.
@@ -76,7 +79,7 @@ fit into screenPixelWidth, but can't have more.
 * **refreshRate** -- The screen will be redrawn no more often than once this
   number of frames.
 * **refreshDataRate** -- Various computationally intensive tasks will be
-  performed no more often than once this number of frames.
+  performed once this number of frames.
 * **page1,page2...page8** -- Page definitions.
 * **button1,button2...button8** -- Button transform names that correspond to
   pages.
@@ -101,8 +104,8 @@ you need to replace **{** with **<=** and **}** with **=>**, because KSP
 mangles them upon reading from prop.cfg files.
 
 Multiple screens in the same IVA will share their computing modules, but
-this also means that the lowest refreshRate and refreshDataRate among all
-those given will be used.
+this also means that the lowest refreshDataRate among all those given will
+be used. refreshRate remains individual per monitor.
 
 ### Screen definitions
 
@@ -238,8 +241,9 @@ None of these parameters know anything about vectors and orientations, mind.
 #### Resources
 
 Notice that resource quantities are rounded down to 0.01, because otherwise
-they never become properly zero. If your resource requires a more fine grained
-measurement, poke me and we'll talk about it.
+they never become properly zero, which hinders the neat formatting features.
+If your resource requires a more fine grained measurement, poke me and we'll
+talk about it.
 
 * **ELECTRIC**, **ELECTRICMAX** -- Current and maximum quantity
   of ElectricCharge.
