@@ -389,7 +389,7 @@ namespace RasterPropMonitorGenerator
 			// Maneuvers
 			case "MNODETIME":
 				if (node != null)
-					return FormatDateTime (node.UT - time, true, false, true);
+					return FormatDateTime (-(node.UT - time), true, false, true);
 				else
 					return FormatDateTime (0, true, false, true);
 			case "MNODEDV":
