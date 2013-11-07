@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RasterPropMonitor", "RasterPropMonitor.csproj", "{F19C7AB4-50C2-4378-9673-CC039CA12E10}"
 EndProject
 Global
