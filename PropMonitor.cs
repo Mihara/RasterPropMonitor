@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace RasterPropMonitor
@@ -48,6 +49,8 @@ namespace RasterPropMonitor
 		// Camera support.
 		private bool cameraEnabled = false;
 		private GameObject cameraTransform;
+		private Part cameraPart = null;
+		private Part myHomePart = null;
 		private Camera[] cameraObject = { null, null, null };
 
 		private void logMessage (string line, params object[] list)
@@ -100,6 +103,22 @@ namespace RasterPropMonitor
 
 			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
 
+			// That leaves us with a clear reference to the part which our internal belongs to, which the class apparently lacks.
+			foreach (Part thatpart in vessel.parts) {
+				if (thatpart.internalModel != null) {
+					// I'm not sure I'm not doing something radically silly here.
+					foreach (InternalProp prop in thatpart.internalModel.props) {
+						RasterPropMonitor myself = prop.FindModelComponent<RasterPropMonitor> ();
+						if (myself != null && myself == this) {
+							myHomePart = thatpart;
+							break;
+						}
+					}
+				}
+				if (myHomePart != null)
+					break;
+			}
+
 			screenUpdateRequired = true;
 		}
 
@@ -128,15 +147,19 @@ namespace RasterPropMonitor
 			cameraSetup (0, "Camera ScaledSpace");
 			cameraSetup (1, "Camera 01");
 			cameraSetup (2, "Camera 00");
+			cameraEnabled = true;
 		}
 
-		private void destroyCameraObjects ()
+		private void cleanupCameraObjects ()
 		{
 			for (int i=0; i<3; i++)
 				if (cameraObject [i].gameObject != null) {
 					GameObject.Destroy (cameraObject [i].gameObject);
 					cameraObject [i] = null;
 				}
+			cameraName = null;
+			cameraEnabled = false;
+			cameraPart = null;
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -180,10 +203,17 @@ namespace RasterPropMonitor
 
 			if (setCamera) {
 				if (cameraName != null) {
-					foreach (Part part in vessel.Parts) {
-						Transform location = part.FindModelTransform (cameraName);
+
+					// First, we search our own part for this camera transform,
+					// only then we search all other parts of the vessel.
+					List<Part> searchParts = vessel.Parts;
+					searchParts.Insert (0,myHomePart);
+
+					foreach (Part thatpart in searchParts) {
+						Transform location = thatpart.FindModelTransform (cameraName);
 						if (location != null) {
 							cameraTransform = location.gameObject;
+							cameraPart = thatpart;
 							break;
 						}
 					}
@@ -191,17 +221,15 @@ namespace RasterPropMonitor
 					if (cameraTransform != null) {
 						logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
 						createCameraObjects ();
-						cameraEnabled = true;
 					} else {
 						logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
-						cameraName = null;
-						cameraEnabled = false;
-						destroyCameraObjects ();
+						cleanupCameraObjects ();
 					}
 				} else {
-					logMessage ("Turning camera off...");
-					cameraEnabled = false;
-					destroyCameraObjects ();
+					if (cameraEnabled) {
+						logMessage ("Turning camera off...");
+						cleanupCameraObjects ();
+					}
 				}
 				setCamera = false;
 			}
@@ -220,16 +248,21 @@ namespace RasterPropMonitor
 				GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
 
 				if (cameraEnabled) {
-					// ScaledSpace camera is special. :(
-					cameraObject [0].transform.rotation = cameraTransform.transform.rotation;
-					cameraObject [0].fieldOfView = fov;
-					cameraObject [0].Render ();
-					for (int i=1; i<3; i++) {
-						cameraObject [i].transform.position = cameraTransform.transform.position;
-						cameraObject [i].transform.rotation = cameraTransform.transform.rotation;
-						cameraObject [i].fieldOfView = fov;
+					if (cameraPart.vessel != FlightGlobals.ActiveVessel) {
+						cleanupCameraObjects ();
+					} else {
 
-						cameraObject [i].Render ();
+						// ScaledSpace camera is special. :(
+						cameraObject [0].transform.rotation = cameraTransform.transform.rotation;
+						cameraObject [0].fieldOfView = fov;
+						cameraObject [0].Render ();
+						for (int i=1; i<3; i++) {
+							cameraObject [i].transform.position = cameraTransform.transform.position;
+							cameraObject [i].transform.rotation = cameraTransform.transform.rotation;
+							cameraObject [i].fieldOfView = fov;
+
+							cameraObject [i].Render ();
+						}
 					}
 				} else {
 					GL.Clear (true, true, emptyColor);
