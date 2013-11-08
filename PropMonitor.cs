@@ -133,7 +133,10 @@ namespace RasterPropMonitor
 		private void destroyCameraObjects ()
 		{
 			for (int i=0; i<3; i++)
-				GameObject.Destroy (cameraObject [i].gameObject);
+				if (cameraObject [i].gameObject != null) {
+					GameObject.Destroy (cameraObject [i].gameObject);
+					cameraObject [i] = null;
+				}
 		}
 
 		private void drawChar (char letter, int x, int y)
