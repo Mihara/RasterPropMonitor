@@ -139,6 +139,7 @@ namespace RasterPropMonitor
 			// Clear the texture now. It saves computrons compared to printing spaces.
 			if (cameraSource != null) {
 				cameraSource.targetTexture = screenTexture;
+				// Ok, I'll try Shader.Find("Hidden/Grayscale Effect") once I'm sure the cameras are setup correctly...
 				cameraSource.Render ();
 			} else {
 				GL.Clear (true, true, emptyColor);
@@ -177,7 +178,7 @@ namespace RasterPropMonitor
 					if (cameraTransform != null) {
 						cameraSource = cameraTransform.GetComponent<Camera> ();
 						if (cameraSource != null) {
-							logMessage ("Switching to camera \"{0}\".", cameraTransform);
+							logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
 							cameraSource.enabled = false;
 						} else {
 							logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
