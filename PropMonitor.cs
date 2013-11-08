@@ -206,8 +206,9 @@ namespace RasterPropMonitor
 
 					// First, we search our own part for this camera transform,
 					// only then we search all other parts of the vessel.
-					List<Part> searchParts = vessel.Parts;
-					searchParts.Insert (0,myHomePart);
+					List<Part> searchParts = new List<Part> ();
+					searchParts.Add (myHomePart);
+					searchParts.AddRange (vessel.Parts);
 
 					foreach (Part thatpart in searchParts) {
 						Transform location = thatpart.FindModelTransform (cameraName);
