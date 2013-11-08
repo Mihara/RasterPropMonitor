@@ -148,6 +148,7 @@ namespace RasterPropMonitor
 			cameraSetup (1, "Camera 01");
 			cameraSetup (2, "Camera 00");
 			cameraEnabled = true;
+			cameraName = null;
 		}
 
 		private void cleanupCameraObjects ()
@@ -191,6 +192,17 @@ namespace RasterPropMonitor
 
 		}
 
+		private bool locateCamera (Part thatpart, string name)
+		{
+			Transform location = thatpart.FindModelTransform (cameraName);
+			if (location != null) {
+				cameraTransform = location.gameObject;
+				cameraPart = thatpart;
+				return true;
+			}
+			return false;
+		}
+
 		public override void OnUpdate ()
 		{
 
@@ -206,18 +218,11 @@ namespace RasterPropMonitor
 
 					// First, we search our own part for this camera transform,
 					// only then we search all other parts of the vessel.
-					List<Part> searchParts = new List<Part> ();
-					searchParts.Add (myHomePart);
-					searchParts.AddRange (vessel.Parts);
-
-					foreach (Part thatpart in searchParts) {
-						Transform location = thatpart.FindModelTransform (cameraName);
-						if (location != null) {
-							cameraTransform = location.gameObject;
-							cameraPart = thatpart;
-							break;
+					if (!locateCamera (myHomePart, cameraName))
+						foreach (Part thatpart in vessel.parts) {
+							if (locateCamera (thatpart, cameraName))
+								break;
 						}
-					}
 
 					if (cameraTransform != null) {
 						logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
