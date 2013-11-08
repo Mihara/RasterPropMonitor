@@ -68,6 +68,8 @@ your way, but you probably don't want to.
   to be generated for the screen.
 * **fontLetterWidth**/**fontLetterHeight** -- Width and height of a font cell
   in pixels.
+* **cameraAspect** -- Aspect ratio of the camera images when this screen will
+  be used to show them. *(See below for more details on cameras)*
 
 Letters are printed on the screen in pixel-perfect mapping, so one pixel of a
 font texture will always correspond to one pixel of the generated screen
@@ -86,7 +88,7 @@ fit into screenPixelWidth, but can't have more.
 * **activePage** -- Page to display on startup, 0 by default. *(Due to KSP
   limitations, currently active page cannot be made persistent without
   jumping through a lot of hoops I'm not ready for yet.)*
-* **camera1,camera2...camera8** -- Names of cameras, if any.
+* **camera1,camera2...camera8** -- Names of cameras and their FOVs, if any.
   *(See the section on cameras for details)*
 
 You need to have at least one page (page1). Clicking on button2 will cause
@@ -279,19 +281,21 @@ Whew, that's about all of them.
 ### Cameras
 
 If a page comes with the corresponding camera option, the plugin will attempt
-to find a transform by that name containing a Unity camera anywhere within
-the vessel, outside the IVA -- it doesn't have to be the same part, though
-currently, no checks are performed so I can't tell you what happens when it
-falls off -- and render it onto the screen at the moment when it would
-otherwise clear it with the blanking color. If your font has an alpha
-background, it will overprint the camera image just like one would expect.
-No attempt to modify the camera settings is made, and the same pixel-by-pixel
-rendering matrix is retained, so what you see is going to precisely depend on
-how you configure the camera and the screen, and trying to display the same
-camera on multiple different-sized screens might not work.
+to find a transform by that name anywhere within the vessel, outside the IVA
+-- it doesn't have to be the same part, though currently, no checks are
+performed so I can't tell you what happens when it falls off -- and place
+there a camera structure that closely mimics KSP's flight camera. The picture
+seen from this position will be rendered. Cameras will be pointing in the Z+
+direction of the transform, with X+ towards the right of the field of view.
+Rendering will occur at the moment when the screen would otherwise be cleared
+with the blanking color. If your font has an alpha background, it will
+overprint the camera image just like one would expect.
 
-To work correctly, the camera needs to be present, but *disabled* in the
-model -- the plugin will request it to render during screen refresh.
+The camera's aspect ratio is set in the RasterPropMonitor module, so you can
+tune the aspect ratio to your monitor's size. 
+
+The syntax of the camera option is `camera1 = <transform name>,<fov>`, if FOV
+is not specified, a default of 60 degrees will be used.
 
 ### InternalCameraTargetHelper
 

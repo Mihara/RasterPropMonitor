@@ -73,6 +73,7 @@ namespace RasterPropMonitorGenerator
 		FieldInfo remoteFlag;
 		FieldInfo remoteCameraName;
 		FieldInfo remoteCameraSet;
+		FieldInfo remoteCameraFov;
 		// Local variables
 		private string[] pages = { "", "", "", "", "", "", "", "" };
 		private string[] cameras;
@@ -107,6 +108,7 @@ namespace RasterPropMonitorGenerator
 					// And these are to tell which camera to show on the background!
 					remoteCameraName = intModule.GetType ().GetField ("cameraName");
 					remoteCameraSet = intModule.GetType ().GetField ("setCamera");
+					remoteCameraFov = intModule.GetType ().GetField ("fov");
 
 					charPerLine = (int)intModule.GetType ().GetField ("screenWidth").GetValue (intModule);
 					linesPerPage = (int)intModule.GetType ().GetField ("screenHeight").GetValue (intModule);
@@ -192,6 +194,14 @@ namespace RasterPropMonitorGenerator
 		private void setCamera (string name)
 		{
 			if (name != "" && name != null) {
+				string[] tokens = name.Split (',');
+				if (tokens.Length == 2) {
+					float fov;
+					if (!float.TryParse (tokens [1], out fov))
+						fov = 60;
+					remoteCameraFov.SetValue (targetScript, fov);
+					name = tokens [0];
+				}
 				remoteCameraName.SetValue (targetScript, name);
 				remoteCameraSet.SetValue (targetScript, true);
 			} else {

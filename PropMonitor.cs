@@ -27,8 +27,15 @@ namespace RasterPropMonitor
 		public int fontLetterWidth = 16;
 		[KSPField]
 		public int fontLetterHeight = 32;
+		[KSPField]
+		public float cameraAspect = 2f;
+		// Public variables that other modules can reflect into and send us data.
 		public string[] screenText;
 		public bool screenUpdateRequired = false;
+		public string cameraName = null;
+		public float fov = 60f;
+		public bool setCamera = false;
+		// Other internal stuff...
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
 		private int firstCharacter = 32;
@@ -38,11 +45,10 @@ namespace RasterPropMonitor
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
 		private Color emptyColor = new Color (0, 0, 0, 255);
-		// Camera support!
-		public string cameraName = null;
-		public bool setCamera = false;
+		// Camera support.
+		private bool cameraEnabled = false;
 		private GameObject cameraTransform;
-		private Camera cameraSource;
+		private Camera[] cameraObject = { null, null, null };
 
 		private void logMessage (string line, params object[] list)
 		{
@@ -86,15 +92,48 @@ namespace RasterPropMonitor
 			}
 
 			screenText [0] = "Monitor initializing...";
-			screenUpdateRequired = true;
 
-			screenTexture = new RenderTexture (screenPixelWidth, screenPixelHeight, 0, RenderTextureFormat.ARGB32);
+			screenTexture = new RenderTexture (screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
 
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
 
 			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
 
+			screenUpdateRequired = true;
+		}
+
+		private void cameraSetup (int index, string sourceName)
+		{
+			GameObject cameraBody = new GameObject ();
+			cameraBody.name = "RPMC" + index.ToString () + " " + cameraBody.GetInstanceID ();
+			cameraObject [index] = cameraBody.AddComponent<Camera> ();
+
+			Camera sourceCam = null;
+			foreach (Camera cam in Camera.allCameras) {
+				if (cam.name == sourceName) {
+					sourceCam = cam;
+					break;
+				}
+			}
+
+			cameraObject [index].CopyFrom (sourceCam);
+			cameraObject [index].enabled = false;
+			cameraObject [index].aspect = cameraAspect;
+			cameraObject [index].targetTexture = screenTexture;
+		}
+
+		private void createCameraObjects ()
+		{
+			cameraSetup (0, "Camera ScaledSpace");
+			cameraSetup (1, "Camera 01");
+			cameraSetup (2, "Camera 00");
+		}
+
+		private void destroyCameraObjects ()
+		{
+			for (int i=0; i<3; i++)
+				GameObject.Destroy (cameraObject [i].gameObject);
 		}
 
 		private void drawChar (char letter, int x, int y)
@@ -126,36 +165,6 @@ namespace RasterPropMonitor
 
 		}
 
-		private void updateScreen ()
-		{
-			// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
-			// But I'll wait until anyone complains before doing that.
-			RenderTexture.active = screenTexture;
-
-			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
-			GL.PushMatrix ();
-			GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
-
-			// Clear the texture now. It saves computrons compared to printing spaces.
-			if (cameraSource != null) {
-				cameraSource.targetTexture = screenTexture;
-				// Ok, I'll try Shader.Find("Hidden/Grayscale Effect") once I'm sure the cameras are setup correctly...
-				cameraSource.Render ();
-			} else {
-				GL.Clear (true, true, emptyColor);
-			}
-
-			for (int y=0; y<screenHeight; y++) {
-				char[] line = screenText [y].ToCharArray ();
-				for (int x=0; x<screenWidth && x<line.Length; x++) {
-					drawChar (line [x], x, y);
-				}
-			}
-
-			GL.PopMatrix ();
-			RenderTexture.active = null;
-		}
-
 		public override void OnUpdate ()
 		{
 
@@ -175,23 +184,65 @@ namespace RasterPropMonitor
 							break;
 						}
 					}
+
 					if (cameraTransform != null) {
-						cameraSource = cameraTransform.GetComponent<Camera> ();
-						if (cameraSource != null) {
-							logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
-							cameraSource.enabled = false;
-						} else {
-							logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
-							cameraName = null;
-						}
+						logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
+						createCameraObjects ();
+						cameraEnabled = true;
+					} else {
+						logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
+						cameraName = null;
+						cameraEnabled = false;
+						destroyCameraObjects ();
 					}
-				} else
-					cameraSource = null;
+				} else {
+					logMessage ("Turning camera off...");
+					cameraEnabled = false;
+					destroyCameraObjects ();
+				}
 				setCamera = false;
 			}
 
 			if (screenUpdateRequired) {
-				updateScreen ();
+
+				// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
+				// But I'll wait until anyone complains before doing that.
+				RenderTexture backupRenderTexture = RenderTexture.active;
+
+				screenTexture.DiscardContents ();
+				RenderTexture.active = screenTexture;
+
+				// This is the important witchcraft. Without that, DrawTexture does not print correctly.
+				GL.PushMatrix ();
+				GL.LoadPixelMatrix (0, screenPixelWidth, screenPixelHeight, 0);
+
+				if (cameraEnabled) {
+					// ScaledSpace camera is special. :(
+					cameraObject [0].transform.rotation = cameraTransform.transform.rotation;
+					cameraObject [0].fieldOfView = fov;
+					cameraObject [0].Render ();
+					for (int i=1; i<3; i++) {
+						cameraObject [i].transform.position = cameraTransform.transform.position;
+						cameraObject [i].transform.rotation = cameraTransform.transform.rotation;
+						cameraObject [i].fieldOfView = fov;
+
+						cameraObject [i].Render ();
+					}
+				} else {
+					GL.Clear (true, true, emptyColor);
+				}
+
+				for (int y=0; y<screenHeight; y++) {
+					char[] line = screenText [y].ToCharArray ();
+					for (int x=0; x<screenWidth && x<line.Length; x++) {
+						drawChar (line [x], x, y);
+					}
+				}
+
+				GL.PopMatrix ();
+				RenderTexture.active = backupRenderTexture;
+
+
 				screenUpdateRequired = false;
 			}
 		}
