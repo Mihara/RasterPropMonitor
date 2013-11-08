@@ -147,14 +147,14 @@ namespace RasterPropMonitorGenerator
 
 			// The semi-clever bit: Recycling computational module.
 			InternalProp currentProp = null;
-			foreach (Part part in vessel.parts) {
+			foreach (Part thatpart in vessel.parts) {
 				Part currentpod = null;
-				if (part.internalModel != null) {
+				if (thatpart.internalModel != null) {
 					// I'm not sure I'm not doing something radically silly here.
-					foreach (InternalProp prop in part.internalModel.props) {
+					foreach (InternalProp prop in thatpart.internalModel.props) {
 						RasterPropMonitorGenerator myself = prop.FindModelComponent<RasterPropMonitorGenerator> ();
 						if (myself != null && myself == this) {
-							currentpod = part;
+							currentpod = thatpart;
 							break;
 						}
 					}
