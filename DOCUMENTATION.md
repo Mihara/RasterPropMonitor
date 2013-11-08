@@ -282,14 +282,18 @@ Whew, that's about all of them.
 
 If a page comes with the corresponding camera option, the plugin will attempt
 to find a transform by that name anywhere within the vessel, outside the IVA
--- it doesn't have to be the same part, though currently, no checks are
-performed so I can't tell you what happens when it falls off -- and place
-there a camera structure that closely mimics KSP's flight camera. The picture
-seen from this position will be rendered. Cameras will be pointing in the Z+
-direction of the transform, with X+ towards the right of the field of view.
-Rendering will occur at the moment when the screen would otherwise be cleared
-with the blanking color. If your font has an alpha background, it will
-overprint the camera image just like one would expect.
+-- it doesn't have to be the same part -- and place there a camera structure
+that closely mimics KSP's flight camera. If the part where that transform
+was found falls off, the camera should smoothly stop working. The plugin
+searches it's own capsule's part first, so multiple copies of the same capsule
+in the same vessel will each show their own cameras.
+
+The picture seen from the position marked by that transform will be rendered.
+Cameras will be pointing in the Z+ direction of the transform, with X+ towards
+the right of the field of view. Rendering will occur at the moment when the
+screen would otherwise be cleared with the blanking color. If your font has
+an alpha background, it will overprint the camera image just like one would
+expect.
 
 The camera's aspect ratio is set in the RasterPropMonitor module, so you can
 tune the aspect ratio to your monitor's size. 
