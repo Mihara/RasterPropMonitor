@@ -11,7 +11,11 @@ namespace RasterPropMonitorGenerator
 		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
-		// I wish I could get rid of this particular mess, because in theory I can support an unlimited number of pages.
+		// I wish I could get rid of this particular mess of fields, because in theory I can support an unlimited number of pages.
+		// I could also parse a Very Long String, but that would make using ModuleManager cumbersome.
+		// Apparently, IConfigNode is one more thing that doesn't quite work for InternalModule,
+		// or if it does, I can't tell how to make it work.
+		// This is discrimination, I say!
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
@@ -66,15 +70,15 @@ namespace RasterPropMonitorGenerator
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
 		private string[] variableSeparator = { };
-		private InternalModule targetScript;
-		private string[] textArray;
 		// Important pointers to the screen's data structures.
+		private InternalModule targetScript;
 		FieldInfo remoteArray;
 		FieldInfo remoteFlag;
 		FieldInfo remoteCameraName;
 		FieldInfo remoteCameraSet;
 		FieldInfo remoteCameraFov;
 		// Local variables
+		private string[] textArray;
 		private string[] pages = { "", "", "", "", "", "", "", "" };
 		private string[] cameras;
 		private int charPerLine = 23;
@@ -99,6 +103,10 @@ namespace RasterPropMonitorGenerator
 			//
 			// Once you have that you're golden -- you can populate the array of lines,
 			// and trigger the screen update by writing a boolean when it needs updating.
+			//
+			// Cameras are part of the monitor class and are controlled in a very similar way --
+			// you send a transform name, a float, and a boolean, and the rest is the problem for some
+			// other class.
 			foreach (InternalModule intModule in base.internalProp.internalModules) {
 				if (intModule.ClassName == "RasterPropMonitor") {
 					targetScript = intModule;
@@ -118,12 +126,12 @@ namespace RasterPropMonitorGenerator
 			}
 
 			// Everything from there on is just my idea of doing it and can be done in a myriad different ways.
+			// If InternalModule class wasn't such an odd entity, I could probably even name some of them.
 
 			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
 
 			for (int i=0; i<8; i++) {
-				//Debug.Log ("RasterMonitor: Page " + i.ToString () + " data is \"" + pageData [i] + "\" button name is " + buttonName [i]);
 				if (buttonName [i] != "") {
 					GameObject buttonObject = base.internalProp.FindModelTransform (buttonName [i]).gameObject;
 					buttonHandler pageButton = buttonObject.AddComponent<buttonHandler> ();
@@ -200,7 +208,7 @@ namespace RasterPropMonitorGenerator
 					if (!float.TryParse (tokens [1], out fov))
 						fov = 60;
 					remoteCameraFov.SetValue (targetScript, fov);
-					name = tokens [0];
+					name = tokens [0].Trim ();
 				}
 				remoteCameraName.SetValue (targetScript, name);
 				remoteCameraSet.SetValue (targetScript, true);
@@ -227,16 +235,9 @@ namespace RasterPropMonitorGenerator
 		{
 			// Each separate output line is delimited by Environment.NewLine.
 			// When loading from a config file, you can't have newlines in it, so they're represented by "$$$".
+			// I didn't expect this, but Linux newlines work just as well as Windows ones.
 			//
-			// Within each line, if it contains any variables, it contains String.Format's format codes:
-			// "Insert {0:0.0} variables {0:0.0} into this string###VARIABLE|VARIABLE"
-			// 
-			// <= has to be substituted for { and => for } when defining a screen in a config file.
-			// It is much easier to write a text file and reference it by URL instead, writing 
-			// screen definitions in a config file is only good enough for very small screens.
-			// 
-			// A more readable string format reference detailing where each variable is to be inserted and 
-			// what it should look like can be found here: http://blog.stevex.net/string-formatting-in-csharp/
+			// You can read a full description of this mess in DOCUMENTATION.md
 
 			if (input.IndexOf (variableListSeparator [0]) >= 0) {
 				currentPageIsMutable = true;
@@ -249,7 +250,6 @@ namespace RasterPropMonitorGenerator
 
 					object[] variables = new object[vars.Length];
 					for (int i=0; i<vars.Length; i++) {
-						//Debug.Log ("PropMonitorGenerator: Processing " + vars[i]);
 						variables [i] = comp.processVariable (vars [i]);
 					}
 					return String.Format (tokens [0], variables);

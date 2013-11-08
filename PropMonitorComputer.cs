@@ -7,13 +7,13 @@ namespace RasterPropMonitorGenerator
 {
 	public class RasterPropMonitorComputer: InternalModule
 	{
+		public bool updateForced = false;
 		// Data common for various variable calculations
 		private int vesselNumParts;
 		private int updateCountdown = 0;
 		private int dataUpdateCountdown = 0;
 		private int refreshRate = int.MaxValue;
 		private int refreshDataRate = int.MaxValue;
-		public bool updateForced = false;
 		private Vector3d CoM;
 		private Vector3d up;
 		private Vector3d forward;
@@ -35,6 +35,13 @@ namespace RasterPropMonitorGenerator
 		private double altitudeTrue;
 		private Orbit targetorbit;
 		private Boolean orbitSensibility = false;
+		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
+		private string[] resourcesAlphabetic;
+		private double totalShipDryMass;
+		private double totalShipWetMass;
+		private double totalCurrentThrust;
+		private double totalMaximumThrust;
+		private double totalDataAmount;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -91,14 +98,6 @@ namespace RasterPropMonitorGenerator
 				fetchCommonData ();
 			}
 		}
-
-		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
-		private string[] resourcesAlphabetic;
-		private double totalShipDryMass;
-		private double totalShipWetMass;
-		private double totalCurrentThrust;
-		private double totalMaximumThrust;
-		private double totalDataAmount;
 		// Sigh. MechJeb math.
 		private double getCurrentThrust (ModuleEngines engine)
 		{
