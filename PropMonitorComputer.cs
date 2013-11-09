@@ -408,6 +408,8 @@ namespace RasterPropMonitorGenerator
 				return totalMaximumThrust / totalShipWetMass;
 			case "GFORCE":
 				return vessel.geeForce_immediate;
+			case "THROTTLE":
+				return vessel.ctrlState.mainThrottle;
 
 			// Maneuvers
 			case "MNODETIME":

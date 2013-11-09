@@ -179,6 +179,7 @@ None of these parameters know anything about vectors and orientations, mind.
 * **ACCEL** -- Current acceleration in m/s^2
 * **MAXACCEL** -- Maximum acceleration in m/s^2
 * **GFORCE** -- G forces being experienced by the vessel in g.
+* **THROTTLE** -- Current state of the engine throttle, a number from 0 to 1.
 
 #### Maneuver node
 
