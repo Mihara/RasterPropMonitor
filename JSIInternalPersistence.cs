@@ -16,7 +16,7 @@ namespace JSI
 		public void setVar (string varname, int value)
 		{
 			var variables = parseData ();
-			try { // I wonder if that's faster.
+			try {
 				variables.Add (varname, value);
 			} catch (ArgumentException) {
 				variables [varname] = value;
@@ -30,7 +30,7 @@ namespace JSI
 			foreach (KeyValuePair<string,int> item in variables) {
 				tokens.Add (item.Key + "$" + item.Value.ToString ());
 			}
-			return String.Join ("|", tokens.ToArray());
+			return String.Join ("|", tokens.ToArray ());
 		}
 
 		private Dictionary<string,int> parseData ()
