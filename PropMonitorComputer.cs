@@ -540,6 +540,26 @@ namespace RasterPropMonitorGenerator
 					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
 				} else
 					return Double.NaN;
+			case "TARGETORBITBODY":
+				if (target != null)
+					return targetorbit.referenceBody.name;
+				else
+					return "";
+			case "TARGETEXISTS":
+				if (target == null)
+					return -1;
+				if (target is Vessel)
+					return 1;
+				return 0;
+			case "TARGETSITUATION":
+				if (target is Vessel)
+					return situationString (target.GetVessel().situation);
+				else
+					return "";
+			case "TARGETALTITUDE":
+				if (target == null)
+					return 0;
+				return targetorbit.altitude;
 			// Ok, what are X, Y and Z here anyway?
 			case "TARGETDISTANCEX":
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().right);

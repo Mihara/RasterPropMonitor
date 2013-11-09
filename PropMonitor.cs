@@ -50,7 +50,6 @@ namespace RasterPropMonitor
 		private bool cameraEnabled = false;
 		private GameObject cameraTransform;
 		private Part cameraPart = null;
-		private Part myHomePart = null;
 		private Camera[] cameraObject = { null, null, null };
 
 		private void logMessage (string line, params object[] list)
@@ -102,22 +101,6 @@ namespace RasterPropMonitor
 			screen.SetTexture (textureLayerID, screenTexture);
 
 			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
-
-			// That leaves us with a clear reference to the part which our internal belongs to, which the class apparently lacks.
-			foreach (Part thatpart in vessel.parts) {
-				if (thatpart.internalModel != null) {
-					// I'm not sure I'm not doing something radically silly here.
-					foreach (InternalProp prop in thatpart.internalModel.props) {
-						RasterPropMonitor myself = prop.FindModelComponent<RasterPropMonitor> ();
-						if (myself != null && myself == this) {
-							myHomePart = thatpart;
-							break;
-						}
-					}
-				}
-				if (myHomePart != null)
-					break;
-			}
 
 			screenUpdateRequired = true;
 		}
@@ -218,7 +201,7 @@ namespace RasterPropMonitor
 
 					// First, we search our own part for this camera transform,
 					// only then we search all other parts of the vessel.
-					if (!locateCamera (myHomePart, cameraName))
+					if (!locateCamera (part, cameraName))
 						foreach (Part thatpart in vessel.parts) {
 							if (locateCamera (thatpart, cameraName))
 								break;

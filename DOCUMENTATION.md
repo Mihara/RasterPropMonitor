@@ -232,6 +232,12 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Rendezvous and docking
 
+* **TARGETEXISTS** -- Returns 1 if the target is a vessel, -1 if there's no
+  target, and 0 if the target exists but isn't a vessel.
+* **TARGETSITUATION** -- Returns the same as SITUATION but for target, if it's
+  a vessel. An empty string otherwise.
+* **TARGETORBITBODY** -- The name of the body your target orbits.
+* **TARGETALTITUDE** -- The altitude of the target above sea level.
 * **TARGETDISTANCE** -- Distance to the target in meters.
 * **TARGETDISTANCEX**, **TARGETDISTANCEY**, **TARGETDISTANCEZ** -- Distance
   to the target separated by axis.
