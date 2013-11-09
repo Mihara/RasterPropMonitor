@@ -154,7 +154,7 @@ Global
 		$27.MessageStyle = $28
 		$28.LineAlign = 0
 		$27.inheritsSet = Mono
-		version = 0.2
+		version = 0.3
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
