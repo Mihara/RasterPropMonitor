@@ -15,7 +15,7 @@ namespace JSI
 		[KSPField]
 		public string textureLayerID = "_MainTex";
 		[KSPField]
-		public string blankingColor = "0,0,0,255";
+		public Color emptyColor = Color.black;
 		[KSPField]
 		public int screenWidth = 32;
 		[KSPField]
@@ -45,7 +45,7 @@ namespace JSI
 		private int lastCharacter = 255;
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
-		private Color emptyColor = new Color (0, 0, 0, 255);
+		//private Color emptyColor = new Color (0, 0, 0, 255);
 		// Camera support.
 		private bool cameraEnabled = false;
 		private GameObject cameraTransform;
@@ -80,18 +80,6 @@ namespace JSI
 			screenText = new string[screenHeight];
 			for (int i = 0; i < screenText.Length; i++)
 				screenText [i] = "";
-
-			string[] tokens = blankingColor.Split (',');
-			if (tokens.Length != 4) {
-				logMessage ("Blanking color \"{0}\" does not make sense, ignoring.", blankingColor);
-			} else {
-				emptyColor = new Color (
-					Convert.ToInt16 (tokens [0]),
-					Convert.ToInt16 (tokens [1]),
-					Convert.ToInt16 (tokens [2]),
-					Convert.ToInt16 (tokens [3])
-				);
-			}
 
 			screenText [0] = "Monitor initializing...";
 
