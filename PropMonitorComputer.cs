@@ -422,6 +422,12 @@ namespace JSI
 					return node.GetBurnVector (vessel.orbit).magnitude;
 				else
 					return 0;
+			case "MNODEEXISTS":
+				if (node != null)
+					return 1;
+				else
+					return -1;
+
 			// Orbital parameters
 			case "ORBITBODY":
 				return vessel.orbit.referenceBody.name;
@@ -464,6 +470,11 @@ namespace JSI
 						return FormatDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
 				} else
 					return FormatDateTime (0, true, false, false);
+			case "ORBITMAKESSENSE":
+				if (orbitSensibility)
+					return 1;
+				else
+					return -1;
 
 			// Time
 			case "UT":
@@ -532,14 +543,14 @@ namespace JSI
 				if (target != null) {
 					return Vector3.Distance (target.GetTransform ().position, vessel.GetTransform ().position);
 				} else
-					return Double.NaN;
+					return -1;
 			case "RELATIVEINCLINATION":
 				if (target != null) {
 					if (targetorbit.referenceBody != vessel.orbit.referenceBody)
-						return Double.NaN;
+						return -1;
 					return Math.Abs (Vector3d.Angle (SwappedOrbitNormal (vessel.GetOrbit ()), SwappedOrbitNormal (targetorbit)));
 				} else
-					return Double.NaN;
+					return -1;
 			case "TARGETORBITBODY":
 				if (target != null)
 					return targetorbit.referenceBody.name;

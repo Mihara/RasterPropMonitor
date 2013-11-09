@@ -183,6 +183,7 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Maneuver node
 
+* **MNODEEXISTS** -- Returns 1 if a maneuver node exists. -1 otherwise.
 * **MNODETIME** -- time until/after the current maneuver node. Due to
   peculiarities of Kerbal calendar this, as well as other timespans, is
   returned as a pre-formatted string in the vein of
@@ -193,6 +194,8 @@ None of these parameters know anything about vectors and orientations, mind.
 
 #### Orbit parameters
 
+* **ORBITMAKESSENSE** -- Returns 1 if your vessel has an orbit to speak of, 
+  -1 otherwise.
 * **ORBITBODY** -- Name of the body we're orbiting.
 * **PERIAPSIS** -- Periapsis of the current orbit in meters.
 * **APOAPSIS** -- Periapsis of the current orbit in meters.
@@ -238,10 +241,12 @@ None of these parameters know anything about vectors and orientations, mind.
   a vessel. An empty string otherwise.
 * **TARGETORBITBODY** -- The name of the body your target orbits.
 * **TARGETALTITUDE** -- The altitude of the target above sea level.
-* **TARGETDISTANCE** -- Distance to the target in meters.
+* **TARGETDISTANCE** -- Distance to the target in meters. -1 if there's
+  no target.
 * **TARGETDISTANCEX**, **TARGETDISTANCEY**, **TARGETDISTANCEZ** -- Distance
   to the target separated by axis.
-* **RELATIVEINCLINATION** -- Relative inclination of the target orbit.
+* **RELATIVEINCLINATION** -- Relative inclination of the target orbit. Returns
+  -1 if there's no target or if the target orbits a different reference body.
 * **TARGETANGLEX**, **TARGETANGLEY**, **TARGETANGLEZ** -- Angles between axes
   of the capsule and a target docking port.
 * **TARGETAPOAPSIS**, **TARGETPERIAPSIS**, **TARGETINCLINATION**, 
