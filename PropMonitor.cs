@@ -212,9 +212,12 @@ namespace JSI
 						createCameraObjects ();
 					} else {
 						logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
-						cameraName = null;
-						cameraEnabled = false;
-						cameraPart = null;
+						if (cameraEnabled)
+							cleanupCameraObjects ();
+						else {
+							cameraName = null;
+							cameraPart = null;
+						}
 					}
 				} else {
 					if (cameraEnabled) {
