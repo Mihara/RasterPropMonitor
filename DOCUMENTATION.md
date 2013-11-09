@@ -324,3 +324,58 @@ switched to by InternalCameraSwitch won't let you.
 **Solution**: Insert `MODULE { name = InternalCameraTargetHelper }` into your
 internal.cfg. Problem gone. :) It will keep track of your target and restore it
 upon switching the camera in this fashion.
+
+### JSIInternalPersistence
+
+InternalModules can't store persistent variables normally, which, with a highly
+detailed IVA like ALCOR, for which this was written, is a problem -- monitors
+want to store their currently active page, switches that turn IVA lights on
+and off want to store their state. This is a **PartModule** that stores this
+information for them. You want to add this module to the capsule that will be
+hosting the monitors. They will still work if you don't, but currently active
+page numbers won't get remembered. There are no parameters to configure.
+
+This is a highly crude solution to this problem, but it's the only one that
+I was able to get to work. 
+
+### JSIActionGroupSwitch
+
+This module will attach an IVA prop to an action group so that clicking on
+the prop will change the state of the action group as well as run an animation
+on the prop. Handy for making animated switches.
+
+A function is included to enable and disable a light on the internal model,
+so you can make a light switch -- unlike action group states, the state of the
+light does NOT get saved in the persistence file. Configuration options:
+
+* **switchTransform** -- name of the transform collider on the switch that will
+  trigger it. Needs to be isTrigger.
+* **animationName** -- name of the animation to run. First frame of the animation
+  is the 'off' position and last frame is the 'on' position.
+* **reverse** -- true if the animation is to be played backwards, i.e. the "on"
+  position is the first frame.
+* **customSpeed** -- A speed multiplier, permitting you to play the animation
+  faster or slower than it normally is. 1 is normal speed and default.
+* **actionName** -- name of the action group or custom action. Valid names are:
+  *gear*, *brakes*, *lights*, *rcs*, *sas*, *abort*, *stage*,
+  *custom01*..*custom10*, *intlight*, *dummy*. The dummy action will produce a
+  switch that animates but doesn't do anything. "intlight" action will toggle an
+  internal light source.
+* **internalLightName** -- name of the internal light to toggle, if needed.
+  All lights sharing the same name will toggle at once.
+  
+### JSIPropTextureShift
+
+This module will shift a texture on the prop it is attached to once upon startup,
+and remain dormant from there on. Initially made to allow to use one model and
+one texture full of button names to create lots of individual switches, it can
+probably have other uses. Configuration option:
+
+* **transformToShift** -- The name of the transform the texture on which will
+  be shifted.
+* **layerToShift** -- Space-separated list of the layers to operate on.
+  "\_MainTex" by default.
+* **x**, **y** -- offset to apply to the texture. Must be in texture coordinates,
+  i.e. floats. Notice that it will be added to the offset of the texture already
+  there, which is also in floats.
+  
