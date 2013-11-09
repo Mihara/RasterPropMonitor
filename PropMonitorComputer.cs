@@ -59,6 +59,9 @@ namespace JSI
 			SASGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.SAS);
 			lightGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.Light);
 			RCSGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.RCS);
+
+			if (HighLogic.LoadedSceneIsFlight)
+				fetchPerPartData ();
 		}
 
 		public void updateRefreshRates (int rate, int dataRate)
@@ -345,6 +348,10 @@ namespace JSI
 
 		private static string FormatDateTime (double seconds, bool signed, bool noyears, bool plusskip)
 		{
+			// I'd love to know when exactly does this happen, but I'll let it slide for now..
+			if (seconds == Double.NaN)
+				return "";
+
 			TimeSpan span = TimeSpan.FromSeconds (Math.Abs (seconds));
 			int years = (int)Math.Floor (span.TotalDays / 365);
 			span -= new TimeSpan (365 * years, 0, 0, 0);
