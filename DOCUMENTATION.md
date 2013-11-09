@@ -359,8 +359,8 @@ the prop will change the state of the action group as well as run an animation
 on the prop. Handy for making animated switches.
 
 A function is included to enable and disable a light on the internal model,
-so you can make a light switch -- unlike action group states, the state of the
-light does NOT get saved in the persistence file. Configuration options:
+so you can make a light switch -- to get it's state saved in the persistence file,
+you need to use JSIInternalPersistence. Configuration options:
 
 * **switchTransform** -- name of the transform collider on the switch that will
   trigger it. Needs to be isTrigger.
@@ -380,10 +380,10 @@ light does NOT get saved in the persistence file. Configuration options:
   
 ### JSIPropTextureShift
 
-This module will shift a texture on the prop it is attached to once upon startup,
-and remain dormant from there on. Initially made to allow to use one model and
-one texture full of button names to create lots of individual switches, it can
-probably have other uses. Configuration option:
+This module will shift a texture on the prop it is attached to once upon startup.
+Initially made to allow to use one model and one texture full of button names to
+create lots of individual switches, it can probably have other uses.
+Configuration options:
 
 * **transformToShift** -- The name of the transform the texture on which will
   be shifted.
