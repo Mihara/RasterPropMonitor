@@ -45,6 +45,8 @@
     <Compile Include="PropMonitorComputer.cs" />
     <Compile Include="InternalCameraTargetHelper.cs" />
     <Compile Include="JSIInternalPersistence.cs" />
+    <Compile Include="JSIActionGroupSwitch.cs" />
+    <Compile Include="JSIPropTextureShift.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

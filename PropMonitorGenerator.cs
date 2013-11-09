@@ -89,10 +89,12 @@ namespace JSI
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
 
-		private string persistentVarName;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
+
+		// Persistence for current page variable.
 		private JSIInternalPersistence persistence = null;
+		private string persistentVarName;
 
 		public void Start ()
 		{
