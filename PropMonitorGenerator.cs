@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using UnityEngine;
 
-namespace RasterPropMonitorGenerator
+namespace JSI
 {
 	public class RasterPropMonitorGenerator: InternalModule
 	{
@@ -88,8 +88,11 @@ namespace RasterPropMonitorGenerator
 		private bool screenWasBlanked = false;
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
+
+		private string persistentVarName;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
+		private JSIInternalPersistence persistence = null;
 
 		public void Start ()
 		{
@@ -176,6 +179,17 @@ namespace RasterPropMonitorGenerator
 
 			comp.updateRefreshRates (refreshRate, refreshDataRate);
 
+			// Load our state from storage...
+			persistentVarName = "activePage" + internalProp.propID.ToString ();
+			if (persistence == null)
+				for (int i=0; i<part.Modules.Count; i++)
+					if (part.Modules [i].ClassName == typeof(JSIInternalPersistence).Name)
+						persistence = part.Modules [i] as JSIInternalPersistence;
+			int retval = persistence.getVar (persistentVarName);
+
+			if (retval != int.MaxValue)
+				activePage = retval;
+
 			// So camera support.
 			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
 			setCamera (cameras [activePage]);
@@ -203,6 +217,11 @@ namespace RasterPropMonitorGenerator
 		public void buttonClick (int buttonID)
 		{
 			activePage = buttonID;
+
+			if (persistence != null) {
+				persistence.setVar (persistentVarName,activePage);
+			}
+
 			setCamera (cameras [activePage]);
 			updateForced = true;
 			comp.updateForced = true;

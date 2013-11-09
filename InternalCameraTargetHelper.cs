@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace RasterPropMonitor
+namespace JSI
 {
 	public class InternalCameraTargetHelper: InternalModule
 	{

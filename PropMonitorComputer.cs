@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace RasterPropMonitorGenerator
+namespace JSI
 {
 	public class RasterPropMonitorComputer: InternalModule
 	{

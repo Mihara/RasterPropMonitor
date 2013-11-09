@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{F19C7AB4-50C2-4378-9673-CC039CA12E10}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>RasterPropMonitor</RootNamespace>
+    <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
     <ReleaseVersion>0.3</ReleaseVersion>
   </PropertyGroup>
@@ -44,6 +44,7 @@
     <Compile Include="PropMonitorGenerator.cs" />
     <Compile Include="PropMonitorComputer.cs" />
     <Compile Include="InternalCameraTargetHelper.cs" />
+    <Compile Include="JSIInternalPersistence.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

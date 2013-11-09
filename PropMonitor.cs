@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace RasterPropMonitor
+namespace JSI
 {
 	public class RasterPropMonitor: InternalModule
 	{
@@ -212,7 +212,9 @@ namespace RasterPropMonitor
 						createCameraObjects ();
 					} else {
 						logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
-						cleanupCameraObjects ();
+						cameraName = null;
+						cameraEnabled = false;
+						cameraPart = null;
 					}
 				} else {
 					if (cameraEnabled) {
