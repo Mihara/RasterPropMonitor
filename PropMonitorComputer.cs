@@ -306,6 +306,30 @@ namespace RasterPropMonitorGenerator
 				return -Vector3.Angle (v1, v2);
 			return Vector3.Angle (v1, v2);
 		}
+		// According to C# specification, switch-case is compiled to a constant hash table.
+		// So this is actually more efficient than a dictionary, who'd have thought.
+		private static string situationString (Vessel.Situations situation)
+		{
+			switch (situation) {
+			case Vessel.Situations.FLYING:
+				return "Flying";
+			case Vessel.Situations.SUB_ORBITAL:
+				return "Sub-orbital";
+			case Vessel.Situations.ESCAPING:
+				return "Escaping";
+			case Vessel.Situations.LANDED:
+				return "Landed";
+			case Vessel.Situations.DOCKED:
+				return "Docked"; // When does this ever happen exactly, I wonder?
+			case Vessel.Situations.PRELAUNCH:
+				return "Ready to launch";
+			case Vessel.Situations.ORBITING:
+				return "Orbiting";
+			case Vessel.Situations.SPLASHED:
+				return "Splashed down";
+			}
+			return "??!";
+		}
 
 		private static string FormatDateTime (double seconds, Boolean signed, Boolean noyears, Boolean plusskip)
 		{
@@ -606,9 +630,11 @@ namespace RasterPropMonitorGenerator
 			case "XENONMAX":
 				return getMaxResourceByName ("XenonGas");
 
-			// Staging
+			// Staging and other stuff
 			case "STAGE":
 				return Staging.CurrentStage;
+			case "SITUATION":
+				return situationString (vessel.situation);
 
 			// SCIENCE!!
 			case "SCIENCEDATA":
@@ -659,6 +685,12 @@ namespace RasterPropMonitorGenerator
 			// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
 			if (tokens.Length == 3 && tokens [0] == "CREW") { 
 				ushort crewSeatID = Convert.ToUInt16 (tokens [1]);
+				if (tokens [2] == "PRESENT") {
+					if (crewSeatID >= VesselCrew.Length)
+						return -1;
+					else
+						return 1;
+				}
 				if (crewSeatID >= VesselCrew.Length)
 					return "";
 				string kerbalname = VesselCrew [crewSeatID].name;

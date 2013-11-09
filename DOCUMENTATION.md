@@ -209,10 +209,11 @@ None of these parameters know anything about vectors and orientations, mind.
 #### Names
 
 * **NAME** -- Name of the current vessel.
-* **CREW_**<*id*>**_**<**FULL**|**FIRST**|**LAST**> -- Names of crewmembers.
-  IDs start with 0. I.e. for Jebediah Kerman being the only occupant of a
-  capsule, CREW_0_FIRST will produce "Jebediah". An empty string if the seat
-  is unoccupied.
+* **CREW_**<*id*>**_**<**FULL**|**FIRST**|**LAST**|**PRESENT**> -- Names
+  of crewmembers. IDs start with 0. I.e. for Jebediah Kerman being the
+  only occupant of a capsule, CREW_0_FIRST will produce "Jebediah". An
+  empty string if the seat is unoccupied. "PRESENT" qualifier is a number,
+  -1 if the seat is empty and 1 if it is occupied.
 * **TARGETNAME** -- Name of the target.
 
 #### Coordinates
@@ -275,6 +276,8 @@ sorted list.
   format string.
 * **TIMETOIMPACT** -- A very, very rough estimate of the time of contact
   with the ground. Does not currently take gravity acceleration into account.
+* **SITUATION** -- Current vessel situation, i.e "flying", "orbiting", etc.
+  A predefined string.
 
 Whew, that's about all of them.
 
