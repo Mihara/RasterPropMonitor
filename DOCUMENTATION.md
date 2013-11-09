@@ -85,9 +85,9 @@ fit into screenPixelWidth, but can't have more.
 * **page1,page2...page8** -- Page definitions.
 * **button1,button2...button8** -- Button transform names that correspond to
   pages.
-* **activePage** -- Page to display on startup, 0 by default. *(Due to KSP
-  limitations, currently active page cannot be made persistent without
-  jumping through a lot of hoops I'm not ready for yet.)*
+* **activePage** -- Page to display on startup, 0 by default. If you include
+  JSIInternalPersistence module in your prop.cfg for the pod, the selected
+  page will persist upon reload of the vessel. *(see below)*
 * **camera1,camera2...camera8** -- Names of cameras and their FOVs, if any.
   *(See the section on cameras for details)*
 
@@ -127,7 +127,11 @@ The special sequence of symbols "**$&$**" separates the text to be printed
 from a space-separated list of variables to be inserted into the format
 specifiers on the line. It might not be very obvious, but the first character
 of the {} format specifier is the index of the variable in the list, starting
-with 0.
+with 0. There are a lot of tricks you can do by abusing the capability of
+String.Format to select between different formats *(and by extension, select
+what to print at all)* depending on whether a certain variable is positive,
+negative or zero. For this reason, special variables that return -1 or 1 
+in specific situations are included.
 
 While debugging your screen definition, it helps to know that the plugin
 reloads screen definitions from disk, *(the ones stored in files, at
