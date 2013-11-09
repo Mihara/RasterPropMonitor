@@ -20,6 +20,7 @@ namespace JSI
 			Material shifted = base.internalProp.FindModelTransform (transformToShift).renderer.material;
 			foreach (string layer in layerToShift.Split ())
 				shifted.SetTextureOffset (layer, shiftval + shifted.GetTextureOffset (layer));
+			Destroy (this);
 		}
 	}
 }

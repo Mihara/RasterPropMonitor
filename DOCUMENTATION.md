@@ -332,8 +332,9 @@ detailed IVA like ALCOR, for which this was written, is a problem -- monitors
 want to store their currently active page, switches that turn IVA lights on
 and off want to store their state. This is a **PartModule** that stores this
 information for them. You want to add this module to the capsule that will be
-hosting the monitors. They will still work if you don't, but currently active
-page numbers won't get remembered. There are no parameters to configure.
+hosting the monitors and switches using JSIActionGroupSwitch. They will still
+work if you don't, but currently active page numbers won't get remembered and
+neither will switch states. There are no parameters to configure.
 
 This is a highly crude solution to this problem, but it's the only one that
 I was able to get to work. 
@@ -378,4 +379,7 @@ probably have other uses. Configuration option:
 * **x**, **y** -- offset to apply to the texture. Must be in texture coordinates,
   i.e. floats. Notice that it will be added to the offset of the texture already
   there, which is also in floats.
-  
+
+Once the job is done, the module selfdestructs to save memory and reduce
+component count, leaving the prop with the shifted texture intact until the
+next time it's instantiated.
