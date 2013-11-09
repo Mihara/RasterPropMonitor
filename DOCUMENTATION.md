@@ -240,7 +240,8 @@ None of these parameters know anything about vectors and orientations, mind.
 * **TARGETSITUATION** -- Returns the same as SITUATION but for target, if it's
   a vessel. An empty string otherwise.
 * **TARGETORBITBODY** -- The name of the body your target orbits.
-* **TARGETALTITUDE** -- The altitude of the target above sea level.
+* **TARGETALTITUDE** -- The altitude of the target above sea level. -1 if
+  there's no target.
 * **TARGETDISTANCE** -- Distance to the target in meters. -1 if there's
   no target.
 * **TARGETDISTANCEX**, **TARGETDISTANCEY**, **TARGETDISTANCEZ** -- Distance

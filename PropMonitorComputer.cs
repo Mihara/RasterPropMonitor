@@ -34,7 +34,8 @@ namespace JSI
 		private double altitudeASL;
 		private double altitudeTrue;
 		private Orbit targetorbit;
-		private Boolean orbitSensibility = false;
+		private bool orbitSensibility = false;
+		private bool targetOrbitSensibility = false;
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d> ();
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
@@ -42,6 +43,7 @@ namespace JSI
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
 		private double totalDataAmount;
+		private double secondsToImpact;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -157,11 +159,21 @@ namespace JSI
 				targetSeparation = vessel.GetTransform ().position - target.GetTransform ().position;
 				targetOrientation = target.GetTransform ().rotation;
 				targetorbit = target.GetOrbit ();
+				if (target is Vessel)
+					targetOrbitSensibility = orbitMakesSense (target as Vessel);
+				else
+					targetOrbitSensibility = true;
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrientation = new Quaternion ();
+				targetOrbitSensibility = false;
 			}
-			orbitSensibility = orbitMakesSense ();
+			orbitSensibility = orbitMakesSense (vessel);
+			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING)
+				secondsToImpact = -(altitudeTrue / speedVertical);
+			else
+				secondsToImpact = Double.NaN;
+
 		}
 
 		public void fetchPerPartData ()
@@ -284,13 +296,13 @@ namespace JSI
 				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
 		}
 
-		private Boolean orbitMakesSense ()
+		private bool orbitMakesSense (Vessel thatvessel)
 		{
-			if (vessel.situation == Vessel.Situations.FLYING ||
-			    vessel.situation == Vessel.Situations.SUB_ORBITAL ||
-			    vessel.situation == Vessel.Situations.ORBITING ||
-			    vessel.situation == Vessel.Situations.ESCAPING ||
-			    vessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
+			if (thatvessel.situation == Vessel.Situations.FLYING ||
+			    thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
+			    thatvessel.situation == Vessel.Situations.ORBITING ||
+			    thatvessel.situation == Vessel.Situations.ESCAPING ||
+			    thatvessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
 				return true;
 			return false;
 		}
@@ -331,7 +343,7 @@ namespace JSI
 			return "??!";
 		}
 
-		private static string FormatDateTime (double seconds, Boolean signed, Boolean noyears, Boolean plusskip)
+		private static string FormatDateTime (double seconds, bool signed, bool noyears, bool plusskip)
 		{
 			TimeSpan span = TimeSpan.FromSeconds (Math.Abs (seconds));
 			int years = (int)Math.Floor (span.TotalDays / 365);
@@ -373,14 +385,16 @@ namespace JSI
 			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
 			// If anyone's up to doing that smoothly be my guest.
 			case "TIMETOIMPACT":
-				if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING) {
-					double secondsToImpact = -(altitudeTrue / speedVertical);
-					if (secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
-						return FormatDateTime (0, false, true, false);
-					} else
-						return FormatDateTime (secondsToImpact, false, true, false); 
+				if (secondsToImpact == Double.NaN || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
+					return "";
 				} else
-					return FormatDateTime (0, false, true, false);
+					return FormatDateTime (secondsToImpact, false, true, false); 
+			case "TIMETOIMPACTSECS":
+				if (secondsToImpact == Double.NaN || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
+					return -1;
+				else
+					return secondsToImpact;
+
 			// Altitudes
 			case "ALTITUDE":
 				return altitudeASL;
@@ -416,7 +430,7 @@ namespace JSI
 				if (node != null)
 					return FormatDateTime (-(node.UT - time), true, false, true);
 				else
-					return FormatDateTime (0, true, false, true);
+					return "";
 			case "MNODEDV":
 				if (node != null)
 					return node.GetBurnVector (vessel.orbit).magnitude;
@@ -456,12 +470,12 @@ namespace JSI
 				if (orbitSensibility)
 					return FormatDateTime (vessel.orbit.period, false, false, false);
 				else
-					return FormatDateTime (0, false, false, false);
+					return "";
 			case "TIMETOAP":
 				if (orbitSensibility)
 					return FormatDateTime (vessel.orbit.timeToAp, false, false, false);
 				else
-					return FormatDateTime (0, false, false, false);
+					return "";
 			case "TIMETOPE":
 				if (orbitSensibility) {
 					if (vessel.orbit.eccentricity < 1)
@@ -469,7 +483,7 @@ namespace JSI
 					else
 						return FormatDateTime (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
 				} else
-					return FormatDateTime (0, true, false, false);
+					return "";
 			case "ORBITMAKESSENSE":
 				if (orbitSensibility)
 					return 1;
@@ -564,13 +578,17 @@ namespace JSI
 				return 0;
 			case "TARGETSITUATION":
 				if (target is Vessel)
-					return situationString (target.GetVessel().situation);
+					return situationString (target.GetVessel ().situation);
 				else
 					return "";
 			case "TARGETALTITUDE":
 				if (target == null)
-					return 0;
-				return targetorbit.altitude;
+					return -1;
+				if (target is Vessel) {
+					return (target as Vessel).mainBody.GetAltitude ((target as Vessel).findWorldCenterOfMass ());
+				} else
+					return targetorbit.altitude;
+
 			// Ok, what are X, Y and Z here anyway?
 			case "TARGETDISTANCEX":
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().right);
@@ -597,48 +615,48 @@ namespace JSI
 			
 			// There goes the neighbourhood...
 			case "TARGETAPOAPSIS":
-				if (target != null)
+				if (target != null && targetOrbitSensibility)
 					return targetorbit.ApA;
 				else
 					return 0;
 			case "TARGETPERIAPSIS":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return targetorbit.PeA;
 				else
 					return 0;
 			case "TARGETINCLINATION":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return targetorbit.inclination;
 				else
 					return 0;
 			case "TARGETECCENTRICITY":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return targetorbit.eccentricity;
 				else
 					return 0;
 			case "TARGETORBITALVEL":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return targetorbit.orbitalSpeed;
 				else
 					return 0;
 			case "TARGETTIMETOAP":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return FormatDateTime (targetorbit.timeToAp, false, false, false);
 				else
-					return FormatDateTime (0, false, false, false);
+					return "";
 			case "TARGETORBPERIOD":
-				if (target != null && targetorbit != null)
+				if (target != null && targetOrbitSensibility)
 					return FormatDateTime (targetorbit.period, false, false, false);
 				else
-					return FormatDateTime (0, false, false, false);
+					return "";
 			case "TARGETTIMETOPE":
-				if (target != null && targetorbit != null) {
+				if (target != null && targetOrbitSensibility) {
 					if (vessel.orbit.eccentricity < 1)
 						return FormatDateTime (targetorbit.timeToPe, true, false, false);
 					else
 						return FormatDateTime (-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
 				} else
-					return FormatDateTime (0, true, false, false);
+					return "";
 
 
 			// Stock resources by name.
