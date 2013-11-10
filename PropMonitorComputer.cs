@@ -349,7 +349,7 @@ namespace JSI
 		private static string FormatDateTime (double seconds, bool signed, bool noyears, bool plusskip)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
-			if (seconds == Double.NaN)
+			if (Double.IsNaN (seconds))
 				return "";
 
 			TimeSpan span = TimeSpan.FromSeconds (Math.Abs (seconds));
@@ -392,12 +392,12 @@ namespace JSI
 			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
 			// If anyone's up to doing that smoothly be my guest.
 			case "TIMETOIMPACT":
-				if (secondsToImpact == Double.NaN || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
+				if (Double.IsNaN (secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 					return "";
 				} else
 					return FormatDateTime (secondsToImpact, false, true, false); 
 			case "TIMETOIMPACTSECS":
-				if (secondsToImpact == Double.NaN || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
+				if (Double.IsNaN (secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
 					return -1;
 				else
 					return secondsToImpact;
