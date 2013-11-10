@@ -169,6 +169,7 @@ I don't need to write more than a page of code to acquire it.
 
 * **MASSDRY** -- Dry mass of the ship, i.e. excluding resources.
 * **MASSWET** -- Total mass of the ship.
+* **MASSRESOURCES** -- Mass of the resources alone, i.e. wet minus dry.
 
 #### Thrust and related parameters
 

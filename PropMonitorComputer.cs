@@ -413,6 +413,8 @@ namespace JSI
 				return totalShipDryMass;
 			case "MASSWET":
 				return totalShipWetMass;
+			case "MASSRESOURCES":
+				return totalShipWetMass - totalShipDryMass;
 
 			// Thrust and related
 			case "THRUST":
