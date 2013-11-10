@@ -604,20 +604,36 @@ namespace JSI
 			case "TARGETDISTANCEZ":
 				return Vector3d.Dot (targetSeparation, vessel.GetTransform ().up);
 
+			// I probably should return something else for vessels. But not sure what exactly right now.
 			case "TARGETANGLEX":
-				if (target != null && target is ModuleDockingNode)
-					return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, up);
-				else
+				if (target != null) {
+					if (target is ModuleDockingNode)
+						return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, up);
+					else if (target is Vessel) {
+						return normalAngle (-target.GetFwdVector (), forward, up);
+					}
+					return 0;
+				} else
 					return 0;
 			case "TARGETANGLEY":
-				if (target != null && target is ModuleDockingNode)
-					return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, -right);
-				else
+				if (target != null) {
+					if (target is ModuleDockingNode)
+						return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, -right);
+					if (target is Vessel) {
+						normalAngle (-target.GetFwdVector (), forward, -right);
+					}
+					return 0;
+				} else
 					return 0;
 			case "TARGETANGLEZ":
-				if (target != null && target is ModuleDockingNode)
-					return normalAngle ((target as ModuleDockingNode).GetTransform ().up, up, -forward);
-				else
+				if (target != null) {
+					if (target is ModuleDockingNode)
+						return normalAngle ((target as ModuleDockingNode).GetTransform ().up, up, -forward);
+					if (target is Vessel) {
+						return normalAngle (target.GetTransform ().up, up, -forward);
+					}
+					return 0;
+				} else
 					return 0;
 			
 			// There goes the neighbourhood...
