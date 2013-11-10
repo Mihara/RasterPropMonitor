@@ -19,35 +19,35 @@ namespace JSI
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
-		public string button1 = "";
+		public string button1 = string.Empty;
 		[KSPField]
-		public string page2 = "";
+		public string page2 = string.Empty;
 		[KSPField]
-		public string button2 = "";
+		public string button2 = string.Empty;
 		[KSPField]
-		public string page3 = "";
+		public string page3 = string.Empty;
 		[KSPField]
-		public string button3 = "";
+		public string button3 = string.Empty;
 		[KSPField]
-		public string page4 = "";
+		public string page4 = string.Empty;
 		[KSPField]
-		public string button4 = "";
+		public string button4 = string.Empty;
 		[KSPField]
-		public string page5 = "";
+		public string page5 = string.Empty;
 		[KSPField]
-		public string button5 = "";
+		public string button5 = string.Empty;
 		[KSPField]
-		public string page6 = "";
+		public string page6 = string.Empty;
 		[KSPField]
-		public string button6 = "";
+		public string button6 = string.Empty;
 		[KSPField]
-		public string page7 = "";
+		public string page7 = string.Empty;
 		[KSPField]
-		public string button7 = "";
+		public string button7 = string.Empty;
 		[KSPField]
-		public string page8 = "";
+		public string page8 = string.Empty;
 		[KSPField]
-		public string button8 = "";
+		public string button8 = string.Empty;
 		[KSPField]
 		public int activePage = 0;
 		[KSPField]
@@ -135,7 +135,7 @@ namespace JSI
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
 
 			for (int i=0; i<8; i++) {
-				if (buttonName[i] != "") {
+				if (!string.IsNullOrEmpty(buttonName[i])) {
 					GameObject buttonObject = base.internalProp.FindModelTransform(buttonName[i]).gameObject;
 					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler>();
 					pageButton.ID = i;
@@ -153,7 +153,7 @@ namespace JSI
 
 			textArray = new string[linesPerPage];
 			for (int i = 0; i < textArray.Length; i++) {
-				textArray[i] = "";
+				textArray[i] = string.Empty;
 			}
 
 			// The semi-clever bit: Recycling computational module.
@@ -264,10 +264,9 @@ namespace JSI
 			if (updateCountdown <= 0 || updateForced) {
 				updateForced = false;
 				return true;
-			} else {
-				updateCountdown--;
-				return false;
 			}
+			updateCountdown--;
+			return false;
 		}
 
 		public override void OnUpdate()
@@ -282,10 +281,10 @@ namespace JSI
 				if (!UpdateCheck())
 					return;
 
-				if (pages[activePage] == "" && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
+				if (pages[activePage] == string.Empty && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
-							textArray[i] = "";
+							textArray[i] = string.Empty;
 						screenWasBlanked = true;
 						remoteArray.SetValue(targetScript, textArray);
 						remoteFlag.SetValue(targetScript, true);
@@ -294,10 +293,7 @@ namespace JSI
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
 						string[] linesArray = pages[activePage].Split(lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
-							if (i < linesArray.Length) {
-								textArray[i] = ProcessString(linesArray[i]).TrimEnd();
-							} else
-								textArray[i] = "";
+							textArray[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
 						}
 						remoteArray.SetValue(targetScript, textArray);
 						remoteFlag.SetValue(targetScript, true);
