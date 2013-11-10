@@ -61,23 +61,23 @@ namespace JSI
 			RCSGroupNumber = BaseAction.GetGroupIndex (KSPActionGroup.RCS);
 
 			if (HighLogic.LoadedSceneIsFlight)
-				fetchPerPartData ();
+				FetchPerPartData ();
 		}
 
-		public void updateRefreshRates (int rate, int dataRate)
+		public void UpdateRefreshRates (int rate, int dataRate)
 		{
 			refreshRate = Math.Min (rate, refreshRate);
 			refreshDataRate = Math.Min (dataRate, refreshDataRate);
 		}
 
-		private bool updateCheck ()
+		private bool UpdateCheck ()
 		{
 			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced) {
 				updateCountdown = refreshRate;
 				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced) {
 					dataUpdateCountdown = refreshDataRate;
 					vesselNumParts = vessel.Parts.Count;
-					fetchPerPartData ();
+					FetchPerPartData ();
 				}
 				updateForced = false;
 				return true;
@@ -93,25 +93,25 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
-			if (!updateCheck ())
+			if (!UpdateCheck ())
 				return;
 
 			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
 			    vessel == FlightGlobals.ActiveVessel) {
 
-				fetchCommonData ();
+				FetchCommonData ();
 			}
 		}
 		// Sigh. MechJeb math.
-		private double getCurrentThrust (ModuleEngines engine)
+		private double GetCurrentThrust (ModuleEngines engine)
 		{
 			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
 			return engine.finalThrust;
 		}
 
-		private double getMaximumThrust (ModuleEngines engine)
+		private double GetMaximumThrust (ModuleEngines engine)
 		{
 			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
@@ -135,7 +135,7 @@ namespace JSI
 			return angle;
 		}
 
-		public void fetchCommonData ()
+		public void FetchCommonData ()
 		{
 			CoM = vessel.findWorldCenterOfMass ();
 			up = (CoM - vessel.mainBody.position).normalized;
@@ -156,14 +156,14 @@ namespace JSI
 				node = null;
 			time = Planetarium.GetUniversalTime ();
 			altitudeASL = vessel.mainBody.GetAltitude (CoM);
-			fetchTrueAltitude ();
+			FetchTrueAltitude ();
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel () - target.GetOrbit ().GetVel ();
 				targetSeparation = vessel.GetTransform ().position - target.GetTransform ().position;
 				targetOrientation = target.GetTransform ().rotation;
 				targetorbit = target.GetOrbit ();
 				if (target is Vessel)
-					targetOrbitSensibility = orbitMakesSense (target as Vessel);
+					targetOrbitSensibility = OrbitMakesSense (target as Vessel);
 				else
 					targetOrbitSensibility = true;
 			} else {
@@ -171,7 +171,7 @@ namespace JSI
 				targetOrientation = new Quaternion ();
 				targetOrbitSensibility = false;
 			}
-			orbitSensibility = orbitMakesSense (vessel);
+			orbitSensibility = OrbitMakesSense (vessel);
 			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING) {
 				// Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
 				//  t = (v+sqrt(v²+2gd))/g or something.
@@ -182,7 +182,7 @@ namespace JSI
 
 		}
 
-		public void fetchPerPartData ()
+		public void FetchPerPartData ()
 		{
 			resources.Clear ();
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
@@ -206,8 +206,8 @@ namespace JSI
 					if (!pm.isEnabled)
 						continue;
 					if (pm is ModuleEngines) {
-						totalCurrentThrust += getCurrentThrust (pm as ModuleEngines);
-						totalMaximumThrust += getMaximumThrust (pm as ModuleEngines);
+						totalCurrentThrust += GetCurrentThrust (pm as ModuleEngines);
+						totalMaximumThrust += GetMaximumThrust (pm as ModuleEngines);
 					} 
 				}
 
@@ -234,7 +234,7 @@ namespace JSI
 			VesselCrew = (vessel.GetVesselCrew ()).ToArray ();
 		}
 
-		private double getResourceByName (string name)
+		private double GetResourceByName (string name)
 		{
 			Vector2d result;
 			if (resources.TryGetValue (name, out result))
@@ -243,7 +243,7 @@ namespace JSI
 				return 0;
 		}
 
-		private double getMaxResourceByName (string name)
+		private double GetMaxResourceByName (string name)
 		{
 			Vector2d result;
 			if (resources.TryGetValue (name, out result))
@@ -261,12 +261,12 @@ namespace JSI
 			return String.Format ("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
 		}
 
-		private static string latitudeDMS (double latitude)
+		private static string LatitudeDMS (double latitude)
 		{
 			return AngleToDMS (latitude) + (latitude > 0 ? " N" : " S");
 		}
 
-		private string longitudeDMS (double longitude)
+		private string LongitudeDMS (double longitude)
 		{
 			double clampedLongitude = ClampDegrees180 (longitude);
 			return AngleToDMS (clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
@@ -282,7 +282,7 @@ namespace JSI
 			return -SwapYZ (o.GetOrbitNormal ()).normalized;
 		}
 		// Another piece from MechJeb.
-		private void fetchTrueAltitude ()
+		private void FetchTrueAltitude ()
 		{
 			RaycastHit sfc;
 			if (Physics.Raycast (CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
@@ -297,7 +297,7 @@ namespace JSI
 				altitudeTrue = vessel.mainBody.GetAltitude (CoM);
 		}
 
-		private bool orbitMakesSense (Vessel thatvessel)
+		private bool OrbitMakesSense (Vessel thatvessel)
 		{
 			if (thatvessel.situation == Vessel.Situations.FLYING ||
 			    thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
@@ -308,12 +308,12 @@ namespace JSI
 			return false;
 		}
 
-		private static float normalAngle (Vector3 a, Vector3 b, Vector3 up)
+		private static float NormalAngle (Vector3 a, Vector3 b, Vector3 up)
 		{
-			return signedAngle (Vector3.Cross (up, a), Vector3.Cross (up, b), up);
+			return SignedAngle (Vector3.Cross (up, a), Vector3.Cross (up, b), up);
 		}
 
-		private static float signedAngle (Vector3 v1, Vector3 v2, Vector3 up)
+		private static float SignedAngle (Vector3 v1, Vector3 v2, Vector3 up)
 		{
 			if (Vector3.Dot (Vector3.Cross (v1, v2), up) < 0)
 				return -Vector3.Angle (v1, v2);
@@ -321,7 +321,7 @@ namespace JSI
 		}
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
-		private static string situationString (Vessel.Situations situation)
+		private static string SituationString (Vessel.Situations situation)
 		{
 			switch (situation) {
 			case Vessel.Situations.FLYING:
@@ -361,7 +361,7 @@ namespace JSI
 
 		}
 
-		public object processVariable (string input)
+		public object ProcessVariable (string input)
 		{
 			switch (input) {
 
@@ -527,19 +527,19 @@ namespace JSI
 
 			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
 			case "LATITUDE_DMS":
-				return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
+				return LatitudeDMS (vessel.mainBody.GetLatitude (CoM));
 			case "LONGITUDE_DMS":
-				return longitudeDMS (vessel.mainBody.GetLongitude (CoM));
+				return LongitudeDMS (vessel.mainBody.GetLongitude (CoM));
 			case "LATITUDETGT_DMS":
 				if (target is Vessel) {
-					return latitudeDMS (target.GetVessel ().mainBody.GetLatitude (target.GetVessel ().GetWorldPos3D ()));
+					return LatitudeDMS (target.GetVessel ().mainBody.GetLatitude (target.GetVessel ().GetWorldPos3D ()));
 				} else
-					return latitudeDMS (vessel.mainBody.GetLatitude (CoM));
+					return LatitudeDMS (vessel.mainBody.GetLatitude (CoM));
 			case "LONGITUDETGT_DMS":
 				if (target is Vessel) {
-					return longitudeDMS (ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ())));
+					return LongitudeDMS (ClampDegrees180 (target.GetVessel ().mainBody.GetLongitude (target.GetVessel ().GetWorldPos3D ())));
 				} else
-					return longitudeDMS (ClampDegrees180 (vessel.mainBody.GetLongitude (CoM)));
+					return LongitudeDMS (ClampDegrees180 (vessel.mainBody.GetLongitude (CoM)));
 
 
 			// Orientation
@@ -585,7 +585,7 @@ namespace JSI
 				return 0;
 			case "TARGETSITUATION":
 				if (target is Vessel)
-					return situationString (target.GetVessel ().situation);
+					return SituationString (target.GetVessel ().situation);
 				else
 					return "";
 			case "TARGETALTITUDE":
@@ -608,9 +608,9 @@ namespace JSI
 			case "TARGETANGLEX":
 				if (target != null) {
 					if (target is ModuleDockingNode)
-						return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, up);
+						return NormalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, up);
 					else if (target is Vessel) {
-						return normalAngle (-target.GetFwdVector (), forward, up);
+						return NormalAngle (-target.GetFwdVector (), forward, up);
 					}
 					return 0;
 				} else
@@ -618,9 +618,9 @@ namespace JSI
 			case "TARGETANGLEY":
 				if (target != null) {
 					if (target is ModuleDockingNode)
-						return normalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, -right);
+						return NormalAngle (-(target as ModuleDockingNode).GetFwdVector (), forward, -right);
 					if (target is Vessel) {
-						normalAngle (-target.GetFwdVector (), forward, -right);
+						NormalAngle (-target.GetFwdVector (), forward, -right);
 					}
 					return 0;
 				} else
@@ -628,9 +628,9 @@ namespace JSI
 			case "TARGETANGLEZ":
 				if (target != null) {
 					if (target is ModuleDockingNode)
-						return normalAngle ((target as ModuleDockingNode).GetTransform ().up, up, -forward);
+						return NormalAngle ((target as ModuleDockingNode).GetTransform ().up, up, -forward);
 					if (target is Vessel) {
-						return normalAngle (target.GetTransform ().up, up, -forward);
+						return NormalAngle (target.GetTransform ().up, up, -forward);
 					}
 					return 0;
 				} else
@@ -684,31 +684,31 @@ namespace JSI
 
 			// Stock resources by name.
 			case "ELECTRIC":
-				return getResourceByName ("ElectricCharge");
+				return GetResourceByName ("ElectricCharge");
 			case "ELECTRICMAX":
-				return getMaxResourceByName ("ElectricCharge");
+				return GetMaxResourceByName ("ElectricCharge");
 			case "FUEL":
-				return getResourceByName ("LiquidFuel");
+				return GetResourceByName ("LiquidFuel");
 			case "FUELMAX":
-				return getMaxResourceByName ("LiquidFuel");
+				return GetMaxResourceByName ("LiquidFuel");
 			case "OXIDIZER":
-				return getResourceByName ("Oxidizer");
+				return GetResourceByName ("Oxidizer");
 			case "OXIDIZERMAX":
-				return getMaxResourceByName ("Oxidizer");
+				return GetMaxResourceByName ("Oxidizer");
 			case "MONOPROP":
-				return getResourceByName ("MonoPropellant");
+				return GetResourceByName ("MonoPropellant");
 			case "MONOPROPMAX":
-				return getMaxResourceByName ("MonoPropellant");
+				return GetMaxResourceByName ("MonoPropellant");
 			case "XENON":
-				return getResourceByName ("XenonGas");
+				return GetResourceByName ("XenonGas");
 			case "XENONMAX":
-				return getMaxResourceByName ("XenonGas");
+				return GetMaxResourceByName ("XenonGas");
 
 			// Staging and other stuff
 			case "STAGE":
 				return Staging.CurrentStage;
 			case "SITUATION":
-				return situationString (vessel.situation);
+				return SituationString (vessel.situation);
 
 			// SCIENCE!!
 			case "SCIENCEDATA":

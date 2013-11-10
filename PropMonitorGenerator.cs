@@ -141,7 +141,7 @@ namespace JSI
 					GameObject buttonObject = base.internalProp.FindModelTransform (buttonName [i]).gameObject;
 					buttonHandler pageButton = buttonObject.AddComponent<buttonHandler> ();
 					pageButton.ID = i;
-					pageButton.handlerFunction = buttonClick;
+					pageButton.handlerFunction = ButtonClick;
 				}
 
 				try {
@@ -179,7 +179,7 @@ namespace JSI
 				}
 			}
 
-			comp.updateRefreshRates (refreshRate, refreshDataRate);
+			comp.UpdateRefreshRates (refreshRate, refreshDataRate);
 
 			// Load our state from storage...
 			persistentVarName = "activePage" + internalProp.propID.ToString ();
@@ -187,17 +187,17 @@ namespace JSI
 				for (int i=0; i<part.Modules.Count; i++)
 					if (part.Modules [i].ClassName == typeof(JSIInternalPersistence).Name)
 						persistence = part.Modules [i] as JSIInternalPersistence;
-			int retval = persistence.getVar (persistentVarName);
+			int retval = persistence.GetVar (persistentVarName);
 
 			if (retval != int.MaxValue)
 				activePage = retval;
 
 			// So camera support.
 			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
-			setCamera (cameras [activePage]);
+			SetCamera (cameras [activePage]);
 		}
 
-		private void setCamera (string name)
+		private void SetCamera (string name)
 		{
 			if (name != "" && name != null) {
 				string[] tokens = name.Split (',');
@@ -216,15 +216,15 @@ namespace JSI
 			}
 		}
 
-		public void buttonClick (int buttonID)
+		public void ButtonClick (int buttonID)
 		{
 			activePage = buttonID;
 
 			if (persistence != null) {
-				persistence.setVar (persistentVarName,activePage);
+				persistence.SetVar (persistentVarName,activePage);
 			}
 
-			setCamera (cameras [activePage]);
+			SetCamera (cameras [activePage]);
 			updateForced = true;
 			comp.updateForced = true;
 			if (cameras [activePage] != "" && cameras [activePage] != null)
@@ -234,7 +234,7 @@ namespace JSI
 			currentPageFirstPassComplete = false;
 		}
 
-		private string processString (string input)
+		private string ProcessString (string input)
 		{
 			// Each separate output line is delimited by Environment.NewLine.
 			// When loading from a config file, you can't have newlines in it, so they're represented by "$$$".
@@ -253,7 +253,7 @@ namespace JSI
 
 					object[] variables = new object[vars.Length];
 					for (int i=0; i<vars.Length; i++) {
-						variables [i] = comp.processVariable (vars [i]);
+						variables [i] = comp.ProcessVariable (vars [i]);
 					}
 					return String.Format (tokens [0], variables);
 				}
@@ -261,7 +261,7 @@ namespace JSI
 				return input;
 		}
 		// Update according to the given refresh rate.
-		private bool updateCheck ()
+		private bool UpdateCheck ()
 		{
 			if (updateCountdown <= 0 || updateForced) {
 				updateForced = false;
@@ -281,7 +281,7 @@ namespace JSI
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
 			    vessel == FlightGlobals.ActiveVessel) {
 
-				if (!updateCheck ())
+				if (!UpdateCheck ())
 					return;
 
 				if (pages [activePage] == "" && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
@@ -297,7 +297,7 @@ namespace JSI
 						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {
-								textArray [i] = processString (linesArray [i]).TrimEnd ();
+								textArray [i] = ProcessString (linesArray [i]).TrimEnd ();
 							} else
 								textArray [i] = "";
 						}

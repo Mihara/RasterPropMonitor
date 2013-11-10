@@ -52,7 +52,7 @@ namespace JSI
 		private Part cameraPart = null;
 		private Camera[] cameraObject = { null, null, null };
 
-		private void logMessage (string line, params object[] list)
+		private void LogMessage (string line, params object[] list)
 		{
 			Debug.Log (String.Format (this.ClassName + ": " + line, list));
 		}
@@ -60,13 +60,13 @@ namespace JSI
 		private void Start ()
 		{
 
-			logMessage ("Trying to locate \"{0}\" in GameDatabase...", fontTransform);
+			LogMessage ("Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture (fontTransform)) {
 				fontTexture = GameDatabase.Instance.GetTexture (fontTransform, false);
-				logMessage ("Loading font texture from URL, \"{0}\"", fontTransform);
+				LogMessage ("Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
 				fontTexture = (Texture2D)base.internalProp.FindModelTransform (fontTransform).renderer.material.mainTexture;
-				logMessage ("Loading font texture from a transform named, \"{0}\"", fontTransform);
+				LogMessage ("Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
 			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
@@ -88,12 +88,12 @@ namespace JSI
 			Material screen = base.internalProp.FindModelTransform (screenTransform).renderer.material;
 			screen.SetTexture (textureLayerID, screenTexture);
 
-			logMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
+			LogMessage ("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
 
 			screenUpdateRequired = true;
 		}
 
-		private void cameraSetup (int index, string sourceName)
+		private void CameraSetup (int index, string sourceName)
 		{
 			GameObject cameraBody = new GameObject ();
 			cameraBody.name = "RPMC" + index.ToString () + " " + cameraBody.GetInstanceID ();
@@ -113,16 +113,16 @@ namespace JSI
 			cameraObject [index].targetTexture = screenTexture;
 		}
 
-		private void createCameraObjects ()
+		private void CreateCameraObjects ()
 		{
-			cameraSetup (0, "Camera ScaledSpace");
-			cameraSetup (1, "Camera 01");
-			cameraSetup (2, "Camera 00");
+			CameraSetup (0, "Camera ScaledSpace");
+			CameraSetup (1, "Camera 01");
+			CameraSetup (2, "Camera 00");
 			cameraEnabled = true;
 			cameraName = null;
 		}
 
-		private void cleanupCameraObjects ()
+		private void CleanupCameraObjects ()
 		{
 			for (int i=0; i<3; i++)
 				if (cameraObject [i].gameObject != null) {
@@ -134,7 +134,7 @@ namespace JSI
 			cameraPart = null;
 		}
 
-		private void drawChar (char letter, int x, int y)
+		private void DrawChar (char letter, int x, int y)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -144,7 +144,7 @@ namespace JSI
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode > lastCharacter) {
-				logMessage ("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter);
+				LogMessage ("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter);
 				return;
 			}
 			int xSource = charCode % fontLettersX;
@@ -163,7 +163,7 @@ namespace JSI
 
 		}
 
-		private bool locateCamera (Part thatpart, string name)
+		private bool LocateCamera (Part thatpart, string name)
 		{
 			Transform location = thatpart.FindModelTransform (cameraName);
 			if (location != null) {
@@ -189,19 +189,19 @@ namespace JSI
 
 					// First, we search our own part for this camera transform,
 					// only then we search all other parts of the vessel.
-					if (!locateCamera (part, cameraName))
+					if (!LocateCamera (part, cameraName))
 						foreach (Part thatpart in vessel.parts) {
-							if (locateCamera (thatpart, cameraName))
+							if (LocateCamera (thatpart, cameraName))
 								break;
 						}
 
 					if (cameraTransform != null) {
-						logMessage ("Switching to camera \"{0}\".", cameraTransform.name);
-						createCameraObjects ();
+						LogMessage ("Switching to camera \"{0}\".", cameraTransform.name);
+						CreateCameraObjects ();
 					} else {
-						logMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
+						LogMessage ("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
 						if (cameraEnabled)
-							cleanupCameraObjects ();
+							CleanupCameraObjects ();
 						else {
 							cameraName = null;
 							cameraPart = null;
@@ -209,8 +209,8 @@ namespace JSI
 					}
 				} else {
 					if (cameraEnabled) {
-						logMessage ("Turning camera off...");
-						cleanupCameraObjects ();
+						LogMessage ("Turning camera off...");
+						CleanupCameraObjects ();
 					}
 				}
 				setCamera = false;
@@ -231,7 +231,7 @@ namespace JSI
 
 				if (cameraEnabled) {
 					if (cameraPart.vessel != FlightGlobals.ActiveVessel) {
-						cleanupCameraObjects ();
+						CleanupCameraObjects ();
 					} else {
 
 						// ScaledSpace camera is special. :(
@@ -253,7 +253,7 @@ namespace JSI
 				for (int y=0; y<screenHeight; y++) {
 					char[] line = screenText [y].ToCharArray ();
 					for (int x=0; x<screenWidth && x<line.Length; x++) {
-						drawChar (line [x], x, y);
+						DrawChar (line [x], x, y);
 					}
 				}
 

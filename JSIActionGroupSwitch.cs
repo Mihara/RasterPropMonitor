@@ -81,7 +81,7 @@ namespace JSI
 					for (int i=0; i<part.Modules.Count; i++)
 						if (part.Modules [i].ClassName == typeof(JSIInternalPersistence).Name)
 							persistence = part.Modules [i] as JSIInternalPersistence;
-				int retval = persistence.getVar (persistentVarName);
+				int retval = persistence.GetVar (persistentVarName);
 				if (retval > 0 && retval != int.MaxValue)
 					oldstate = customgrouplist[actionName] = true;
 			}
@@ -92,7 +92,7 @@ namespace JSI
 				Debug.Log (String.Format ("JSIActionGroupSwitch: Transform \"{0}\" not found, the switch will not work correctly.", switchTransform));
 			}
 			buttonHandlerSingular switchToggle = buttonObject.AddComponent<buttonHandlerSingular> ();
-			switchToggle.handlerFunction = click;
+			switchToggle.handlerFunction = Click;
 
 			// Set up the animation
 			anim = base.internalProp.FindModelAnimators (animationName).FirstOrDefault ();
@@ -119,7 +119,7 @@ namespace JSI
 			switch (actionName) {
 			case "intlight":
 				lightobjects = this.internalModel.FindModelComponents<Light> ();
-				setInternalLights (customgrouplist [actionName]);
+				SetInternalLights (customgrouplist [actionName]);
 				break;
 			default:
 				break;
@@ -127,7 +127,7 @@ namespace JSI
 
 		}
 
-		private void setInternalLights (bool value)
+		private void SetInternalLights (bool value)
 		{
 			foreach (Light lightobject in lightobjects) {
 				// I probably shouldn't filter them every time, but I am getting
@@ -137,20 +137,20 @@ namespace JSI
 			}
 		}
 
-		public void click ()
+		public void Click ()
 		{
 			if (iscustomaction) {
 				customgrouplist [actionName] = !customgrouplist [actionName];
 				switch (actionName) {
 				case "intlight":
-					setInternalLights (customgrouplist [actionName]);
+					SetInternalLights (customgrouplist [actionName]);
 					break;
 				default:
 					break;
 				}
 
 				if (persistence != null) {
-					persistence.setVar (persistentVarName,customgrouplist[actionName]?1:0);
+					persistence.SetVar (persistentVarName,customgrouplist[actionName]?1:0);
 				}
 
 			} else

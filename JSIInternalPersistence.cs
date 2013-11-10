@@ -12,18 +12,18 @@ namespace JSI
 		// because nothing appears to work as documented -- IF it's documented.
 		// This one is sure to work and isn't THAT much of a performance drain, really.
 		// Pull requests welcome
-		public void setVar (string varname, int value)
+		public void SetVar (string varname, int value)
 		{
-			var variables = parseData ();
+			var variables = ParseData ();
 			try {
 				variables.Add (varname, value);
 			} catch (ArgumentException) {
 				variables [varname] = value;
 			}
-			data = unparseData (variables);
+			data = UnparseData (variables);
 		}
 
-		private string unparseData (Dictionary<string,int> variables)
+		private string UnparseData (Dictionary<string,int> variables)
 		{
 			List<string> tokens = new List<string> ();
 			foreach (KeyValuePair<string,int> item in variables) {
@@ -32,7 +32,7 @@ namespace JSI
 			return String.Join ("|", tokens.ToArray ());
 		}
 
-		private Dictionary<string,int> parseData ()
+		private Dictionary<string,int> ParseData ()
 		{
 			var variables = new Dictionary<string,int> ();
 			if (data != "")
@@ -47,9 +47,9 @@ namespace JSI
 			
 		}
 
-		public int getVar (string varname)
+		public int GetVar (string varname)
 		{
-			var variables = parseData ();
+			var variables = ParseData ();
 			if (variables.ContainsKey (varname))
 				return variables [varname];
 			else
