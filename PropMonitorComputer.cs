@@ -177,7 +177,6 @@ namespace JSI
 				//  t = (v+sqrt(v²+2gd))/g or something.
 				double gee = vessel.mainBody.GeeASL * 9.81;
 				secondsToImpact = (speedVertical + Math.Sqrt (Math.Pow (speedVertical, 2) + 2 * gee * altitudeTrue)) / gee;
-				//secondsToImpact = -(altitudeTrue / speedVertical);
 			} else
 				secondsToImpact = Double.NaN;
 
@@ -194,16 +193,11 @@ namespace JSI
 				// Hey, it works.
 				foreach (PartResource resource in part.Resources) {
 
-					try { // I wonder if that's faster.
+					try {
 						resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
 					} catch (ArgumentException) {
 						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);
 					}
-
-					/*if (!resources.ContainsKey ((resource.resourceName)))
-						resources.Add (resource.resourceName, new Vector2d (resource.amount, resource.maxAmount));
-					else
-						resources [resource.resourceName] += new Vector2d (resource.amount, resource.maxAmount);*/
 				}
 				totalShipDryMass += part.mass;
 				totalShipWetMass += part.mass + part.GetResourceMass ();
