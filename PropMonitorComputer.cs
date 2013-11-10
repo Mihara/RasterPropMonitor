@@ -172,9 +172,13 @@ namespace JSI
 				targetOrbitSensibility = false;
 			}
 			orbitSensibility = orbitMakesSense (vessel);
-			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING)
-				secondsToImpact = -(altitudeTrue / speedVertical);
-			else
+			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING) {
+				// Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
+				//  t = (v+sqrt(v²+2gd))/g or something.
+				double gee = vessel.mainBody.GeeASL * 9.81;
+				secondsToImpact = (speedVertical + Math.Sqrt (Math.Pow (speedVertical, 2) + 2 * gee * altitudeTrue)) / gee;
+				//secondsToImpact = -(altitudeTrue / speedVertical);
+			} else
 				secondsToImpact = Double.NaN;
 
 		}
@@ -389,8 +393,8 @@ namespace JSI
 			case "TGTRELZ":
 				return FlightGlobals.ship_tgtVelocity.z;
 
-			// Time to impact. This is VERY VERY imprecise because a precise calculation pulls in pages upon pages of MechJeb code.
-			// If anyone's up to doing that smoothly be my guest.
+			// Time to impact. This is quite imprecise, because a precise calculation pulls in pages upon pages of MechJeb code.
+			// It accounts for gravity now, though. Pull requests welcome.
 			case "TIMETOIMPACT":
 				if (Double.IsNaN (secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 					return "";
