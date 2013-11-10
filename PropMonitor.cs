@@ -126,7 +126,7 @@ namespace JSI
 		{
 			for (int i=0; i<3; i++)
 				if (cameraObject[i].gameObject != null) {
-					GameObject.Destroy(cameraObject[i].gameObject);
+					Destroy(cameraObject[i].gameObject);
 					cameraObject[i] = null;
 				}
 			cameraName = null;
