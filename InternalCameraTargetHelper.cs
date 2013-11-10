@@ -7,7 +7,7 @@ namespace JSI
 	{
 		ITargetable target;
 
-		public override void OnUpdate ()
+		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
 			    vessel != FlightGlobals.ActiveVessel)
@@ -20,9 +20,9 @@ namespace JSI
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
 				target = FlightGlobals.fetch.VesselTarget;
 			}
-			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal && 
+			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal &&
 			    FlightGlobals.fetch.VesselTarget == null && target != null)
-				FlightGlobals.fetch.SetVesselTarget (target);
+				FlightGlobals.fetch.SetVesselTarget(target);
 
 		}
 	}

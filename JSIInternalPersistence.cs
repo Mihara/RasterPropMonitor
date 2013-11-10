@@ -6,52 +6,52 @@ namespace JSI
 {
 	public class JSIInternalPersistence:PartModule
 	{
-		[KSPField (isPersistant = true)]
+		[KSPField(isPersistant = true)]
 		public string data = "";
 		// Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
 		// because nothing appears to work as documented -- IF it's documented.
 		// This one is sure to work and isn't THAT much of a performance drain, really.
 		// Pull requests welcome
-		public void SetVar (string varname, int value)
+		public void SetVar(string varname, int value)
 		{
-			var variables = ParseData ();
+			var variables = ParseData();
 			try {
-				variables.Add (varname, value);
+				variables.Add(varname, value);
 			} catch (ArgumentException) {
-				variables [varname] = value;
+				variables[varname] = value;
 			}
-			data = UnparseData (variables);
+			data = UnparseData(variables);
 		}
 
-		private string UnparseData (Dictionary<string,int> variables)
+		private string UnparseData(Dictionary<string,int> variables)
 		{
-			List<string> tokens = new List<string> ();
+			List<string> tokens = new List<string>();
 			foreach (KeyValuePair<string,int> item in variables) {
-				tokens.Add (item.Key + "$" + item.Value.ToString ());
+				tokens.Add(item.Key + "$" + item.Value.ToString());
 			}
-			return String.Join ("|", tokens.ToArray ());
+			return String.Join("|", tokens.ToArray());
 		}
 
-		private Dictionary<string,int> ParseData ()
+		private Dictionary<string,int> ParseData()
 		{
-			var variables = new Dictionary<string,int> ();
+			var variables = new Dictionary<string,int>();
 			if (data != "")
 				foreach (string varstring in data.Split ('|')) {
-					string[] tokens = varstring.Split ('$');
+					string[] tokens = varstring.Split('$');
 					int value;
-					int.TryParse (tokens [1], out value);
-					variables.Add (tokens [0], value);
+					int.TryParse(tokens[1], out value);
+					variables.Add(tokens[0], value);
 				}
 
 			return variables;
 			
 		}
 
-		public int GetVar (string varname)
+		public int GetVar(string varname)
 		{
-			var variables = ParseData ();
-			if (variables.ContainsKey (varname))
-				return variables [varname];
+			var variables = ParseData();
+			if (variables.ContainsKey(varname))
+				return variables[varname];
 			else
 				return int.MaxValue;
 		}

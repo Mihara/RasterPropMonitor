@@ -88,15 +88,13 @@ namespace JSI
 		private bool screenWasBlanked = false;
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
-
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
-
 		// Persistence for current page variable.
 		private JSIInternalPersistence persistence = null;
 		private string persistentVarName;
 
-		public void Start ()
+		public void Start()
 		{
 			// Mihara: We're getting at the screen module and it's parameters using reflection here.
 			// While I would prefer to use some message passing mechanism instead,
@@ -116,15 +114,15 @@ namespace JSI
 				if (intModule.ClassName == "RasterPropMonitor") {
 					targetScript = intModule;
 					// These are for text.
-					remoteArray = intModule.GetType ().GetField ("screenText");
-					remoteFlag = intModule.GetType ().GetField ("screenUpdateRequired");
+					remoteArray = intModule.GetType().GetField("screenText");
+					remoteFlag = intModule.GetType().GetField("screenUpdateRequired");
 					// And these are to tell which camera to show on the background!
-					remoteCameraName = intModule.GetType ().GetField ("cameraName");
-					remoteCameraSet = intModule.GetType ().GetField ("setCamera");
-					remoteCameraFov = intModule.GetType ().GetField ("fov");
+					remoteCameraName = intModule.GetType().GetField("cameraName");
+					remoteCameraSet = intModule.GetType().GetField("setCamera");
+					remoteCameraFov = intModule.GetType().GetField("fov");
 
-					charPerLine = (int)intModule.GetType ().GetField ("screenWidth").GetValue (intModule);
-					linesPerPage = (int)intModule.GetType ().GetField ("screenHeight").GetValue (intModule);
+					charPerLine = (int)intModule.GetType().GetField("screenWidth").GetValue(intModule);
+					linesPerPage = (int)intModule.GetType().GetField("screenHeight").GetValue(intModule);
 
 					break;
 				}
@@ -137,33 +135,33 @@ namespace JSI
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
 
 			for (int i=0; i<8; i++) {
-				if (buttonName [i] != "") {
-					GameObject buttonObject = base.internalProp.FindModelTransform (buttonName [i]).gameObject;
-					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler> ();
+				if (buttonName[i] != "") {
+					GameObject buttonObject = base.internalProp.FindModelTransform(buttonName[i]).gameObject;
+					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler>();
 					pageButton.ID = i;
 					pageButton.handlerFunction = ButtonClick;
 				}
 
 				try {
-					pages [i] = String.Join (Environment.NewLine, File.ReadAllLines (KSPUtil.ApplicationRootPath + "GameData/" + pageData [i], System.Text.Encoding.UTF8));
+					pages[i] = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageData[i], System.Text.Encoding.UTF8));
 				} catch {
 					// Notice that this will also happen if the referenced file is not found.
-					pages [i] = pageData [i].Replace ("<=", "{").Replace ("=>", "}").Replace ("$$$", Environment.NewLine);
+					pages[i] = pageData[i].Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 				}
 			}
 
 
 			textArray = new string[linesPerPage];
 			for (int i = 0; i < textArray.Length; i++) {
-				textArray [i] = "";
+				textArray[i] = "";
 			}
 
 			// The semi-clever bit: Recycling computational module.
 			if (part != null) {
 				foreach (InternalProp prop in part.internalModel.props) {
-					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer> ();
+					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer>();
 					if (other != null) {
-						Debug.Log ("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
+						Debug.Log("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
 						comp = other;
 						break;
 					}
@@ -171,70 +169,70 @@ namespace JSI
 			}
 
 			if (comp == null) {
-				Debug.Log ("RasterPropMonitorGenerator: Instantiating a new calculator.");
-				base.internalProp.AddModule ("RasterPropMonitorComputer");
-				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer> ();
+				Debug.Log("RasterPropMonitorGenerator: Instantiating a new calculator.");
+				base.internalProp.AddModule("RasterPropMonitorComputer");
+				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer>();
 				if (comp == null) {
-					Debug.Log ("RasterPropMonitorGenerator: Failed to instantiate a calculator, wtf?");
+					Debug.Log("RasterPropMonitorGenerator: Failed to instantiate a calculator, wtf?");
 				}
 			}
 
-			comp.UpdateRefreshRates (refreshRate, refreshDataRate);
+			comp.UpdateRefreshRates(refreshRate, refreshDataRate);
 
 			// Load our state from storage...
-			persistentVarName = "activePage" + internalProp.propID.ToString ();
+			persistentVarName = "activePage" + internalProp.propID.ToString();
 			if (persistence == null)
 				for (int i=0; i<part.Modules.Count; i++)
-					if (part.Modules [i].ClassName == typeof(JSIInternalPersistence).Name)
-						persistence = part.Modules [i] as JSIInternalPersistence;
-			int retval = persistence.GetVar (persistentVarName);
+					if (part.Modules[i].ClassName == typeof(JSIInternalPersistence).Name)
+						persistence = part.Modules[i] as JSIInternalPersistence;
+			int retval = persistence.GetVar(persistentVarName);
 
 			if (retval != int.MaxValue)
 				activePage = retval;
 
 			// So camera support.
 			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
-			SetCamera (cameras [activePage]);
+			SetCamera(cameras[activePage]);
 		}
 
-		private void SetCamera (string name)
+		private void SetCamera(string name)
 		{
 			if (name != "" && name != null) {
-				string[] tokens = name.Split (',');
+				string[] tokens = name.Split(',');
 				if (tokens.Length == 2) {
 					float fov;
-					if (!float.TryParse (tokens [1], out fov))
+					if (!float.TryParse(tokens[1], out fov))
 						fov = 60;
-					remoteCameraFov.SetValue (targetScript, fov);
-					name = tokens [0].Trim ();
+					remoteCameraFov.SetValue(targetScript, fov);
+					name = tokens[0].Trim();
 				}
-				remoteCameraName.SetValue (targetScript, name);
-				remoteCameraSet.SetValue (targetScript, true);
+				remoteCameraName.SetValue(targetScript, name);
+				remoteCameraSet.SetValue(targetScript, true);
 			} else {
-				remoteCameraName.SetValue (targetScript, null);
-				remoteCameraSet.SetValue (targetScript, true);
+				remoteCameraName.SetValue(targetScript, null);
+				remoteCameraSet.SetValue(targetScript, true);
 			}
 		}
 
-		public void ButtonClick (int buttonID)
+		public void ButtonClick(int buttonID)
 		{
 			activePage = buttonID;
 
 			if (persistence != null) {
-				persistence.SetVar (persistentVarName,activePage);
+				persistence.SetVar(persistentVarName, activePage);
 			}
 
-			SetCamera (cameras [activePage]);
+			SetCamera(cameras[activePage]);
 			updateForced = true;
 			comp.updateForced = true;
-			if (cameras [activePage] != "" && cameras [activePage] != null)
+			if (cameras[activePage] != "" && cameras[activePage] != null)
 				currentPageIsMutable = true;
 			else
 				currentPageIsMutable = false;
 			currentPageFirstPassComplete = false;
 		}
 
-		private string ProcessString (string input)
+		private string ProcessString(string input)
 		{
 			// Each separate output line is delimited by Environment.NewLine.
 			// When loading from a config file, you can't have newlines in it, so they're represented by "$$$".
@@ -242,26 +240,26 @@ namespace JSI
 			//
 			// You can read a full description of this mess in DOCUMENTATION.md
 
-			if (input.IndexOf (variableListSeparator [0]) >= 0) {
+			if (input.IndexOf(variableListSeparator[0]) >= 0) {
 				currentPageIsMutable = true;
 
-				string[] tokens = input.Split (variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
+				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {
 					return "FORMAT ERROR";
 				} else {
-					string[] vars = tokens [1].Split (variableSeparator, StringSplitOptions.RemoveEmptyEntries);
+					string[] vars = tokens[1].Split(variableSeparator, StringSplitOptions.RemoveEmptyEntries);
 
 					object[] variables = new object[vars.Length];
 					for (int i=0; i<vars.Length; i++) {
-						variables [i] = comp.ProcessVariable (vars [i]);
+						variables[i] = comp.ProcessVariable(vars[i]);
 					}
-					return String.Format (tokens [0], variables);
+					return String.Format(tokens[0], variables);
 				}
 			} else
 				return input;
 		}
 		// Update according to the given refresh rate.
-		private bool UpdateCheck ()
+		private bool UpdateCheck()
 		{
 			if (updateCountdown <= 0 || updateForced) {
 				updateForced = false;
@@ -272,7 +270,7 @@ namespace JSI
 			}
 		}
 
-		public override void OnUpdate ()
+		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
@@ -281,28 +279,28 @@ namespace JSI
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
 			    vessel == FlightGlobals.ActiveVessel) {
 
-				if (!UpdateCheck ())
+				if (!UpdateCheck())
 					return;
 
-				if (pages [activePage] == "" && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
+				if (pages[activePage] == "" && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
-							textArray [i] = "";
+							textArray[i] = "";
 						screenWasBlanked = true;
-						remoteArray.SetValue (targetScript, textArray);
-						remoteFlag.SetValue (targetScript, true);
+						remoteArray.SetValue(targetScript, textArray);
+						remoteFlag.SetValue(targetScript, true);
 					}
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
-						string[] linesArray = pages [activePage].Split (lineSeparator, StringSplitOptions.None);
+						string[] linesArray = pages[activePage].Split(lineSeparator, StringSplitOptions.None);
 						for (int i=0; i<linesPerPage; i++) {
 							if (i < linesArray.Length) {
-								textArray [i] = ProcessString (linesArray [i]).TrimEnd ();
+								textArray[i] = ProcessString(linesArray[i]).TrimEnd();
 							} else
-								textArray [i] = "";
+								textArray[i] = "";
 						}
-						remoteArray.SetValue (targetScript, textArray);
-						remoteFlag.SetValue (targetScript, true);
+						remoteArray.SetValue(targetScript, textArray);
+						remoteFlag.SetValue(targetScript, true);
 						screenWasBlanked = false;
 						currentPageFirstPassComplete = true;
 					}
@@ -314,14 +312,14 @@ namespace JSI
 
 	public class ButtonHandler:MonoBehaviour
 	{
-		public delegate void HandlerFunction (int ID);
+		public delegate void HandlerFunction(int ID);
 
 		public HandlerFunction handlerFunction;
 		public int ID;
 
-		public void OnMouseDown ()
+		public void OnMouseDown()
 		{
-			handlerFunction (ID);
+			handlerFunction(ID);
 		}
 	}
 }

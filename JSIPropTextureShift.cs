@@ -14,13 +14,13 @@ namespace JSI
 		[KSPField]
 		public float y = 0f;
 
-		public void Start ()
+		public void Start()
 		{
-			Vector2 shiftval = new Vector2 (x, y);
-			Material shifted = base.internalProp.FindModelTransform (transformToShift).renderer.material;
+			Vector2 shiftval = new Vector2(x, y);
+			Material shifted = base.internalProp.FindModelTransform(transformToShift).renderer.material;
 			foreach (string layer in layerToShift.Split ())
-				shifted.SetTextureOffset (layer, shiftval + shifted.GetTextureOffset (layer));
-			Destroy (this);
+				shifted.SetTextureOffset(layer, shiftval + shifted.GetTextureOffset(layer));
+			Destroy(this);
 		}
 	}
 }

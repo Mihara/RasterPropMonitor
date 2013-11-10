@@ -20,7 +20,7 @@ namespace JSI
 		[KSPField]
 		public string internalLightName = null;
 		// Neater.
-		private Dictionary<string,KSPActionGroup> grouplist = new Dictionary<string,KSPActionGroup> () { 
+		private Dictionary<string,KSPActionGroup> grouplist = new Dictionary<string,KSPActionGroup>() { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -40,7 +40,7 @@ namespace JSI
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
 		// What is it with Xamarin and formatting those dictionaries?...
-		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool> () {
+		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool>() {
  			{ "intlight",false },
 			{ "dummy",false }
 		};
@@ -49,85 +49,83 @@ namespace JSI
 		private Animation anim;
 		private bool oldstate = false;
 		private bool iscustomaction = false;
-
 		// Persistence for current state variable.
 		private JSIInternalPersistence persistence = null;
 		private string persistentVarName;
-
 		private Light[] lightobjects;
 
-		public void Start ()
+		public void Start()
 		{
-			if (!grouplist.ContainsKey (actionName)) {
-				if (!customgrouplist.ContainsKey (actionName)) {
-					Debug.Log (String.Format ("JSIActionGroupSwitch: Action \"{0}\" not known, the switch will not work correctly.", actionName));
+			if (!grouplist.ContainsKey(actionName)) {
+				if (!customgrouplist.ContainsKey(actionName)) {
+					Debug.Log(String.Format("JSIActionGroupSwitch: Action \"{0}\" not known, the switch will not work correctly.", actionName));
 				} else {
 					iscustomaction = true;
 				}
 			} else {
-				actionGroup = grouplist [actionName];
-				actionGroupID = BaseAction.GetGroupIndex (actionGroup);
+				actionGroup = grouplist[actionName];
+				actionGroupID = BaseAction.GetGroupIndex(actionGroup);
 
-				oldstate = FlightGlobals.ActiveVessel.ActionGroups.groups [actionGroupID];
+				oldstate = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 			}
 
 			// Load our state from storage...
 			if (iscustomaction) {
-				if (actionName == "intlight") 
+				if (actionName == "intlight")
 					persistentVarName = internalLightName;
 				else
-					persistentVarName = "switch" + internalProp.propID.ToString ();
+					persistentVarName = "switch" + internalProp.propID.ToString();
 				if (persistence == null)
 					for (int i=0; i<part.Modules.Count; i++)
-						if (part.Modules [i].ClassName == typeof(JSIInternalPersistence).Name)
-							persistence = part.Modules [i] as JSIInternalPersistence;
-				int retval = persistence.GetVar (persistentVarName);
+						if (part.Modules[i].ClassName == typeof(JSIInternalPersistence).Name)
+							persistence = part.Modules[i] as JSIInternalPersistence;
+				int retval = persistence.GetVar(persistentVarName);
 				if (retval > 0 && retval != int.MaxValue)
 					oldstate = customgrouplist[actionName] = true;
 			}
 
 			// set up the toggle switch
-			GameObject buttonObject = base.internalProp.FindModelTransform (switchTransform).gameObject;
+			GameObject buttonObject = base.internalProp.FindModelTransform(switchTransform).gameObject;
 			if (buttonObject == null) {
-				Debug.Log (String.Format ("JSIActionGroupSwitch: Transform \"{0}\" not found, the switch will not work correctly.", switchTransform));
+				Debug.Log(String.Format("JSIActionGroupSwitch: Transform \"{0}\" not found, the switch will not work correctly.", switchTransform));
 			}
-			ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular> ();
+			ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular>();
 			switchToggle.handlerFunction = Click;
 
 			// Set up the animation
-			anim = base.internalProp.FindModelAnimators (animationName).FirstOrDefault ();
+			anim = base.internalProp.FindModelAnimators(animationName).FirstOrDefault();
 			if (anim != null) {
-				anim [animationName].wrapMode = WrapMode.Once;
+				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				Debug.Log (String.Format ("JSIActionGroupSwitch: Animation \"{0}\" not found, the switch will not work correctly.", animationName));
+				Debug.Log(String.Format("JSIActionGroupSwitch: Animation \"{0}\" not found, the switch will not work correctly.", animationName));
 			}
 
 			if (oldstate ^ reverse) {
-				anim [animationName].speed = float.MaxValue;
-				anim [animationName].normalizedTime = 0;
+				anim[animationName].speed = float.MaxValue;
+				anim[animationName].normalizedTime = 0;
 
 			} else {
 
-				anim [animationName].speed = float.MinValue;
-				anim [animationName].normalizedTime = 1;
+				anim[animationName].speed = float.MinValue;
+				anim[animationName].normalizedTime = 1;
 
 			}
-			anim.Play (animationName);
+			anim.Play(animationName);
 
 			// Set up the custom actions..
 			switch (actionName) {
-			case "intlight":
-				lightobjects = this.internalModel.FindModelComponents<Light> ();
-				SetInternalLights (customgrouplist [actionName]);
-				break;
-			default:
-				break;
+				case "intlight":
+					lightobjects = this.internalModel.FindModelComponents<Light>();
+					SetInternalLights(customgrouplist[actionName]);
+					break;
+				default:
+					break;
 			}
 
 		}
 
-		private void SetInternalLights (bool value)
+		private void SetInternalLights(bool value)
 		{
 			foreach (Light lightobject in lightobjects) {
 				// I probably shouldn't filter them every time, but I am getting
@@ -137,27 +135,27 @@ namespace JSI
 			}
 		}
 
-		public void Click ()
+		public void Click()
 		{
 			if (iscustomaction) {
-				customgrouplist [actionName] = !customgrouplist [actionName];
+				customgrouplist[actionName] = !customgrouplist[actionName];
 				switch (actionName) {
-				case "intlight":
-					SetInternalLights (customgrouplist [actionName]);
-					break;
-				default:
-					break;
+					case "intlight":
+						SetInternalLights(customgrouplist[actionName]);
+						break;
+					default:
+						break;
 				}
 
 				if (persistence != null) {
-					persistence.SetVar (persistentVarName,customgrouplist[actionName]?1:0);
+					persistence.SetVar(persistentVarName, customgrouplist[actionName] ? 1 : 0);
 				}
 
 			} else
-				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup (actionGroup);
+				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
 		}
 
-		public override void OnUpdate ()
+		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
 			    !(vessel == FlightGlobals.ActiveVessel))
@@ -172,20 +170,20 @@ namespace JSI
 
 			bool state = false;
 			if (iscustomaction) {
-				state = customgrouplist [actionName];
+				state = customgrouplist[actionName];
 			} else {
-				state = FlightGlobals.ActiveVessel.ActionGroups.groups [actionGroupID];
+				state = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 			}
 
 			if (state != oldstate) {
 				if (state ^ reverse) {
-					anim [animationName].normalizedTime = 0;
-					anim [animationName].speed = 1f * customSpeed;
-					anim.Play (animationName);
+					anim[animationName].normalizedTime = 0;
+					anim[animationName].speed = 1f * customSpeed;
+					anim.Play(animationName);
 				} else {
-					anim [animationName].normalizedTime = 1;
-					anim [animationName].speed = -1f * customSpeed;
-					anim.Play (animationName);
+					anim[animationName].normalizedTime = 1;
+					anim[animationName].speed = -1f * customSpeed;
+					anim.Play(animationName);
 				}
 				oldstate = state;
 			}
@@ -194,13 +192,13 @@ namespace JSI
 
 	public class ButtonHandlerSingular:MonoBehaviour
 	{
-		public delegate void HandlerFunction ();
+		public delegate void HandlerFunction();
 
 		public HandlerFunction handlerFunction;
 
-		public void OnMouseDown ()
+		public void OnMouseDown()
 		{
-			handlerFunction ();
+			handlerFunction();
 		}
 	}
 }
