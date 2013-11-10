@@ -195,18 +195,18 @@ namespace JSI
 			SetCamera(cameras[activePage]);
 		}
 
-		private void SetCamera(string name)
+		private void SetCamera(string cameraTransform)
 		{
-			if (name != "" && name != null) {
-				string[] tokens = name.Split(',');
+			if (!string.IsNullOrEmpty(cameraTransform)) {
+				string[] tokens = cameraTransform.Split(',');
 				if (tokens.Length == 2) {
 					float fov;
 					if (!float.TryParse(tokens[1], out fov))
 						fov = 60;
 					remoteCameraFov.SetValue(targetScript, fov);
-					name = tokens[0].Trim();
+					cameraTransform = tokens[0].Trim();
 				}
-				remoteCameraName.SetValue(targetScript, name);
+				remoteCameraName.SetValue(targetScript, cameraTransform);
 				remoteCameraSet.SetValue(targetScript, true);
 			} else {
 				remoteCameraName.SetValue(targetScript, null);
@@ -225,7 +225,7 @@ namespace JSI
 			SetCamera(cameras[activePage]);
 			updateForced = true;
 			comp.updateForced = true;
-			if (cameras[activePage] != "" && cameras[activePage] != null)
+			if (!string.IsNullOrEmpty(cameras[activePage]))
 				currentPageIsMutable = true;
 			else
 				currentPageIsMutable = false;
@@ -240,7 +240,7 @@ namespace JSI
 			//
 			// You can read a full description of this mess in DOCUMENTATION.md
 
-			if (input.IndexOf(variableListSeparator[0]) >= 0) {
+			if (input.IndexOf(variableListSeparator[0], StringComparison.Ordinal) >= 0) {
 				currentPageIsMutable = true;
 
 				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
