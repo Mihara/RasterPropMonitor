@@ -44,6 +44,8 @@ namespace JSI
 		private double totalMaximumThrust;
 		private double totalDataAmount;
 		private double secondsToImpact;
+		private const double gee = 9.81d;
+		private double localG;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -137,6 +139,7 @@ namespace JSI
 
 		public void FetchCommonData()
 		{
+			localG = vessel.orbit.referenceBody.GeeASL * gee;
 			CoM = vessel.findWorldCenterOfMass();
 			up = (CoM - vessel.mainBody.position).normalized;
 			forward = vessel.GetTransform().up;
@@ -175,8 +178,7 @@ namespace JSI
 			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING) {
 				// Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
 				//  t = (v+sqrt(v²+2gd))/g or something.
-				double gee = vessel.mainBody.GeeASL * 9.81;
-				secondsToImpact = (speedVertical + Math.Sqrt(Math.Pow(speedVertical, 2) + 2 * gee * altitudeTrue)) / gee;
+				secondsToImpact = (speedVertical + Math.Sqrt(Math.Pow(speedVertical, 2) + 2 * localG * altitudeTrue)) / localG;
 			} else
 				secondsToImpact = Double.NaN;
 
@@ -420,9 +422,9 @@ namespace JSI
 				case "THRUSTMAX":
 					return totalMaximumThrust;
 				case "TWR":
-					return totalCurrentThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+					return totalCurrentThrust / (totalShipWetMass * localG);
 				case "TWRMAX":
-					return totalMaximumThrust / (totalShipWetMass * vessel.orbit.referenceBody.GeeASL * 9.81);
+					return totalMaximumThrust / (totalShipWetMass * localG);
 				case "ACCEL":
 					return totalCurrentThrust / totalShipWetMass;
 				case "MAXACCEL":
