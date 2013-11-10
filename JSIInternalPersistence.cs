@@ -11,8 +11,7 @@ namespace JSI
 		// Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
 		// because nothing appears to work as documented -- IF it's documented.
 		// This one is sure to work and isn't THAT much of a performance drain, really.
-		// If anyone wants to provide a different way to save per-InternalModule
-		// persistant vars, be my guest.
+		// Pull requests welcome
 		public void setVar (string varname, int value)
 		{
 			var variables = parseData ();
