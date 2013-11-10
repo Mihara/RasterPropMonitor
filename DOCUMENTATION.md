@@ -293,8 +293,9 @@ sorted list.
   To format it in a smooth fashion, use a variation on {0:on;;OFF}
   format string.
 * **TIMETOIMPACT** -- A very, very rough estimate of the time of contact
-  with the ground. Does not currently take gravity acceleration into
-  account. Returns an empty string if you aren't falling down *yet*.
+  with the ground, provided no further thrust is applied. Does not take
+  atmosphere or slamming into the side of a mountain into consideration, nor
+  does it account for the fact planets are round. Should still be useful.
 * **TIMETOIMPACTSECS** -- Same, but in raw seconds, returns -1 if you
   aren't falling down yet.
 * **SITUATION** -- Current vessel situation, i.e "flying", "orbiting", etc.
