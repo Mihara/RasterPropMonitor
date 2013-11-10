@@ -139,7 +139,7 @@ namespace JSI
 			for (int i=0; i<8; i++) {
 				if (buttonName [i] != "") {
 					GameObject buttonObject = base.internalProp.FindModelTransform (buttonName [i]).gameObject;
-					buttonHandler pageButton = buttonObject.AddComponent<buttonHandler> ();
+					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler> ();
 					pageButton.ID = i;
 					pageButton.handlerFunction = ButtonClick;
 				}
@@ -312,7 +312,7 @@ namespace JSI
 		}
 	}
 
-	public class buttonHandler:MonoBehaviour
+	public class ButtonHandler:MonoBehaviour
 	{
 		public delegate void HandlerFunction (int ID);
 

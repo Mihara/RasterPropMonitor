@@ -91,7 +91,7 @@ namespace JSI
 			if (buttonObject == null) {
 				Debug.Log (String.Format ("JSIActionGroupSwitch: Transform \"{0}\" not found, the switch will not work correctly.", switchTransform));
 			}
-			buttonHandlerSingular switchToggle = buttonObject.AddComponent<buttonHandlerSingular> ();
+			ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular> ();
 			switchToggle.handlerFunction = Click;
 
 			// Set up the animation
@@ -192,7 +192,7 @@ namespace JSI
 		}
 	}
 
-	public class buttonHandlerSingular:MonoBehaviour
+	public class ButtonHandlerSingular:MonoBehaviour
 	{
 		public delegate void HandlerFunction ();
 
