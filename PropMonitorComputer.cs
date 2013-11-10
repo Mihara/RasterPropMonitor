@@ -188,10 +188,10 @@ namespace JSI
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
 			totalDataAmount = 0;
 
-			foreach (Part part in vessel.parts) {
+			foreach (Part thatPart in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
-				foreach (PartResource resource in part.Resources) {
+				foreach (PartResource resource in thatPart.Resources) {
 
 					try {
 						resources.Add(resource.resourceName, new Vector2d(resource.amount, resource.maxAmount));
@@ -199,10 +199,10 @@ namespace JSI
 						resources[resource.resourceName] += new Vector2d(resource.amount, resource.maxAmount);
 					}
 				}
-				totalShipDryMass += part.mass;
-				totalShipWetMass += part.mass + part.GetResourceMass();
+				totalShipDryMass += thatPart.mass;
+				totalShipWetMass += thatPart.mass + thatPart.GetResourceMass();
 
-				foreach (PartModule pm in part.Modules) {
+				foreach (PartModule pm in thatPart.Modules) {
 					if (!pm.isEnabled)
 						continue;
 					if (pm is ModuleEngines) {
@@ -211,7 +211,7 @@ namespace JSI
 					} 
 				}
 
-				foreach (IScienceDataContainer container in part.FindModulesImplementing<IScienceDataContainer>()) {
+				foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>()) {
 					ScienceData[] data = container.GetData();
 					foreach (ScienceData datapoint in data) {
 						if (datapoint != null)
@@ -234,19 +234,19 @@ namespace JSI
 			VesselCrew = (vessel.GetVesselCrew()).ToArray();
 		}
 
-		private double GetResourceByName(string name)
+		private double GetResourceByName(string resourceName)
 		{
 			Vector2d result;
-			if (resources.TryGetValue(name, out result))
+			if (resources.TryGetValue(resourceName, out result))
 				return result.x;
 			else
 				return 0;
 		}
 
-		private double GetMaxResourceByName(string name)
+		private double GetMaxResourceByName(string resourceName)
 		{
 			Vector2d result;
-			if (resources.TryGetValue(name, out result))
+			if (resources.TryGetValue(resourceName, out result))
 				return result.y;
 			else
 				return 0;
@@ -343,12 +343,12 @@ namespace JSI
 			}
 			return "??!";
 		}
-
+		//TODO: I really should make that more sensible, I mean, three boolean flags?...
 		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
 			if (Double.IsNaN(seconds))
-				return "";
+				return string.Empty;
 
 			TimeSpan span = TimeSpan.FromSeconds(Math.Abs(seconds));
 			int years = (int)Math.Floor(span.TotalDays / 365);
@@ -391,7 +391,7 @@ namespace JSI
 			// It accounts for gravity now, though. Pull requests welcome.
 				case "TIMETOIMPACT":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
-						return "";
+						return string.Empty;
 					} else
 						return FormatDateTime(secondsToImpact, false, true, false); 
 				case "TIMETOIMPACTSECS":
@@ -437,7 +437,7 @@ namespace JSI
 					if (node != null)
 						return FormatDateTime(-(node.UT - time), true, false, true);
 					else
-						return "";
+						return string.Empty;
 				case "MNODEDV":
 					if (node != null)
 						return node.GetBurnVector(vessel.orbit).magnitude;
@@ -477,12 +477,12 @@ namespace JSI
 					if (orbitSensibility)
 						return FormatDateTime(vessel.orbit.period, false, false, false);
 					else
-						return "";
+						return string.Empty;
 				case "TIMETOAP":
 					if (orbitSensibility)
 						return FormatDateTime(vessel.orbit.timeToAp, false, false, false);
 					else
-						return "";
+						return string.Empty;
 				case "TIMETOPE":
 					if (orbitSensibility) {
 						if (vessel.orbit.eccentricity < 1)
@@ -490,7 +490,7 @@ namespace JSI
 						else
 							return FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
 					} else
-						return "";
+						return string.Empty;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return 1;
@@ -553,7 +553,7 @@ namespace JSI
 			// Targeting. Probably the most finicky bit right now.
 				case "TARGETNAME":
 					if (target == null)
-						return "";
+						return string.Empty;
 					if (target is Vessel || target is CelestialBody)
 						return target.GetName();
 				// Later, I think I want to get this to return the ship's name, not the docking node name...
@@ -576,7 +576,7 @@ namespace JSI
 					if (target != null)
 						return targetorbit.referenceBody.name;
 					else
-						return "";
+						return string.Empty;
 				case "TARGETEXISTS":
 					if (target == null)
 						return -1;
@@ -587,7 +587,7 @@ namespace JSI
 					if (target is Vessel)
 						return SituationString(target.GetVessel().situation);
 					else
-						return "";
+						return string.Empty;
 				case "TARGETALTITUDE":
 					if (target == null)
 						return -1;
@@ -666,12 +666,12 @@ namespace JSI
 					if (target != null && targetOrbitSensibility)
 						return FormatDateTime(targetorbit.timeToAp, false, false, false);
 					else
-						return "";
+						return string.Empty;
 				case "TARGETORBPERIOD":
 					if (target != null && targetOrbitSensibility)
 						return FormatDateTime(targetorbit.period, false, false, false);
 					else
-						return "";
+						return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility) {
 						if (vessel.orbit.eccentricity < 1)
@@ -679,7 +679,7 @@ namespace JSI
 						else
 							return FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
 					} else
-						return "";
+						return string.Empty;
 
 
 			// Stock resources by name.
@@ -737,7 +737,7 @@ namespace JSI
 				switch (tokens[2]) {
 					case "NAME":
 						if (resourceID >= resources.Count)
-							return "";
+							return string.Empty;
 						else
 							return resourcesAlphabetic[resourceID];
 					case "VAL":
@@ -766,7 +766,7 @@ namespace JSI
 						return 1;
 				}
 				if (crewSeatID >= VesselCrew.Length)
-					return "";
+					return string.Empty;
 				string kerbalname = VesselCrew[crewSeatID].name;
 				string[] tokenisedname = kerbalname.Split();
 				switch (tokens[2]) {
