@@ -7,7 +7,6 @@ namespace JSI
 {
 	public class RasterPropMonitorGenerator: InternalModule
 	{
-
 		[KSPField]
 		public int refreshRate = 5;
 		[KSPField]
@@ -83,21 +82,21 @@ namespace JSI
 		// Persistence for current page variable.
 		private JSIInternalPersistence persistence = null;
 		private string persistentVarName;
-
 		private RasterPropMonitor ourScreen;
 
 		public void Start()
 		{
-
-
 			ourScreen = internalProp.FindModelComponent<RasterPropMonitor>();
+			if (ourScreen == null) {
+				Debug.Log("RasterPropMonitorGenerator: Could not find a screen module in my prop. Expect errors.");
+			}
 
-			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
-			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
+			string[] pageData = { page1, page2, page3, page4, page5, page6, page7, page8 };
+			string[] buttonName = { button1, button2, button3, button4, button5, button6, button7, button8 };
 
 			for (int i=0; i<8; i++) {
 				if (!string.IsNullOrEmpty(buttonName[i])) {
-					GameObject buttonObject = base.internalProp.FindModelTransform(buttonName[i]).gameObject;
+					GameObject buttonObject = internalProp.FindModelTransform(buttonName[i]).gameObject;
 					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler>();
 					pageButton.ID = i;
 					pageButton.handlerFunction = ButtonClick;
@@ -163,7 +162,7 @@ namespace JSI
 				if (tokens.Length == 2) {
 					float fov;
 					float.TryParse(tokens[1], out fov);
-					ourScreen.SendCamera(tokens[0].Trim(),fov);
+					ourScreen.SendCamera(tokens[0].Trim(), fov);
 				} else
 					ourScreen.SendCamera(cameraTransform);
 			} else {
@@ -261,7 +260,6 @@ namespace JSI
 
 			}
 		}
-
 	}
 
 	public class ButtonHandler:MonoBehaviour
