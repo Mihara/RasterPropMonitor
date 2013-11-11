@@ -216,20 +216,22 @@ namespace JSI
 
 		public void ButtonClick(int buttonID)
 		{
-			activePage = buttonID;
+			if (buttonID != activePage) {
+				activePage = buttonID;
 
-			if (persistence != null) {
-				persistence.SetVar(persistentVarName, activePage);
+				if (persistence != null) {
+					persistence.SetVar(persistentVarName, activePage);
+				}
+
+				SetCamera(cameras[activePage]);
+				updateForced = true;
+				comp.updateForced = true;
+				if (!string.IsNullOrEmpty(cameras[activePage]))
+					currentPageIsMutable = true;
+				else
+					currentPageIsMutable = false;
+				currentPageFirstPassComplete = false;
 			}
-
-			SetCamera(cameras[activePage]);
-			updateForced = true;
-			comp.updateForced = true;
-			if (!string.IsNullOrEmpty(cameras[activePage]))
-				currentPageIsMutable = true;
-			else
-				currentPageIsMutable = false;
-			currentPageFirstPassComplete = false;
 		}
 
 		private string ProcessString(string input)
