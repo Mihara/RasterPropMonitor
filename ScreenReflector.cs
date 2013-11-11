@@ -1,5 +1,6 @@
 //#define EXAMPLE
 #if EXAMPLE
+
 /*
 
 This is an example of getting at screen module and it's parameters using reflection. 
@@ -28,7 +29,9 @@ or at least looking at it and replicating what it does is what you need to do.
 I shall try to maintain it in working order in the future versions.
 */
 
+using System;
 using System.Reflection;
+using UnityEngine;
 
 // You obviously want your own namespace here.
 namespace ScreenReflectorExample
@@ -44,75 +47,81 @@ namespace ScreenReflectorExample
 			// These are just public fields you might want to read.
 			public readonly int Width;
 			public readonly int Height;
-
 			// If at any point the constructor fails, Found will remain false.
 			public readonly bool Found;
-
 			// This is the pointer to an instance of RasterPropMonitor.
 			// We can't say it's name because KSP won't let us,
 			// but we can say it's an InternalModule.
 			private readonly InternalModule targetModule;
-
 			// These variables allow us to keep direct pointers to methods
 			// of the screen.
-			private readonly MethodInfo sendPageHandler;
-			private readonly MethodInfo sendCameraHandler;
-			private readonly MethodInfo sendCamera2Handler;
+			// If they were to return a value, we'd use Func<input type,..., output type>
+			// This way of addressing them is even wordier than MethodInfo.Invoke, but supposedly much faster,
+			// because we avoid certain costly steps incurred by MethodInfo.Invoke.
+			private readonly Action <string[]> funcSendPage;
+			private readonly Action <string> funcSendCamera;
+			private readonly Action <string,float> funcSendCamera2;
 
 			public ScreenReflector(InternalProp thatProp)
 			{
 				// Just like the RasterPropMonitorGenerator, we search here for an instance of a
 				// RasterPropMonitor that lives in the same prop as us.
-				foreach (InternalModule intModule in thatProp.internalModules) {
-					// And if we found a class by our name, we can go and shake it down for it's method references.
-					if (intModule.ClassName == "RasterPropMonitor") {
-						targetModule = intModule;
+				try {
+					foreach (InternalModule intModule in thatProp.internalModules) {
+						// And if we found a class by our name, we can go and shake it down for it's method references.
+						if (intModule.ClassName == "RasterPropMonitor") {
+							targetModule = intModule;
 
-						// Grab the two variables the screen driver is not supposed to modify anyway.
-						Width = (int)intModule.GetType().GetField("screenWidth").GetValue(intModule);
-						Height = (int)intModule.GetType().GetField("screenHeight").GetValue(intModule);
+							// Grab the two variables the screen driver is not supposed to modify anyway.
+							Width = (int)intModule.GetType().GetField("screenWidth").GetValue(intModule);
+							Height = (int)intModule.GetType().GetField("screenHeight").GetValue(intModule);
 
-						// Now let's get a hold of the methods of this instance.
-						foreach (MethodInfo m in intModule.GetType().GetMethods()) {
-							switch (m.Name) {
-							// There is only one SendPage method.
-								case "SendPage":
-									sendPageHandler = m;
-									break;
-							// SendCamera method is overloaded, so we tell them apart by arguments.
-								case "SendCamera":
-									if (m.GetParameters().Length == 1)
-										sendCameraHandler = m;
-									else
-										sendCamera2Handler = m;
-									break;
+							// Now let's get a hold of the methods of this instance.
+							foreach (MethodInfo m in intModule.GetType().GetMethods()) {
+								switch (m.Name) {
+								// There is only one SendPage method.
+									case "SendPage":
+										funcSendPage = (Action<string[]>)Delegate.CreateDelegate(typeof(Action<string[]>), targetModule, m);
+										break;
+								// SendCamera method is overloaded, so we tell them apart by the number of arguments.
+								// With something like MechJeb you will require more complex logic.
+									case "SendCamera":
+										if (m.GetParameters().Length == 1)
+											funcSendCamera = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), targetModule, m);
+										else
+											funcSendCamera2 = (Action<string,float>)Delegate.CreateDelegate(typeof(Action<string,float>), targetModule, m);
+										break;
+								}
 							}
+
+							Found = true;
+							return;
 						}
-						Found = true;
-						return;
 					}
+				} catch {
+					Debug.Log("ScreenReflector could not find an instance of RasterPropMonitor. Pretending nothing happened...");
 				}
 			}
-
-			// Our methods which are just wrappers around calls to the methods of the class
-			// we're not allowed to call by name because KSP plugin loading system
-			// is being silly.
+			// If none of the methods we're planning on calling were overloads, we wouldn't even need these proxies,
+			// we could call them directly from the method pointers.
+			// But this permits us to keep working completely the same regardless of whether we found 
+			// a screen to drive or not.
 			public void SendPage(string[] page)
 			{
 				if (Found)
-					sendPageHandler.Invoke(targetModule, new object[] { page });
+					funcSendPage(page);
 			}
 
 			public void SendCamera(string newCameraName)
 			{
 				if (Found)
-					sendCameraHandler.Invoke(targetModule, new object[] { newCameraName });
+					funcSendCamera(newCameraName);
 			}
 
 			public void SendCamera(string newCameraName, float newFOV)
 			{
 				if (Found)
-					sendCameraHandler.Invoke(targetModule, new object[] { newCameraName, newFOV });
+					funcSendCamera2(newCameraName, newFOV);
 			}
 		}
 
