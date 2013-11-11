@@ -54,11 +54,16 @@ namespace JSI
 		private string persistentVarName;
 		private Light[] lightobjects;
 
+		private static void LogMessage(string line, params object[] list)
+		{
+			Debug.Log(String.Format(typeof(JSIActionGroupSwitch).Name + ": " + line, list));
+		}
+
 		public void Start()
 		{
 			if (!grouplist.ContainsKey(actionName)) {
 				if (!customgrouplist.ContainsKey(actionName)) {
-					Debug.Log(String.Format("JSIActionGroupSwitch: Action \"{0}\" not known, the switch will not work correctly.", actionName));
+					LogMessage("Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					iscustomaction = true;
 				}
@@ -87,7 +92,7 @@ namespace JSI
 			// set up the toggle switch
 			GameObject buttonObject = base.internalProp.FindModelTransform(switchTransform).gameObject;
 			if (buttonObject == null) {
-				Debug.Log(String.Format("JSIActionGroupSwitch: Transform \"{0}\" not found, the switch will not work correctly.", switchTransform));
+				LogMessage("Transform \"{0}\" not found, the switch will not work correctly.", switchTransform);
 			}
 			ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular>();
 			switchToggle.handlerFunction = Click;
@@ -98,7 +103,7 @@ namespace JSI
 				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				Debug.Log(String.Format("JSIActionGroupSwitch: Animation \"{0}\" not found, the switch will not work correctly.", animationName));
+				LogMessage("Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
 			if (oldstate ^ reverse) {

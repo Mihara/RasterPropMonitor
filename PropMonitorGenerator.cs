@@ -83,11 +83,16 @@ namespace JSI
 		private string persistentVarName;
 		private RasterPropMonitor ourScreen;
 
+		private static void LogMessage(string line, params object[] list)
+		{
+			Debug.Log(String.Format(typeof(RasterPropMonitorGenerator).Name + ": " + line, list));
+		}
+
 		public void Start()
 		{
 			ourScreen = internalProp.FindModelComponent<RasterPropMonitor>();
 			if (ourScreen == null) {
-				Debug.Log("RasterPropMonitorGenerator: Could not find a screen module in my prop. Expect errors.");
+				LogMessage("Could not find a screen module in my prop. Expect errors.");
 			}
 
 			string[] pageData = { page1, page2, page3, page4, page5, page6, page7, page8 };
@@ -120,7 +125,7 @@ namespace JSI
 				foreach (InternalProp prop in part.internalModel.props) {
 					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer>();
 					if (other != null) {
-						Debug.Log("RasterPropMonitorGenerator: Found an existing calculator instance, using that.");
+						LogMessage("Found an existing calculator instance, using that.");
 						comp = other;
 						break;
 					}
@@ -128,11 +133,11 @@ namespace JSI
 			}
 
 			if (comp == null) {
-				Debug.Log("RasterPropMonitorGenerator: Instantiating a new calculator.");
-				base.internalProp.AddModule("RasterPropMonitorComputer");
+				LogMessage("Instantiating a new calculator.");
+				base.internalProp.AddModule(typeof(RasterPropMonitorComputer).Name);
 				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer>();
 				if (comp == null) {
-					Debug.Log("RasterPropMonitorGenerator: Failed to instantiate a calculator, wtf?");
+					LogMessage("Failed to instantiate a calculator, wtf?");
 				}
 			}
 
