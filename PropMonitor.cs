@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace JSI
@@ -28,7 +29,6 @@ namespace JSI
 		public int fontLetterHeight = 32;
 		[KSPField]
 		public float cameraAspect = 2f;
-
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
@@ -47,7 +47,6 @@ namespace JSI
 		private GameObject cameraTransform;
 		private Part cameraPart = null;
 		private Camera[] cameraObject = { null, null, null };
-
 		// TODO: Make these methods more like actual methods.
 		public void SendPage(string[] page)
 		{
@@ -99,9 +98,9 @@ namespace JSI
 			}
 		}
 
-		private void LogMessage(string line, params object[] list)
+		private static void LogMessage(string line, params object[] list)
 		{
-			Debug.Log(String.Format(this.ClassName + ": " + line, list));
+			Debug.Log(String.Format(typeof(RasterPropMonitor).Name + ": " + line, list));
 		}
 
 		private void Start()
@@ -143,7 +142,7 @@ namespace JSI
 		private void CameraSetup(int index, string sourceName, float fov)
 		{
 			GameObject cameraBody = new GameObject();
-			cameraBody.name = "RPMC" + index.ToString() + " " + cameraBody.GetInstanceID();
+			cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
 			cameraObject[index] = cameraBody.AddComponent<Camera>();
 
 			Camera sourceCam = null;
