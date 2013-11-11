@@ -209,8 +209,8 @@ namespace JSI
 					}
 					return String.Format(tokens[0], variables);
 				}
-			} else
-				return input;
+			}
+			return input;
 		}
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
@@ -235,7 +235,8 @@ namespace JSI
 				if (!UpdateCheck())
 					return;
 
-				if (pages[activePage] == string.Empty && !currentPageIsMutable) { // In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
+				if (pages[activePage] == string.Empty && !currentPageIsMutable) { 
+					// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						for (int i = 0; i < textArray.Length; i++)
 							textArray[i] = string.Empty;
