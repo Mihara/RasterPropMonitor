@@ -35,7 +35,7 @@ namespace JSI
 		private Dictionary<string,int> ParseData()
 		{
 			var variables = new Dictionary<string,int>();
-			if (data != "")
+			if (!string.IsNullOrEmpty(data))
 				foreach (string varstring in data.Split ('|')) {
 					string[] tokens = varstring.Split('$');
 					int value;
