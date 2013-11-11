@@ -51,6 +51,7 @@
     <Compile Include="JSIActionGroupSwitch.cs" />
     <Compile Include="JSIPropTextureShift.cs" />
     <Compile Include="PersistenceAccessor.cs" />
+    <Compile Include="ScreenReflector.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
