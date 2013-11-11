@@ -50,6 +50,7 @@
     <Compile Include="JSIInternalPersistence.cs" />
     <Compile Include="JSIActionGroupSwitch.cs" />
     <Compile Include="JSIPropTextureShift.cs" />
+    <Compile Include="PersistenceAccessor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

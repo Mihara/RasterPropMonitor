@@ -41,8 +41,8 @@ namespace JSI
 		};
 		// What is it with Xamarin and formatting those dictionaries?...
 		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool>() {
- 			{ "intlight",false },
- 			{ "dummy",false }
+			{ "intlight",false },
+			{ "dummy",false }
 		};
 		private int actionGroupID;
 		private KSPActionGroup actionGroup;
@@ -50,7 +50,7 @@ namespace JSI
 		private bool oldstate = false;
 		private bool iscustomaction = false;
 		// Persistence for current state variable.
-		private JSIInternalPersistence persistence;
+		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private Light[] lightobjects;
 
@@ -81,18 +81,10 @@ namespace JSI
 				else
 					persistentVarName = "switch" + internalProp.propID.ToString();
 
-
-				for (int i=0; i<part.Modules.Count; i++)
-					if (part.Modules[i].ClassName == typeof(JSIInternalPersistence).Name)
-						persistence = part.Modules[i] as JSIInternalPersistence;
-				try {
-					int retval = persistence.GetVar(persistentVarName);
-				
-					if (retval > 0 && retval != int.MaxValue)
-						oldstate = customgrouplist[actionName] = true;
-				} catch (NullReferenceException e) {
-					LogMessage("Sounds like you aren't using JSIInternalPersistence. {0}", e.Message);
-				}
+				persistence = new PersistenceAccessor(part);
+				int retval = persistence.GetVar(persistentVarName);
+				if (retval > 0 && retval != int.MaxValue)
+					oldstate = customgrouplist[actionName] = true;
 			}
 
 			// set up the toggle switch
@@ -157,13 +149,7 @@ namespace JSI
 					default:
 						break;
 				}
-
-				try {
-					persistence.SetVar(persistentVarName, customgrouplist[actionName] ? 1 : 0);
-				} catch (NullReferenceException e) {
-					LogMessage("Sounds like you aren't using JSIInternalPersistence. {0}", e.Message);
-				}
-
+				persistence.SetVar(persistentVarName, customgrouplist[actionName] ? 1 : 0);
 			} else
 				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
 		}
