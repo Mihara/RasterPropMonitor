@@ -7,15 +7,14 @@ namespace JSI
 {
 	public class RasterPropMonitorGenerator: InternalModule
 	{
+
 		[KSPField]
 		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
 		// I wish I could get rid of this particular mess of fields, because in theory I can support an unlimited number of pages.
 		// I could also parse a Very Long String, but that would make using ModuleManager cumbersome.
-		// Apparently, IConfigNode is one more thing that doesn't quite work for InternalModule,
-		// or if it does, I can't tell how to make it work.
-		// This is discrimination, I say!
+		// Explanations how to correctly read config nodes directly in OnLoad would be welcome.
 		[KSPField]
 		public string page1 = "Display$$$ not$$$  configured.";
 		[KSPField]
@@ -70,19 +69,10 @@ namespace JSI
 		private string[] lineSeparator = { Environment.NewLine };
 		private string[] variableListSeparator = { "$&$" };
 		private string[] variableSeparator = { };
-		// Important pointers to the screen's data structures.
-		private InternalModule targetScript;
-		FieldInfo remoteArray;
-		FieldInfo remoteFlag;
-		FieldInfo remoteCameraName;
-		FieldInfo remoteCameraSet;
-		FieldInfo remoteCameraFov;
 		// Local variables
 		private string[] textArray;
 		private string[] pages = { "", "", "", "", "", "", "", "" };
 		private string[] cameras;
-		private int charPerLine = 23;
-		private int linesPerPage = 17;
 		private int updateCountdown = 0;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
@@ -94,42 +84,13 @@ namespace JSI
 		private JSIInternalPersistence persistence = null;
 		private string persistentVarName;
 
+		private RasterPropMonitor ourScreen;
+
 		public void Start()
 		{
-			// Mihara: We're getting at the screen module and it's parameters using reflection here.
-			// While I would prefer to use some message passing mechanism instead,
-			// it does not look like I can use KSPEvent.
-			// I could directly lock at the parameters, seeing as how these two modules
-			// are in the same assembly, but instead I'm leaving the reflection-based mechanism here
-			// so that you could make your own screen driver module
-			// by simply copy-pasting the relevant sections.
-			//
-			// Once you have that you're golden -- you can populate the array of lines,
-			// and trigger the screen update by writing a boolean when it needs updating.
-			//
-			// Cameras are part of the monitor class and are controlled in a very similar way --
-			// you send a transform name, a float, and a boolean, and the rest is the problem for some
-			// other class.
-			foreach (InternalModule intModule in base.internalProp.internalModules) {
-				if (intModule.ClassName == "RasterPropMonitor") {
-					targetScript = intModule;
-					// These are for text.
-					remoteArray = intModule.GetType().GetField("screenText");
-					remoteFlag = intModule.GetType().GetField("screenUpdateRequired");
-					// And these are to tell which camera to show on the background!
-					remoteCameraName = intModule.GetType().GetField("cameraName");
-					remoteCameraSet = intModule.GetType().GetField("setCamera");
-					remoteCameraFov = intModule.GetType().GetField("fov");
 
-					charPerLine = (int)intModule.GetType().GetField("screenWidth").GetValue(intModule);
-					linesPerPage = (int)intModule.GetType().GetField("screenHeight").GetValue(intModule);
 
-					break;
-				}
-			}
-
-			// Everything from there on is just my idea of doing it and can be done in a myriad different ways.
-			// If InternalModule class wasn't such an odd entity, I could probably even name some of them.
+			ourScreen = internalProp.FindModelComponent<RasterPropMonitor>();
 
 			string[] pageData = new string[] { page1, page2, page3, page4, page5, page6, page7, page8 };
 			string[] buttonName = new string[] { button1, button2, button3, button4, button5, button6, button7, button8 };
@@ -151,7 +112,7 @@ namespace JSI
 			}
 
 
-			textArray = new string[linesPerPage];
+			textArray = new string[ourScreen.screenHeight];
 			for (int i = 0; i < textArray.Length; i++) {
 				textArray[i] = string.Empty;
 			}
@@ -201,16 +162,12 @@ namespace JSI
 				string[] tokens = cameraTransform.Split(',');
 				if (tokens.Length == 2) {
 					float fov;
-					if (!float.TryParse(tokens[1], out fov))
-						fov = 60;
-					remoteCameraFov.SetValue(targetScript, fov);
-					cameraTransform = tokens[0].Trim();
-				}
-				remoteCameraName.SetValue(targetScript, cameraTransform);
-				remoteCameraSet.SetValue(targetScript, true);
+					float.TryParse(tokens[1], out fov);
+					ourScreen.SendCamera(tokens[0].Trim(),fov);
+				} else
+					ourScreen.SendCamera(cameraTransform);
 			} else {
-				remoteCameraName.SetValue(targetScript, null);
-				remoteCameraSet.SetValue(targetScript, true);
+				ourScreen.SendCamera(null);
 			}
 		}
 
@@ -288,17 +245,15 @@ namespace JSI
 						for (int i = 0; i < textArray.Length; i++)
 							textArray[i] = string.Empty;
 						screenWasBlanked = true;
-						remoteArray.SetValue(targetScript, textArray);
-						remoteFlag.SetValue(targetScript, true);
+						ourScreen.SendPage(textArray);
 					}
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
 						string[] linesArray = pages[activePage].Split(lineSeparator, StringSplitOptions.None);
-						for (int i=0; i<linesPerPage; i++) {
+						for (int i=0; i<ourScreen.screenHeight; i++) {
 							textArray[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
 						}
-						remoteArray.SetValue(targetScript, textArray);
-						remoteFlag.SetValue(targetScript, true);
+						ourScreen.SendPage(textArray);
 						screenWasBlanked = false;
 						currentPageFirstPassComplete = true;
 					}
@@ -306,6 +261,7 @@ namespace JSI
 
 			}
 		}
+
 	}
 
 	public class ButtonHandler:MonoBehaviour

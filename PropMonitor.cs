@@ -6,8 +6,6 @@ namespace JSI
 {
 	public class RasterPropMonitor: InternalModule
 	{
-		//[KSPField]
-		//public string screenUnitID = "Raster1"; // Pout.
 		[KSPField]
 		public string screenTransform = "screenTransform";
 		[KSPField]
@@ -45,12 +43,33 @@ namespace JSI
 		private int lastCharacter = 255;
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
-		//private Color emptyColor = new Color (0, 0, 0, 255);
 		// Camera support.
 		private bool cameraEnabled = false;
 		private GameObject cameraTransform;
 		private Part cameraPart = null;
 		private Camera[] cameraObject = { null, null, null };
+		private const float defaultFOV = 60f;
+
+		// TODO: Make these methods more like actual methods and move some functionality in.
+		public void SendPage(string[] page)
+		{
+			screenText = page;
+			screenUpdateRequired = true;
+		}
+		public void SendCamera(string newCameraName)
+		{
+			SendCamera(newCameraName, defaultFOV);
+		}
+		public void SendCamera(string newCameraName, float newFOV)
+		{
+			if (fov == 0)
+				fov = defaultFOV;
+			else
+				fov = newFOV;
+			cameraName = newCameraName;
+			setCamera = true;
+			screenUpdateRequired = true;
+		}
 
 		private void LogMessage(string line, params object[] list)
 		{
