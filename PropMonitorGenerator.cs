@@ -79,7 +79,7 @@ namespace JSI
 		// All computations are split into a separate class, because it was getting a mite too big.
 		public RasterPropMonitorComputer comp;
 		// Persistence for current page variable.
-		private JSIInternalPersistence persistence = null;
+		private JSIInternalPersistence persistence;
 		private string persistentVarName;
 		private RasterPropMonitor ourScreen;
 
@@ -145,14 +145,17 @@ namespace JSI
 
 			// Load our state from storage...
 			persistentVarName = "activePage" + internalProp.propID.ToString();
-			if (persistence == null)
-				for (int i=0; i<part.Modules.Count; i++)
-					if (part.Modules[i].ClassName == typeof(JSIInternalPersistence).Name)
-						persistence = part.Modules[i] as JSIInternalPersistence;
-			int retval = persistence.GetVar(persistentVarName);
 
-			if (retval != int.MaxValue)
-				activePage = retval;
+			for (int i=0; i<part.Modules.Count; i++)
+				if (part.Modules[i].ClassName == typeof(JSIInternalPersistence).Name)
+					persistence = part.Modules[i] as JSIInternalPersistence;
+			try {
+				int retval = persistence.GetVar(persistentVarName);
+				if (retval != int.MaxValue)
+					activePage = retval;
+			} catch (NullReferenceException e) {
+				LogMessage("Sounds like you aren't using JSIInternalPersistence. {0}", e.Message);
+			}
 
 			// So camera support.
 			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
@@ -179,8 +182,10 @@ namespace JSI
 			if (buttonID != activePage) {
 				activePage = buttonID;
 
-				if (persistence != null) {
+				try {
 					persistence.SetVar(persistentVarName, activePage);
+				} catch (NullReferenceException e) {
+					LogMessage("Sounds like you aren't using JSIInternalPersistence. {0}", e.Message);
 				}
 
 				SetCamera(cameras[activePage]);
