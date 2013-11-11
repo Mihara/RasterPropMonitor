@@ -28,16 +28,15 @@ namespace JSI
 		public int fontLetterHeight = 32;
 		[KSPField]
 		public float cameraAspect = 2f;
-		// Public variables that other modules can reflect into and send us data.
-		public string[] screenText;
-		public bool screenUpdateRequired = false;
-		public string cameraName = null;
-		public float fov = 60f;
-		public bool setCamera = false;
-		// Other internal stuff...
+
+		// Some things in life are constant;
+		private const int firstCharacter = 32;
+		private const float defaultFOV = 60f;
+		// Internal stuff.
+		private string[] screenText;
+		private bool screenUpdateRequired = false;
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
-		private int firstCharacter = 32;
 		private int fontLettersX = 16;
 		private int fontLettersY = 8;
 		private int lastCharacter = 255;
@@ -48,27 +47,56 @@ namespace JSI
 		private GameObject cameraTransform;
 		private Part cameraPart = null;
 		private Camera[] cameraObject = { null, null, null };
-		private const float defaultFOV = 60f;
 
-		// TODO: Make these methods more like actual methods and move some functionality in.
+		// TODO: Make these methods more like actual methods.
 		public void SendPage(string[] page)
 		{
 			screenText = page;
 			screenUpdateRequired = true;
 		}
+
 		public void SendCamera(string newCameraName)
 		{
 			SendCamera(newCameraName, defaultFOV);
 		}
+
 		public void SendCamera(string newCameraName, float newFOV)
 		{
-			if (fov == 0)
-				fov = defaultFOV;
-			else
-				fov = newFOV;
-			cameraName = newCameraName;
-			setCamera = true;
-			screenUpdateRequired = true;
+			if (newCameraName != null) {
+
+				// First, we search our own part for this camera transform,
+				// only then we search all other parts of the vessel.
+				if (!LocateCamera(part, newCameraName))
+					foreach (Part thatpart in vessel.parts) {
+						if (LocateCamera(thatpart, newCameraName))
+							break;
+					}
+
+				if (cameraTransform != null) {
+					LogMessage("Switching to camera \"{0}\".", cameraTransform.name);
+
+					float fov = (newFOV > 0) ? newFOV : defaultFOV;
+					CameraSetup(0, "Camera ScaledSpace", fov);
+					CameraSetup(1, "Camera 01", fov);
+					CameraSetup(2, "Camera 00", fov);
+
+					cameraEnabled = true;
+					screenUpdateRequired = true;
+
+				} else {
+					LogMessage("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
+					if (cameraEnabled)
+						CleanupCameraObjects();
+					else {
+						cameraPart = null;
+					}
+				}
+			} else {
+				if (cameraEnabled) {
+					LogMessage("Turning camera off...");
+					CleanupCameraObjects();
+				}
+			}
 		}
 
 		private void LogMessage(string line, params object[] list)
@@ -112,7 +140,7 @@ namespace JSI
 			screenUpdateRequired = true;
 		}
 
-		private void CameraSetup(int index, string sourceName)
+		private void CameraSetup(int index, string sourceName, float fov)
 		{
 			GameObject cameraBody = new GameObject();
 			cameraBody.name = "RPMC" + index.ToString() + " " + cameraBody.GetInstanceID();
@@ -129,16 +157,8 @@ namespace JSI
 			cameraObject[index].CopyFrom(sourceCam);
 			cameraObject[index].enabled = false;
 			cameraObject[index].aspect = cameraAspect;
+			cameraObject[index].fieldOfView = fov;
 			cameraObject[index].targetTexture = screenTexture;
-		}
-
-		private void CreateCameraObjects()
-		{
-			CameraSetup(0, "Camera ScaledSpace");
-			CameraSetup(1, "Camera 01");
-			CameraSetup(2, "Camera 00");
-			cameraEnabled = true;
-			cameraName = null;
 		}
 
 		private void CleanupCameraObjects()
@@ -148,7 +168,6 @@ namespace JSI
 					Destroy(cameraObject[i].gameObject);
 					cameraObject[i] = null;
 				}
-			cameraName = null;
 			cameraEnabled = false;
 			cameraPart = null;
 		}
@@ -203,38 +222,6 @@ namespace JSI
 			    ))
 				return;
 
-			if (setCamera) {
-				if (cameraName != null) {
-
-					// First, we search our own part for this camera transform,
-					// only then we search all other parts of the vessel.
-					if (!LocateCamera(part, cameraName))
-						foreach (Part thatpart in vessel.parts) {
-							if (LocateCamera(thatpart, cameraName))
-								break;
-						}
-
-					if (cameraTransform != null) {
-						LogMessage("Switching to camera \"{0}\".", cameraTransform.name);
-						CreateCameraObjects();
-					} else {
-						LogMessage("Tried to switch to camera \"{0}\" but camera was not found.", cameraName);
-						if (cameraEnabled)
-							CleanupCameraObjects();
-						else {
-							cameraName = null;
-							cameraPart = null;
-						}
-					}
-				} else {
-					if (cameraEnabled) {
-						LogMessage("Turning camera off...");
-						CleanupCameraObjects();
-					}
-				}
-				setCamera = false;
-			}
-
 			if (screenUpdateRequired) {
 
 				// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
@@ -255,12 +242,10 @@ namespace JSI
 
 						// ScaledSpace camera is special. :(
 						cameraObject[0].transform.rotation = cameraTransform.transform.rotation;
-						cameraObject[0].fieldOfView = fov;
 						cameraObject[0].Render();
 						for (int i=1; i<3; i++) {
 							cameraObject[i].transform.position = cameraTransform.transform.position;
 							cameraObject[i].transform.rotation = cameraTransform.transform.rotation;
-							cameraObject[i].fieldOfView = fov;
 
 							cameraObject[i].Render();
 						}
@@ -278,8 +263,6 @@ namespace JSI
 
 				GL.PopMatrix();
 				RenderTexture.active = backupRenderTexture;
-
-
 				screenUpdateRequired = false;
 			}
 		}
