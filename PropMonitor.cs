@@ -163,9 +163,9 @@ namespace JSI
 
 		}
 
-		private bool LocateCamera(Part thatpart, string name)
+		private bool LocateCamera(Part thatpart, string transformName)
 		{
-			Transform location = thatpart.FindModelTransform(cameraName);
+			Transform location = thatpart.FindModelTransform(transformName);
 			if (location != null) {
 				cameraTransform = location.gameObject;
 				cameraPart = thatpart;
