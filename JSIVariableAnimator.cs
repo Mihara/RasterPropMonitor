@@ -13,7 +13,9 @@ namespace JSI
 		[KSPField]
 		public int refreshRate = 10;
 		[KSPField]
-		public Vector2 scale;
+		public string scale;
+		private float?[] scalePoints = { null, null };
+		private string[] varName = { null, null };
 		private RasterPropMonitorComputer comp;
 		private int updateCountdown;
 		private Animation anim;
@@ -35,8 +37,17 @@ namespace JSI
 
 		public void Start()
 		{
-			if (scale == null)
-				LogMessage("Configuration error -- please check your scale setting.");
+			string[] tokens = scale.Split(',');
+
+			for (int i=0; i<tokens.Length; i++) {
+				float realValue;
+				if (float.TryParse(tokens[i], out realValue)) {
+					scalePoints[i] = realValue;
+				} else {
+					varName[i] = tokens[i].Trim();
+				}
+
+			}
 
 			comp = JUtil.GetComputer(internalProp);
 
@@ -61,9 +72,13 @@ namespace JSI
 				return;
 
 			try {
-				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, Mathf.InverseLerp(scale.x, scale.y, (float)comp.ProcessVariable(variableName)));
+				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, Mathf.InverseLerp(
+					scalePoints[0] ?? (float)comp.ProcessVariable(varName[0]),
+					scalePoints[1] ?? (float)comp.ProcessVariable(varName[1]),
+					(float)comp.ProcessVariable(variableName)
+				));
 			} catch (InvalidCastException e) {
-				LogMessage("ERROR - variable \"{0}\" did not result in a usable number! Exception: {1}", variableName, e);
+				LogMessage("ERROR - a variable did not result in a usable number! Variable names: \"{0}\",\"{1}\",\"{2}\" Exception: {3}", varName[0], varName[1], variableName, e);
 			}
 
 		}
