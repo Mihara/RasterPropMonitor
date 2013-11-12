@@ -19,14 +19,25 @@ namespace JSI
 			Debug.Log(String.Format("Warning: RasterPropMonitor components want JSIInternalPersistence to be loaded by the pod they're in. {0}", e.Message));
 		}
 
-		public int GetVar(string persistentVarName)
+		public int? GetVar(string persistentVarName)
 		{
 			try {
 				return persistenceStorage.GetVar(persistentVarName);
 			} catch (NullReferenceException e) {
 				LogWarning(e);
 			}
-			return int.MaxValue;
+			return null;
+		}
+
+		public bool? GetBool(string persistentVarName)
+		{
+
+			int? value;
+			if ((value = GetVar(persistentVarName)) > 0)
+				return true;
+			if (value == 0)
+				return false;
+			return null;
 		}
 
 		public void SetVar(string persistentVarName, int varvalue)

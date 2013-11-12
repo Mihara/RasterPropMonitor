@@ -120,35 +120,14 @@ namespace JSI
 				textArray[i] = string.Empty;
 			}
 
-			// The semi-clever bit: Recycling computational module.
-			if (part != null) {
-				foreach (InternalProp prop in part.internalModel.props) {
-					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer>();
-					if (other != null) {
-						LogMessage("Found an existing calculator instance, using that.");
-						comp = other;
-						break;
-					}
-				}
-			}
-
-			if (comp == null) {
-				LogMessage("Instantiating a new calculator.");
-				base.internalProp.AddModule(typeof(RasterPropMonitorComputer).Name);
-				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer>();
-				if (comp == null) {
-					LogMessage("Failed to instantiate a calculator, wtf?");
-				}
-			}
+			comp = JUtil.GetComputer(internalProp);
 
 			comp.UpdateRefreshRates(refreshRate, refreshDataRate);
 
 			// Load our state from storage...
 			persistentVarName = "activePage" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
-			int retval = persistence.GetVar(persistentVarName);
-			if (retval != int.MaxValue)
-				activePage = retval;
+			activePage = persistence.GetVar(persistentVarName) ?? activePage;
 
 			// So camera support.
 			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };

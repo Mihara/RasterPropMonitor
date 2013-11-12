@@ -82,9 +82,9 @@ namespace JSI
 					persistentVarName = "switch" + internalProp.propID.ToString();
 
 				persistence = new PersistenceAccessor(part);
-				int retval = persistence.GetVar(persistentVarName);
-				if (retval > 0 && retval != int.MaxValue)
-					oldstate = customgrouplist[actionName] = true;
+
+				oldstate = customgrouplist[actionName] = (persistence.GetBool(persistentVarName) ?? oldstate);
+
 			}
 
 			// set up the toggle switch

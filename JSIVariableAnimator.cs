@@ -37,26 +37,8 @@ namespace JSI
 		{
 			if (scale == null)
 				LogMessage("Configuration error -- please check your scale setting.");
-			// I hate copypaste, but what can you do.
-			if (part != null) {
-				foreach (InternalProp prop in part.internalModel.props) {
-					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer>();
-					if (other != null) {
-						LogMessage("Found an existing calculator instance, using that.");
-						comp = other;
-						break;
-					}
-				}
-			}
 
-			if (comp == null) {
-				LogMessage("Instantiating a new calculator.");
-				base.internalProp.AddModule(typeof(RasterPropMonitorComputer).Name);
-				comp = base.internalProp.FindModelComponent<RasterPropMonitorComputer>();
-				if (comp == null) {
-					LogMessage("Failed to instantiate a calculator, wtf?");
-				}
-			}
+			comp = JUtil.GetComputer(internalProp);
 
 			anim = internalProp.FindModelAnimators(animationName).FirstOrDefault();
 			anim.enabled = true;
