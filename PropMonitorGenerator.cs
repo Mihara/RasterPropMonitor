@@ -64,9 +64,9 @@ namespace JSI
 		[KSPField]
 		public string camera8 = null;
 		// Config syntax.
-		private string[] lineSeparator = { Environment.NewLine };
-		private string[] variableListSeparator = { "$&$" };
-		private string[] variableSeparator = { };
+		private readonly string[] lineSeparator = { Environment.NewLine };
+		private readonly string[] variableListSeparator = { "$&$" };
+		private readonly string[] variableSeparator = { };
 		// Local variables
 		private string[] textArray;
 		private string[] pages = { "", "", "", "", "", "", "", "" };
@@ -114,11 +114,7 @@ namespace JSI
 				}
 			}
 
-
 			textArray = new string[ourScreen.screenHeight];
-			for (int i = 0; i < textArray.Length; i++) {
-				textArray[i] = string.Empty;
-			}
 
 			comp = JUtil.GetComputer(internalProp);
 
@@ -217,10 +213,9 @@ namespace JSI
 				if (pages[activePage] == string.Empty && !currentPageIsMutable) { 
 					// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
-						for (int i = 0; i < textArray.Length; i++)
-							textArray[i] = string.Empty;
-						screenWasBlanked = true;
+						textArray = new string[ourScreen.screenHeight];
 						ourScreen.SendPage(textArray);
+						screenWasBlanked = true;
 					}
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
