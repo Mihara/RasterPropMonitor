@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyDescription ("RasterPropMonitor plugin for Kerbal Space Program")]
 [assembly: AssemblyConfiguration ("")]
 [assembly: AssemblyCompany ("")]
-[assembly: AssemblyProduct ("")]
+[assembly: AssemblyProduct ("RasterPropMonitor")]
 [assembly: AssemblyCopyright ("Copyright ©2013 by Mihara, released under the terms of GNU GPLv3")]
 [assembly: AssemblyTrademark ("")]
 [assembly: AssemblyCulture ("")]
