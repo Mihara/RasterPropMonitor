@@ -47,13 +47,13 @@ namespace JSI
 			
 		}
 
-		public int GetVar(string varname)
+		public int? GetVar(string varname)
 		{
 			var variables = ParseData();
 			if (variables.ContainsKey(varname))
 				return variables[varname];
 			else
-				return int.MaxValue;
+				return null;
 		}
 	}
 }
