@@ -149,7 +149,7 @@ namespace JSI
 					default:
 						break;
 				}
-				persistence.SetVar(persistentVarName, customgrouplist[actionName] ? 1 : 0);
+				persistence.SetVar(persistentVarName, customgrouplist[actionName]);
 			} else
 				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
 		}

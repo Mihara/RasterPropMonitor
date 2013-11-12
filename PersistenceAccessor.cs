@@ -48,6 +48,9 @@ namespace JSI
 				LogWarning(e);
 			}
 		}
+		public void SetVar(string persistentVarName, bool varvalue){
+			SetVar(persistentVarName, varvalue ? 1 : 0);
+		}
 	}
 }
 
