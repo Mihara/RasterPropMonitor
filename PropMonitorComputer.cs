@@ -106,14 +106,14 @@ namespace JSI
 			}
 		}
 		// Sigh. MechJeb math.
-		private double GetCurrentThrust(ModuleEngines engine)
+		private static double GetCurrentThrust(ModuleEngines engine)
 		{
 			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
 			return engine.finalThrust;
 		}
 
-		private double GetMaximumThrust(ModuleEngines engine)
+		private static double GetMaximumThrust(ModuleEngines engine)
 		{
 			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
@@ -129,7 +129,7 @@ namespace JSI
 				return angle;
 		}
 		//keeps angles in the range -180 to 180
-		private double ClampDegrees180(double angle)
+		private static double ClampDegrees180(double angle)
 		{
 			angle = ClampDegrees360(angle);
 			if (angle > 180)
@@ -299,7 +299,7 @@ namespace JSI
 				altitudeTrue = vessel.mainBody.GetAltitude(CoM);
 		}
 
-		private bool OrbitMakesSense(Vessel thatvessel)
+		private static bool OrbitMakesSense(Vessel thatvessel)
 		{
 			if (thatvessel.situation == Vessel.Situations.FLYING ||
 			    thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
