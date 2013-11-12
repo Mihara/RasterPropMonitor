@@ -70,15 +70,13 @@ namespace JSI
 
 			if (!UpdateCheck())
 				return;
-
 			try {
 				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, Mathf.InverseLerp(
-					scalePoints[0] ?? (float)comp.ProcessVariable(varName[0]),
-					scalePoints[1] ?? (float)comp.ProcessVariable(varName[1]),
-					(float)comp.ProcessVariable(variableName)
-				));
+					scalePoints[0] ?? (float)(double)comp.ProcessVariable(varName[0]),
+					scalePoints[1] ?? (float)(double)comp.ProcessVariable(varName[1]),
+					(float)(double)comp.ProcessVariable(variableName)));
 			} catch (InvalidCastException e) {
-				LogMessage("ERROR - a variable did not result in a usable number! Variable names: \"{0}\",\"{1}\",\"{2}\" Exception: {3}", varName[0], varName[1], variableName, e);
+				LogMessage("Error, one of the variables failed to produce a usable number. {0}", e);
 			}
 
 		}
