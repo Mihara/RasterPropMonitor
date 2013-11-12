@@ -111,7 +111,7 @@ namespace JSI
 				fontTexture = GameDatabase.Instance.GetTexture(fontTransform, false);
 				LogMessage("Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
-				fontTexture = (Texture2D)base.internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;
+				fontTexture = (Texture2D)internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;
 				LogMessage("Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
@@ -124,8 +124,6 @@ namespace JSI
 			lastCharacter = fontLettersX * fontLettersY;
 
 			screenText = new string[screenHeight];
-			for (int i = 0; i < screenText.Length; i++)
-				screenText[i] = "";
 
 			screenText[0] = "Monitor initializing...";
 
@@ -253,10 +251,12 @@ namespace JSI
 					GL.Clear(true, true, emptyColor);
 				}
 
-				for (int y=0; y<screenHeight; y++) {
-					char[] line = screenText[y].ToCharArray();
-					for (int x=0; x<screenWidth && x<line.Length; x++) {
-						DrawChar(line[x], x, y);
+				for (int y=0; y<screenHeight && y<screenText.Length; y++) {
+					if (!string.IsNullOrEmpty(screenText[y])) {
+						char[] line = screenText[y].ToCharArray();
+						for (int x=0; x<screenWidth && x<line.Length; x++) {
+							DrawChar(line[x], x, y);
+						}
 					}
 				}
 
