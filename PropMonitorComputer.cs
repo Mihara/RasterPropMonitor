@@ -310,7 +310,7 @@ namespace JSI
 			return false;
 		}
 
-		private static float NormalAngle(Vector3 a, Vector3 b, Vector3 up)
+		private static double NormalAngle(Vector3 a, Vector3 b, Vector3 up)
 		{
 			return SignedAngle(Vector3.Cross(up, a), Vector3.Cross(up, b), up);
 		}
