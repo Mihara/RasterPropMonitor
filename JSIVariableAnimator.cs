@@ -61,9 +61,9 @@ namespace JSI
 				return;
 
 			try {
-				anim[animationName].normalizedTime = Mathf.Lerp(0,1f,Mathf.InverseLerp(scale.x,scale.y,(float)comp.ProcessVariable(variableName)));
+				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, Mathf.InverseLerp(scale.x, scale.y, (float)comp.ProcessVariable(variableName)));
 			} catch (InvalidCastException e) {
-				LogMessage("ERROR - variable returned is not a usable number! Exception: {0}", e);
+				LogMessage("ERROR - variable \"{0}\" did not result in a usable number! Exception: {1}", variableName, e);
 			}
 
 		}
