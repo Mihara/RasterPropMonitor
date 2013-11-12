@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace JSI
 {
+	// Come on, GitHub application, stop messing around and recognise there's no changes.
 	internal static class JUtil
 	{
 		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp){
