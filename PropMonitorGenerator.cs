@@ -103,9 +103,8 @@ namespace JSI
 
 
 			for (int i = 0; i < 8; i++) {
-				if (!string.IsNullOrEmpty(buttonName[i])) {
+				if (!string.IsNullOrEmpty(buttonName[i])) 
 					SmarterButton.CreateButton(internalProp, buttonName[i], i, ButtonClick);
-				}
 
 				try {
 					pages[i] = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageData[i], System.Text.Encoding.UTF8));
