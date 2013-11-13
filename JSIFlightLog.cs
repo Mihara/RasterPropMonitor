@@ -24,6 +24,8 @@ namespace JSI
 
 		public void Start()
 		{
+			if (!string.IsNullOrEmpty(pageTitle))
+				pageTitle = pageTitle.Replace("<=", "{").Replace("=>", "}");
 			LogToBuffer();
 		}
 
