@@ -33,6 +33,8 @@ namespace JSI
 				return DefaultFormat(format, arg, formatProvider);    
 			}
 
+			// This is approaching a dangerous mess and needs a rewrite.
+
 			double inputValue;
 
 			try {    
@@ -43,13 +45,18 @@ namespace JSI
 
 			string formatData = format.Substring(formatPrefix.Length);
 
-			bool needSpace = false;
+			// We always lose one significant figure, not sure why.
+			int stringLengthModifier = 1;
+
+			// If we're using a space between the number and the prefix,
+			// we lose one significant figure.
 			if (formatData.Length > 0 && formatData[0] == '_') {
 				// First character is underscore, so we need a space.
-				needSpace = true;
+				stringLengthModifier++;
 				formatData = formatData.Substring(1);
 			}
 
+			// If there's a zero, pad with zeros -- otherwise spaces.
 			bool zeroPad = false;
 			if (formatData.Length > 0 && formatData[0] == '0') {
 				// First character is zero, padding with zeroes
@@ -68,9 +75,18 @@ namespace JSI
 				UInt16.TryParse(formatData, out stringLength);
 			}
 
+			// We lose one significant figure to negative sign.
+			if (inputValue < 0)
+				stringLengthModifier++;
+
+			// If we have more digits than the string length as the result,
+			// we're going to be getting a prefix, so we lose one more
+			// significant figure.
+			if (Math.Floor(Math.Log10(inputValue) + 1) > stringLength)
+				stringLengthModifier++;
+
 			return ConvertToSI(inputValue, 
-				-postDecimal, stringLength - (needSpace ? 2 : 1) - (inputValue < 0 ? 1 : 0),
-				needSpace).PadLeft(stringLength, zeroPad ? '0' : ' ');
+				-postDecimal, stringLength - stringLengthModifier).PadLeft(stringLength, zeroPad ? '0' : ' ');
 
 
 		}
