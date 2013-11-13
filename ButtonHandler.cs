@@ -5,10 +5,10 @@ namespace JSI
 {
 	public class SmarterButton: MonoBehaviour
 	{
-		public Action<int> handlerID;
-		public Action handler;
+		private Action<int> handlerID;
+		private Action handler;
 
-		public int id;
+		private int id;
 
 		public void OnMouseDown()
 		{
@@ -18,15 +18,18 @@ namespace JSI
 				handler();
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction) {
+		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName){
 			GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
-			SmarterButton buttonBehaviour = buttonObject.AddComponent<SmarterButton>();
+			return buttonObject.AddComponent<SmarterButton>();
+		}
+
+		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction) {
+			SmarterButton buttonBehaviour = AttachBehaviour(thatProp,buttonName);
 			buttonBehaviour.id = id;
 			buttonBehaviour.handlerID = handlerFunction;
 		}
 		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction) {
-			GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
-			SmarterButton buttonBehaviour = buttonObject.AddComponent<SmarterButton>();
+			SmarterButton buttonBehaviour = AttachBehaviour(thatProp,buttonName);
 			buttonBehaviour.handler = handlerFunction;
 		}
 	}
