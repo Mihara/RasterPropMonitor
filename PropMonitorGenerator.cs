@@ -83,6 +83,9 @@ namespace JSI
 		private string persistentVarName;
 		private RasterPropMonitor ourScreen;
 
+		private SIFormatProvider fp = new SIFormatProvider ();
+
+
 		private static void LogMessage(string line, params object[] list)
 		{
 			Debug.Log(String.Format(typeof(RasterPropMonitorGenerator).Name + ": " + line, list));
@@ -182,7 +185,7 @@ namespace JSI
 					for (int i=0; i<vars.Length; i++) {
 						variables[i] = comp.ProcessVariable(vars[i]);
 					}
-					return String.Format(tokens[0], variables);
+					return String.Format(fp,tokens[0], variables);
 				}
 			}
 			return input;

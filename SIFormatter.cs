@@ -1,111 +1,145 @@
 using System;
+using System.Text;
 
-namespace StringFormatter
+namespace JSI
 {
 	public class SIFormatProvider : IFormatProvider, ICustomFormatter
 	{
-		public object GetFormat (Type formatType)
+		public object GetFormat(Type formatType)
 		{
 			if (formatType == typeof(ICustomFormatter))
 				return this;
 			return null;
 		}
 		// So our format is:
-		// SIP05.3
+		// SIP_05.3
 		// Where: SI is the constant prefix indicating format.
 		// 5 is the length of the entire string counting the suffix.
 		// 3 is the number of digits after the decimal point.
 		// 0 means that string is to be right-justified with zeroes
 		// otherwise spaces will be used.
+		// If there is an underscore, a space will be inserted
+		// before the SI suffix, otherwise, no space.
+		// This space will count towards the full length of the string.
 		private const string formatPrefix = "SIP";
 
-		public string Format (string format, object arg, IFormatProvider formatProvider)
+		public string Format(string format, object arg, IFormatProvider formatProvider)
 		{    
-			if (format == null || !format.StartsWith (formatPrefix, StringComparison.Ordinal)) {    
-				return defaultFormat (format, arg, formatProvider);    
+			if (format == null || !format.StartsWith(formatPrefix, StringComparison.Ordinal)) {    
+				return DefaultFormat(format, arg, formatProvider);    
 			}
 
 			if (arg is string) {    
-				return defaultFormat (format, arg, formatProvider);    
+				return DefaultFormat(format, arg, formatProvider);    
 			}
 
 			double inputValue;
 
 			try {    
-				inputValue = Convert.ToDouble (arg);    
+				inputValue = Convert.ToDouble(arg);    
 			} catch (InvalidCastException) {    
-				return defaultFormat (format, arg, formatProvider);    
+				return DefaultFormat(format, arg, formatProvider);    
 			}
 
-			//int totalDigits = (int)Math.Floor (Math.Log10 (inputValue) + 1);
+			string formatData = format.Substring(formatPrefix.Length);
 
-			string formatData = format.Substring (formatPrefix.Length);
+			bool needSpace = false;
+			if (formatData.Length > 0 && formatData[0] == '_') {
+				// First character is underscore, so we need a space.
+				needSpace = true;
+				formatData = formatData.Substring(1);
+			}
 
 			bool zeroPad = false;
-			if (formatData.Length > 0 && formatData [0] == '0') {
+			if (formatData.Length > 0 && formatData[0] == '0') {
 				// First character is zero, padding with zeroes
 				zeroPad = true;
-				formatData = formatData.Substring (1);
+				formatData = formatData.Substring(1);
 			}
+
 			ushort stringLength = 6;
-			ushort significantFigures = 2;
+			ushort postDecimal = 0;
 
-			if (formatData.IndexOf ('.') > 0) {
-				string[] tokens = formatData.Split ('.');
-				UInt16.TryParse (tokens [0], out stringLength);
-				UInt16.TryParse (tokens [1], out significantFigures);
+			if (formatData.IndexOf('.') > 0) {
+				string[] tokens = formatData.Split('.');
+				UInt16.TryParse(tokens[0], out stringLength);
+				UInt16.TryParse(tokens[1], out postDecimal);
 			} else {
-				UInt16.TryParse (formatData, out stringLength);
+				UInt16.TryParse(formatData, out stringLength);
 			}
 
+			int sigFig = stringLength - (needSpace ? 2 : 1);//- postDecimal;
 
-			return ConvertToSI (inputValue, (stringLength == 0) ? -1 : stringLength - 1, significantFigures).PadLeft (stringLength, zeroPad ? '0' : ' ');
+			return ConvertToSI(inputValue, 
+				-postDecimal, sigFig,
+				needSpace).PadLeft(stringLength, zeroPad ? '0' : ' ');
 
 
 		}
 
-		private static string defaultFormat (string format, object arg, IFormatProvider formatProvider)
+		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
 		{
 			IFormattable formattableArg = arg as IFormattable;
 			if (formattableArg != null) {
-				return formattableArg.ToString (format, formatProvider);
+				return formattableArg.ToString(format, formatProvider);
 			}
-			return arg.ToString ();
+			return arg.ToString();
 		}
-		// Once again MechJeb code comes to the rescue!
+		// Once again MechJeb code comes to the rescue with a function I very tenuously understand!
 		//Puts numbers into SI format, e.g. 1234 -> "1.234 k", 0.0045678 -> "4.568 m"
 		//maxPrecision is the exponent of the smallest place value that will be shown; for example
 		//if maxPrecision = -1 and digitsAfterDecimal = 3 then 12.345 will be formatted as "12.3"
 		//while 56789 will be formated as "56.789 k"
-		private static string ConvertToSI (double d, int maxPrecision = -99, int sigFigs = 4)
+		private static string ConvertToSI(double d, int maxPrecision = -99, int sigFigs = 4, bool needSpace = false)
 		{
-			if (d == 0 || double.IsInfinity (d) || double.IsNaN (d))
-				return d.ToString () + " ";
+			if (d == 0 || double.IsInfinity(d) || double.IsNaN(d))
+				return d.ToString() + " ";
 
-			int exponent = (int)Math.Floor (Math.Log10 (Math.Abs (d))); //exponent of d if it were expressed in scientific notation
+			int exponent = (int)Math.Floor(Math.Log10(Math.Abs(d))); //exponent of d if it were expressed in scientific notation
 
-			string[] units = { "y", "z", "a", "f", "p", "n", "μ", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y" };
+			string[] units = {
+				"y",
+				"z",
+				"a",
+				"f",
+				"p",
+				"n",
+				"μ",
+				"m",
+				"",
+				"k",
+				"M",
+				"G",
+				"T",
+				"P",
+				"E",
+				"Z",
+				"Y"
+			};
 			const int unitIndexOffset = 8; //index of "" in the units array
-			int unitIndex = (int)Math.Floor (exponent / 3.0) + unitIndexOffset;
+			int unitIndex = (int)Math.Floor(exponent / 3.0) + unitIndexOffset;
 			if (unitIndex < 0)
 				unitIndex = 0;
 			if (unitIndex >= units.Length)
 				unitIndex = units.Length - 1;
-			string unit = units [unitIndex];
+			string unit = units[unitIndex];
 
 			int actualExponent = (unitIndex - unitIndexOffset) * 3; //exponent of the unit we will us, e.g. 3 for k.
-			d /= Math.Pow (10, actualExponent);
+			d /= Math.Pow(10, actualExponent);
 
-			int digitsAfterDecimal = sigFigs - (int)(Math.Ceiling (Math.Log10 (Math.Abs (d))));
+			int digitsAfterDecimal = sigFigs - (int)(Math.Ceiling(Math.Log10(Math.Abs(d))));
 
 			if (digitsAfterDecimal > actualExponent - maxPrecision)
 				digitsAfterDecimal = actualExponent - maxPrecision;
 			if (digitsAfterDecimal < 0)
 				digitsAfterDecimal = 0;
 
-			string ret = d.ToString ("F" + digitsAfterDecimal) + unit;
+			StringBuilder result = new StringBuilder(d.ToString("F" + digitsAfterDecimal));
+			if (needSpace)
+				result.Append(" ");
+			result.Append(unit);
 
-			return ret;
+			return result.ToString();
 		}
 	}
 }
