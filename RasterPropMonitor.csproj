@@ -57,6 +57,7 @@
     <Compile Include="JSIVariableAnimator.cs" />
     <Compile Include="UtilityFunctions.cs" />
     <Compile Include="SIFormatter.cs" />
+    <Compile Include="ExamplePageHandler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

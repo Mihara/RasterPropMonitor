@@ -115,21 +115,25 @@ namespace JSI
 				} catch {
 					// Notice that this will also happen if the referenced file is not found.
 
-					// Now we check for PageImplementingModule,PageMethod.
-					// First, we'll look in our prop for an instance of InternalModule implementing a method that returns a string...
-
-					string[] tokens = pages[i].Split(',');
+					// Now we check for a page handler.
+					string[] tokens = pageData[i].Split(',');
 					if (tokens.Length == 2) {
-						InternalModule thatModule = internalProp.FindModelComponent<InternalModule>(tokens[0].Trim());
-						if (thatModule != null) 
-							foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
-								if (m.Name == tokens[1].Trim()) {
-									// We'll assume whoever wrote it is not being an idiot today.
-									pageHandlers[i] = (Func<string>)Delegate.CreateDelegate(typeof(Func<string[]>), thatModule, m);
-									break;
+						foreach (InternalModule thatModule in internalProp.internalModules) {
+							if (thatModule.ClassName == tokens[0].Trim()) {
+								foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+									if (m.Name == tokens[1].Trim()) {
+										// We'll assume whoever wrote it is not being an idiot today.
+										LogMessage("Found page handler {0}, using method {1}.",tokens[0].Trim(),tokens[1].Trim());
+										pageHandlers[i] = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), thatModule, m);
+										break;
+									}
 								}
+								break;
 							}
+						}
 					}
+
+					// But regardless of whether we found a page handler, it won't matter if we populate the page data or not.
 					pages[i] = pageData[i].Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 				}
 			}
