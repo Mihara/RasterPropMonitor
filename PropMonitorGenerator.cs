@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using UnityEngine;
+using System.Reflection;
 
 namespace JSI
 {
@@ -70,6 +71,7 @@ namespace JSI
 		// Local variables
 		private string[] textArray;
 		private string[] pages = { "", "", "", "", "", "", "", "" };
+		private Func<string>[] pageHandlers = {null,null,null,null,null,null,null,null};
 		private string[] cameras;
 		private int updateCountdown = 0;
 		private bool updateForced = false;
@@ -82,9 +84,7 @@ namespace JSI
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private RasterPropMonitor ourScreen;
-
-		private SIFormatProvider fp = new SIFormatProvider ();
-
+		private SIFormatProvider fp = new SIFormatProvider();
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -99,9 +99,10 @@ namespace JSI
 			}
 
 			string[] pageData = { page1, page2, page3, page4, page5, page6, page7, page8 };
-			string[] buttonName = { button1, button2, button3, button4, button5, button6, button7, button8 };
+			string[] buttonName = {	button1, button2, button3, button4, button5, button6, button7, button8 };
 
-			for (int i=0; i<8; i++) {
+
+			for (int i = 0; i < 8; i++) {
 				if (!string.IsNullOrEmpty(buttonName[i])) {
 					GameObject buttonObject = internalProp.FindModelTransform(buttonName[i]).gameObject;
 					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler>();
@@ -113,6 +114,22 @@ namespace JSI
 					pages[i] = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageData[i], System.Text.Encoding.UTF8));
 				} catch {
 					// Notice that this will also happen if the referenced file is not found.
+
+					// Now we check for PageImplementingModule,PageMethod.
+					// First, we'll look in our prop for an instance of InternalModule implementing a method that returns a string...
+
+					string[] tokens = pages[i].Split(',');
+					if (tokens.Length == 2) {
+						InternalModule thatModule = internalProp.FindModelComponent<InternalModule>(tokens[0].Trim());
+						if (thatModule != null) 
+							foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+								if (m.Name == tokens[1].Trim()) {
+									// We'll assume whoever wrote it is not being an idiot today.
+									pageHandlers[i] = (Func<string>)Delegate.CreateDelegate(typeof(Func<string[]>), thatModule, m);
+									break;
+								}
+							}
+					}
 					pages[i] = pageData[i].Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 				}
 			}
@@ -129,7 +146,7 @@ namespace JSI
 			activePage = persistence.GetVar(persistentVarName) ?? activePage;
 
 			// So camera support.
-			cameras = new [] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
+			cameras = new [] { camera1, camera2, camera3, camera4, camera5,	camera6, camera7, camera8 };
 			SetCamera(cameras[activePage]);
 		}
 
@@ -182,10 +199,10 @@ namespace JSI
 					string[] vars = tokens[1].Split(variableSeparator, StringSplitOptions.RemoveEmptyEntries);
 
 					object[] variables = new object[vars.Length];
-					for (int i=0; i<vars.Length; i++) {
+					for (int i = 0; i < vars.Length; i++) {
 						variables[i] = comp.ProcessVariable(vars[i]);
 					}
-					return String.Format(fp,tokens[0], variables);
+					return String.Format(fp, tokens[0], variables);
 				}
 			}
 			return input;
@@ -213,6 +230,13 @@ namespace JSI
 				if (!UpdateCheck())
 					return;
 
+				// Check if we have a page handler for this page.
+				// If we do, now we ask it for the page text.
+				if (pageHandlers[activePage] != null) {
+					pages[activePage] = pageHandlers[activePage]();
+					currentPageFirstPassComplete = false;
+				}
+
 				if (pages[activePage] == string.Empty && !currentPageIsMutable) { 
 					// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
@@ -223,7 +247,7 @@ namespace JSI
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
 						string[] linesArray = pages[activePage].Split(lineSeparator, StringSplitOptions.None);
-						for (int i=0; i<ourScreen.screenHeight; i++) {
+						for (int i = 0; i < ourScreen.screenHeight; i++) {
 							textArray[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
 						}
 						ourScreen.SendPage(textArray);
