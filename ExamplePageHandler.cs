@@ -47,6 +47,7 @@ namespace YourFavouriteNamespace
 		{
 			// I honestly have no clue why InternalModules need to be initialised
 			// like this, and not with a proper constructor or an OnAwake, but that works.
+			// Even a very simple OnAwake apparently doesn't and causes the entire IVA to choke.
 			screen[0] = "This is our first line.";
 			screen[1] = "This is our second line.";
 			screen[2] = "This calls for a variable: {0} $&$ ALTITUDE"; 
