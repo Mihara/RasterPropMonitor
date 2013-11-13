@@ -69,7 +69,7 @@ namespace JSI
 			}
 
 			return ConvertToSI(inputValue, 
-				-postDecimal, stringLength - (needSpace ? 2 : 1),
+				-postDecimal, stringLength - (needSpace ? 2 : 1) - (inputValue < 0 ? 1 : 0),
 				needSpace).PadLeft(stringLength, zeroPad ? '0' : ' ');
 
 
