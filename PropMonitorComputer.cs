@@ -14,7 +14,7 @@ namespace JSI
 		private int dataUpdateCountdown = 0;
 		private int refreshRate = int.MaxValue;
 		private int refreshDataRate = int.MaxValue;
-		private Vector3d CoM;
+		private Vector3d coM;
 		private Vector3d up;
 		private Vector3d forward;
 		private Vector3d right;
@@ -30,7 +30,7 @@ namespace JSI
 		private Quaternion targetOrientation;
 		private ManeuverNode node;
 		private double time;
-		private ProtoCrewMember[] VesselCrew;
+		private ProtoCrewMember[] vesselCrew;
 		private double altitudeASL;
 		private double altitudeTrue;
 		private Orbit targetorbit;
@@ -49,18 +49,18 @@ namespace JSI
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
-		private int SASGroupNumber;
+		private int sasGroupNumber;
 		private int lightGroupNumber;
-		private int RCSGroupNumber;
+		private int rcsGroupNumber;
 
 		public void Start()
 		{
 			// Well, it looks like we have to do that bit just like in Firespitter.
 			gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
 			brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
-			SASGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
+			sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
 			lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
-			RCSGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
+			rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
 
 			if (HighLogic.LoadedSceneIsFlight)
 				FetchPerPartData();
@@ -83,11 +83,10 @@ namespace JSI
 				}
 				updateForced = false;
 				return true;
-			} else {
-				dataUpdateCountdown--;
-				updateCountdown--;
-				return false;
 			}
+			dataUpdateCountdown--;
+			updateCountdown--;
+			return false;
 		}
 
 		public override void OnUpdate()
@@ -125,8 +124,7 @@ namespace JSI
 			angle = angle % 360.0;
 			if (angle < 0)
 				return angle + 360.0;
-			else
-				return angle;
+			return angle;
 		}
 		//keeps angles in the range -180 to 180
 		private static double ClampDegrees180(double angle)
@@ -140,25 +138,25 @@ namespace JSI
 		public void FetchCommonData()
 		{
 			localG = vessel.orbit.referenceBody.GeeASL * gee;
-			CoM = vessel.findWorldCenterOfMass();
-			up = (CoM - vessel.mainBody.position).normalized;
+			coM = vessel.findWorldCenterOfMass();
+			up = (coM - vessel.mainBody.position).normalized;
 			forward = vessel.GetTransform().up;
 			right = vessel.GetTransform().right;
-			north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - CoM).normalized;
+			north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
 			rotationSurface = Quaternion.LookRotation(north, up);
 			rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
 			velocityVesselOrbit = vessel.orbit.GetVel();
-			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(CoM);
+			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 
 			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
 			target = FlightGlobals.fetch.VesselTarget;
 			if (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-				node = vessel.patchedConicSolver.maneuverNodes.First();
+				node = vessel.patchedConicSolver.maneuverNodes[0];
 			else
 				node = null;
 			time = Planetarium.GetUniversalTime();
-			altitudeASL = vessel.mainBody.GetAltitude(CoM);
+			altitudeASL = vessel.mainBody.GetAltitude(coM);
 			FetchTrueAltitude();
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
@@ -233,7 +231,7 @@ namespace JSI
 
 			Array.Sort(resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
-			VesselCrew = (vessel.GetVesselCrew()).ToArray();
+			vesselCrew = (vessel.GetVesselCrew()).ToArray();
 		}
 
 		private double GetResourceByName(string resourceName)
@@ -241,8 +239,7 @@ namespace JSI
 			Vector2d result;
 			if (resources.TryGetValue(resourceName, out result))
 				return result.x;
-			else
-				return 0;
+			return 0;
 		}
 
 		private double GetMaxResourceByName(string resourceName)
@@ -250,8 +247,7 @@ namespace JSI
 			Vector2d result;
 			if (resources.TryGetValue(resourceName, out result))
 				return result.y;
-			else
-				return 0;
+			return 0;
 		}
 
 		private static string AngleToDMS(double angle)
@@ -287,16 +283,16 @@ namespace JSI
 		private void FetchTrueAltitude()
 		{
 			RaycastHit sfc;
-			if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
+			if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
 				altitudeTrue = sfc.distance;
 			} else if (vessel.mainBody.pqsController != null) {
 				// from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
-				altitudeTrue = vessel.mainBody.GetAltitude(CoM) -
-				(vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(CoM), Vector3d.down) *
-				QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(CoM), Vector3d.forward) *
+				altitudeTrue = vessel.mainBody.GetAltitude(coM) -
+				(vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(coM), Vector3d.down) *
+				QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(coM), Vector3d.forward) *
 				Vector3d.right) - vessel.mainBody.pqsController.radius);
 			} else
-				altitudeTrue = vessel.mainBody.GetAltitude(CoM);
+				altitudeTrue = vessel.mainBody.GetAltitude(coM);
 		}
 
 		private static bool OrbitMakesSense(Vessel thatvessel)
@@ -394,13 +390,12 @@ namespace JSI
 				case "TIMETOIMPACT":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 						return string.Empty;
-					} else
-						return FormatDateTime(secondsToImpact, false, true, false); 
+					}
+					return FormatDateTime(secondsToImpact, false, true, false); 
 				case "TIMETOIMPACTSECS":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
 						return -1;
-					else
-						return secondsToImpact;
+					return secondsToImpact;
 
 			// Altitudes
 				case "ALTITUDE":
@@ -438,18 +433,15 @@ namespace JSI
 				case "MNODETIME":
 					if (node != null)
 						return FormatDateTime(-(node.UT - time), true, false, true);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "MNODEDV":
 					if (node != null)
 						return node.GetBurnVector(vessel.orbit).magnitude;
-					else
-						return 0;
+					return 0;
 				case "MNODEEXISTS":
 					if (node != null)
 						return 1;
-					else
-						return -1;
+					return -1;
 
 			// Orbital parameters
 				case "ORBITBODY":
@@ -457,47 +449,39 @@ namespace JSI
 				case "PERIAPSIS":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.PeA;
-					else
-						return 0;
+					return 0;
 				case "APOAPSIS":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.ApA;
-					else
-						return 0;
+					return 0;
 				case "INCLINATION":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.inclination;
-					else
-						return 0;
+					return 0;
 				case "ECCENTRICITY":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity;
-					else
-						return 0;
+					return 0;
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
 				case "ORBPERIOD":
 					if (orbitSensibility)
 						return FormatDateTime(vessel.orbit.period, false, false, false);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TIMETOAP":
 					if (orbitSensibility)
 						return FormatDateTime(vessel.orbit.timeToAp, false, false, false);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TIMETOPE":
 					if (orbitSensibility) {
 						if (vessel.orbit.eccentricity < 1)
 							return FormatDateTime(vessel.orbit.timeToPe, true, false, false);
-						else
-							return FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
-					} else
-						return string.Empty;
+						return FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
+					}
+					return string.Empty;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return 1;
-					else
-						return -1;
+					return -1;
 
 			// Time
 				case "UT":
@@ -512,36 +496,31 @@ namespace JSI
 
 			// Coordinates.
 				case "LATITUDE":
-					return vessel.mainBody.GetLatitude(CoM);
+					return vessel.mainBody.GetLatitude(coM);
 				case "LONGITUDE":
-					return ClampDegrees180(vessel.mainBody.GetLongitude(CoM));
+					return ClampDegrees180(vessel.mainBody.GetLongitude(coM));
 				case "LATITUDETGT":
-					if (target is Vessel) {
+					if (target is Vessel)
 						return target.GetVessel().mainBody.GetLatitude(target.GetTransform().position);
-					} else
-						return vessel.mainBody.GetLatitude(CoM);
+					return -1;
 				case "LONGITUDETGT":
-					if (target is Vessel) {
+					if (target is Vessel)
 						return ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
-					} else
-						return ClampDegrees180(vessel.mainBody.GetLatitude(CoM));
-
+					return -1;
 
 			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
 				case "LATITUDE_DMS":
-					return LatitudeDMS(vessel.mainBody.GetLatitude(CoM));
+					return LatitudeDMS(vessel.mainBody.GetLatitude(coM));
 				case "LONGITUDE_DMS":
-					return LongitudeDMS(vessel.mainBody.GetLongitude(CoM));
+					return LongitudeDMS(vessel.mainBody.GetLongitude(coM));
 				case "LATITUDETGT_DMS":
-					if (target is Vessel) {
+					if (target is Vessel)
 						return LatitudeDMS(target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
-					} else
-						return LatitudeDMS(vessel.mainBody.GetLatitude(CoM));
+					return "";
 				case "LONGITUDETGT_DMS":
-					if (target is Vessel) {
+					if (target is Vessel)
 						return LongitudeDMS(ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
-					} else
-						return LongitudeDMS(ClampDegrees180(vessel.mainBody.GetLongitude(CoM)));
+					return "";
 
 
 			// Orientation
@@ -563,22 +542,20 @@ namespace JSI
 						return target.GetName();
 					return "???!";
 				case "TARGETDISTANCE":
-					if (target != null) {
+					if (target != null)
 						return Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
-					} else
-						return -1;
+					return -1;
 				case "RELATIVEINCLINATION":
 					if (target != null) {
 						if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 							return -1;
 						return Math.Abs(Vector3d.Angle(SwappedOrbitNormal(vessel.GetOrbit()), SwappedOrbitNormal(targetorbit)));
-					} else
-						return -1;
+					}
+					return -1;
 				case "TARGETORBITBODY":
 					if (target != null)
 						return targetorbit.referenceBody.name;
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TARGETEXISTS":
 					if (target == null)
 						return -1;
@@ -588,15 +565,14 @@ namespace JSI
 				case "TARGETSITUATION":
 					if (target is Vessel)
 						return SituationString(target.GetVessel().situation);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TARGETALTITUDE":
 					if (target == null)
 						return -1;
 					if (target is Vessel) {
 						return (target as Vessel).mainBody.GetAltitude((target as Vessel).findWorldCenterOfMass());
-					} else
-						return targetorbit.altitude;
+					}
+					return targetorbit.altitude;
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -611,12 +587,11 @@ namespace JSI
 					if (target != null) {
 						if (target is ModuleDockingNode)
 							return NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, up);
-						else if (target is Vessel) {
+						if (target is Vessel)
 							return NormalAngle(-target.GetFwdVector(), forward, up);
-						}
 						return 0;
-					} else
-						return 0;
+					}
+					return 0;
 				case "TARGETANGLEY":
 					if (target != null) {
 						if (target is ModuleDockingNode)
@@ -625,8 +600,8 @@ namespace JSI
 							NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
 						return 0;
-					} else
-						return 0;
+					}
+					return 0;
 				case "TARGETANGLEZ":
 					if (target != null) {
 						if (target is ModuleDockingNode)
@@ -635,53 +610,45 @@ namespace JSI
 							return NormalAngle(target.GetTransform().up, up, -forward);
 						}
 						return 0;
-					} else
-						return 0;
+					}
+					return 0;
 			
 			// There goes the neighbourhood...
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetorbit.ApA;
-					else
-						return 0;
+					return 0;
 				case "TARGETPERIAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetorbit.PeA;
-					else
-						return 0;
+					return 0;
 				case "TARGETINCLINATION":
 					if (target != null && targetOrbitSensibility)
 						return targetorbit.inclination;
-					else
-						return 0;
+					return 0;
 				case "TARGETECCENTRICITY":
 					if (target != null && targetOrbitSensibility)
 						return targetorbit.eccentricity;
-					else
-						return 0;
+					return 0;
 				case "TARGETORBITALVEL":
 					if (target != null && targetOrbitSensibility)
 						return targetorbit.orbitalSpeed;
-					else
-						return 0;
+					return 0;
 				case "TARGETTIMETOAP":
 					if (target != null && targetOrbitSensibility)
 						return FormatDateTime(targetorbit.timeToAp, false, false, false);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TARGETORBPERIOD":
 					if (target != null && targetOrbitSensibility)
 						return FormatDateTime(targetorbit.period, false, false, false);
-					else
-						return string.Empty;
+					return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility) {
 						if (vessel.orbit.eccentricity < 1)
 							return FormatDateTime(targetorbit.timeToPe, true, false, false);
-						else
-							return FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
-					} else
-						return string.Empty;
+						return FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
+					}
+					return string.Empty;
 
 
 			// Stock resources by name.
@@ -723,11 +690,11 @@ namespace JSI
 				case "BRAKES":
 					return FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
 				case "SAS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[SASGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
 				case "LIGHTS":
 					return FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[RCSGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
 
 			}
 			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
@@ -740,18 +707,15 @@ namespace JSI
 					case "NAME":
 						if (resourceID >= resources.Count)
 							return string.Empty;
-						else
-							return resourcesAlphabetic[resourceID];
+						return resourcesAlphabetic[resourceID];
 					case "VAL":
 						if (resourceID >= resources.Count)
 							return 0;
-						else
-							return resources[resourcesAlphabetic[resourceID]].x;
+						return resources[resourcesAlphabetic[resourceID]].x;
 					case "MAX":
 						if (resourceID >= resources.Count)
 							return 0;
-						else
-							return resources[resourcesAlphabetic[resourceID]].y;
+						return resources[resourcesAlphabetic[resourceID]].y;
 				}
 
 
@@ -762,14 +726,13 @@ namespace JSI
 			if (tokens.Length == 3 && tokens[0] == "CREW") { 
 				ushort crewSeatID = Convert.ToUInt16(tokens[1]);
 				if (tokens[2] == "PRESENT") {
-					if (crewSeatID >= VesselCrew.Length)
+					if (crewSeatID >= vesselCrew.Length)
 						return -1;
-					else
-						return 1;
+					return 1;
 				}
-				if (crewSeatID >= VesselCrew.Length)
+				if (crewSeatID >= vesselCrew.Length)
 					return string.Empty;
-				string kerbalname = VesselCrew[crewSeatID].name;
+				string kerbalname = vesselCrew[crewSeatID].name;
 				string[] tokenisedname = kerbalname.Split();
 				switch (tokens[2]) {
 					case "FIRST":

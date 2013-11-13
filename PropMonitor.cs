@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace JSI
@@ -34,7 +32,7 @@ namespace JSI
 		private const float defaultFOV = 60f;
 		// Internal stuff.
 		private string[] screenText;
-		private bool screenUpdateRequired = false;
+		private bool screenUpdateRequired;
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
 		private int fontLettersX = 16;
@@ -43,11 +41,11 @@ namespace JSI
 		private float letterSpanX = 1f;
 		private float letterSpanY = 1f;
 		// Camera support.
-		private bool cameraEnabled = false;
+		private bool cameraEnabled;
 		private GameObject cameraTransform;
-		private Part cameraPart = null;
+		private Part cameraPart;
 		private Camera[] cameraObject = { null, null, null };
-		// TODO: Make these methods more like actual methods.
+
 		public void SendPage(string[] page)
 		{
 			screenText = page;
@@ -115,8 +113,8 @@ namespace JSI
 				LogMessage("Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
-			fontLettersX = (int)(fontTexture.width / fontLetterWidth);
-			fontLettersY = (int)(fontTexture.height / fontLetterHeight);
+			fontLettersX = (fontTexture.width / fontLetterWidth);
+			fontLettersY = (fontTexture.height / fontLetterHeight);
 
 			letterSpanX = 1f / fontLettersX;
 			letterSpanY = 1f / fontLettersY;
@@ -129,7 +127,7 @@ namespace JSI
 
 			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
 
-			Material screen = base.internalProp.FindModelTransform(screenTransform).renderer.material;
+			Material screen = internalProp.FindModelTransform(screenTransform).renderer.material;
 			screen.SetTexture(textureLayerID, screenTexture);
 
 			LogMessage("Initialised. fontLettersX: {0}, fontLettersY: {1}, letterSpanX: {2}, letterSpanY: {3}.", fontLettersX, fontLettersY, letterSpanX, letterSpanY);
@@ -139,7 +137,7 @@ namespace JSI
 
 		private void CameraSetup(int index, string sourceName, float fov)
 		{
-			GameObject cameraBody = new GameObject();
+			var cameraBody = new GameObject();
 			cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
 			cameraObject[index] = cameraBody.AddComponent<Camera>();
 
@@ -179,7 +177,7 @@ namespace JSI
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode > lastCharacter) {
-				LogMessage("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter, (ushort)letter);
+				LogMessage("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
 			int xSource = charCode % fontLettersX;

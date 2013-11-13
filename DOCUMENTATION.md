@@ -139,6 +139,24 @@ least)* every time it is instantiated, which is every time the vessel is
 loaded -- which happens if you go back to the space center and return, or
 even simply switch to an out of range vessel and back.
 
+### Extra formatting options
+
+The standard String.Format is extended with an extra format option:
+
+    {0:SIP\_05.2}m/s $&$ VARIABLE
+
+This will format a value with SI prefixes, i.e. this way 65000m can become
+65km and your values can squeeze into smaller fields of fixed width.
+	
+Assuming VARIABLE is a number, it will be formatted to fit into *5* characters,
+with no more than *.2* digits after the decimal point *(That bit doesn't work
+quite well yet)*. Since it includes a *\_* marker, a space will be inserted
+between the SI prefix and the number, and since the number of characters starts
+with a *0*, it will be padded to the right with zeroes. *0*, *\_* and the
+post-decimal point specifier are optional -- if there's no zero, it will
+be padded to the right with spaces, if there's no decimal point, the plugin
+will decide how many digits after decimal are permissible.
+
 ### Known variables
 
 Boy, this list got long. 
@@ -398,3 +416,21 @@ Configuration options:
 Once the job is done, the module selfdestructs to save memory and reduce
 component count, leaving the prop with the shifted texture intact until the
 next time it's instantiated.
+
+### JSIVariableAnimator
+
+This module will animate a prop according to the results of variable computation,
+interpolating the animation given between a minimum and a maximum value according
+to the output of a variable.
+
+* **animationName** -- Name of the animation.
+* **refreshRate** -- Update the state of the prop once this number of frames.
+* **scale** -- <*VARIABLE*|*float value*>, <*VARIABLE*|*float value*> -- the first
+  variable or value corresponds to the first frame of the animation, second variable
+  or value corresponds to the last frame. If you wish to animate in reverse, just swap
+  them.
+* **variableName** -- Name of the driving variable.
+
+For example, to drive a fuel gauge, you give it `scale = 0,FUELMAX` and
+`variableName = FUEL`. Only variables that are returned as numbers can be used for
+any of these three parameters.

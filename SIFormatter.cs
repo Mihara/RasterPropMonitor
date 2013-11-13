@@ -57,7 +57,7 @@ namespace JSI
 				formatData = formatData.Substring(1);
 			}
 
-			ushort stringLength = 6;
+			ushort stringLength;
 			ushort postDecimal = 0;
 
 			if (formatData.IndexOf('.') > 0) {
@@ -68,10 +68,8 @@ namespace JSI
 				UInt16.TryParse(formatData, out stringLength);
 			}
 
-			int sigFig = stringLength - (needSpace ? 2 : 1);//- postDecimal;
-
 			return ConvertToSI(inputValue, 
-				-postDecimal, sigFig,
+				-postDecimal, stringLength - (needSpace ? 2 : 1),
 				needSpace).PadLeft(stringLength, zeroPad ? '0' : ' ');
 
 

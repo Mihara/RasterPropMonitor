@@ -5,7 +5,7 @@ namespace JSI
 {
 	public class PersistenceAccessor
 	{
-		private JSIInternalPersistence persistenceStorage;
+		private readonly JSIInternalPersistence persistenceStorage;
 
 		public PersistenceAccessor(Part thatPart)
 		{

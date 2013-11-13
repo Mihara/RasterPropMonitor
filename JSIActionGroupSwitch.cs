@@ -20,7 +20,7 @@ namespace JSI
 		[KSPField]
 		public string internalLightName = null;
 		// Neater.
-		private Dictionary<string,KSPActionGroup> grouplist = new Dictionary<string,KSPActionGroup>() { 
+		private Dictionary<string,KSPActionGroup> grouplist = new Dictionary<string,KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -39,8 +39,8 @@ namespace JSI
 			{ "custom09",KSPActionGroup.Custom09 },
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
-		// What is it with Xamarin and formatting those dictionaries?...
-		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool>() {
+
+		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool> {
 			{ "intlight",false },
 			{ "dummy",false }
 		};
@@ -88,15 +88,16 @@ namespace JSI
 			}
 
 			// set up the toggle switch
-			GameObject buttonObject = base.internalProp.FindModelTransform(switchTransform).gameObject;
+			GameObject buttonObject = internalProp.FindModelTransform(switchTransform).gameObject;
 			if (buttonObject == null) {
 				LogMessage("Transform \"{0}\" not found, the switch will not work correctly.", switchTransform);
+			} else {
+				ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular>();
+				switchToggle.handlerFunction = Click;
 			}
-			ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular>();
-			switchToggle.handlerFunction = Click;
 
 			// Set up the animation
-			anim = base.internalProp.FindModelAnimators(animationName).FirstOrDefault();
+			anim = internalProp.FindModelAnimators(animationName).FirstOrDefault();
 			if (anim != null) {
 				anim[animationName].wrapMode = WrapMode.Once;
 
@@ -119,7 +120,7 @@ namespace JSI
 			// Set up the custom actions..
 			switch (actionName) {
 				case "intlight":
-					lightobjects = this.internalModel.FindModelComponents<Light>();
+					lightobjects = internalModel.FindModelComponents<Light>();
 					SetInternalLights(customgrouplist[actionName]);
 					break;
 				default:
@@ -167,7 +168,7 @@ namespace JSI
 			    ))
 				return;*/
 
-			bool state = false;
+			bool state;
 			if (iscustomaction) {
 				state = customgrouplist[actionName];
 			} else {

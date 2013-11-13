@@ -129,7 +129,7 @@ namespace JSI
 			activePage = persistence.GetVar(persistentVarName) ?? activePage;
 
 			// So camera support.
-			cameras = new string[] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
+			cameras = new [] { camera1, camera2, camera3, camera4, camera5, camera6, camera7, camera8 };
 			SetCamera(cameras[activePage]);
 		}
 

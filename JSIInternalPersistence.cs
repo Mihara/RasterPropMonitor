@@ -52,8 +52,7 @@ namespace JSI
 			var variables = ParseData();
 			if (variables.ContainsKey(varname))
 				return variables[varname];
-			else
-				return null;
+			return null;
 		}
 	}
 }
