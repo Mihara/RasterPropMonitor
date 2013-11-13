@@ -2,6 +2,9 @@ using System;
 using UnityEngine;
 using System.Linq;
 
+
+// Once again, GitHub application, stop being silly.
+
 namespace JSI
 {
 	public class JSIVariableAnimator: InternalModule
