@@ -19,7 +19,7 @@
 //
 // With that configuration, RasterPropMonitorGenerator will look inside the prop for a 
 // module named "ExamplePageHandler" and attempt to delegate a function call to
-// it's "ExamplePage" method. That method must return a string.
+// it's "ExamplePage" method. That method must return a string and take no parameters.
 // Environment.NewLine is the linebreak. The return string will be processed
 // exactly like RasterPropMonitorGenerator's own page definition file,
 // so you can use every variable and String.Format to place the data where you want it.
