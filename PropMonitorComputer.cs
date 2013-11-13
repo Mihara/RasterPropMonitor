@@ -678,6 +678,8 @@ namespace JSI
 					return Staging.CurrentStage;
 				case "SITUATION":
 					return SituationString(vessel.situation);
+				case "RANDOM":
+					return UnityEngine.Random.Range(0,1);
 
 			// SCIENCE!!
 				case "SCIENCEDATA":
@@ -685,16 +687,17 @@ namespace JSI
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
+			// Casting it to double is redundant, but JSIVariableAnimator type conversions need it to work well.
 				case "GEAR":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
+					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
 				case "BRAKES":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
+					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
 				case "SAS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
+					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
 				case "LIGHTS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
+					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
+					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
 
 			}
 			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
