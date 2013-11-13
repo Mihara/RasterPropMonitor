@@ -104,7 +104,7 @@ namespace ScreenReflectorExample
 			}
 			// If none of the methods we're planning on calling were overloads, we wouldn't even need these proxies,
 			// we could call them directly from the method pointers.
-			// But this permits us to keep working completely the same regardless of whether we found 
+			// But this permits us to keep working completely the same regardless of whether we found
 			// a screen to drive or not.
 			public void SendPage(string[] page)
 			{
@@ -138,7 +138,7 @@ namespace ScreenReflectorExample
 				// but later I'll have the screen just check the array for validity,
 				// so you won't have to do this.
 				screenData = new string[ourScreen.Height];
-				for (int i=0; i<screenData.Length; i++) {
+				for (int i = 0; i < screenData.Length; i++) {
 					screenData[i] = string.Empty;
 				}
 				// Something to show from the start.
