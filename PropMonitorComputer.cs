@@ -679,7 +679,7 @@ namespace JSI
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
-					return UnityEngine.Random.Range(0,1);
+					return (double)UnityEngine.Random.value;
 
 			// SCIENCE!!
 				case "SCIENCEDATA":
