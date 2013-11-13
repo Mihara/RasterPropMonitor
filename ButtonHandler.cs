@@ -7,7 +7,6 @@ namespace JSI
 	{
 		private Action<int> handlerID;
 		private Action handler;
-
 		private int id;
 
 		public void OnMouseDown()
@@ -18,18 +17,24 @@ namespace JSI
 				handler();
 		}
 
-		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName){
+		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
+		{
 			GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
+			if (buttonObject == (UnityEngine.Object)null)
+				Debug.LogError("Transform name not found, expect errors.");
 			return buttonObject.AddComponent<SmarterButton>();
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction) {
-			SmarterButton buttonBehaviour = AttachBehaviour(thatProp,buttonName);
+		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction)
+		{
+			SmarterButton buttonBehaviour = AttachBehaviour(thatProp, buttonName);
 			buttonBehaviour.id = id;
 			buttonBehaviour.handlerID = handlerFunction;
 		}
-		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction) {
-			SmarterButton buttonBehaviour = AttachBehaviour(thatProp,buttonName);
+
+		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction)
+		{
+			SmarterButton buttonBehaviour = AttachBehaviour(thatProp, buttonName);
 			buttonBehaviour.handler = handlerFunction;
 		}
 	}
