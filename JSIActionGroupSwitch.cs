@@ -87,13 +87,7 @@ namespace JSI
 			}
 
 			// set up the toggle switch
-			GameObject buttonObject = internalProp.FindModelTransform(switchTransform).gameObject;
-			if (buttonObject == null) {
-				LogMessage("Transform \"{0}\" not found, the switch will not work correctly.", switchTransform);
-			} else {
-				ButtonHandlerSingular switchToggle = buttonObject.AddComponent<ButtonHandlerSingular>();
-				switchToggle.handlerFunction = Click;
-			}
+			SmarterButton.CreateButton(internalProp, switchTransform, Click);
 
 			// Set up the animation
 			anim = internalProp.FindModelAnimators(animationName)[0];
@@ -189,16 +183,6 @@ namespace JSI
 		}
 	}
 
-	public class ButtonHandlerSingular:MonoBehaviour
-	{
-		public delegate void HandlerFunction();
 
-		public HandlerFunction handlerFunction;
-
-		public void OnMouseDown()
-		{
-			handlerFunction();
-		}
-	}
 }
 

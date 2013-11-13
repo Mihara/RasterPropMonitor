@@ -3,30 +3,6 @@ using System;
 
 namespace JSI
 {
-	public class ButtonHandler:MonoBehaviour
-	{
-		public delegate void HandlerFunction(int ID);
-
-		public HandlerFunction handlerFunction;
-		public int ID;
-
-		public void OnMouseDown()
-		{
-			handlerFunction(ID);
-		}
-	}
-	public class ButtonHandlerSingular:MonoBehaviour
-	{
-		public delegate void HandlerFunction();
-
-		public HandlerFunction handlerFunction;
-
-		public void OnMouseDown()
-		{
-			handlerFunction();
-		}
-	}
-
 	public class SmarterButton: MonoBehaviour
 	{
 		public Action<int> handlerID;

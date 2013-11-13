@@ -104,10 +104,7 @@ namespace JSI
 
 			for (int i = 0; i < 8; i++) {
 				if (!string.IsNullOrEmpty(buttonName[i])) {
-					GameObject buttonObject = internalProp.FindModelTransform(buttonName[i]).gameObject;
-					ButtonHandler pageButton = buttonObject.AddComponent<ButtonHandler>();
-					pageButton.ID = i;
-					pageButton.handlerFunction = ButtonClick;
+					SmarterButton.CreateButton(internalProp, buttonName[i], i, ButtonClick);
 				}
 
 				try {
@@ -264,17 +261,6 @@ namespace JSI
 		}
 	}
 
-	public class ButtonHandler:MonoBehaviour
-	{
-		public delegate void HandlerFunction(int ID);
 
-		public HandlerFunction handlerFunction;
-		public int ID;
-
-		public void OnMouseDown()
-		{
-			handlerFunction(ID);
-		}
-	}
 }
 
