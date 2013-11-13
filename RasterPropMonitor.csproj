@@ -11,6 +11,7 @@
     <AssemblyName>RasterPropMonitor</AssemblyName>
     <ReleaseVersion>0.5</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <CodePage>65001</CodePage>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

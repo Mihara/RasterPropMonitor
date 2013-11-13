@@ -118,7 +118,7 @@ namespace JSI
 				"f",
 				"p",
 				"n",
-				"μ",
+				"\u00B5",//"μ", //Because unicode.
 				"m",
 				"",
 				"k",
