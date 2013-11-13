@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace JSI
@@ -20,7 +19,7 @@ namespace JSI
 		[KSPField]
 		public string internalLightName = null;
 		// Neater.
-		private Dictionary<string,KSPActionGroup> grouplist = new Dictionary<string,KSPActionGroup> { 
+		private Dictionary<string,KSPActionGroup> groupList = new Dictionary<string,KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -40,7 +39,7 @@ namespace JSI
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
 
-		private Dictionary<string,bool> customgrouplist = new Dictionary<string,bool> {
+		private Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
 			{ "intlight",false },
 			{ "dummy",false }
 		};
@@ -61,14 +60,14 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!grouplist.ContainsKey(actionName)) {
-				if (!customgrouplist.ContainsKey(actionName)) {
+			if (!groupList.ContainsKey(actionName)) {
+				if (!customGroupList.ContainsKey(actionName)) {
 					LogMessage("Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					iscustomaction = true;
 				}
 			} else {
-				actionGroup = grouplist[actionName];
+				actionGroup = groupList[actionName];
 				actionGroupID = BaseAction.GetGroupIndex(actionGroup);
 
 				oldstate = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
@@ -83,7 +82,7 @@ namespace JSI
 
 				persistence = new PersistenceAccessor(part);
 
-				oldstate = customgrouplist[actionName] = (persistence.GetBool(persistentVarName) ?? oldstate);
+				oldstate = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldstate);
 
 			}
 
@@ -97,7 +96,7 @@ namespace JSI
 			}
 
 			// Set up the animation
-			anim = internalProp.FindModelAnimators(animationName).FirstOrDefault();
+			anim = internalProp.FindModelAnimators(animationName)[0];
 			if (anim != null) {
 				anim[animationName].wrapMode = WrapMode.Once;
 
@@ -121,7 +120,7 @@ namespace JSI
 			switch (actionName) {
 				case "intlight":
 					lightobjects = internalModel.FindModelComponents<Light>();
-					SetInternalLights(customgrouplist[actionName]);
+					SetInternalLights(customGroupList[actionName]);
 					break;
 				default:
 					break;
@@ -142,15 +141,15 @@ namespace JSI
 		public void Click()
 		{
 			if (iscustomaction) {
-				customgrouplist[actionName] = !customgrouplist[actionName];
+				customGroupList[actionName] = !customGroupList[actionName];
 				switch (actionName) {
 					case "intlight":
-						SetInternalLights(customgrouplist[actionName]);
+						SetInternalLights(customGroupList[actionName]);
 						break;
 					default:
 						break;
 				}
-				persistence.SetVar(persistentVarName, customgrouplist[actionName]);
+				persistence.SetVar(persistentVarName, customGroupList[actionName]);
 			} else
 				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
 		}
@@ -158,7 +157,7 @@ namespace JSI
 		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
-			    !(vessel == FlightGlobals.ActiveVessel))
+			    vessel != FlightGlobals.ActiveVessel)
 				return;
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
@@ -170,7 +169,7 @@ namespace JSI
 
 			bool state;
 			if (iscustomaction) {
-				state = customgrouplist[actionName];
+				state = customGroupList[actionName];
 			} else {
 				state = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 			}

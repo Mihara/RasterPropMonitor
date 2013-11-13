@@ -51,7 +51,7 @@ namespace JSI
 
 			comp = JUtil.GetComputer(internalProp);
 
-			anim = internalProp.FindModelAnimators(animationName).FirstOrDefault();
+			anim = internalProp.FindModelAnimators(animationName)[0];
 			anim.enabled = true;
 			anim[animationName].speed = 0;
 			anim.Play();
