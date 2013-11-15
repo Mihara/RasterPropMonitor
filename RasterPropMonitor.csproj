@@ -46,8 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="PropMonitor.cs" />
-    <Compile Include="PropMonitorGenerator.cs" />
     <Compile Include="PropMonitorComputer.cs" />
     <Compile Include="InternalCameraTargetHelper.cs" />
     <Compile Include="JSIInternalPersistence.cs" />
@@ -63,6 +61,7 @@
     <Compile Include="JSIFlightLog.cs" />
     <Compile Include="JSIExternalCameraSelector.cs" />
     <Compile Include="MonitorPage.cs" />
+    <Compile Include="RasterPropMonitor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

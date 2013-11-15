@@ -10,16 +10,21 @@ namespace JSI
 		// We still need a numeric ID cause it makes persistence easier.
 		public int PageNumber { get; private set; }
 
+		private string text;
+
 		public string Text {
 			get {
 				if (pageHandler != null)
 					return pageHandler();
-				return Text;
+				return text;
 			}
 			private set {
-				Text = value;
+				text = value;
+
 			}
 		}
+
+
 
 		public bool IsDefault { get; private set; }
 
@@ -27,9 +32,9 @@ namespace JSI
 
 		private readonly Func<string> pageHandler;
 
-		private readonly RasterPropMonitorGenerator ourMonitor;
+		private readonly RasterPropMonitor ourMonitor;
 
-		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitorGenerator thatMonitor)
+		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
 			ourMonitor = thatMonitor;
 			PageNumber = idNum;
