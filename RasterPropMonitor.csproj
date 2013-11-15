@@ -62,6 +62,7 @@
     <Compile Include="ButtonHandler.cs" />
     <Compile Include="JSIFlightLog.cs" />
     <Compile Include="JSIExternalCameraSelector.cs" />
+    <Compile Include="MonitorPage.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

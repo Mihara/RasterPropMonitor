@@ -1,7 +1,7 @@
 using System;
-using System.IO;
 using UnityEngine;
-using System.Reflection;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace JSI
 {
@@ -11,80 +11,26 @@ namespace JSI
 		public int refreshRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
-		// I wish I could get rid of this particular mess of fields, because in theory I can support an unlimited number of pages.
-		// I could also parse a Very Long String, but that would make using ModuleManager cumbersome.
-		// Explanations how to correctly read config nodes directly in OnLoad would be welcome.
-		[KSPField]
-		public string page1 = "Display$$$ not$$$  configured.";
-		[KSPField]
-		public string button1 = string.Empty;
-		[KSPField]
-		public string page2 = string.Empty;
-		[KSPField]
-		public string button2 = string.Empty;
-		[KSPField]
-		public string page3 = string.Empty;
-		[KSPField]
-		public string button3 = string.Empty;
-		[KSPField]
-		public string page4 = string.Empty;
-		[KSPField]
-		public string button4 = string.Empty;
-		[KSPField]
-		public string page5 = string.Empty;
-		[KSPField]
-		public string button5 = string.Empty;
-		[KSPField]
-		public string page6 = string.Empty;
-		[KSPField]
-		public string button6 = string.Empty;
-		[KSPField]
-		public string page7 = string.Empty;
-		[KSPField]
-		public string button7 = string.Empty;
-		[KSPField]
-		public string page8 = string.Empty;
-		[KSPField]
-		public string button8 = string.Empty;
-		[KSPField]
-		public int activePage = 0;
-		[KSPField]
-		public string camera1 = null;
-		[KSPField]
-		public string camera2 = null;
-		[KSPField]
-		public string camera3 = null;
-		[KSPField]
-		public string camera4 = null;
-		[KSPField]
-		public string camera5 = null;
-		[KSPField]
-		public string camera6 = null;
-		[KSPField]
-		public string camera7 = null;
-		[KSPField]
-		public string camera8 = null;
 		// Config syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
 		private readonly string[] variableListSeparator = { "$&$" };
 		private readonly string[] variableSeparator = { };
 		// Local variables
 		private string[] textArray;
-		private string[] pages = { "", "", "", "", "", "", "", "" };
-		private Func<string>[] pageHandlers = {null,null,null,null,null,null,null,null};
-		private string[] cameras;
 		private int updateCountdown = 0;
 		private bool updateForced = false;
 		private bool screenWasBlanked = false;
 		private bool currentPageIsMutable = false;
 		private bool currentPageFirstPassComplete = false;
+		private List<MonitorPage> pages = new List<MonitorPage>();
+		private MonitorPage activePage;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		private RasterPropMonitorComputer comp;
 		// Persistence for current page variable.
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private RasterPropMonitor ourScreen;
-		private SIFormatProvider fp = new SIFormatProvider();
+		private readonly SIFormatProvider fp = new SIFormatProvider();
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -98,41 +44,33 @@ namespace JSI
 				LogMessage("Could not find a screen module in my prop. Expect errors.");
 			}
 
-			string[] pageData = { page1, page2, page3, page4, page5, page6, page7, page8 };
-			string[] buttonName = {	button1, button2, button3, button4, button5, button6, button7, button8 };
-
-
-			for (int i = 0; i < 8; i++) {
-				if (!string.IsNullOrEmpty(buttonName[i])) 
-					SmarterButton.CreateButton(internalProp, buttonName[i], i, ButtonClick);
-
-				try {
-					pages[i] = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageData[i], System.Text.Encoding.UTF8));
-				} catch {
-					// Notice that this will also happen if the referenced file is not found.
-
-					// Now we check for a page handler.
-					string[] tokens = pageData[i].Split(',');
-					if (tokens.Length == 2) {
-						foreach (InternalModule thatModule in internalProp.internalModules) {
-							if (thatModule.ClassName == tokens[0].Trim()) {
-								foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
-									if (m.Name == tokens[1].Trim()) {
-										// We'll assume whoever wrote it is not being an idiot today.
-										LogMessage("Found page handler {0}, using method {1}.",tokens[0].Trim(),tokens[1].Trim());
-										pageHandlers[i] = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), thatModule, m);
-										break;
-									}
-								}
-								break;
-							}
+			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
+			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
+			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+				// Now, we know our own prop name.
+				if (node.GetValue("name") == internalProp.propName) {
+					// So this is the configuration of our prop in memory. Nice place.
+					// We know it contains at least one MODULE node, us.
+					// And we know our moduleID, which is the number in order of being listed in the prop.
+					// Therefore the module by that number is our module's own config node.
+					ConfigNode[] pageNodes = node.GetNodes("MODULE")[moduleID].GetNode("PAGEDEFINITIONS").GetNodes("PAGE");
+					for (int i = 0; i < pageNodes.Length; i++) {
+						// Mwahahaha.
+						try {
+							var newPage = new MonitorPage(i, pageNodes[i], this);
+							pages.Add(newPage);
+						} catch (ArgumentException e) {
+							LogMessage("Warning - {0}", e);
 						}
+							
 					}
-
-					// But regardless of whether we found a page handler, it won't matter if we populate the page data or not.
-					pages[i] = pageData[i].Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
+					if (pages.Count == 0) {
+						LogMessage("Argh, no pages were defined!");
+					}
 				}
 			}
+
+			// Maybe I need an extra parameter to set the initially active page.
 
 			textArray = new string[ourScreen.screenHeight];
 
@@ -141,13 +79,25 @@ namespace JSI
 			comp.UpdateRefreshRates(refreshRate, refreshDataRate);
 
 			// Load our state from storage...
+
 			persistentVarName = "activePage" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
-			activePage = persistence.GetVar(persistentVarName) ?? activePage;
+			int? activePageID = persistence.GetVar(persistentVarName);
+			if (activePageID != null) {
+				activePage = (from x in pages
+				              where x.PageNumber == activePageID
+				              select x).First();
+			} else {
+				activePage = (from x in pages
+					where x.IsDefault
+					select x).FirstOrDefault();
+				if (activePage == null)
+					activePage = pages[0];
+			}
 
 			// So camera support.
-			cameras = new [] { camera1, camera2, camera3, camera4, camera5,	camera6, camera7, camera8 };
-			SetCamera(cameras[activePage]);
+
+			SetCamera(activePage.Camera);
 		}
 
 		private void SetCamera(string cameraTransform)
@@ -165,18 +115,15 @@ namespace JSI
 			}
 		}
 
-		public void ButtonClick(int buttonID)
+		public void ButtonClick(MonitorPage callingPage)
 		{
-			if (buttonID != activePage) {
-				activePage = buttonID;
-				persistence.SetVar(persistentVarName, activePage);
-				SetCamera(cameras[activePage]);
+			if (callingPage != activePage) {
+				activePage = callingPage;
+				persistence.SetVar(persistentVarName, activePage.PageNumber);
+				SetCamera(activePage.Camera);
 				updateForced = true;
 				comp.updateForced = true;
-				if (!string.IsNullOrEmpty(cameras[activePage]))
-					currentPageIsMutable = true;
-				else
-					currentPageIsMutable = false;
+				currentPageIsMutable = !string.IsNullOrEmpty(activePage.Camera);
 				currentPageFirstPassComplete = false;
 			}
 		}
@@ -198,7 +145,7 @@ namespace JSI
 				} else {
 					string[] vars = tokens[1].Split(variableSeparator, StringSplitOptions.RemoveEmptyEntries);
 
-					object[] variables = new object[vars.Length];
+					var variables = new object[vars.Length];
 					for (int i = 0; i < vars.Length; i++) {
 						variables[i] = comp.ProcessVariable(vars[i]);
 					}
@@ -230,14 +177,15 @@ namespace JSI
 				if (!UpdateCheck())
 					return;
 
-				// Check if we have a page handler for this page.
-				// If we do, now we ask it for the page text.
-				if (pageHandlers[activePage] != null) {
-					pages[activePage] = pageHandlers[activePage]();
+				// This way we don't check for that here, but how do we deal with firstpasscomplete?
+
+				/*
+				if (activePage.handler != null) {
+					activePage.text = activePage.handler();
 					currentPageFirstPassComplete = false;
 				}
-
-				if (pages[activePage] == string.Empty && !currentPageIsMutable) { 
+				*/
+				if (string.IsNullOrEmpty(activePage.Text) && !currentPageIsMutable) { 
 					// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 					if (!screenWasBlanked) {
 						textArray = new string[ourScreen.screenHeight];
@@ -246,7 +194,7 @@ namespace JSI
 					}
 				} else {
 					if (!currentPageFirstPassComplete || currentPageIsMutable) {
-						string[] linesArray = pages[activePage].Split(lineSeparator, StringSplitOptions.None);
+						string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
 						for (int i = 0; i < ourScreen.screenHeight; i++) {
 							textArray[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
 						}
@@ -259,7 +207,5 @@ namespace JSI
 			}
 		}
 	}
-
-
 }
 
