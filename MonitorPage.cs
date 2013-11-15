@@ -24,11 +24,15 @@ namespace JSI
 			}
 		}
 
-
-
 		public bool IsDefault { get; private set; }
 
+		public enum BackgroundType { None, Camera, Texture, Handler};
+		public BackgroundType Background { get; private set; }
+
 		public string Camera { get; private set; }
+		public float CameraFOV { get; private set; }
+		private const float defaultFOV = 60f;
+		public Color BackgroundColor { get; private set; }
 
 		private readonly Func<string> pageHandler;
 
@@ -78,8 +82,27 @@ namespace JSI
 			if (node.HasValue("button")) {
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), ButtonClick);
 			}
-			if (node.HasValue("camera")) {
-				Camera = node.GetValue("camera");
+
+			Background = BackgroundType.None;
+			if (node.HasValue("background")) {
+				switch (node.GetValue("background")) {
+					case "camera":
+						if (node.HasValue("camera")) {
+							Background = BackgroundType.Camera;
+							Camera = node.GetValue("camera");
+							if (node.HasValue("fov")) {
+								float fov;
+								float.TryParse(node.GetValue("fov"), out fov);
+								if (fov == 0)
+									CameraFOV = defaultFOV;
+								else
+									CameraFOV = fov;
+							} else
+								CameraFOV = defaultFOV;
+							
+						}
+						break;
+				}
 			}
 		}
 
