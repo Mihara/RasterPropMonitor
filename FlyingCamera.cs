@@ -26,27 +26,31 @@ namespace JSI
 
 		public void PointCamera(string newCameraName, float initialFOV)
 		{
-			FOV = initialFOV;
-			// First, we search our own part for this camera transform,
-			// only then we search all other parts of the vessel.
-			if (!LocateCamera(ourPart, newCameraName))
-				foreach (Part thatpart in ourVessel.parts) {
-					if (LocateCamera(thatpart, newCameraName))
-						break;
-				}
+			if (!string.IsNullOrEmpty(newCameraName)) {
+				FOV = initialFOV;
+				// First, we search our own part for this camera transform,
+				// only then we search all other parts of the vessel.
+				if (!LocateCamera(ourPart, newCameraName))
+					foreach (Part thatpart in ourVessel.parts) {
+						if (LocateCamera(thatpart, newCameraName))
+							break;
+					}
 
-			if (cameraTransform != null) {
-				if (!enabled) {
-					CameraSetup(0, "Camera ScaledSpace");
-					CameraSetup(1, "Camera 01");
-					CameraSetup(2, "Camera 00");
-					enabled = true;
-				}
-				Debug.Log(string.Format("Switching to camera \"{0}\".", cameraTransform.name));
+				if (cameraTransform != null) {
+					if (!enabled) {
+						CameraSetup(0, "Camera ScaledSpace");
+						CameraSetup(1, "Camera 01");
+						CameraSetup(2, "Camera 00");
+						enabled = true;
+					}
+					Debug.Log(string.Format("Switching to camera \"{0}\".", cameraTransform.name));
 
+				} else {
+					CleanupCameraObjects();
+					Debug.Log(string.Format("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName));
+				}
 			} else {
 				CleanupCameraObjects();
-				Debug.Log(string.Format("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName));
 			}
 		}
 
@@ -59,6 +63,7 @@ namespace JSI
 						cameraObject[i] = null;
 					}
 				enabled = false;
+				Debug.Log("Turning camera off.");
 			}
 			cameraPart = null;
 			cameraTransform = null;

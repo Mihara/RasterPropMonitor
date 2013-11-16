@@ -29,7 +29,7 @@ namespace JSI
 		[KSPField]
 		public float cameraAspect = 2f;
 		[KSPField]
-		public int refreshDrawRate = 1;
+		public int refreshDrawRate = 2;
 		[KSPField]
 		public int refreshTextRate = 5;
 		[KSPField]
@@ -40,7 +40,6 @@ namespace JSI
 		// Internal stuff.
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
-		private int lastCharacter = 255;
 		private FlyingCamera cam;
 		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
@@ -86,8 +85,7 @@ namespace JSI
 			int fontLettersY = (fontTexture.height / fontLetterHeight);
 			float letterSpanX = 1f / fontLettersX;
 			float letterSpanY = 1f / fontLettersY;
-
-			lastCharacter = fontLettersX * fontLettersY;
+			int lastCharacter = fontLettersX * fontLettersY;
 
 			fontCharacters = new Rect[lastCharacter + 1];
 			for (int i = 0; i < lastCharacter; i++) {
@@ -145,15 +143,8 @@ namespace JSI
 
 			// Create and point the camera.
 			cam = new FlyingCamera(part, screenTexture, cameraAspect);
-			PointCamera();
+			cam.PointCamera(activePage.camera,activePage.cameraFOV);
 
-		}
-
-		private void PointCamera()
-		{
-			if (activePage.background == MonitorPage.BackgroundType.Camera) {
-				cam.PointCamera(activePage.camera, activePage.cameraFOV);
-			}
 		}
 
 		public void ButtonClick(MonitorPage callingPage)
@@ -161,7 +152,7 @@ namespace JSI
 			if (callingPage != activePage) {
 				activePage = callingPage;
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
-				PointCamera();
+				cam.PointCamera(activePage.camera,activePage.cameraFOV);
 				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
 				firstRenderComplete = false;
@@ -177,7 +168,7 @@ namespace JSI
 
 			charCode -= firstCharacter;
 
-			if (charCode < 0 || charCode > lastCharacter) {
+			if (charCode < 0 || charCode >= fontCharacters.Length) {
 				LogMessage("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
