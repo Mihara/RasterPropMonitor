@@ -37,7 +37,6 @@ namespace JSI
 		public string camera;
 		public float cameraFOV;
 		private const float defaultFOV = 60f;
-
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<string> pageHandler;
 		private readonly RasterPropMonitor ourMonitor;
@@ -62,29 +61,31 @@ namespace JSI
 				} catch (FileNotFoundException e) {
 					// There's no file.
 					Text = e.Message;
+				}
+				if (pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1)
+					isMutable = true;
+				// But regardless of whether we found a page handler, it won't matter if we populate the page data or not.
+				Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
+			}
 
-					// Now we check for a page handler.
-					string[] tokens = pageDefinition.Split(',');
-					if (tokens.Length == 2) {
-						foreach (InternalModule thatModule in thatMonitor.internalProp.internalModules) {
-							if (thatModule.ClassName == tokens[0].Trim()) {
-								foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
-									if (m.Name == tokens[1].Trim()) {
-										// We'll assume whoever wrote it is not being an idiot today.
-										pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), thatModule, m);
+			if (node.HasNode("PAGEHANDLER")) {
+				ConfigNode pageHandlerNode = node.GetNode("PAGEHANDLER");
+				if (pageHandlerNode.HasValue("name") && pageHandlerNode.HasValue("method")) {
+					string moduleName = pageHandlerNode.GetValue("name");
+					string methodName = pageHandlerNode.GetValue("method");
 
-										isMutable = true;
-										break;
-									}
-								}
-								break;
-							}
+					ConfigNode handlerConfiguration = new ConfigNode("MODULE");
+					pageHandlerNode.CopyTo(handlerConfiguration);
+					InternalModule thatModule = thatMonitor.internalProp.AddModule(handlerConfiguration);
+
+					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+						if (m.Name == methodName) {
+							// We'll assume whoever wrote it is not being an idiot today.
+							pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), thatModule, m);
+							isMutable = true;
+							break;
 						}
 					}
-					if (pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1)
-						isMutable = true;
-					// But regardless of whether we found a page handler, it won't matter if we populate the page data or not.
-					Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 				}
 			}
 
@@ -123,11 +124,12 @@ namespace JSI
 			}
 		}
 
-		public void RenderBackground(RenderTexture screen) {
+		public void RenderBackground(RenderTexture screen)
+		{
 			switch (background) {
 				case BackgroundType.Texture:
 					Graphics.DrawTexture(
-						new Rect(0,0, screen.width, screen.height),
+						new Rect(0, 0, screen.width, screen.height),
 						backgroundTexture);
 					return;
 				case BackgroundType.Handler:
