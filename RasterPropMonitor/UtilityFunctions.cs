@@ -5,6 +5,7 @@ namespace JSI
 {
 	static class JUtil
 	{
+		/*
 		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp)
 		{
 			// I hate copypaste, and this is what I'm going to do about it.
@@ -18,6 +19,19 @@ namespace JSI
 			}
 			thatProp.AddModule(typeof(RasterPropMonitorComputer).Name);
 			return thatProp.FindModelComponent<RasterPropMonitorComputer>();
+		}
+		*/
+		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp)
+		{
+			// I hate copypaste, and this is what I'm going to do about it.
+			if (thatProp.part != null) {
+				for (int i = 0; i < thatProp.part.Modules.Count; i++)
+					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
+						RasterPropMonitorComputer other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
+						return other;
+					}
+			}
+			return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
 		}
 
 		public static string WordWrap(string text, int maxLineLength)

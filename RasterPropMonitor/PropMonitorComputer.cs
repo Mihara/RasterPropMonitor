@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace JSI
 {
-	public class RasterPropMonitorComputer: InternalModule
+	public class RasterPropMonitorComputer: PartModule
 	{
 		public bool updateForced = false;
 		// Data common for various variable calculations
