@@ -40,10 +40,7 @@ namespace JSI
 		// Internal stuff.
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
-		private int fontLettersX = 16;
-		private int fontLettersY = 8;
 		private int lastCharacter = 255;
-		private Vector2 letterSpan;
 		private FlyingCamera cam;
 		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
@@ -52,8 +49,8 @@ namespace JSI
 		// Local variables
 		private int refreshDrawCountdown;
 		private int refreshTextCountdown;
-		private bool firstRenderComplete = false;
-		private bool textRefreshRequired = false;
+		private bool firstRenderComplete;
+		private bool textRefreshRequired;
 		private List<MonitorPage> pages = new List<MonitorPage>();
 		private MonitorPage activePage;
 		// All computations are split into a separate class, because it was getting a mite too big.
@@ -63,6 +60,7 @@ namespace JSI
 		private string persistentVarName;
 		private readonly SIFormatProvider fp = new SIFormatProvider();
 		private string[] screenBuffer;
+		private Rect[] fontCharacters;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -81,16 +79,26 @@ namespace JSI
 				LogMessage("Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
-			fontLettersX = (fontTexture.width / fontLetterWidth);
-			fontLettersY = (fontTexture.height / fontLetterHeight);
 
-			letterSpan.x = 1f / fontLettersX;
-			letterSpan.y = 1f / fontLettersY;
+			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
+			// although I'm not sure I'm not seeing things by this point.
+			int fontLettersX = (fontTexture.width / fontLetterWidth);
+			int fontLettersY = (fontTexture.height / fontLetterHeight);
+			float letterSpanX = 1f / fontLettersX;
+			float letterSpanY = 1f / fontLettersY;
 
 			lastCharacter = fontLettersX * fontLettersY;
 
-			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
+			fontCharacters = new Rect[lastCharacter + 1];
+			for (int i = 0; i < lastCharacter; i++) {
+				int xSource = i % fontLettersX;
+				int ySource = (i - xSource) / fontLettersX;
 
+				fontCharacters[i] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
+			}
+
+			// Now that is done, proceed to setting up the screen.
+			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 16, RenderTextureFormat.ARGB32);
 			Material screen = internalProp.FindModelTransform(screenTransform).renderer.material;
 			screen.SetTexture(textureLayerID, screenTexture);
 
@@ -103,11 +111,14 @@ namespace JSI
 					// We know it contains at least one MODULE node, us.
 					// And we know our moduleID, which is the number in order of being listed in the prop.
 					// Therefore the module by that number is our module's own config node.
-					ConfigNode[] pageNodes = node.GetNodes("MODULE")[moduleID].GetNode("PAGEDEFINITIONS").GetNodes("PAGE");
+					ConfigNode[] pageNodes = node.GetNodes("MODULE")[moduleID].GetNodes("PAGE");
+
+					// Which we can now parse for page definitions.
 					for (int i = 0; i < pageNodes.Length; i++) {
 						// Mwahahaha.
 						try {
 							var newPage = new MonitorPage(i, pageNodes[i], this);
+							activePage = activePage ?? newPage;
 							if (newPage.isDefault)
 								activePage = newPage;
 							pages.Add(newPage);
@@ -120,13 +131,11 @@ namespace JSI
 				}
 			}
 
-			// Maybe I need an extra parameter to set the initially active page.
-
+			// Install the calculator module.
 			comp = JUtil.GetComputer(internalProp);
 			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
 			// Load our state from storage...
-
 			persistentVarName = "activePage" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
 			int? activePageID = persistence.GetVar(persistentVarName);
@@ -134,8 +143,10 @@ namespace JSI
 				activePage = pages[activePageID.Value];
 			}
 
+			// Create and point the camera.
 			cam = new FlyingCamera(part, screenTexture, cameraAspect);
 			PointCamera();
+
 		}
 
 		private void PointCamera()
@@ -170,8 +181,6 @@ namespace JSI
 				LogMessage("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
-			int xSource = charCode % fontLettersX;
-			int ySource = (charCode - xSource) / fontLettersX;
 
 			// This is complicated.
 			// The destination rectangle has coordinates given in pixels, from top left corner of the texture.
@@ -180,7 +189,7 @@ namespace JSI
 			Graphics.DrawTexture(
 				new Rect(x * fontLetterWidth, y * fontLetterHeight, fontLetterWidth, fontLetterHeight),
 				fontTexture,
-				new Rect(letterSpan.x * xSource, letterSpan.y * (fontLettersY - ySource - 1), letterSpan.x, letterSpan.y),
+				fontCharacters[charCode],
 				0, 0, 0, 0
 			);
 
@@ -204,6 +213,7 @@ namespace JSI
 			}
 			return input;
 		}
+
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
 		{

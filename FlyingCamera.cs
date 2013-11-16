@@ -5,14 +5,14 @@ namespace JSI
 {
 	public class FlyingCamera
 	{
-		private Vessel ourVessel;
-		private Part ourPart;
+		private readonly Vessel ourVessel;
+		private readonly Part ourPart;
 		private GameObject cameraTransform;
 		private Part cameraPart;
 		private Camera[] cameraObject = { null, null, null };
-		private float cameraAspect;
+		private readonly float cameraAspect;
 		private bool enabled;
-		private RenderTexture screenTexture;
+		private readonly RenderTexture screenTexture;
 
 		public float FOV { get; set; }
 

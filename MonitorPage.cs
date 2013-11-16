@@ -1,7 +1,6 @@
 using System;
 using System.Reflection;
 using System.IO;
-using UnityEngine;
 
 namespace JSI
 {
@@ -9,14 +8,11 @@ namespace JSI
 	{
 		// We still need a numeric ID cause it makes persistence easier.
 		public int pageNumber;
-
 		private string text;
 
 		public string Text {
 			get {
-				if (pageHandler != null)
-					return pageHandler();
-				return text;
+				return pageHandler != null ? pageHandler() : text;
 			}
 			private set {
 				text = value;
@@ -34,17 +30,12 @@ namespace JSI
 			Camera,
 			Texture,
 			Handler}
-
 		;
 
 		public BackgroundType background;
-
 		public string camera;
-
 		public float cameraFOV;
-
 		private const float defaultFOV = 60f;
-
 		private readonly Func<string> pageHandler;
 		private readonly RasterPropMonitor ourMonitor;
 
@@ -56,8 +47,7 @@ namespace JSI
 			if (!node.HasValue("text") && !node.HasValue("background") && !node.HasValue("button"))
 				throw new ArgumentException("A page needs to have either text, a background or a button.");
 
-			if (node.HasValue("default"))
-				isDefault = true;
+			isDefault |= node.HasValue("default");
 
 			if (node.HasValue("text")) {
 				string pageDefinition = node.GetValue("text");
@@ -109,11 +99,7 @@ namespace JSI
 							camera = node.GetValue("cameraTransform");
 							if (node.HasValue("fov")) {
 								float fov;
-								float.TryParse(node.GetValue("fov"), out fov);
-								if (fov == 0)
-									cameraFOV = defaultFOV;
-								else
-									cameraFOV = fov;
+								cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
 							} else
 								cameraFOV = defaultFOV;
 							
