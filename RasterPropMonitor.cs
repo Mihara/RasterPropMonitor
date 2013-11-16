@@ -246,7 +246,8 @@ namespace JSI
 					GL.Clear(true, true, emptyColor);
 					break;
 				default:
-					activePage.RenderBackground(screenTexture);
+					if (!activePage.RenderBackground(screenTexture))
+						GL.Clear(true, true, emptyColor);
 					break;
 			}
 
