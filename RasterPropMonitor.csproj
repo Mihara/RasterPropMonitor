@@ -56,7 +56,6 @@
     <Compile Include="JSIVariableAnimator.cs" />
     <Compile Include="UtilityFunctions.cs" />
     <Compile Include="SIFormatter.cs" />
-    <Compile Include="ExamplePageHandler.cs" />
     <Compile Include="ButtonHandler.cs" />
     <Compile Include="JSIFlightLog.cs" />
     <Compile Include="JSIExternalCameraSelector.cs" />
