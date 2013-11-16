@@ -46,6 +46,13 @@ namespace JSI
 					break;
 				}
 			}
+			// Is that even supposed to work?...
+			if (actualCamera == null) {
+				actualCamera = new GameObject().transform;
+				actualCamera.parent = containingTransform;
+				actualCamera.localPosition = Vector3.zero;
+				actualCamera.localRotation = Quaternion.identity;
+			}
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
 		}
 
