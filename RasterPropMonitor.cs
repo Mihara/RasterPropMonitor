@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using System.Linq;
 using System.Collections.Generic;
 
 namespace JSI
@@ -29,37 +28,32 @@ namespace JSI
 		public int fontLetterHeight = 32;
 		[KSPField]
 		public float cameraAspect = 2f;
+		[KSPField]
+		public int refreshDrawRate = 1;
+		[KSPField]
+		public int refreshTextRate = 5;
+		[KSPField]
+		public int refreshDataRate = 10;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
-		[KSPField]
-		public int refreshRate = 5;
-		[KSPField]
-		public int refreshDataRate = 10;
 		// Internal stuff.
-		private bool screenUpdateRequired;
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
 		private int fontLettersX = 16;
 		private int fontLettersY = 8;
 		private int lastCharacter = 255;
 		private Vector2 letterSpan;
-		// Camera support.
-		private bool cameraEnabled;
-		private GameObject cameraTransform;
-		private Part cameraPart;
-		private Camera[] cameraObject = { null, null, null };
-		// Config syntax.
+		private FlyingCamera cam;
+		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
 		private readonly string[] variableListSeparator = { "$&$" };
 		private readonly string[] variableSeparator = { };
 		// Local variables
-		private string[] textArray;
-		private int updateCountdown = 0;
-		private bool updateForced = false;
-		private bool screenWasBlanked = false;
-		private bool currentPageIsMutable = false;
-		private bool currentPageFirstPassComplete = false;
+		private int refreshDrawCountdown;
+		private int refreshTextCountdown;
+		private bool firstRenderComplete = false;
+		private bool textRefreshRequired = false;
 		private List<MonitorPage> pages = new List<MonitorPage>();
 		private MonitorPage activePage;
 		// All computations are split into a separate class, because it was getting a mite too big.
@@ -68,6 +62,7 @@ namespace JSI
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private readonly SIFormatProvider fp = new SIFormatProvider();
+		private string[] screenBuffer;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -94,17 +89,10 @@ namespace JSI
 
 			lastCharacter = fontLettersX * fontLettersY;
 
-			textArray = new string[screenHeight];
-
-			textArray[0] = "Monitor initializing...";
-
 			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
 
 			Material screen = internalProp.FindModelTransform(screenTransform).renderer.material;
 			screen.SetTexture(textureLayerID, screenTexture);
-
-			screenUpdateRequired = true;
-
 
 			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
@@ -120,6 +108,8 @@ namespace JSI
 						// Mwahahaha.
 						try {
 							var newPage = new MonitorPage(i, pageNodes[i], this);
+							if (newPage.isDefault)
+								activePage = newPage;
 							pages.Add(newPage);
 						} catch (ArgumentException e) {
 							LogMessage("Warning - {0}", e);
@@ -133,8 +123,7 @@ namespace JSI
 			// Maybe I need an extra parameter to set the initially active page.
 
 			comp = JUtil.GetComputer(internalProp);
-
-			comp.UpdateRefreshRates(refreshRate, refreshDataRate);
+			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
 			// Load our state from storage...
 
@@ -142,134 +131,29 @@ namespace JSI
 			persistence = new PersistenceAccessor(part);
 			int? activePageID = persistence.GetVar(persistentVarName);
 			if (activePageID != null) {
-				activePage = (from x in pages
-				              where x.PageNumber == activePageID
-				              select x).First();
-			} else {
-				activePage = (from x in pages
-				              where x.IsDefault
-				              select x).FirstOrDefault();
-				if (activePage == null)
-					activePage = pages[0];
+				activePage = pages[activePageID.Value];
 			}
 
-			// So camera support.
-
-			SetCamera(activePage.Camera);
+			cam = new FlyingCamera(part, screenTexture, cameraAspect);
+			PointCamera();
 		}
 
-		private void CleanupCameraObjects()
+		private void PointCamera()
 		{
-			for (int i = 0; i < 3; i++)
-				if (cameraObject[i].gameObject != null) {
-					Destroy(cameraObject[i].gameObject);
-					cameraObject[i] = null;
-				}
-			cameraEnabled = false;
-			cameraPart = null;
-		}
-
-		private bool LocateCamera(Part thatpart, string transformName)
-		{
-			Transform location = thatpart.FindModelTransform(transformName);
-			if (location != null) {
-				cameraTransform = location.gameObject;
-				cameraPart = thatpart;
-				return true;
+			if (activePage.background == MonitorPage.BackgroundType.Camera) {
+				cam.PointCamera(activePage.camera, activePage.cameraFOV);
 			}
-			return false;
-		}
-
-		private void SetCamera(string transformName)
-		{
-			if (!string.IsNullOrEmpty(transformName)) {
-				string[] tokens = transformName.Split(',');
-				if (tokens.Length == 2) {
-					float fov;
-					float.TryParse(tokens[1], out fov);
-					SendCamera(tokens[0].Trim(), fov);
-				} else
-					SendCamera(transformName);
-			} else {
-				SendCamera(null);
-			}
-		}
-
-		private void CameraSetup(int index, string sourceName, float fov)
-		{
-			var cameraBody = new GameObject();
-			cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
-			cameraObject[index] = cameraBody.AddComponent<Camera>();
-
-			Camera sourceCam = null;
-			foreach (Camera cam in Camera.allCameras) {
-				if (cam.name == sourceName) {
-					sourceCam = cam;
-					break;
-				}
-			}
-
-			cameraObject[index].CopyFrom(sourceCam);
-			cameraObject[index].enabled = false;
-			cameraObject[index].aspect = cameraAspect;
-			cameraObject[index].fieldOfView = fov;
-			cameraObject[index].targetTexture = screenTexture;
 		}
 
 		public void ButtonClick(MonitorPage callingPage)
 		{
 			if (callingPage != activePage) {
 				activePage = callingPage;
-				persistence.SetVar(persistentVarName, activePage.PageNumber);
-				SetCamera(activePage.Camera);
-				updateForced = true;
+				persistence.SetVar(persistentVarName, activePage.pageNumber);
+				PointCamera();
+				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
-				currentPageIsMutable = !string.IsNullOrEmpty(activePage.Camera);
-				currentPageFirstPassComplete = false;
-			}
-		}
-
-		public void SendCamera(string newCameraName)
-		{
-			SendCamera(newCameraName, defaultFOV);
-		}
-
-		public void SendCamera(string newCameraName, float newFOV)
-		{
-			if (newCameraName != null) {
-
-				// First, we search our own part for this camera transform,
-				// only then we search all other parts of the vessel.
-				if (!LocateCamera(part, newCameraName))
-					foreach (Part thatpart in vessel.parts) {
-						if (LocateCamera(thatpart, newCameraName))
-							break;
-					}
-
-				if (cameraTransform != null) {
-					LogMessage("Switching to camera \"{0}\".", cameraTransform.name);
-
-					float fov = (newFOV > 0) ? newFOV : defaultFOV;
-					CameraSetup(0, "Camera ScaledSpace", fov);
-					CameraSetup(1, "Camera 01", fov);
-					CameraSetup(2, "Camera 00", fov);
-
-					cameraEnabled = true;
-					screenUpdateRequired = true;
-
-				} else {
-					LogMessage("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
-					if (cameraEnabled)
-						CleanupCameraObjects();
-					else {
-						cameraPart = null;
-					}
-				}
-			} else {
-				if (cameraEnabled) {
-					LogMessage("Turning camera off...");
-					CleanupCameraObjects();
-				}
+				firstRenderComplete = false;
 			}
 		}
 
@@ -304,15 +188,7 @@ namespace JSI
 
 		private string ProcessString(string input)
 		{
-			// Each separate output line is delimited by Environment.NewLine.
-			// When loading from a config file, you can't have newlines in it, so they're represented by "$$$".
-			// I didn't expect this, but Linux newlines work just as well as Windows ones.
-			//
-			// You can read a full description of this mess in DOCUMENTATION.md
-
 			if (input.IndexOf(variableListSeparator[0], StringComparison.Ordinal) >= 0) {
-				currentPageIsMutable = true;
-
 				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {
 					return "FORMAT ERROR";
@@ -331,98 +207,93 @@ namespace JSI
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
 		{
-			if (updateCountdown <= 0 || updateForced) {
-				updateForced = false;
+			refreshDrawCountdown--;
+			refreshTextCountdown--;
+			if (refreshTextCountdown <= 0) {
+				textRefreshRequired = true;
+				refreshTextCountdown = refreshTextRate;
+			}
+
+			if (refreshDrawCountdown <= 0) {
+				refreshDrawCountdown = refreshDrawRate;
 				return true;
 			}
-			updateCountdown--;
+
 			return false;
 		}
 
-		public override void OnUpdate()
+		private void RenderScreen()
 		{
-			if (!HighLogic.LoadedSceneIsFlight)
-				return;
+			// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
+			// But I'll wait until anyone complains before doing that.
+			RenderTexture backupRenderTexture = RenderTexture.active;
 
-			if (!((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
-			    vessel == FlightGlobals.ActiveVessel))
-				return;
+			screenTexture.DiscardContents();
+			RenderTexture.active = screenTexture;
 
-			if (!UpdateCheck())
-				return;
+			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
+			GL.PushMatrix();
+			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
-			// This way we don't check for that here, but how do we deal with firstpasscomplete?
-
-			/*
-				if (activePage.handler != null) {
-					activePage.text = activePage.handler();
-					currentPageFirstPassComplete = false;
-				}
-				*/
-			if (string.IsNullOrEmpty(activePage.Text) && !currentPageIsMutable) { 
-				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
-				if (!screenWasBlanked) {
-					textArray = new string[screenHeight];
-					screenUpdateRequired = true;
-					screenWasBlanked = true;
-				}
-			} else {
-				if (!currentPageFirstPassComplete || currentPageIsMutable) {
-					string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
-					for (int i = 0; i < screenHeight; i++) {
-						textArray[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
-					}
-					screenWasBlanked = false;
-					screenUpdateRequired = true;
-					currentPageFirstPassComplete = true;
-				}
+			// Draw the background, if any.
+			switch (activePage.background) {
+				case MonitorPage.BackgroundType.Camera:
+					cam.Render();
+					break;
+				case MonitorPage.BackgroundType.None:
+					GL.Clear(true, true, emptyColor);
+					break;
 			}
 
-			if (screenUpdateRequired) {
-
-				// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
-				// But I'll wait until anyone complains before doing that.
-				RenderTexture backupRenderTexture = RenderTexture.active;
-
-				screenTexture.DiscardContents();
-				RenderTexture.active = screenTexture;
-
-				// This is the important witchcraft. Without that, DrawTexture does not print correctly.
-				GL.PushMatrix();
-				GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
-
-				if (cameraEnabled) {
-					if (cameraPart.vessel != FlightGlobals.ActiveVessel) {
-						CleanupCameraObjects();
-					} else {
-
-						// ScaledSpace camera is special. :(
-						cameraObject[0].transform.rotation = cameraTransform.transform.rotation;
-						cameraObject[0].Render();
-						for (int i = 1; i < 3; i++) {
-							cameraObject[i].transform.position = cameraTransform.transform.position;
-							cameraObject[i].transform.rotation = cameraTransform.transform.rotation;
-
-							cameraObject[i].Render();
-						}
-					}
-				} else {
-					GL.Clear(true, true, emptyColor);
-				}
-
-				for (int y = 0; y < screenHeight && y < textArray.Length; y++) {
-					if (!string.IsNullOrEmpty(textArray[y])) {
-						char[] line = textArray[y].ToCharArray();
+			if (!string.IsNullOrEmpty(activePage.Text)) {
+				// Draw the text.
+				for (int y = 0; y < screenHeight && y < screenBuffer.Length; y++) {
+					if (!string.IsNullOrEmpty(screenBuffer[y])) {
+						char[] line = screenBuffer[y].ToCharArray();
 						for (int x = 0; x < screenWidth && x < line.Length; x++) {
 							DrawChar(line[x], x, y);
 						}
 					}
 				}
+			}
 
-				GL.PopMatrix();
-				RenderTexture.active = backupRenderTexture;
-				screenUpdateRequired = false;
+			GL.PopMatrix();
+			RenderTexture.active = backupRenderTexture;
+		}
+
+		public void FillScreenBuffer()
+		{
+			screenBuffer = new string[screenHeight];
+			string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
+			for (int i = 0; i < screenHeight; i++)
+				screenBuffer[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
+			textRefreshRequired = false;
+		}
+
+		public override void OnUpdate()
+		{
+			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
+				return;
+
+			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+				return;
+
+			if (!UpdateCheck())
+				return;
+
+			if (!activePage.isMutable) { 
+				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
+				if (!firstRenderComplete) {
+					FillScreenBuffer();
+					RenderScreen();
+					firstRenderComplete = true;
+				}
+			} else {
+				if (textRefreshRequired)
+					FillScreenBuffer();
+				RenderScreen();
+				firstRenderComplete = false;
 			}
 
 		}

@@ -8,7 +8,7 @@ namespace JSI
 	public class MonitorPage
 	{
 		// We still need a numeric ID cause it makes persistence easier.
-		public int PageNumber { get; private set; }
+		public int pageNumber;
 
 		private string text;
 
@@ -24,35 +24,48 @@ namespace JSI
 			}
 		}
 
-		public bool IsDefault { get; private set; }
+		public bool isDefault;
+		// A page is immutable if and only if it has only unchanging text and unchanging background and no handlers.
+		public bool isMutable;
 
-		public enum BackgroundType { None, Camera, Texture, Handler};
-		public BackgroundType Background { get; private set; }
+		public enum BackgroundType
+		{
+			None,
+			Camera,
+			Texture,
+			Handler}
 
-		public string Camera { get; private set; }
-		public float CameraFOV { get; private set; }
+		;
+
+		public BackgroundType background;
+
+		public string camera;
+
+		public float cameraFOV;
+
 		private const float defaultFOV = 60f;
-		public Color BackgroundColor { get; private set; }
 
 		private readonly Func<string> pageHandler;
-
 		private readonly RasterPropMonitor ourMonitor;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
 			ourMonitor = thatMonitor;
-			PageNumber = idNum;
-			if (!node.HasValue("text") && !node.HasValue("camera"))
-				throw new ArgumentException("A page needs either text or camera.");
+			pageNumber = idNum;
+			isMutable = false;
+			if (!node.HasValue("text") && !node.HasValue("background") && !node.HasValue("button"))
+				throw new ArgumentException("A page needs to have either text, a background or a button.");
 
 			if (node.HasValue("default"))
-				IsDefault = true;
+				isDefault = true;
 
 			if (node.HasValue("text")) {
 				string pageDefinition = node.GetValue("text");
 
 				try {
 					Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition, System.Text.Encoding.UTF8));
+					if (Text.IndexOf("$&$", StringComparison.Ordinal) != -1)
+						isMutable = true;
 				} catch (FileNotFoundException e) {
 					// There's no file.
 					Text = e.Message;
@@ -66,6 +79,8 @@ namespace JSI
 									if (m.Name == tokens[1].Trim()) {
 										// We'll assume whoever wrote it is not being an idiot today.
 										pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), thatModule, m);
+
+										isMutable = true;
 										break;
 									}
 								}
@@ -73,7 +88,8 @@ namespace JSI
 							}
 						}
 					}
-
+					if (pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1)
+						isMutable = true;
 					// But regardless of whether we found a page handler, it won't matter if we populate the page data or not.
 					Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 				}
@@ -83,22 +99,23 @@ namespace JSI
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), ButtonClick);
 			}
 
-			Background = BackgroundType.None;
+			background = BackgroundType.None;
 			if (node.HasValue("background")) {
 				switch (node.GetValue("background")) {
 					case "camera":
-						if (node.HasValue("camera")) {
-							Background = BackgroundType.Camera;
-							Camera = node.GetValue("camera");
+						if (node.HasValue("cameraTransform")) {
+							isMutable = true;
+							background = BackgroundType.Camera;
+							camera = node.GetValue("cameraTransform");
 							if (node.HasValue("fov")) {
 								float fov;
 								float.TryParse(node.GetValue("fov"), out fov);
 								if (fov == 0)
-									CameraFOV = defaultFOV;
+									cameraFOV = defaultFOV;
 								else
-									CameraFOV = fov;
+									cameraFOV = fov;
 							} else
-								CameraFOV = defaultFOV;
+								cameraFOV = defaultFOV;
 							
 						}
 						break;
