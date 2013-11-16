@@ -48,6 +48,7 @@ namespace JSI
 		// Local variables
 		private int refreshDrawCountdown;
 		private int refreshTextCountdown;
+		private int vesselNumParts;
 		private bool firstRenderComplete;
 		private bool textRefreshRequired;
 		private List<MonitorPage> pages = new List<MonitorPage>();
@@ -210,6 +211,11 @@ namespace JSI
 		{
 			refreshDrawCountdown--;
 			refreshTextCountdown--;
+			if (vesselNumParts != vessel.Parts.Count) {
+				refreshDrawCountdown = 0;
+				refreshTextCountdown = 0;
+				vesselNumParts = vessel.Parts.Count;
+			}
 			if (refreshTextCountdown <= 0) {
 				textRefreshRequired = true;
 				refreshTextCountdown = refreshTextRate;
