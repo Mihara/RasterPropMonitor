@@ -673,6 +673,54 @@ namespace JSI
 				case "XENONMAX":
 					return GetMaxResourceByName("XenonGas");
 
+			// Popular mod resources by name.
+				case "KETHANE":
+					return GetResourceByName("Kethane");
+				case "KETHANEMAX":
+					return GetMaxResourceByName("Kethane");
+				case "MFLH2":
+					return GetResourceByName("LiquidH2");
+				case "MFLH2MAX":
+					return GetMaxResourceByName("LiquidH2");
+				case "MFLOX":
+					return GetResourceByName("LiquidOxygen");
+				case "MFLOXMAX":
+					return GetMaxResourceByName("LiquidOxygen");
+				case "MFN2O4":
+					return GetResourceByName("N2O4");
+				case "MFN2O4MAX":
+					return GetMaxResourceByName("N2O4");
+				case "MFMMH":
+					return GetResourceByName("MMH");
+				case "MFMMHMAX":
+					return GetMaxResourceByName("MMH");
+				case "MFAEROZINE":
+					return GetResourceByName("Aerozine");
+				case "MFAEROZINEMAX":
+					return GetMaxResourceByName("Aerozine");
+				case "MFUDMH":
+					return GetResourceByName("UDMH");
+				case "MFUDMHMAX":
+					return GetMaxResourceByName("UDMH");
+				case "MFHYDRAZINE":
+					return GetResourceByName("Hydrazine");
+				case "MFHYDRAZINEMAX":
+					return GetMaxResourceByName("Hydrazine");
+				case "MFMETHANE":
+					return GetResourceByName("Methane");
+				case "MFMETHANEMAX":
+					return GetMaxResourceByName("Methane");
+				case "MFNUCLEARFUEL":
+					return GetResourceByName("nuclearFuel");
+				case "MFNUCLEARFUELMAX":
+					return GetMaxResourceByName("nuclearFuel");
+				case "MFNUCLEARWASTE":
+					return GetResourceByName("nuclearWaste");
+				case "MFNUCLEARWASTEMAX":
+					return GetMaxResourceByName("nuclearWaste");
+
+
+
 			// Staging and other stuff
 				case "STAGE":
 					return Staging.CurrentStage;
