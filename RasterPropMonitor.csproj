@@ -61,7 +61,6 @@
     <Compile Include="Examples\JSIFlightLog.cs" />
     <Compile Include="RasterPropMonitor\PropMonitorComputer.cs" />
     <Compile Include="RasterPropMonitor\RasterPropMonitor.cs" />
-    <Compile Include="RasterPropMonitor\PersistenceAccessor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
