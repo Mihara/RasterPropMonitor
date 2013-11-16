@@ -3,12 +3,8 @@
 
 /*
 
-This is an example of getting at screen module and it's parameters using reflection. 
-This code snippet remains here for the benefit of others who need to do something like this in
-KSP and for possible attempts at integration with RasterPropMonitor.
-Although I expect that in the future you will not need to drive a RasterPropMonitor directly,
-because a RasterPropMonitorGenerator will accept text and graphical pages for display and take
-care of switching pages for you just like it does now.
+This is an example of getting at a module and it's parameters using reflection. 
+It's already out of date, but remains here for the benefit of others who need to do something like this in KSP.
 
 Since the whole raster screen project started as an attempt to get a Firespitter MFD to show
 what I wanted, I tried to duplicate what Snjo's own FSmonitorInterface class did
@@ -19,14 +15,13 @@ so if your assembly referencing classes from a different assembly loads
 earlier than the classes being referenced, loading will simply fail.
 
 The solution was getting at the module using reflection. This example encapsulates the whole
-messy syntax as it translates into using RasterPropMonitor in a neat little class that you
-can just use. If you're trying to get at the guts of something elaborate and complex like
+messy syntax as it translates into using RasterPropMonitor a few versions ago in a neat
+little class. If you're trying to get at the guts of something elaborate and complex like
 MechJeb, making a class like that would be the only practical way to go, although you obviously
 can get away with much less.
 
-If you wish to drive a RasterPropMonitor screen directly, copying this class,
-or at least looking at it and replicating what it does is what you need to do.
-I shall try to maintain it in working order in the future versions.
+If you wish to drive a RasterPropMonitor screen directly, you can still do it this way, but 
+writing a PageHandler or a BackgroundHandler is a much better option.
 */
 
 using System;
