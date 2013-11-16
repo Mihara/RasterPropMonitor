@@ -13,7 +13,7 @@ namespace JSI
 		[KSPField]
 		public string textureLayerID = "_MainTex";
 		[KSPField]
-		public Color emptyColor = Color.black;
+		public Color emptyColor = Color.clear;
 		[KSPField]
 		public int screenWidth = 32;
 		[KSPField]
@@ -96,9 +96,10 @@ namespace JSI
 			}
 
 			// Now that is done, proceed to setting up the screen.
-			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 16, RenderTextureFormat.ARGB32);
-			Material screen = internalProp.FindModelTransform(screenTransform).renderer.material;
-			screen.SetTexture(textureLayerID, screenTexture);
+
+			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
+			Material screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+			screenMat.SetTexture(textureLayerID, screenTexture);
 
 			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
@@ -143,7 +144,7 @@ namespace JSI
 
 			// Create and point the camera.
 			cam = new FlyingCamera(part, screenTexture, cameraAspect);
-			cam.PointCamera(activePage.camera,activePage.cameraFOV);
+			cam.PointCamera(activePage.camera, activePage.cameraFOV);
 
 		}
 
@@ -152,7 +153,7 @@ namespace JSI
 			if (callingPage != activePage) {
 				activePage = callingPage;
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
-				cam.PointCamera(activePage.camera,activePage.cameraFOV);
+				cam.PointCamera(activePage.camera, activePage.cameraFOV);
 				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
 				firstRenderComplete = false;
@@ -204,7 +205,6 @@ namespace JSI
 			}
 			return input;
 		}
-
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
 		{
@@ -239,10 +239,14 @@ namespace JSI
 			// Draw the background, if any.
 			switch (activePage.background) {
 				case MonitorPage.BackgroundType.Camera:
-					cam.Render();
+					if (!cam.Render())
+						GL.Clear(true, true, emptyColor);
 					break;
 				case MonitorPage.BackgroundType.None:
 					GL.Clear(true, true, emptyColor);
+					break;
+				default:
+					activePage.RenderBackground(screenTexture);
 					break;
 			}
 

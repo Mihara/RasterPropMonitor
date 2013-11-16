@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.IO;
+using UnityEngine;
 
 namespace JSI
 {
@@ -36,6 +37,8 @@ namespace JSI
 		public string camera;
 		public float cameraFOV;
 		private const float defaultFOV = 60f;
+
+		private readonly Texture2D backgroundTexture;
 		private readonly Func<string> pageHandler;
 		private readonly RasterPropMonitor ourMonitor;
 
@@ -105,8 +108,32 @@ namespace JSI
 							
 						}
 						break;
+					case "texture":
+						if (node.HasValue("textureURL")) {
+							string textureURL = node.GetValue("textureURL");
+							if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+								backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+								background = BackgroundType.Texture;
+							}
+						}
+						break;
+					case "handler":
+						break;
 				}
 			}
+		}
+
+		public void RenderBackground(RenderTexture screen) {
+			switch (background) {
+				case BackgroundType.Texture:
+					Graphics.DrawTexture(
+						new Rect(0,0, screen.width, screen.height),
+						backgroundTexture);
+					return;
+				case BackgroundType.Handler:
+					return;
+			}
+			return;
 		}
 
 		public void ButtonClick()
