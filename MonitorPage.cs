@@ -33,7 +33,7 @@ namespace JSI
 			Handler}
 		;
 
-		public BackgroundType background;
+		public BackgroundType background = BackgroundType.None;
 		public string camera;
 		public float cameraFOV;
 		private const float defaultFOV = 60f;
@@ -59,7 +59,7 @@ namespace JSI
 
 			if (node.HasNode("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), out handlerModule);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -70,66 +70,56 @@ namespace JSI
 
 					try {
 						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition, System.Text.Encoding.UTF8));
-						if (Text.IndexOf("$&$", StringComparison.Ordinal) != -1)
-							isMutable = true;
+						isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 					} catch (FileNotFoundException e) {
 						// There's no file.
 						Debug.Log("There's no file named " + e.Message + ", assuming direct definition.");
-						if (pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1)
-							isMutable = true;
+						isMutable |= pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1;
 						Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 					}
 				}
 			}
 
 
-			background = BackgroundType.None;
 			if (node.HasNode("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), out handlerModule);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,bool>), handlerModule, handlerMethod);
 					isMutable = true;
 					background = BackgroundType.Handler;
 				}
 			} else {
-				if (node.HasValue("background")) {
-					switch (node.GetValue("background")) {
-						case "camera":
-							if (node.HasValue("cameraTransform")) {
-								isMutable = true;
-								background = BackgroundType.Camera;
-								camera = node.GetValue("cameraTransform");
-								if (node.HasValue("fov")) {
-									float fov;
-									cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
-								} else
-									cameraFOV = defaultFOV;
-							
-							}
-							break;
-						case "texture":
-							if (node.HasValue("textureURL")) {
-								string textureURL = node.GetValue("textureURL");
-								if (GameDatabase.Instance.ExistsTexture(textureURL)) {
-									backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
-									background = BackgroundType.Texture;
-								}
-							}
-							break;
+				if (node.HasValue("cameraTransform")) {
+					isMutable = true;
+					background = BackgroundType.Camera;
+					camera = node.GetValue("cameraTransform");
+					if (node.HasValue("fov")) {
+						float fov;
+						cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
+					} else
+						cameraFOV = defaultFOV;
+				} else {
+					if (node.HasValue("textureURL")) {
+						string textureURL = node.GetValue("textureURL");
+						if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+							backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+							background = BackgroundType.Texture;
+						}
 					}
 				}
 			}
+
 		}
 
-		private MethodInfo InstantiateHandler(ConfigNode node, out InternalModule moduleInstance)
+		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance)
 		{
 			moduleInstance = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
 
-				ConfigNode handlerConfiguration = new ConfigNode("MODULE");
+				var handlerConfiguration = new ConfigNode("MODULE");
 				node.CopyTo(handlerConfiguration);
 				InternalModule thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
