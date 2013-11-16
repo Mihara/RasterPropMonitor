@@ -30,8 +30,9 @@ namespace JSI
 						RasterPropMonitorComputer other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
 						return other;
 					}
+				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
 			}
-			return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+			return null;
 		}
 
 		public static string WordWrap(string text, int maxLineLength)
