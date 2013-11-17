@@ -2,14 +2,17 @@ using UnityEngine;
 
 namespace JSI
 {
+	// Right now this is just an experiment to figure out how
+	// to draw directly onto a RenderTexture when I need something more complex
+	// than just lots of pasted pre-made pieces.
+	// In the future, this will be the basic building block for
+	// a Primary Flight Display plugin, I expect.
 	public class TestBackgroundHandler: InternalModule
 	{
 		[KSPField]
 		public string texture;
-
 		private Texture2D testTexture;
 		private Material expMat;
-
 		private int angle;
 
 		public bool RenderTest(RenderTexture screen)
@@ -21,7 +24,6 @@ namespace JSI
 			DrawSpinner(angle);
 			return true;
 		}
-
 		// Boy, what a complicated way to do it.
 		private void DrawSpinner(float rotAngle)
 		{
@@ -60,24 +62,23 @@ namespace JSI
 
 		}
 
-		private static Vector3 RotateAroundPoint(Vector3 point, Vector3 pivot, Quaternion angle) {
-			Vector3 finalPos = point - pivot;
-			finalPos = angle * finalPos;
-			finalPos += pivot;
-			return finalPos;
+		private static Vector3 RotateAroundPoint(Vector3 point, Vector3 pivot, Quaternion angle)
+		{
+			return angle * (point - pivot) + pivot;
 		}
 
-		public override void OnUpdate(){
+		public override void OnUpdate()
+		{
 			angle++;
 			if (angle > 359)
 				angle = 0;
 		}
 
-		public void Start ()
+		public void Start()
 		{
 			testTexture = GameDatabase.Instance.GetTexture(texture, false);
 			expMat = new Material(Shader.Find("KSP/Unlit")); // "KSP/Diffuse"?
-			expMat.SetTexture("_MainTex",testTexture);
+			expMat.SetTexture("_MainTex", testTexture);
 		}
 	}
 }
