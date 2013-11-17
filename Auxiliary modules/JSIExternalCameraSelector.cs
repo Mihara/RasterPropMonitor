@@ -46,7 +46,8 @@ namespace JSI
 					break;
 				}
 			}
-			// Is that even supposed to work?...
+			// I'm amused to find that this does appear to work.. Just not for the docking ports,
+			// where a transform that is somewhere inside the port itself results.
 			if (actualCamera == null) {
 				actualCamera = new GameObject().transform;
 				actualCamera.parent = containingTransform;
