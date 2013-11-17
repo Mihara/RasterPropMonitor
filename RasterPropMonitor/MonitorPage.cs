@@ -71,9 +71,8 @@ namespace JSI
 					try {
 						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition, System.Text.Encoding.UTF8));
 						isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
-					} catch (FileNotFoundException e) {
-						// There's no file.
-						Debug.Log("There's no file named " + e.Message + ", assuming direct definition.");
+					} catch {
+						// There's no file. Probably.
 						isMutable |= pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1;
 						Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 					}
