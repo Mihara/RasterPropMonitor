@@ -1,3 +1,7 @@
+//#define EXAMPLE
+
+#if EXAMPLE
+
 using UnityEngine;
 
 namespace JSI
@@ -83,3 +87,4 @@ namespace JSI
 	}
 }
 
+#endif
