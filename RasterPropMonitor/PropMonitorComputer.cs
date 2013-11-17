@@ -118,22 +118,7 @@ namespace JSI
 				return 0;
 			return engine.maxThrust;
 		}
-		// Some snippets from MechJeb...
-		private static double ClampDegrees360(double angle)
-		{
-			angle = angle % 360.0;
-			if (angle < 0)
-				return angle + 360.0;
-			return angle;
-		}
-		//keeps angles in the range -180 to 180
-		private static double ClampDegrees180(double angle)
-		{
-			angle = ClampDegrees360(angle);
-			if (angle > 180)
-				angle -= 360;
-			return angle;
-		}
+
 
 		public void FetchCommonData()
 		{
@@ -266,7 +251,7 @@ namespace JSI
 
 		private string LongitudeDMS(double longitude)
 		{
-			double clampedLongitude = ClampDegrees180(longitude);
+			double clampedLongitude = JUtil.ClampDegrees180(longitude);
 			return AngleToDMS(clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
 		}
 
@@ -498,14 +483,14 @@ namespace JSI
 				case "LATITUDE":
 					return vessel.mainBody.GetLatitude(coM);
 				case "LONGITUDE":
-					return ClampDegrees180(vessel.mainBody.GetLongitude(coM));
+					return JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM));
 				case "LATITUDETGT":
 					if (target is Vessel)
 						return target.GetVessel().mainBody.GetLatitude(target.GetTransform().position);
 					return -1;
 				case "LONGITUDETGT":
 					if (target is Vessel)
-						return ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
+						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
 					return -1;
 
 			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
@@ -519,7 +504,7 @@ namespace JSI
 					return "";
 				case "LONGITUDETGT_DMS":
 					if (target is Vessel)
-						return LongitudeDMS(ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
+						return LongitudeDMS(JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
 					return "";
 
 
