@@ -101,6 +101,7 @@ namespace JSI
 			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
 			Material screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
 			screenMat.SetTexture(textureLayerID, screenTexture);
+			screenTexture.wrapMode = TextureWrapMode.Clamp;
 
 			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
@@ -238,9 +239,7 @@ namespace JSI
 			screenTexture.DiscardContents();
 			RenderTexture.active = screenTexture;
 
-			// This is the important witchcraft. Without that, DrawTexture does not print correctly.
-			GL.PushMatrix();
-			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
+
 
 			// Draw the background, if any.
 			switch (activePage.background) {
@@ -256,6 +255,11 @@ namespace JSI
 						GL.Clear(true, true, emptyColor);
 					break;
 			}
+
+			// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
+			// Cameras don't care because they have their own matrices, but DrawTexture does.
+			GL.PushMatrix();
+			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
 			if (!string.IsNullOrEmpty(activePage.Text)) {
 				// Draw the text.

@@ -140,9 +140,7 @@ namespace JSI
 		{
 			switch (background) {
 				case BackgroundType.Texture:
-					Graphics.DrawTexture(
-						new Rect(0, 0, screen.width, screen.height),
-						backgroundTexture);
+					Graphics.Blit(backgroundTexture,screen);
 					return true;
 				case BackgroundType.Handler:
 					return backgroundHandler(screen);
