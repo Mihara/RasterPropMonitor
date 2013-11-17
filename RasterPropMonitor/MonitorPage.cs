@@ -94,11 +94,11 @@ namespace JSI
 					isMutable = true;
 					background = BackgroundType.Camera;
 					camera = node.GetValue("cameraTransform");
+					cameraFOV = defaultFOV;
 					if (node.HasValue("fov")) {
 						float fov;
 						cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
-					} else
-						cameraFOV = defaultFOV;
+					}
 				} else {
 					if (node.HasValue("textureURL")) {
 						string textureURL = node.GetValue("textureURL");
