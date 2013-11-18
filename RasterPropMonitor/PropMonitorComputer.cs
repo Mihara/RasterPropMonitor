@@ -46,6 +46,7 @@ namespace JSI
 		private double secondsToImpact;
 		private const double gee = 9.81d;
 		private double localG;
+		private double standardAtmosphere;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -62,8 +63,10 @@ namespace JSI
 			lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
 			rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
 
-			if (HighLogic.LoadedSceneIsFlight)
+			if (HighLogic.LoadedSceneIsFlight) {
 				FetchPerPartData();
+				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+			}
 		}
 
 		public void UpdateRefreshRates(int rate, int dataRate)
@@ -363,8 +366,7 @@ namespace JSI
 				case "HORZVELOCITY":
 					return (velocityVesselSurface - (speedVertical * up)).magnitude;
 				case "EASPEED":
-					return vessel.srf_velocity.magnitude * 	Math.Sqrt((vessel.atmDensity /
-						FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]))));
+					return vessel.srf_velocity.magnitude * 	Math.Sqrt(vessel.atmDensity / standardAtmosphere);
 
 			// The way Engineer does it...
 				case "TGTRELX":
