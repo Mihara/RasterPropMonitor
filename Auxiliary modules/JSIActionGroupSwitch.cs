@@ -41,7 +41,7 @@ namespace JSI
 
 		private Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
 			{ "intlight",false },
-			{ "dummy",false }
+			{ "dummy",false },
 		};
 		private int actionGroupID;
 		private KSPActionGroup actionGroup;
@@ -89,6 +89,16 @@ namespace JSI
 			// set up the toggle switch
 			SmarterButton.CreateButton(internalProp, switchTransform, Click);
 
+			// Set up the custom actions..
+			switch (actionName) {
+				case "intlight":
+					lightobjects = internalModel.FindModelComponents<Light>();
+					SetInternalLights(customGroupList[actionName]);
+					break;
+				default:
+					break;
+			}
+
 			// Set up the animation
 			anim = internalProp.FindModelAnimators(animationName)[0];
 			if (anim != null) {
@@ -110,15 +120,6 @@ namespace JSI
 			}
 			anim.Play(animationName);
 
-			// Set up the custom actions..
-			switch (actionName) {
-				case "intlight":
-					lightobjects = internalModel.FindModelComponents<Light>();
-					SetInternalLights(customGroupList[actionName]);
-					break;
-				default:
-					break;
-			}
 
 		}
 
@@ -136,16 +137,20 @@ namespace JSI
 		{
 			if (iscustomaction) {
 				customGroupList[actionName] = !customGroupList[actionName];
-				switch (actionName) {
-					case "intlight":
-						SetInternalLights(customGroupList[actionName]);
-						break;
-					default:
-						break;
-				}
 				persistence.SetVar(persistentVarName, customGroupList[actionName]);
 			} else
 				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
+			// Now we do extra things that with regular actions can't happen.
+			switch (actionName) {
+				case "intlight":
+					SetInternalLights(customGroupList[actionName]);
+					break;
+				case "stage":
+					Staging.ActivateNextStage();
+					break;
+				default:
+					break;
+			}
 		}
 
 		public override void OnUpdate()
