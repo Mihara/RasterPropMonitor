@@ -238,35 +238,8 @@ namespace JSI
 			return 0;
 		}
 
-		private static string AngleToDMS(double angle)
-		{
-			int degrees = (int)Math.Floor(Math.Abs(angle));
-			int minutes = (int)Math.Floor(60 * (Math.Abs(angle) - degrees));
-			int seconds = (int)Math.Floor(3600 * (Math.Abs(angle) - degrees - minutes / 60.0));
 
-			return String.Format("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
-		}
 
-		private static string LatitudeDMS(double latitude)
-		{
-			return AngleToDMS(latitude) + (latitude > 0 ? " N" : " S");
-		}
-
-		private string LongitudeDMS(double longitude)
-		{
-			double clampedLongitude = JUtil.ClampDegrees180(longitude);
-			return AngleToDMS(clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
-		}
-
-		private static Vector3d SwapYZ(Vector3d v)
-		{
-			return v.xzy;
-		}
-
-		private static Vector3d SwappedOrbitNormal(Orbit o)
-		{
-			return -SwapYZ(o.GetOrbitNormal()).normalized;
-		}
 		// Another piece from MechJeb.
 		private void FetchTrueAltitude()
 		{
@@ -294,17 +267,7 @@ namespace JSI
 			return false;
 		}
 
-		private static double NormalAngle(Vector3 a, Vector3 b, Vector3 up)
-		{
-			return SignedAngle(Vector3.Cross(up, a), Vector3.Cross(up, b), up);
-		}
 
-		private static float SignedAngle(Vector3 v1, Vector3 v2, Vector3 up)
-		{
-			if (Vector3.Dot(Vector3.Cross(v1, v2), up) < 0)
-				return -Vector3.Angle(v1, v2);
-			return Vector3.Angle(v1, v2);
-		}
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
 		private static string SituationString(Vessel.Situations situation)
@@ -329,7 +292,9 @@ namespace JSI
 			}
 			return "??!";
 		}
+
 		//TODO: I really should make that more sensible, I mean, three boolean flags?...
+		// These three are formatting functions. They're better off moved into the formatter class.
 		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
@@ -345,6 +310,25 @@ namespace JSI
 
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
 
+		}
+		private static string AngleToDMS(double angle)
+		{
+			int degrees = (int)Math.Floor(Math.Abs(angle));
+			int minutes = (int)Math.Floor(60 * (Math.Abs(angle) - degrees));
+			int seconds = (int)Math.Floor(3600 * (Math.Abs(angle) - degrees - minutes / 60.0));
+
+			return String.Format("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
+		}
+
+		private static string LatitudeDMS(double latitude)
+		{
+			return AngleToDMS(latitude) + (latitude > 0 ? " N" : " S");
+		}
+
+		private string LongitudeDMS(double longitude)
+		{
+			double clampedLongitude = JUtil.ClampDegrees180(longitude);
+			return AngleToDMS(clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
 		}
 
 		public object ProcessVariable(string input)
@@ -540,7 +524,7 @@ namespace JSI
 					if (target != null) {
 						if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 							return -1;
-						return Math.Abs(Vector3d.Angle(SwappedOrbitNormal(vessel.GetOrbit()), SwappedOrbitNormal(targetorbit)));
+						return Math.Abs(Vector3d.Angle(JUtil.SwappedOrbitNormal(vessel.GetOrbit()), JUtil.SwappedOrbitNormal(targetorbit)));
 					}
 					return -1;
 				case "TARGETORBITBODY":
@@ -577,18 +561,18 @@ namespace JSI
 				case "TARGETANGLEX":
 					if (target != null) {
 						if (target is ModuleDockingNode)
-							return NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, up);
+							return JUtil.NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, up);
 						if (target is Vessel)
-							return NormalAngle(-target.GetFwdVector(), forward, up);
+							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
 						return 0;
 					}
 					return 0;
 				case "TARGETANGLEY":
 					if (target != null) {
 						if (target is ModuleDockingNode)
-							return NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, -right);
+							return JUtil.NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, -right);
 						if (target is Vessel) {
-							NormalAngle(-target.GetFwdVector(), forward, -right);
+							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
 						return 0;
 					}
@@ -596,9 +580,9 @@ namespace JSI
 				case "TARGETANGLEZ":
 					if (target != null) {
 						if (target is ModuleDockingNode)
-							return NormalAngle((target as ModuleDockingNode).GetTransform().up, up, -forward);
+							return JUtil.NormalAngle((target as ModuleDockingNode).GetTransform().up, up, -forward);
 						if (target is Vessel) {
-							return NormalAngle(target.GetTransform().up, up, -forward);
+							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
 						return 0;
 					}

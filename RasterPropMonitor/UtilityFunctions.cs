@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using UnityEngine;
 
 namespace JSI
 {
@@ -72,6 +73,27 @@ namespace JSI
 			if (angle > 180)
 				angle -= 360;
 			return angle;
+		}
+
+		public static Vector3d SwapYZ(Vector3d v)
+		{
+			return v.xzy;
+		}
+		public static Vector3d SwappedOrbitNormal(Orbit o)
+		{
+			return -SwapYZ(o.GetOrbitNormal()).normalized;
+		}
+
+		public static double NormalAngle(Vector3 a, Vector3 b, Vector3 up)
+		{
+			return SignedAngle(Vector3.Cross(up, a), Vector3.Cross(up, b), up);
+		}
+
+		public static float SignedAngle(Vector3 v1, Vector3 v2, Vector3 up)
+		{
+			if (Vector3.Dot(Vector3.Cross(v1, v2), up) < 0)
+				return -Vector3.Angle(v1, v2);
+			return Vector3.Angle(v1, v2);
 		}
 	}
 }
