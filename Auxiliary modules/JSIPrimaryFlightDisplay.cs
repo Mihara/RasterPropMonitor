@@ -35,8 +35,10 @@ namespace JSI
 			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
 			ballCamera.targetTexture = screen;
+			navBall.renderer.enabled = true;
 			navBall.transform.rotation = rotationVesselSurface;
 			ballCamera.Render();
+			navBall.renderer.enabled = false;
 
 			GL.PushMatrix();
 			GL.LoadOrtho();
@@ -145,8 +147,13 @@ namespace JSI
 			navBall = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 			navBall.name = "RPMNB"+navBall.GetInstanceID();
 			navBall.layer = ballLayer;
+			navBall.transform.position = Vector3.zero;
+			navBall.transform.localRotation = Quaternion.identity;
+			navBall.transform.localScale = new Vector3(1f, 1f, 1f);
 			navBall.renderer.material = horizonMaterial;
-			horizonMaterial.SetTextureOffset("_MainTex",new Vector2(0.5f,0));
+			navBall.renderer.enabled = false;
+			//horizonMaterial.SetTextureOffset("_MainTex",new Vector2(0.5f,0));
+			horizonMaterial.SetTextureScale("_MainTex",new Vector2(-1f,1f));
 			navBall.collider.enabled = false;
 
 
@@ -159,8 +166,8 @@ namespace JSI
 			ballCamera.aspect = ballAspect;
 			ballCamera.orthographicSize = 0.7f;
 			ballCamera.cullingMask = 1 << ballLayer;
-			ballCamera.transform.position = new Vector3(0, 0, 1);
-			ballCamera.transform.LookAt(navBall.transform);
+			ballCamera.transform.position = new Vector3(2, 0, 0);
+			ballCamera.transform.LookAt(navBall.transform, new Vector3(0,1,0));
 		}
 	}
 }
