@@ -199,8 +199,7 @@ namespace JSI
 				}
 
 				foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>()) {
-					ScienceData[] data = container.GetData();
-					foreach (ScienceData datapoint in data) {
+					foreach (ScienceData datapoint in container.GetData()) {
 						if (datapoint != null)
 							totalDataAmount += datapoint.dataAmount;
 					}
