@@ -10,9 +10,17 @@ namespace JSI
 		public string staticOverlay;
 		[KSPField]
 		public string headingBar;
+		[KSPField]
+		public float ballAspect = 1.35f;
+
 		private Material horizonMaterial;
 		private Material overlayMaterial;
 		private Material headingMaterial;
+
+		private GameObject navBall;
+		private Camera ballCamera;
+
+		private const int ballLayer = 17;
 
 		public bool RenderPFD(RenderTexture screen)
 		{
@@ -26,10 +34,15 @@ namespace JSI
 			Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
+			ballCamera.targetTexture = screen;
+			navBall.transform.rotation = rotationVesselSurface;
+			ballCamera.Render();
+
 			GL.PushMatrix();
 			GL.LoadOrtho();
 
-			DrawHorizon(rotationVesselSurface.eulerAngles.z, rotationVesselSurface.eulerAngles.x);
+			//DrawHorizon(rotationVesselSurface.eulerAngles.z, rotationVesselSurface.eulerAngles.x);
+
 			DrawHeadingBar(rotationVesselSurface.eulerAngles.y);
 			DrawOverlay();
 
@@ -37,6 +50,7 @@ namespace JSI
 			return true;
 
 		}
+
 
 		// It all went low-level and downhill from there.
 
@@ -127,6 +141,26 @@ namespace JSI
 			overlayMaterial.SetTexture("_MainTex", GameDatabase.Instance.GetTexture(staticOverlay, false));
 			headingMaterial = new Material(unlit);
 			headingMaterial.SetTexture("_MainTex", GameDatabase.Instance.GetTexture(headingBar, false));
+
+			navBall = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			navBall.name = "RPMNB"+navBall.GetInstanceID();
+			navBall.layer = ballLayer;
+			navBall.renderer.material = horizonMaterial;
+			horizonMaterial.SetTextureOffset("_MainTex",new Vector2(0.5f,0));
+			navBall.collider.enabled = false;
+
+
+			GameObject cameraBody = new GameObject();
+			cameraBody.name = "RPMPFD"+cameraBody.GetInstanceID();
+			cameraBody.layer = ballLayer;
+			ballCamera = cameraBody.AddComponent<Camera>();
+			ballCamera.enabled = false;
+			ballCamera.orthographic = true;
+			ballCamera.aspect = ballAspect;
+			ballCamera.orthographicSize = 0.7f;
+			ballCamera.cullingMask = 1 << ballLayer;
+			ballCamera.transform.position = new Vector3(0, 0, 1);
+			ballCamera.transform.LookAt(navBall.transform);
 		}
 	}
 }
