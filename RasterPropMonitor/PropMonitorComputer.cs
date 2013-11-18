@@ -10,9 +10,9 @@ namespace JSI
 		public bool updateForced = false;
 		// Data common for various variable calculations
 		private int vesselNumParts;
-		private int updateCountdown = 0;
-		private int dataUpdateCountdown = 0;
-		private int refreshRate = int.MaxValue;
+		private int updateCountdown;
+		private int dataUpdateCountdown;
+		private int refreshTextRate = int.MaxValue;
 		private int refreshDataRate = int.MaxValue;
 		private Vector3d coM;
 		private Vector3d up;
@@ -34,8 +34,8 @@ namespace JSI
 		private double altitudeASL;
 		private double altitudeTrue;
 		private Orbit targetorbit;
-		private bool orbitSensibility = false;
-		private bool targetOrbitSensibility = false;
+		private bool orbitSensibility;
+		private bool targetOrbitSensibility;
 		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d>();
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
@@ -71,14 +71,14 @@ namespace JSI
 
 		public void UpdateRefreshRates(int rate, int dataRate)
 		{
-			refreshRate = Math.Min(rate, refreshRate);
+			refreshTextRate = Math.Min(rate, refreshTextRate);
 			refreshDataRate = Math.Min(dataRate, refreshDataRate);
 		}
 
 		private bool UpdateCheck()
 		{
 			if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced) {
-				updateCountdown = refreshRate;
+				updateCountdown = refreshTextRate;
 				if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced) {
 					dataUpdateCountdown = refreshDataRate;
 					vesselNumParts = vessel.Parts.Count;
@@ -121,7 +121,6 @@ namespace JSI
 				return 0;
 			return engine.maxThrust;
 		}
-
 
 		public void FetchCommonData()
 		{
@@ -237,9 +236,6 @@ namespace JSI
 				return result.y;
 			return 0;
 		}
-
-
-
 		// Another piece from MechJeb.
 		private void FetchTrueAltitude()
 		{
@@ -266,8 +262,6 @@ namespace JSI
 				return true;
 			return false;
 		}
-
-
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
 		private static string SituationString(Vessel.Situations situation)
@@ -292,7 +286,6 @@ namespace JSI
 			}
 			return "??!";
 		}
-
 		//TODO: I really should make that more sensible, I mean, three boolean flags?...
 		// These three are formatting functions. They're better off moved into the formatter class.
 		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip)
@@ -311,6 +304,7 @@ namespace JSI
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
 
 		}
+
 		private static string AngleToDMS(double angle)
 		{
 			int degrees = (int)Math.Floor(Math.Abs(angle));
@@ -333,6 +327,59 @@ namespace JSI
 
 		public object ProcessVariable(string input)
 		{
+
+			// It's slightly more optimal if we take care of that before the main switch body.
+			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
+				string[] tokens = input.Split('_');
+
+				// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
+				// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
+				if (tokens.Length == 3 && tokens[0] == "LISTR") {
+					ushort resourceID = Convert.ToUInt16(tokens[1]);
+					switch (tokens[2]) {
+						case "NAME":
+							if (resourceID >= resources.Count)
+								return string.Empty;
+							return resourcesAlphabetic[resourceID];
+						case "VAL":
+							if (resourceID >= resources.Count)
+								return 0;
+							return resources[resourcesAlphabetic[resourceID]].x;
+						case "MAX":
+							if (resourceID >= resources.Count)
+								return 0;
+							return resources[resourcesAlphabetic[resourceID]].y;
+					}
+
+
+				}
+
+				// We do similar things for crew rosters.
+				// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
+				if (tokens.Length == 3 && tokens[0] == "CREW") { 
+					ushort crewSeatID = Convert.ToUInt16(tokens[1]);
+					if (tokens[2] == "PRESENT") {
+						if (crewSeatID >= vesselCrew.Length)
+							return -1;
+						return 1;
+					}
+					if (crewSeatID >= vesselCrew.Length)
+						return string.Empty;
+					string kerbalname = vesselCrew[crewSeatID].name;
+					string[] tokenisedname = kerbalname.Split();
+					switch (tokens[2]) {
+						case "FIRST":
+							return tokenisedname[0];
+						case "LAST":
+							return tokenisedname[1];
+						case "FULL":
+							return kerbalname;
+						default:
+							return "???!";
+					}
+				}
+			}
+
 			switch (input) {
 
 			// It's a bit crude, but it's simple enough to populate.
@@ -350,7 +397,7 @@ namespace JSI
 				case "HORZVELOCITY":
 					return (velocityVesselSurface - (speedVertical * up)).magnitude;
 				case "EASPEED":
-					return vessel.srf_velocity.magnitude * 	Math.Sqrt(vessel.atmDensity / standardAtmosphere);
+					return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
 
 			// The way Engineer does it...
 				case "TGTRELX":
@@ -723,54 +770,7 @@ namespace JSI
 					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
 
 			}
-			// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
-			// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
-			string[] tokens = input.Split('_');
 
-			if (tokens.Length == 3 && tokens[0] == "LISTR") {
-				ushort resourceID = Convert.ToUInt16(tokens[1]);
-				switch (tokens[2]) {
-					case "NAME":
-						if (resourceID >= resources.Count)
-							return string.Empty;
-						return resourcesAlphabetic[resourceID];
-					case "VAL":
-						if (resourceID >= resources.Count)
-							return 0;
-						return resources[resourcesAlphabetic[resourceID]].x;
-					case "MAX":
-						if (resourceID >= resources.Count)
-							return 0;
-						return resources[resourcesAlphabetic[resourceID]].y;
-				}
-
-
-			}
-
-			// We do similar things for crew rosters.
-			// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
-			if (tokens.Length == 3 && tokens[0] == "CREW") { 
-				ushort crewSeatID = Convert.ToUInt16(tokens[1]);
-				if (tokens[2] == "PRESENT") {
-					if (crewSeatID >= vesselCrew.Length)
-						return -1;
-					return 1;
-				}
-				if (crewSeatID >= vesselCrew.Length)
-					return string.Empty;
-				string kerbalname = vesselCrew[crewSeatID].name;
-				string[] tokenisedname = kerbalname.Split();
-				switch (tokens[2]) {
-					case "FIRST":
-						return tokenisedname[0];
-					case "LAST":
-						return tokenisedname[1];
-					case "FULL":
-						return kerbalname;
-					default:
-						return "???!";
-				}
-			}
 
 			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
