@@ -362,6 +362,10 @@ namespace JSI
 					return velocityRelativeTarget.magnitude;
 				case "HORZVELOCITY":
 					return (velocityVesselSurface - (speedVertical * up)).magnitude;
+				case "EASPEED":
+					return vessel.srf_velocity.magnitude * 	Math.Sqrt((vessel.atmDensity /
+						FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]))));
+
 			// The way Engineer does it...
 				case "TGTRELX":
 					return FlightGlobals.ship_tgtVelocity.x;
