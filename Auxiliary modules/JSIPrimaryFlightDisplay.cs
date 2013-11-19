@@ -17,6 +17,8 @@ namespace JSI
 		[KSPField]
 		public float screenAspect = 1.35f;
 		[KSPField]
+		public bool ballIsEmissive = false;
+		[KSPField]
 		public Color backgroundColor = Color.black;
 		[KSPField]
 		public float ballOpacity = 0.8f;
@@ -206,8 +208,13 @@ namespace JSI
 			navBall.transform.rotation = Quaternion.identity;
 			navBall.transform.localRotation = Quaternion.identity;
 
-			navBall.renderer.material.mainTexture = horizonTex;
-			navBall.renderer.material.color = ballColor;
+			if (ballIsEmissive) {
+				navBall.renderer.material.SetTexture("_Emissive", horizonTex);
+				navBall.renderer.material.SetColor("_EmissiveColor",ballColor);
+			} else {
+				navBall.renderer.material.mainTexture = horizonTex;
+				navBall.renderer.material.color = ballColor;
+			}
 			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
 			markerPrograde = BuildMarker(0, 2, progradeColor);
