@@ -570,7 +570,7 @@ namespace JSI
 					if (target != null) {
 						if (targetorbit.referenceBody != vessel.orbit.referenceBody)
 							return -1;
-						return Math.Abs(Vector3d.Angle(JUtil.SwappedOrbitNormal(vessel.GetOrbit()), JUtil.SwappedOrbitNormal(targetorbit)));
+						return Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetorbit.SwappedOrbitNormal()));
 					}
 					return -1;
 				case "TARGETORBITBODY":
@@ -594,6 +594,14 @@ namespace JSI
 						return (target as Vessel).mainBody.GetAltitude((target as Vessel).findWorldCenterOfMass());
 					}
 					return targetorbit.altitude;
+				case "TIMETOANWITHTARGET":
+					if (target == null)
+						return -1;
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit,time),true,false,true);
+				case "TIMETODNWITHTARGET":
+					if (target == null)
+						return -1;
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit,time),true,false,true);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":

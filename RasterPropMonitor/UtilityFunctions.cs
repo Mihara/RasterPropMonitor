@@ -4,24 +4,8 @@ using UnityEngine;
 
 namespace JSI
 {
-	static class JUtil
+	public static class JUtil
 	{
-		/*
-		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp)
-		{
-			// I hate copypaste, and this is what I'm going to do about it.
-			if (thatProp.part != null) {
-				foreach (InternalProp prop in thatProp.part.internalModel.props) {
-					RasterPropMonitorComputer other = prop.FindModelComponent<RasterPropMonitorComputer>();
-					if (other != null) {
-						return other;
-					}
-				}
-			}
-			thatProp.AddModule(typeof(RasterPropMonitorComputer).Name);
-			return thatProp.FindModelComponent<RasterPropMonitorComputer>();
-		}
-		*/
 		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp)
 		{
 			// I hate copypaste, and this is what I'm going to do about it.
@@ -39,14 +23,12 @@ namespace JSI
 		public static string WordWrap(string text, int maxLineLength)
 		{
 			StringBuilder sb = new StringBuilder();
-			int currentIndex;
-			int lastWrap;
 			char[] prc = { ' ', ',', '.', '?', '!', ':', ';', '-' };
 			char[] ws = { ' ' };
 
 			foreach (string line in text.Split(new [] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
-				currentIndex = 0;
-				lastWrap = 0;
+				int currentIndex = 0;
+				int lastWrap = 0;
 				do {
 					currentIndex = lastWrap + maxLineLength > line.Length ? line.Length : (line.LastIndexOfAny(prc, Math.Min(line.Length - 1, lastWrap + maxLineLength)) + 1);
 					if (currentIndex <= lastWrap)
@@ -57,7 +39,6 @@ namespace JSI
 			}
 			return sb.ToString();
 		}
-
 		// Some snippets from MechJeb...
 		public static double ClampDegrees360(double angle)
 		{
@@ -75,13 +56,17 @@ namespace JSI
 			return angle;
 		}
 
-		public static Vector3d SwapYZ(Vector3d v)
+		public static double ClampRadiansTwoPi(double angle)
 		{
-			return v.xzy;
+			angle = angle % (2 * Math.PI);
+			if (angle < 0)
+				return angle + 2 * Math.PI;
+			return angle;
 		}
-		public static Vector3d SwappedOrbitNormal(Orbit o)
+		//acosh(x) = log(x + sqrt(x^2 - 1))
+		public static double Acosh(double x)
 		{
-			return -SwapYZ(o.GetOrbitNormal()).normalized;
+			return Math.Log(x + Math.Sqrt(x * x - 1));
 		}
 
 		public static double NormalAngle(Vector3 a, Vector3 b, Vector3 up)
@@ -94,6 +79,119 @@ namespace JSI
 			if (Vector3.Dot(Vector3.Cross(v1, v2), up) < 0)
 				return -Vector3.Angle(v1, v2);
 			return Vector3.Angle(v1, v2);
+		}
+	}
+	// Should I just import the entire class from MJ?...
+	public static class OrbitExtensions
+	{
+		public static Vector3d SwapYZ(Vector3d v)
+		{
+			return v.xzy;
+		}
+
+		public static Vector3d SwappedOrbitNormal(this Orbit o)
+		{
+			return -SwapYZ(o.GetOrbitNormal()).normalized;
+		}
+
+		public static double TimeOfAscendingNode(this Orbit a, Orbit b, double uT)
+		{
+			return a.TimeOfTrueAnomaly(a.AscendingNodeTrueAnomaly(b), uT);
+		}
+
+		public static double TimeOfDescendingNode(this Orbit a, Orbit b, double uT)
+		{
+			return a.TimeOfTrueAnomaly(a.DescendingNodeTrueAnomaly(b), uT);
+		}
+
+		public static double TimeOfTrueAnomaly(this Orbit o, double trueAnomaly, double uT)
+		{
+			return o.UTAtMeanAnomaly(o.GetMeanAnomalyAtEccentricAnomaly(o.GetEccentricAnomalyAtTrueAnomaly(trueAnomaly)), uT);
+		}
+
+		public static double AscendingNodeTrueAnomaly(this Orbit a, Orbit b)
+		{
+			Vector3d vectorToAN = Vector3d.Cross(a.SwappedOrbitNormal(), b.SwappedOrbitNormal());
+			return a.TrueAnomalyFromVector(vectorToAN);
+		}
+
+		public static double DescendingNodeTrueAnomaly(this Orbit a, Orbit b)
+		{
+			return JUtil.ClampDegrees360(a.AscendingNodeTrueAnomaly(b) + 180);
+		}
+
+		public static double TrueAnomalyFromVector(this Orbit o, Vector3d vec)
+		{
+			Vector3d projected = Vector3d.Exclude(o.SwappedOrbitNormal(), vec);
+			Vector3d vectorToPe = SwapYZ(o.eccVec);
+			double angleFromPe = Math.Abs(Vector3d.Angle(vectorToPe, projected));
+
+			//If the vector points to the infalling part of the orbit then we need to do 360 minus the
+			//angle from Pe to get the true anomaly. Test this by taking the the cross product of the
+			//orbit normal and vector to the periapsis. This gives a vector that points to center of the 
+			//outgoing side of the orbit. If vectorToAN is more than 90 degrees from this vector, it occurs
+			//during the infalling part of the orbit.
+			if (Math.Abs(Vector3d.Angle(projected, Vector3d.Cross(o.SwappedOrbitNormal(), vectorToPe))) < 90) {
+				return angleFromPe;
+			}
+			return 360 - angleFromPe;
+		}
+
+		public static double UTAtMeanAnomaly(this Orbit o, double meanAnomaly, double uT)
+		{
+			double currentMeanAnomaly = o.MeanAnomalyAtUT(uT);
+			double meanDifference = meanAnomaly - currentMeanAnomaly;
+			if (o.eccentricity < 1)
+				meanDifference = JUtil.ClampRadiansTwoPi(meanDifference);
+			return uT + meanDifference / o.MeanMotion();
+		}
+
+		public static double MeanAnomalyAtUT(this Orbit o, double uT)
+		{
+			double ret = o.meanAnomalyAtEpoch + o.MeanMotion() * (uT - o.epoch);
+			if (o.eccentricity < 1)
+				ret = JUtil.ClampRadiansTwoPi(ret);
+			return ret;
+		}
+
+		public static double MeanMotion(this Orbit o)
+		{
+			return Math.Sqrt(o.referenceBody.gravParameter / Math.Abs(Math.Pow(o.semiMajorAxis, 3)));
+		}
+
+		public static double GetMeanAnomalyAtEccentricAnomaly(this Orbit o, double eE)
+		{
+			double e = o.eccentricity;
+			if (e < 1) { //elliptical orbits
+				return JUtil.ClampRadiansTwoPi(eE - (e * Math.Sin(eE)));
+			} //hyperbolic orbits
+			return (e * Math.Sinh(eE)) - eE;
+		}
+
+		public static double GetEccentricAnomalyAtTrueAnomaly(this Orbit o, double trueAnomaly)
+		{
+			double e = o.eccentricity;
+			trueAnomaly = JUtil.ClampDegrees360(trueAnomaly);
+			trueAnomaly = trueAnomaly * (Math.PI / 180);
+
+			if (e < 1) { //elliptical orbits
+				double cosE = (e + Math.Cos(trueAnomaly)) / (1 + e * Math.Cos(trueAnomaly));
+				double sinE = Math.Sqrt(1 - (cosE * cosE));
+				if (trueAnomaly > Math.PI)
+					sinE *= -1;
+
+				return JUtil.ClampRadiansTwoPi(Math.Atan2(sinE, cosE));
+			} else {  //hyperbolic orbits
+				double coshE = (e + Math.Cos(trueAnomaly)) / (1 + e * Math.Cos(trueAnomaly));
+				if (coshE < 1)
+					throw new ArgumentException("OrbitExtensions.GetEccentricAnomalyAtTrueAnomaly: True anomaly of " + trueAnomaly + " radians is not attained by orbit with eccentricity " + o.eccentricity);
+
+				double E = JUtil.Acosh(coshE);
+				if (trueAnomaly > Math.PI)
+					E *= -1;
+
+				return E;
+			}
 		}
 	}
 }
