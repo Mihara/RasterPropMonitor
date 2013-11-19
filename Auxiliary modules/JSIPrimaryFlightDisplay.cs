@@ -18,16 +18,29 @@ namespace JSI
 		public float screenAspect = 1.35f;
 		[KSPField]
 		public Color backgroundColor = Color.blue;
+		[KSPField]
+		public float ballOpacity = 1f;
+		[KSPField]
+		public float markerScale = 0.1f;
+		[KSPField]
+		public float markerRadius = 0.50f;
+		[KSPField] // x,y, width, height
+		public Vector4 headingBarPosition = new Vector4(0, 0.8f, 0.8f, 0.1f);
+		[KSPField]
+		public float headingSpan = 0.25f;
 		private Texture2D horizonTex;
 		private Material overlayMaterial;
 		private Material headingMaterial;
+		private Material gizmoMaterial;
 		private NavBall stockNavBall;
+		private GameObject ballPivot;
 		private GameObject navBall;
 		private GameObject cameraBody;
 		private GameObject overlay;
 		private GameObject heading;
+		private GameObject markerPrograde;
 		private Camera ballCamera;
-		private const float headingSpan = 0.25f;
+		private const float markerPlane = 1.4f;
 
 		public bool RenderPFD(RenderTexture screen)
 		{
@@ -43,21 +56,38 @@ namespace JSI
 			Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
 			Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
+			Vector3d velocityVesselOrbit = vessel.orbit.GetVel();
+			Vector3d velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
+			Vector3d velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
+			Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
 
 
-
-			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
+			ballPivot.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
 			heading.renderer.material.SetTextureOffset("_MainTex",
 				new Vector2(
 					Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2
 					, 0)
 			);
 
+			Quaternion gymbal = stockNavBall.attitudeGymbal;
+
+			markerPrograde.transform.position = FixMarkerPosition(velocityVesselSurfaceUnit, gymbal) * markerRadius;
+			markerPrograde.renderer.sharedMaterial.color = new Color(1, 1, 1, (float)(markerPrograde.transform.position.z + 0.5));
+			markerPrograde.transform.position = new Vector3(markerPrograde.transform.position.x, markerPrograde.transform.position.y, markerPlane);
+			FaceCamera(markerPrograde);
+
 			Show(cameraBody, navBall, overlay, heading);
 			ballCamera.Render();
 			Hide(cameraBody, navBall, overlay, heading);
 
 			return true;
+		}
+
+		private static Vector3 FixMarkerPosition(Vector3 thatVector, Quaternion thatVoodoo)
+		{
+			Vector3 returnVector = thatVoodoo * thatVector;
+			returnVector.x = -returnVector.x;
+			return returnVector;
 		}
 
 		private static Quaternion MirrorX(Quaternion input)
@@ -74,25 +104,53 @@ namespace JSI
 		{
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			overlayMaterial = new Material(unlit);
-			overlayMaterial.SetTexture("_MainTex", GameDatabase.Instance.GetTexture(staticOverlay, false));
+			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay, false);
 			headingMaterial = new Material(unlit);
-			headingMaterial.SetTexture("_MainTex", GameDatabase.Instance.GetTexture(headingBar, false));
+			headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar, false);
 
 			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture, false);
 			navBall = GameDatabase.Instance.GetModel(navBallModel);
+
+			// Cute!
+			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
+			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
+			Transform gizmoTransform = maneuverGizmoHandle.flag;
+			Renderer gizmoRenderer = gizmoTransform.renderer;
+			gizmoMaterial = gizmoRenderer.sharedMaterial;
 
 			// Ahaha, that's clever, does it work?
 			stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
 			// ...well, it does, but the result is bizarre,
 			// apparently, because the stock BALL ITSELF IS MIRRORED.
 
+			// Moving parts...
+			ballPivot = new GameObject();
+			ballPivot.layer = drawingLayer;
+			ballPivot.transform.position = Vector3.zero;
+			ballPivot.transform.rotation = Quaternion.identity;
+			ballPivot.transform.localRotation = Quaternion.identity;
+
 			navBall.name = "RPMNB" + navBall.GetInstanceID();
 			navBall.layer = drawingLayer;
-			navBall.transform.position = new Vector3(0, 0, 0);
+			navBall.transform.position = Vector3.zero;
 			navBall.transform.rotation = Quaternion.identity;
 			navBall.transform.localRotation = Quaternion.identity;
-			navBall.renderer.material.SetTexture("_MainTex", horizonTex);
+			navBall.transform.parent = ballPivot.transform;
 
+
+			navBall.renderer.material.mainTexture = horizonTex;
+			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
+
+			markerPrograde = CreateSimplePlane("RPMPFDPrograde", markerScale, drawingLayer);
+			markerPrograde.renderer.sharedMaterial = gizmoMaterial;
+			markerPrograde.renderer.sharedMaterial.mainTextureScale = Vector2.one / 3f;
+			markerPrograde.renderer.sharedMaterial.mainTextureOffset = new Vector2(0, 2f / 3f);
+			markerPrograde.renderer.sharedMaterial.color = Color.white;
+			markerPrograde.transform.position = Vector3.zero;
+			markerPrograde.transform.parent = ballPivot.transform;
+
+
+			// Non-moving parts...
 			cameraBody = new GameObject();
 			cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
 			cameraBody.layer = drawingLayer;
@@ -109,24 +167,37 @@ namespace JSI
 			ballCamera.transform.position = new Vector3(0, 0, 2);
 			ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
 
-			overlay = CreateSimplePlane("RPMPFDOverlay", 1f);
+			overlay = CreateSimplePlane("RPMPFDOverlay", 1f, drawingLayer);
 			overlay.layer = drawingLayer;
-			// first turn, THEN move.
-			overlay.transform.LookAt(Vector3.down,Vector3.back);
 			overlay.transform.position = new Vector3(0, 0, 1.5f);
 			overlay.renderer.material = overlayMaterial;
 			overlay.transform.parent = cameraBody.transform;
+			FaceCamera(overlay);
 
-			heading = CreateSimplePlane("RPMPFDHeading", 1f);
+			heading = CreateSimplePlane("RPMPFDHeading", 1f, drawingLayer);
 			heading.layer = drawingLayer;
-			heading.transform.LookAt(Vector3.down,Vector3.back);
-			heading.transform.position = new Vector3(0, 0.8f, 1.45f);
+			heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, 1.45f);
 			heading.transform.parent = cameraBody.transform;
-			heading.transform.localScale = new Vector3(0.8f, 0, 0.1f);
+			heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
 			heading.renderer.material = headingMaterial;
 			heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
+			FaceCamera(heading);
 
 			Hide(navBall, cameraBody, overlay, heading);
+		}
+
+		private static void FaceCamera(GameObject thatObject)
+		{
+			if (thatObject == null)
+				throw new System.ArgumentNullException("thatObject");
+			// This is known to rotate correctly, so I'll keep it around.
+			/*
+			Vector3 originalPosition = thatObject.transform.position;
+			thatObject.transform.position = Vector3.zero;
+			thatObject.transform.LookAt(Vector3.down,Vector3.back);
+			thatObject.transform.position = originalPosition;
+			*/
+			thatObject.transform.rotation = Quaternion.Euler(new Vector3(90, 180, 0));
 		}
 
 		private static void Hide(params GameObject[] objects)
@@ -149,7 +220,8 @@ namespace JSI
 		// This function courtesy of EnhancedNavBall.
 		private static GameObject CreateSimplePlane(
 			string name,
-			float vectorSize)
+			float vectorSize,
+			int drawingLayer)
 		{
 			Mesh mesh = new Mesh();
 
@@ -189,6 +261,8 @@ namespace JSI
 			mesh.Optimize();
 
 			meshFilter.mesh = mesh;
+
+			obj.layer = drawingLayer;
 
 			return obj;
 		}
