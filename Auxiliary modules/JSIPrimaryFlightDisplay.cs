@@ -15,11 +15,13 @@ namespace JSI
 		[KSPField]
 		public string headingBar;
 		[KSPField]
-		public float ballAspect = 1.35f;
+		public float screenAspect = 1.35f;
 
 		private Texture2D horizonTex;
 		private Material overlayMaterial;
 		private Material headingMaterial;
+
+		private NavBall stockNavBall;
 
 		private GameObject navBall;
 		private Camera ballCamera;
@@ -30,18 +32,24 @@ namespace JSI
 				return false;
 			GL.Clear(true, true, Color.blue);
 
+			/*
 			Vector3d coM = vessel.findWorldCenterOfMass();
 			Vector3d up = (coM - vessel.mainBody.position).normalized;
 			Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
 			Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
+			*/
 
 			ballCamera.targetTexture = screen;
 			navBall.SetActive(true);
 			navBall.renderer.enabled = true;
 
-			//navBall.transform.rotation = rotationVesselSurface;
-			//navBall.transform.localRotation = FlightGlobals.ship_orientation;
+			Quaternion eww = stockNavBall.navBall.rotation;
+			// Witchcraft: It's called mirroring the X axis of the quaternion's conjugate.
+			eww.z = -eww.z;
+			eww.y = -eww.y;
+
+			navBall.transform.rotation = eww;
 
 			ballCamera.Render();
 			navBall.renderer.enabled = false;
@@ -77,6 +85,8 @@ namespace JSI
 			navBall.transform.rotation = Quaternion.identity;
 			navBall.transform.localRotation = Quaternion.identity;
 			navBall.renderer.material.SetTexture("_MainTex",horizonTex);
+			// We need to get rid of that coded offset later.
+			navBall.renderer.material.SetTextureOffset("_MainTex",new Vector2(navBall.renderer.material.GetTextureOffset("_MainTex").x-0.25f,0));
 			navBall.renderer.enabled = false;
 
 
@@ -86,11 +96,21 @@ namespace JSI
 			ballCamera = cameraBody.AddComponent<Camera>();
 			ballCamera.enabled = false;
 			ballCamera.orthographic = true;
-			ballCamera.aspect = ballAspect;
+			ballCamera.aspect = screenAspect;
 			ballCamera.orthographicSize = 0.7f;
 			ballCamera.cullingMask = 1 << drawingLayer;
-			ballCamera.transform.position = new Vector3(2, 0, 0);
-			ballCamera.transform.LookAt(Vector3.zero);
+			// -2,0,0 seems to get the orientation exactly as the ship.
+			// But logically, forward is Z+, right?
+			// Which means that 
+			ballCamera.transform.position = new Vector3(0, 0, 2);
+			ballCamera.transform.LookAt(Vector3.zero,new Vector3(0,2,0));
+
+			// Ahaha, that's clever, does it work?
+			stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
+			// ...well, it does, but the result is bizarre,
+			// apparently, because the stock BALL ITSELF IS MIRRORED.
+
+
 		}
 
 	}
