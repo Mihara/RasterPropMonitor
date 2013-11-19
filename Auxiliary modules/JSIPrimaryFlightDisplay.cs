@@ -209,9 +209,13 @@ namespace JSI
 			navBall.transform.localRotation = Quaternion.identity;
 
 			if (ballIsEmissive) {
+				navBall.renderer.material.shader = Shader.Find("KSP/Emissive/Diffuse");
+				navBall.renderer.material.SetTexture("_MainTex", horizonTex);
+				navBall.renderer.material.SetTextureOffset("_Emissive",navBall.renderer.material.GetTextureOffset("_MainTex"));
 				navBall.renderer.material.SetTexture("_Emissive", horizonTex);
 				navBall.renderer.material.SetColor("_EmissiveColor",ballColor);
 			} else {
+				navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
 				navBall.renderer.material.mainTexture = horizonTex;
 				navBall.renderer.material.color = ballColor;
 			}
