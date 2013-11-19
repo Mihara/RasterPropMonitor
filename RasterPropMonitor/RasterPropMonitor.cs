@@ -153,7 +153,9 @@ namespace JSI
 		public void ButtonClick(MonitorPage callingPage)
 		{
 			if (callingPage != activePage) {
+				activePage.Active(false);
 				activePage = callingPage;
+				activePage.Active(true);
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
 				cam.PointCamera(activePage.camera, activePage.cameraFOV);
 				refreshDrawCountdown = refreshTextCountdown = 0;

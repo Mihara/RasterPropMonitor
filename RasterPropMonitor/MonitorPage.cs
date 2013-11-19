@@ -40,6 +40,8 @@ namespace JSI
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<string> pageHandler;
 		private readonly Func<RenderTexture,bool> backgroundHandler;
+		private readonly Action<bool> pageHandlerActivate;
+		private readonly Action<bool> backgroundHandlerActivate;
 		private readonly RasterPropMonitor ourMonitor;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
@@ -59,7 +61,7 @@ namespace JSI
 
 			if (node.HasNode("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule, out pageHandlerActivate);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -82,7 +84,7 @@ namespace JSI
 
 			if (node.HasNode("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule, out backgroundHandlerActivate);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,bool>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -111,9 +113,10 @@ namespace JSI
 
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance)
+		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool> activationMethod)
 		{
 			moduleInstance = null;
+			activationMethod = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
@@ -124,6 +127,15 @@ namespace JSI
 
 				if (thatModule == null)
 					return null;
+
+				if (node.HasValue("pageActiveMethod")) {
+					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+						if (m.Name == node.GetValue("pageActiveMethod")) {
+							activationMethod = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);;
+						}
+					}
+				}
+
 				moduleInstance = thatModule;
 				foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 					if (m.Name == methodName) {
@@ -133,6 +145,13 @@ namespace JSI
 
 			}
 			return null;
+		}
+
+		public void Active(bool state) {
+			if (pageHandlerActivate != null)
+				pageHandlerActivate(state);
+			if (backgroundHandlerActivate != null)
+				backgroundHandlerActivate(state);
 		}
 
 		public bool RenderBackground(RenderTexture screen)
