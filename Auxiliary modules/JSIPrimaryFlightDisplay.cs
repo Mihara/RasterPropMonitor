@@ -36,11 +36,14 @@ namespace JSI
 		public Color normalColor = new Color(0.930f, 0, 1);
 		[KSPField]
 		public Color radialColor = new Color(0, 1, 0.958f);
-
+		[KSPField]
+		public float cameraSpan = 1f;
+		[KSPField]
+		public Vector2 cameraShift = Vector2.zero;
 		private Texture2D horizonTex;
 		private Material overlayMaterial;
 		private Material headingMaterial;
-		private Material gizmoMaterial;
+		private Texture2D gizmoTexture;
 		private NavBall stockNavBall;
 		private GameObject navBall;
 		private GameObject cameraBody;
@@ -58,6 +61,12 @@ namespace JSI
 		private GameObject markerNormalMinus;
 		private GameObject markerRadial;
 		private GameObject markerRadialMinus;
+
+
+		// This is honestly very badly written code, probably the worst of what I have in this project.
+		// Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
+		// the rest is because the problem is all built out of special cases.
+		// Sorry. :)
 
 		public bool RenderPFD(RenderTexture screen)
 		{
@@ -110,11 +119,11 @@ namespace JSI
 			}
 
 			Show(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
-				markerNormal,markerNormalMinus,markerRadial,markerRadialMinus);
+				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
 			ballCamera.Render();
 			Hide(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
-				markerManeuver,markerManeuverMinus,markerTarget,markerTargetMinus,
-				markerNormal,markerNormalMinus,markerRadial,markerRadialMinus);
+				markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
+				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
 
 			return true;
 		}
@@ -150,7 +159,8 @@ namespace JSI
 		{
 
 			GameObject marker = CreateSimplePlane("RPMPFDMarker" + iconX + iconY, markerScale, drawingLayer);
-			marker.renderer.material = gizmoMaterial;
+			marker.renderer.material = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			marker.renderer.material.mainTexture = gizmoTexture;
 			marker.renderer.material.mainTextureScale = Vector2.one / 3f;
 			marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
 			marker.renderer.material.color = nativeColor;
@@ -175,7 +185,7 @@ namespace JSI
 			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
 			Transform gizmoTransform = maneuverGizmoHandle.flag;
 			Renderer gizmoRenderer = gizmoTransform.renderer;
-			gizmoMaterial = gizmoRenderer.sharedMaterial;
+			gizmoTexture = (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
 
 			// Ahaha, that's clever, does it work?
 			stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
@@ -187,6 +197,7 @@ namespace JSI
 			navBall.transform.position = Vector3.zero;
 			navBall.transform.rotation = Quaternion.identity;
 			navBall.transform.localRotation = Quaternion.identity;
+
 			navBall.renderer.material.mainTexture = horizonTex;
 			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
@@ -210,13 +221,14 @@ namespace JSI
 			ballCamera.orthographic = true;
 			ballCamera.clearFlags = CameraClearFlags.Nothing;
 			ballCamera.aspect = screenAspect;
-			ballCamera.orthographicSize = 1f;
+			ballCamera.orthographicSize = cameraSpan;
 			ballCamera.cullingMask = 1 << drawingLayer;
 			// -2,0,0 seems to get the orientation exactly as the ship.
 			// But logically, forward is Z+, right?
 			// Which means that 
 			ballCamera.transform.position = new Vector3(0, 0, 2);
 			ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
+			ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
 
 			overlay = CreateSimplePlane("RPMPFDOverlay", 1f, drawingLayer);
 			overlay.layer = drawingLayer;
