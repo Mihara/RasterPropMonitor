@@ -44,12 +44,7 @@ namespace JSI
 			navBall.SetActive(true);
 			navBall.renderer.enabled = true;
 
-			Quaternion eww = stockNavBall.navBall.rotation;
-			// Witchcraft: It's called mirroring the X axis of the quaternion's conjugate.
-			eww.z = -eww.z;
-			eww.y = -eww.y;
-
-			navBall.transform.rotation = eww;
+			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
 
 			ballCamera.Render();
 			navBall.renderer.enabled = false;
@@ -62,6 +57,10 @@ namespace JSI
 
 		}
 
+		private static Quaternion MirrorX(Quaternion input){
+			// Witchcraft: It's called mirroring the X axis of the quaternion's conjugate.
+			return new Quaternion(input.x,-input.y,-input.z,input.w);
+		}
 
 
 		public override void OnUpdate()
@@ -86,7 +85,7 @@ namespace JSI
 			navBall.transform.localRotation = Quaternion.identity;
 			navBall.renderer.material.SetTexture("_MainTex",horizonTex);
 			// We need to get rid of that coded offset later.
-			navBall.renderer.material.SetTextureOffset("_MainTex",new Vector2(navBall.renderer.material.GetTextureOffset("_MainTex").x-0.25f,0));
+			//navBall.renderer.material.SetTextureOffset("_MainTex",new Vector2(navBall.renderer.material.GetTextureOffset("_MainTex").x-0.25f,0));
 			navBall.renderer.enabled = false;
 
 
