@@ -501,8 +501,8 @@ namespace JSI
 					return string.Empty;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
-						return 1;
-					return -1;
+						return (double)1;
+					return (double)-1;
 
 			// Time
 				case "UT":
