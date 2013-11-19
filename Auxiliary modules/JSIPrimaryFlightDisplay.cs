@@ -21,6 +21,8 @@ namespace JSI
 		[KSPField]
 		public float ballOpacity = 0.8f;
 		[KSPField]
+		public Color ballColor = Color.white;
+		[KSPField]
 		public float markerScale = 0.1f;
 		[KSPField] // x,y, width, height
 		public Vector4 headingBarPosition = new Vector4(0, 0.8f, 0.8f, 0.1f);
@@ -118,9 +120,15 @@ namespace JSI
 				Show(markerTarget, markerTargetMinus);
 			}
 
+
+			// This dirty hack reduces the chance that the ball might get affected by internal cabin lighting.
+			int backupQuality = QualitySettings.pixelLightCount;
+			QualitySettings.pixelLightCount = 0;
+
 			Show(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
 				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
 			ballCamera.Render();
+			QualitySettings.pixelLightCount = backupQuality;
 			Hide(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
 				markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
 				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
@@ -199,6 +207,7 @@ namespace JSI
 			navBall.transform.localRotation = Quaternion.identity;
 
 			navBall.renderer.material.mainTexture = horizonTex;
+			navBall.renderer.material.color = ballColor;
 			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
 			markerPrograde = BuildMarker(0, 2, progradeColor);
@@ -220,6 +229,8 @@ namespace JSI
 			ballCamera.enabled = false;
 			ballCamera.orthographic = true;
 			ballCamera.clearFlags = CameraClearFlags.Nothing;
+			ballCamera.eventMask = 0;
+			ballCamera.farClipPlane = 3f;
 			ballCamera.aspect = screenAspect;
 			ballCamera.orthographicSize = cameraSpan;
 			ballCamera.cullingMask = 1 << drawingLayer;
