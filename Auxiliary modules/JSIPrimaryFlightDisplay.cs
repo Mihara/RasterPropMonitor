@@ -17,30 +17,47 @@ namespace JSI
 		[KSPField]
 		public float screenAspect = 1.35f;
 		[KSPField]
-		public Color backgroundColor = Color.blue;
+		public Color backgroundColor = Color.black;
 		[KSPField]
-		public float ballOpacity = 1f;
+		public float ballOpacity = 0.8f;
 		[KSPField]
 		public float markerScale = 0.1f;
-		[KSPField]
-		public float markerRadius = 0.50f;
 		[KSPField] // x,y, width, height
 		public Vector4 headingBarPosition = new Vector4(0, 0.8f, 0.8f, 0.1f);
 		[KSPField]
 		public float headingSpan = 0.25f;
+		[KSPField]
+		public Color progradeColor = new Color(0.84f, 0.98f, 0);
+		[KSPField]
+		public Color maneuverColor = new Color(0, 0.1137f, 1);
+		[KSPField]
+		public Color targetColor = Color.magenta;
+		[KSPField]
+		public Color normalColor = new Color(0.930f, 0, 1);
+		[KSPField]
+		public Color radialColor = new Color(0, 1, 0.958f);
+
 		private Texture2D horizonTex;
 		private Material overlayMaterial;
 		private Material headingMaterial;
 		private Material gizmoMaterial;
 		private NavBall stockNavBall;
-		private GameObject ballPivot;
 		private GameObject navBall;
 		private GameObject cameraBody;
 		private GameObject overlay;
 		private GameObject heading;
-		private GameObject markerPrograde;
 		private Camera ballCamera;
-		private const float markerPlane = 1.4f;
+		// Markers...
+		private GameObject markerPrograde;
+		private GameObject markerRetrograde;
+		private GameObject markerManeuver;
+		private GameObject markerManeuverMinus;
+		private GameObject markerTarget;
+		private GameObject markerTargetMinus;
+		private GameObject markerNormal;
+		private GameObject markerNormalMinus;
+		private GameObject markerRadial;
+		private GameObject markerRadialMinus;
 
 		public bool RenderPFD(RenderTexture screen)
 		{
@@ -57,30 +74,59 @@ namespace JSI
 			Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 			Vector3d velocityVesselOrbit = vessel.orbit.GetVel();
+			Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
 			Vector3d velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 			Vector3d velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
-			Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
+			Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbit, up).normalized;
+			Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
 
-
-			ballPivot.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
-			heading.renderer.material.SetTextureOffset("_MainTex",
-				new Vector2(
-					Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2
-					, 0)
-			);
+			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
+			heading.renderer.material.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2, 0));
 
 			Quaternion gymbal = stockNavBall.attitudeGymbal;
 
-			markerPrograde.transform.position = FixMarkerPosition(velocityVesselSurfaceUnit, gymbal) * markerRadius;
-			markerPrograde.renderer.sharedMaterial.color = new Color(1, 1, 1, (float)(markerPrograde.transform.position.z + 0.5));
-			markerPrograde.transform.position = new Vector3(markerPrograde.transform.position.x, markerPrograde.transform.position.y, markerPlane);
-			FaceCamera(markerPrograde);
+			MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColor, gymbal);
+			MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColor, gymbal);
 
-			Show(cameraBody, navBall, overlay, heading);
+			MoveMarker(markerNormal, normalPlus, normalColor, gymbal);
+			MoveMarker(markerNormalMinus, -normalPlus, normalColor, gymbal);
+
+			MoveMarker(markerRadial, radialPlus, radialColor, gymbal);
+			MoveMarker(markerRadialMinus, -radialPlus, radialColor, gymbal);
+
+			if (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
+				Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
+				MoveMarker(markerManeuver, burnVector.normalized, maneuverColor, gymbal);
+				MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColor, gymbal);
+				Show(markerManeuver, markerManeuverMinus);
+			}
+
+			ITargetable target = FlightGlobals.fetch.VesselTarget;
+			if (target != null) {
+				Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
+				MoveMarker(markerTarget, targetSeparation, targetColor, gymbal);
+				MoveMarker(markerTargetMinus, -targetSeparation, targetColor, gymbal);
+				Show(markerTarget, markerTargetMinus);
+			}
+
+			Show(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
+				markerNormal,markerNormalMinus,markerRadial,markerRadialMinus);
 			ballCamera.Render();
-			Hide(cameraBody, navBall, overlay, heading);
+			Hide(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
+				markerManeuver,markerManeuverMinus,markerTarget,markerTargetMinus,
+				markerNormal,markerNormalMinus,markerRadial,markerRadialMinus);
 
 			return true;
+		}
+
+		private static void MoveMarker(GameObject marker, Vector3 position, Color nativeColor, Quaternion voodooGymbal)
+		{
+			const float markerRadius = 0.5f;
+			const float markerPlane = 1.4f;
+			marker.transform.position = FixMarkerPosition(position, voodooGymbal) * markerRadius;
+			marker.renderer.material.color = new Color(nativeColor.r, nativeColor.g, nativeColor.b, (float)(marker.transform.position.z + 0.5));
+			marker.transform.position = new Vector3(marker.transform.position.x, marker.transform.position.y, markerPlane);
+			FaceCamera(marker);
 		}
 
 		private static Vector3 FixMarkerPosition(Vector3 thatVector, Quaternion thatVoodoo)
@@ -100,6 +146,19 @@ namespace JSI
 		{
 		}
 		*/
+		public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
+		{
+
+			GameObject marker = CreateSimplePlane("RPMPFDMarker" + iconX + iconY, markerScale, drawingLayer);
+			marker.renderer.material = gizmoMaterial;
+			marker.renderer.material.mainTextureScale = Vector2.one / 3f;
+			marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
+			marker.renderer.material.color = nativeColor;
+			marker.transform.position = Vector3.zero;
+			Hide(marker);
+			return marker;
+		}
+
 		public void Start()
 		{
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
@@ -123,32 +182,24 @@ namespace JSI
 			// ...well, it does, but the result is bizarre,
 			// apparently, because the stock BALL ITSELF IS MIRRORED.
 
-			// Moving parts...
-			ballPivot = new GameObject();
-			ballPivot.layer = drawingLayer;
-			ballPivot.transform.position = Vector3.zero;
-			ballPivot.transform.rotation = Quaternion.identity;
-			ballPivot.transform.localRotation = Quaternion.identity;
-
 			navBall.name = "RPMNB" + navBall.GetInstanceID();
 			navBall.layer = drawingLayer;
 			navBall.transform.position = Vector3.zero;
 			navBall.transform.rotation = Quaternion.identity;
 			navBall.transform.localRotation = Quaternion.identity;
-			navBall.transform.parent = ballPivot.transform;
-
-
 			navBall.renderer.material.mainTexture = horizonTex;
 			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
-			markerPrograde = CreateSimplePlane("RPMPFDPrograde", markerScale, drawingLayer);
-			markerPrograde.renderer.sharedMaterial = gizmoMaterial;
-			markerPrograde.renderer.sharedMaterial.mainTextureScale = Vector2.one / 3f;
-			markerPrograde.renderer.sharedMaterial.mainTextureOffset = new Vector2(0, 2f / 3f);
-			markerPrograde.renderer.sharedMaterial.color = Color.white;
-			markerPrograde.transform.position = Vector3.zero;
-			markerPrograde.transform.parent = ballPivot.transform;
-
+			markerPrograde = BuildMarker(0, 2, progradeColor);
+			markerRetrograde = BuildMarker(1, 2, progradeColor);
+			markerManeuver = BuildMarker(2, 0, maneuverColor);
+			markerManeuverMinus = BuildMarker(1, 2, maneuverColor);
+			markerTarget = BuildMarker(2, 2, targetColor);
+			markerTargetMinus = BuildMarker(2, 1, targetColor);
+			markerNormal = BuildMarker(0, 0, normalColor);
+			markerNormalMinus = BuildMarker(1, 0, normalColor);
+			markerRadial = BuildMarker(0, 1, radialColor);
+			markerRadialMinus = BuildMarker(1, 1, radialColor);
 
 			// Non-moving parts...
 			cameraBody = new GameObject();
