@@ -595,13 +595,13 @@ namespace JSI
 					}
 					return targetorbit.altitude;
 				case "TIMETOANWITHTARGET":
-					if (target == null)
-						return -1;
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit,time),true,false,true);
+					if (target == null || !targetOrbitSensibility)
+						return "";
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time), true, false, true);
 				case "TIMETODNWITHTARGET":
-					if (target == null)
-						return -1;
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit,time),true,false,true);
+					if (target == null || !targetOrbitSensibility)
+						return "";
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time), true, false, true);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
