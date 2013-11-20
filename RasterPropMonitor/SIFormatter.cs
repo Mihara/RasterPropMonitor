@@ -77,7 +77,7 @@ namespace JSI
 
 			// We lose one significant figure to negative sign.
 			if (inputValue < 0)
-				stringLengthModifier++;
+				stringLengthModifier+=2;
 
 			// If we have more digits than the string length as the result,
 			// we're going to be getting a prefix, so we lose one more
