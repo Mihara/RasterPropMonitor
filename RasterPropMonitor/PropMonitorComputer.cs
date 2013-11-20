@@ -597,11 +597,11 @@ namespace JSI
 				case "TIMETOANWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return "";
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time), true, false, true);
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time)-time, true, false, false);
 				case "TIMETODNWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return "";
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time), true, false, true);
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time)-time, true, false, false);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
