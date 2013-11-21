@@ -117,15 +117,14 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight)
+			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
-			if (!UpdateCheck())
-				return;
+			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) {
 
-			if ((CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) &&
-			    vessel == FlightGlobals.ActiveVessel) {
+				if (!UpdateCheck())
+					return;
 
 				FetchCommonData();
 			}
