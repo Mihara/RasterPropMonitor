@@ -20,8 +20,10 @@ namespace JSI
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
 		{
 			GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
-			if (buttonObject == (UnityEngine.Object)null)
+			if (buttonObject == (UnityEngine.Object)null) {
 				Debug.LogError("Transform name not found, expect errors.");
+				return null;
+			} 
 			return buttonObject.AddComponent<SmarterButton>();
 		}
 

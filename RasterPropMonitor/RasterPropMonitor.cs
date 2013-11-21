@@ -34,6 +34,8 @@ namespace JSI
 		public int refreshTextRate = 5;
 		[KSPField]
 		public int refreshDataRate = 10;
+		[KSPField]
+		public string globalButtons;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
@@ -148,9 +150,22 @@ namespace JSI
 			cam = new FlyingCamera(part, screenTexture, cameraAspect);
 			cam.PointCamera(activePage.camera, activePage.cameraFOV);
 
+			// If we have global buttons, set them up.
+			if (!string.IsNullOrEmpty(globalButtons)) {
+				string[] tokens = globalButtons.Split(',');
+				for (int i = 0; i < tokens.Length; i++) {
+					SmarterButton.CreateButton(internalProp, tokens[i].Trim(), i, GlobalButtonClick);
+				}
+			}
+
 		}
 
-		public void ButtonClick(MonitorPage callingPage)
+		public void GlobalButtonClick(int buttonID)
+		{
+			activePage.GlobalButtonClick(buttonID);
+		}
+
+		public void PageButtonClick(MonitorPage callingPage)
 		{
 			if (callingPage != activePage) {
 				activePage.Active(false);

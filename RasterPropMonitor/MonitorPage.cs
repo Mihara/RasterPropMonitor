@@ -42,6 +42,8 @@ namespace JSI
 		private readonly Func<RenderTexture,bool> backgroundHandler;
 		private readonly Action<bool> pageHandlerActivate;
 		private readonly Action<bool> backgroundHandlerActivate;
+		private readonly Action<int> pageHandlerButtonClick;
+		private readonly Action<int> backgroundHandlerButtonClick;
 		private readonly RasterPropMonitor ourMonitor;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
@@ -55,13 +57,13 @@ namespace JSI
 			isDefault |= node.HasValue("default");
 
 			if (node.HasValue("button")) {
-				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), ButtonClick);
+				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), PageButtonClick);
 			}
 
 
 			if (node.HasNode("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule, out pageHandlerActivate);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -84,7 +86,7 @@ namespace JSI
 
 			if (node.HasNode("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule, out backgroundHandlerActivate);
+				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,bool>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -113,10 +115,11 @@ namespace JSI
 
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool> activationMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool> activationMethod, out Action<int> buttonClickMethod)
 		{
 			moduleInstance = null;
 			activationMethod = null;
+			buttonClickMethod = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
@@ -131,7 +134,16 @@ namespace JSI
 				if (node.HasValue("pageActiveMethod")) {
 					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 						if (m.Name == node.GetValue("pageActiveMethod")) {
-							activationMethod = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);;
+							activationMethod = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
+							;
+						}
+					}
+				}
+
+				if (node.HasValue("buttonClickMethod")) {
+					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+						if (m.Name == node.GetValue("buttonClickMethod")) {
+							buttonClickMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
 						}
 					}
 				}
@@ -147,18 +159,27 @@ namespace JSI
 			return null;
 		}
 
-		public void Active(bool state) {
+		public void Active(bool state)
+		{
 			if (pageHandlerActivate != null)
 				pageHandlerActivate(state);
 			if (backgroundHandlerActivate != null)
 				backgroundHandlerActivate(state);
 		}
 
+		public void GlobalButtonClick(int buttonID)
+		{
+			if (pageHandlerButtonClick != null)
+				pageHandlerButtonClick(buttonID);
+			if (backgroundHandlerButtonClick != null)
+				backgroundHandlerButtonClick(buttonID);
+		}
+
 		public bool RenderBackground(RenderTexture screen)
 		{
 			switch (background) {
 				case BackgroundType.Texture:
-					Graphics.Blit(backgroundTexture,screen);
+					Graphics.Blit(backgroundTexture, screen);
 					return true;
 				case BackgroundType.Handler:
 					return backgroundHandler(screen);
@@ -166,11 +187,11 @@ namespace JSI
 			return false;
 		}
 
-		public void ButtonClick()
+		public void PageButtonClick()
 		{
 			// This method should do more, seriously.
 			// Maybe I can do events?...
-			ourMonitor.ButtonClick(this);
+			ourMonitor.PageButtonClick(this);
 		}
 	}
 }
