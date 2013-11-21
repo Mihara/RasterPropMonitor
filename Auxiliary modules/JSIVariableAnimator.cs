@@ -22,6 +22,8 @@ namespace JSI
 		[KSPField]
 		public bool alarmSoundLooping;
 		[KSPField]
+		public bool reverse;
+		[KSPField]
 		public string alarmShutdownButton;
 		private float?[] scalePoints = { null, null };
 		private string[] varName = { null, null };
@@ -122,9 +124,9 @@ namespace JSI
 						audioOutput.audio.Play();
 						alarmActive = true;
 					}
-					anim[animationName].normalizedTime = 1;
+					anim[animationName].normalizedTime = reverse ? 0f : 1f;
 				} else {
-					anim[animationName].normalizedTime = 0;
+					anim[animationName].normalizedTime = reverse ? 1f : 0f;
 					if (audioOutput != null) {
 						audioOutput.audio.Stop();
 						alarmActive = false;
@@ -132,7 +134,7 @@ namespace JSI
 				}
 
 			} else {
-				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, scaledValue);
+				anim[animationName].normalizedTime = Mathf.Lerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaledValue);
 			}
 
 		}
