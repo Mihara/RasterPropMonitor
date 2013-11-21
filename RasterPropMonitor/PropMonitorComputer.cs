@@ -458,8 +458,6 @@ namespace JSI
 					return totalMaximumThrust / totalShipWetMass;
 				case "GFORCE":
 					return vessel.geeForce_immediate;
-				case "THROTTLE":
-					return vessel.ctrlState.mainThrottle;
 
 			// Maneuvers
 				case "MNODETIME":
@@ -690,6 +688,27 @@ namespace JSI
 					}
 					return string.Empty;
 
+			// FLight control status
+				case "THROTTLE":
+					return (double)vessel.ctrlState.mainThrottle;
+				case "STICKPITCH":
+					return (double)vessel.ctrlState.pitch;
+				case "STICKROLL":
+					return (double)vessel.ctrlState.roll;
+				case "STICKYAW":
+					return (double)vessel.ctrlState.yaw;
+				case "STICKPITCHTRIM":
+					return (double)vessel.ctrlState.pitchTrim;
+				case "STICKROLLTRIM":
+					return (double)vessel.ctrlState.rollTrim;
+				case "STICKYAWTRIM":
+					return (double)vessel.ctrlState.yawTrim;
+				case "STICKRCSX":
+					return (double)vessel.ctrlState.X;
+				case "STICKRCSY":
+					return (double)vessel.ctrlState.Y;
+				case "STICKRCSZ":
+					return (double)vessel.ctrlState.Z;				
 
 			// Staging and other stuff
 				case "STAGE":
