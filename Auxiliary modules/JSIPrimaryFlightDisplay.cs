@@ -245,6 +245,7 @@ namespace JSI
 			ballCamera.aspect = screenAspect;
 			ballCamera.orthographicSize = cameraSpan;
 			ballCamera.cullingMask = 1 << drawingLayer;
+			ballCamera.clearFlags = CameraClearFlags.Depth;
 			// -2,0,0 seems to get the orientation exactly as the ship.
 			// But logically, forward is Z+, right?
 			// Which means that 
