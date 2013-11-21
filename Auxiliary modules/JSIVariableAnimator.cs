@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using System.Linq;
 
 namespace JSI
 {
@@ -14,11 +13,24 @@ namespace JSI
 		public int refreshRate = 10;
 		[KSPField]
 		public string scale;
+		[KSPField]
+		public Vector2 threshold;
+		[KSPField]
+		public string alarmSound;
+		[KSPField]
+		public float alarmSoundVolume = 0.5f;
+		[KSPField]
+		public bool alarmSoundLooping;
+		[KSPField]
+		public string alarmShutdownButton;
 		private float?[] scalePoints = { null, null };
 		private string[] varName = { null, null };
 		private RasterPropMonitorComputer comp;
 		private int updateCountdown;
 		private Animation anim;
+		private bool thresholdMode;
+		private FXGroup audioOutput;
+		private bool alarmActive;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -39,7 +51,7 @@ namespace JSI
 		{
 			string[] tokens = scale.Split(',');
 
-			for (int i=0; i<tokens.Length; i++) {
+			for (int i = 0; i < tokens.Length; i++) {
 				float realValue;
 				if (float.TryParse(tokens[i], out realValue)) {
 					scalePoints[i] = realValue;
@@ -49,12 +61,33 @@ namespace JSI
 
 			}
 
+			if (threshold != Vector2.zero) {
+				thresholdMode = true;
+
+				float min = Mathf.Min(threshold.x, threshold.y);
+				float max = Mathf.Max(threshold.x, threshold.y);
+				threshold.x = min;
+				threshold.y = max;
+
+				audioOutput = JUtil.SetupIVASound(internalProp, alarmSound, alarmSoundVolume, false);
+				if (!string.IsNullOrEmpty(alarmShutdownButton)) {
+					SmarterButton.CreateButton(internalProp, alarmShutdownButton, AlarmShutdown);
+				}
+			}
+
 			comp = JUtil.GetComputer(internalProp);
 
 			anim = internalProp.FindModelAnimators(animationName)[0];
 			anim.enabled = true;
 			anim[animationName].speed = 0;
 			anim.Play();
+		}
+
+		public void AlarmShutdown()
+		{
+			if (audioOutput != null && alarmActive) {
+				audioOutput.audio.Stop();
+			}
 		}
 
 		public override void OnUpdate()
@@ -70,13 +103,36 @@ namespace JSI
 
 			if (!UpdateCheck())
 				return;
+
+			float scaleBottom = 0;
+			float scaleTop = 0;
+			float varValue = 0;
 			try {
-				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, Mathf.InverseLerp(
-					scalePoints[0] ?? (float)(double)comp.ProcessVariable(varName[0]),
-					scalePoints[1] ?? (float)(double)comp.ProcessVariable(varName[1]),
-					(float)(double)comp.ProcessVariable(variableName)));
+				scaleBottom = scalePoints[0] ?? (float)(double)comp.ProcessVariable(varName[0]);
+				scaleTop = scalePoints[1] ?? (float)(double)comp.ProcessVariable(varName[1]);
+				varValue = (float)(double)comp.ProcessVariable(variableName);
 			} catch (InvalidCastException e) {
 				LogMessage("Error, one of the variables failed to produce a usable number. {0}", e);
+			}
+
+			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
+			if (thresholdMode) {
+				if (scaledValue >= threshold.x && scaledValue <= threshold.y) {
+					if (audioOutput != null && !alarmActive) {
+						audioOutput.audio.Play();
+						alarmActive = true;
+					}
+					anim[animationName].normalizedTime = 1;
+				} else {
+					anim[animationName].normalizedTime = 0;
+					if (audioOutput != null) {
+						audioOutput.audio.Stop();
+						alarmActive = false;
+					}
+				}
+
+			} else {
+				anim[animationName].normalizedTime = Mathf.Lerp(0, 1f, scaledValue);
 			}
 
 		}
