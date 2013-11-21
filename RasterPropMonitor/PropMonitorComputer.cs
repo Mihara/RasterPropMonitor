@@ -229,7 +229,7 @@ namespace JSI
 			// Turns out, all those extra small tails in resources interfere with string formatting.
 			foreach (string resource in resourcesAlphabetic) {
 				Vector2d values = resources[resource];
-				resources[resource] = new Vector2d(Math.Round(values.x, 2), Math.Round(values.y,2));
+				resources[resource] = new Vector2d(Math.Round(values.x, 2), Math.Round(values.y, 2));
 			}
 
 			Array.Sort(resourcesAlphabetic);
