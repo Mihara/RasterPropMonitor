@@ -21,6 +21,27 @@ namespace JSI
 			return null;
 		}
 
+		public static FXGroup SetupIVASound(InternalProp thatProp, string buttonClickSound, float buttonClickVolume, bool loopState)
+		{
+			FXGroup audioOutput = null;
+			if (!string.IsNullOrEmpty(buttonClickSound)) {
+				audioOutput = new FXGroup("RPM" + thatProp.propID);
+				audioOutput.audio = thatProp.gameObject.AddComponent<AudioSource>();
+				audioOutput.audio.clip = GameDatabase.Instance.GetAudioClip(buttonClickSound);
+				audioOutput.audio.Stop();
+				audioOutput.audio.volume = GameSettings.SHIP_VOLUME * buttonClickVolume;
+				audioOutput.audio.rolloffMode = AudioRolloffMode.Logarithmic;
+				audioOutput.audio.maxDistance = 10f;
+				audioOutput.audio.minDistance = 2f;
+				audioOutput.audio.dopplerLevel = 0f;
+				audioOutput.audio.panLevel = 1f;
+				audioOutput.audio.playOnAwake = false;
+				audioOutput.audio.loop = loopState;
+				audioOutput.audio.pitch = 1f;
+			}
+			return audioOutput;
+		}
+
 		public static string WordWrap(string text, int maxLineLength)
 		{
 			StringBuilder sb = new StringBuilder();

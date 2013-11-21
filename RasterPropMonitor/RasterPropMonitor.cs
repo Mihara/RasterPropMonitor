@@ -36,6 +36,10 @@ namespace JSI
 		public int refreshDataRate = 10;
 		[KSPField]
 		public string globalButtons;
+		[KSPField]
+		public string buttonClickSound;
+		[KSPField]
+		public float buttonClickVolume = 0.5f;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
@@ -63,6 +67,7 @@ namespace JSI
 		private readonly SIFormatProvider fp = new SIFormatProvider();
 		private string[] screenBuffer;
 		private Rect[] fontCharacters;
+		private FXGroup audioOutput;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -114,6 +119,7 @@ namespace JSI
 					// We know it contains at least one MODULE node, us.
 					// And we know our moduleID, which is the number in order of being listed in the prop.
 					// Therefore the module by that number is our module's own config node.
+
 					ConfigNode[] pageNodes = node.GetNodes("MODULE")[moduleID].GetNodes("PAGE");
 
 					// Which we can now parse for page definitions.
@@ -158,11 +164,21 @@ namespace JSI
 				}
 			}
 
+			audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
+
+		}
+
+		private void PlayClickSound()
+		{
+			if (audioOutput != null) {
+				audioOutput.audio.Play();
+			}
 		}
 
 		public void GlobalButtonClick(int buttonID)
 		{
 			activePage.GlobalButtonClick(buttonID);
+			PlayClickSound();
 		}
 
 		public void PageButtonClick(MonitorPage callingPage)
@@ -177,6 +193,7 @@ namespace JSI
 				comp.updateForced = true;
 				firstRenderComplete = false;
 			}
+			PlayClickSound();
 		}
 
 		private void DrawChar(char letter, int x, int y)

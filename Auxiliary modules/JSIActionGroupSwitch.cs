@@ -18,6 +18,10 @@ namespace JSI
 		public float customSpeed = 1f;
 		[KSPField]
 		public string internalLightName = null;
+		[KSPField]
+		public string switchSound = "Squad/Sounds/sound_click_flick";
+		[KSPField]
+		public float switchSoundVolume = 0.5f;
 		// Neater.
 		private Dictionary<string,KSPActionGroup> groupList = new Dictionary<string,KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
@@ -38,7 +42,6 @@ namespace JSI
 			{ "custom09",KSPActionGroup.Custom09 },
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
-
 		private Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
 			{ "intlight",false },
 			{ "dummy",false },
@@ -52,6 +55,7 @@ namespace JSI
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private Light[] lightobjects;
+		private FXGroup audioOutput;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -120,6 +124,8 @@ namespace JSI
 			}
 			anim.Play(animationName);
 
+			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
+
 
 		}
 
@@ -174,6 +180,9 @@ namespace JSI
 			}
 
 			if (state != oldstate) {
+				if (audioOutput != null) {
+					audioOutput.audio.Play();
+				}
 				if (state ^ reverse) {
 					anim[animationName].normalizedTime = 0;
 					anim[animationName].speed = 1f * customSpeed;
@@ -187,7 +196,5 @@ namespace JSI
 			}
 		}
 	}
-
-
 }
 
