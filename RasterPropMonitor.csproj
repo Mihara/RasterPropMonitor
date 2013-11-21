@@ -63,6 +63,7 @@
     <Compile Include="RasterPropMonitor\RasterPropMonitor.cs" />
     <Compile Include="Examples\TestBackgroundHandler.cs" />
     <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
+    <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
