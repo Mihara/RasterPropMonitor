@@ -349,6 +349,8 @@ namespace JSI
 
 			obj.layer = drawingLayer;
 
+			Destroy(obj.collider);
+
 			return obj;
 		}
 	}
