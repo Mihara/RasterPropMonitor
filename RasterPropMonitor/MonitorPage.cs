@@ -135,7 +135,6 @@ namespace JSI
 					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 						if (m.Name == node.GetValue("pageActiveMethod")) {
 							activationMethod = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
-							;
 						}
 					}
 				}
