@@ -36,7 +36,7 @@ namespace JSI
 		private Orbit targetorbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
-		private Dictionary<string,Vector2d> resources = new Dictionary<string,Vector2d>();
+		private DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(new Vector2d(0, 0));
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
 		private double totalShipWetMass;
@@ -44,7 +44,6 @@ namespace JSI
 		private double totalMaximumThrust;
 		private double totalDataAmount;
 		private double secondsToImpact;
-		private const double gee = 9.81d;
 		private double localG;
 		private double standardAtmosphere;
 		// Local data fetching variables...
@@ -53,6 +52,30 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
+		// Some constant things...
+		private const double gee = 9.81d;
+		private readonly Dictionary<string,string> namedResources = new Dictionary<string,string> {
+			// Stock resources...
+			{ "ELECTRIC", "ElectricCharge" },
+			{ "FUEL", "LiquidFuel" },
+			{ "OXIDIZER", "Oxidizer" },
+			{ "MONOPROP", "MonoPropellant" },
+			{ "RSINTAKEAIR", "IntakeAir" },
+			{ "XENON", "XenonGas" },
+			// Mod resources...
+			{ "KETHANE", "Kethane" },
+			// Modular fuels.
+			{ "MFLH2", "LiquidH2" },
+			{ "MFLOX", "LiquidOxygen" },
+			{ "MFN2O4", "N2O4" },
+			{ "MFMMH", "MMH" },
+			{ "MFAEROZINE", "Aerozine" },
+			{ "MFUDMH", "UDMH" },
+			{ "MFHYDRAZINE", "Hydrazine" },
+			{ "MFMETHANE", "Methane" },
+			{ "MFNUCLEARFUEL", "nuclearFuel" },
+			{ "MFNUCLEARWASTE", "nuclearWaste" },
+		};
 
 		public void Start()
 		{
@@ -179,12 +202,7 @@ namespace JSI
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
 				foreach (PartResource resource in thatPart.Resources) {
-
-					try {
-						resources.Add(resource.resourceName, new Vector2d(resource.amount, resource.maxAmount));
-					} catch (ArgumentException) {
-						resources[resource.resourceName] += new Vector2d(resource.amount, resource.maxAmount);
-					}
+					resources[resource.resourceName] += new Vector2d(resource.amount, resource.maxAmount);
 				}
 				totalShipDryMass += thatPart.mass;
 				totalShipWetMass += thatPart.mass + thatPart.GetResourceMass();
@@ -212,7 +230,7 @@ namespace JSI
 			// Turns out, all those extra small tails in resources interfere with string formatting.
 			foreach (string resource in resourcesAlphabetic) {
 				Vector2d values = resources[resource];
-				resources[resource] = new Vector2d(Math.Round(values.x, 2), values.y);
+				resources[resource] = new Vector2d(Math.Round(values.x, 2), Math.Round(values.y,2));
 			}
 
 			Array.Sort(resourcesAlphabetic);
@@ -222,18 +240,12 @@ namespace JSI
 
 		private double GetResourceByName(string resourceName)
 		{
-			Vector2d result;
-			if (resources.TryGetValue(resourceName, out result))
-				return result.x;
-			return 0;
+			return resources[resourceName].x;
 		}
 
 		private double GetMaxResourceByName(string resourceName)
 		{
-			Vector2d result;
-			if (resources.TryGetValue(resourceName, out result))
-				return result.y;
-			return 0;
+			return resources[resourceName].y;
 		}
 		// Another piece from MechJeb.
 		private void FetchTrueAltitude()
@@ -597,11 +609,11 @@ namespace JSI
 				case "TIMETOANWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return "";
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time)-time, true, false, false);
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time) - time, true, false, false);
 				case "TIMETODNWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return "";
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time)-time, true, false, false);
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time) - time, true, false, false);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -680,76 +692,6 @@ namespace JSI
 					return string.Empty;
 
 
-			// Stock resources by name.
-				case "ELECTRIC":
-					return GetResourceByName("ElectricCharge");
-				case "ELECTRICMAX":
-					return GetMaxResourceByName("ElectricCharge");
-				case "FUEL":
-					return GetResourceByName("LiquidFuel");
-				case "FUELMAX":
-					return GetMaxResourceByName("LiquidFuel");
-				case "OXIDIZER":
-					return GetResourceByName("Oxidizer");
-				case "OXIDIZERMAX":
-					return GetMaxResourceByName("Oxidizer");
-				case "MONOPROP":
-					return GetResourceByName("MonoPropellant");
-				case "MONOPROPMAX":
-					return GetMaxResourceByName("MonoPropellant");
-				case "XENON":
-					return GetResourceByName("XenonGas");
-				case "XENONMAX":
-					return GetMaxResourceByName("XenonGas");
-
-			// Popular mod resources by name.
-				case "KETHANE":
-					return GetResourceByName("Kethane");
-				case "KETHANEMAX":
-					return GetMaxResourceByName("Kethane");
-				case "MFLH2":
-					return GetResourceByName("LiquidH2");
-				case "MFLH2MAX":
-					return GetMaxResourceByName("LiquidH2");
-				case "MFLOX":
-					return GetResourceByName("LiquidOxygen");
-				case "MFLOXMAX":
-					return GetMaxResourceByName("LiquidOxygen");
-				case "MFN2O4":
-					return GetResourceByName("N2O4");
-				case "MFN2O4MAX":
-					return GetMaxResourceByName("N2O4");
-				case "MFMMH":
-					return GetResourceByName("MMH");
-				case "MFMMHMAX":
-					return GetMaxResourceByName("MMH");
-				case "MFAEROZINE":
-					return GetResourceByName("Aerozine");
-				case "MFAEROZINEMAX":
-					return GetMaxResourceByName("Aerozine");
-				case "MFUDMH":
-					return GetResourceByName("UDMH");
-				case "MFUDMHMAX":
-					return GetMaxResourceByName("UDMH");
-				case "MFHYDRAZINE":
-					return GetResourceByName("Hydrazine");
-				case "MFHYDRAZINEMAX":
-					return GetMaxResourceByName("Hydrazine");
-				case "MFMETHANE":
-					return GetResourceByName("Methane");
-				case "MFMETHANEMAX":
-					return GetMaxResourceByName("Methane");
-				case "MFNUCLEARFUEL":
-					return GetResourceByName("nuclearFuel");
-				case "MFNUCLEARFUELMAX":
-					return GetMaxResourceByName("nuclearFuel");
-				case "MFNUCLEARWASTE":
-					return GetResourceByName("nuclearWaste");
-				case "MFNUCLEARWASTEMAX":
-					return GetMaxResourceByName("nuclearWaste");
-
-
-
 			// Staging and other stuff
 				case "STAGE":
 					return Staging.CurrentStage;
@@ -778,6 +720,15 @@ namespace JSI
 
 			}
 
+
+			// Named resources are all the same and better off processed like this:
+			foreach (KeyValuePair<string, string> resourceType in namedResources) {
+				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
+					if (input.EndsWith("MAX", StringComparison.Ordinal))
+						return resources[resourceType.Value].y;
+					return resources[resourceType.Value].x;
+				}
+			}
 
 			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
