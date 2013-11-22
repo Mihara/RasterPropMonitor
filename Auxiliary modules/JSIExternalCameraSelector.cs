@@ -24,7 +24,7 @@ namespace JSI
 			current++;
 			if (current > maximum)
 				current = 1;
-			updateName();
+			UpdateName();
 		}
 
 		[KSPEvent(guiActive = true, guiName = "ID-")]
@@ -33,10 +33,10 @@ namespace JSI
 			current--;
 			if (current <= 0)
 				current = maximum;
-			updateName();
+			UpdateName();
 		}
 
-		private void updateName()
+		private void UpdateName()
 		{
 			Transform containingTransform = part.FindModelTransform(cameraContainer);
 			Transform actualCamera = null;
@@ -46,20 +46,19 @@ namespace JSI
 					break;
 				}
 			}
-			// I'm amused to find that this does appear to work.. Just not for the docking ports,
-			// where a transform that is somewhere inside the port itself results.
+			// I'm amused to find that this does appear to work.
 			if (actualCamera == null) {
 				actualCamera = new GameObject().transform;
+				actualCamera.position = containingTransform.position;
+				actualCamera.rotation = containingTransform.rotation;
 				actualCamera.parent = containingTransform;
-				actualCamera.localPosition = Vector3.zero;
-				actualCamera.localRotation = Quaternion.identity;
 			}
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
 		}
 
 		public override void OnStart(PartModule.StartState state)
 		{
-			updateName();
+			UpdateName();
 		}
 	}
 }
