@@ -16,11 +16,16 @@ namespace JSI
 				return;
 
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
-				target = FlightGlobals.fetch.VesselTarget;
+				ITargetable newTarget = FlightGlobals.fetch.VesselTarget;
+				if (newTarget == null && target != null)
+					FlightGlobals.fetch.SetVesselTarget(target);
+				else
+					target = newTarget;
 			}
 			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal &&
 			    FlightGlobals.fetch.VesselTarget == null && target != null)
 				FlightGlobals.fetch.SetVesselTarget(target);
+
 
 		}
 	}
