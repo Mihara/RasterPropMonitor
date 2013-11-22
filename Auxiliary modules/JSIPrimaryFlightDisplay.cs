@@ -31,6 +31,8 @@ namespace JSI
 		[KSPField]
 		public float headingSpan = 0.25f;
 		[KSPField]
+		public bool headingAboveOverlay = false;
+		[KSPField]
 		public Color progradeColor = new Color(0.84f, 0.98f, 0);
 		[KSPField]
 		public Color maneuverColor = new Color(0, 0.1137f, 1);
@@ -160,7 +162,6 @@ namespace JSI
 			return new Quaternion(input.x, -input.y, -input.z, input.w);
 		}
 
-
 		public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
 		{
 
@@ -258,7 +259,7 @@ namespace JSI
 
 			heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
 			heading.layer = drawingLayer;
-			heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, 1.45f);
+			heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
 			heading.transform.parent = cameraBody.transform;
 			heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
 			heading.renderer.material = headingMaterial;
@@ -290,7 +291,6 @@ namespace JSI
 					thatObject.renderer.enabled = status;
 			}
 		}
-
 		// This function courtesy of EnhancedNavBall.
 		private static GameObject CreateSimplePlane(
 			string name,
