@@ -115,7 +115,7 @@ namespace JSI
 
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool,int> activationMethod, out Action<int> buttonClickMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out Action<bool,int> activationMethod, out Action<int> buttonClickMethod)
 		{
 			moduleInstance = null;
 			activationMethod = null;
@@ -126,7 +126,18 @@ namespace JSI
 
 				var handlerConfiguration = new ConfigNode("MODULE");
 				node.CopyTo(handlerConfiguration);
-				InternalModule thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
+
+				InternalModule thatModule = null;
+				if (node.HasValue("multiHandler")) {
+					foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules) {
+						if (potentialModule.ClassName == moduleName) {
+							thatModule = potentialModule;
+							break;
+						}
+					}
+				}
+				if (thatModule == null)
+					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
 				if (thatModule == null)
 					return null;
@@ -161,9 +172,9 @@ namespace JSI
 		public void Active(bool state)
 		{
 			if (pageHandlerActivate != null)
-				pageHandlerActivate(state,pageNumber);
+				pageHandlerActivate(state, pageNumber);
 			if (backgroundHandlerActivate != null)
-				backgroundHandlerActivate(state,pageNumber);
+				backgroundHandlerActivate(state, pageNumber);
 		}
 
 		public void GlobalButtonClick(int buttonID)
