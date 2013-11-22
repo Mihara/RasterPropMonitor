@@ -40,8 +40,8 @@ namespace JSI
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<string> pageHandler;
 		private readonly Func<RenderTexture,bool> backgroundHandler;
-		private readonly Action<bool> pageHandlerActivate;
-		private readonly Action<bool> backgroundHandlerActivate;
+		private readonly Action<bool,int> pageHandlerActivate;
+		private readonly Action<bool,int> backgroundHandlerActivate;
 		private readonly Action<int> pageHandlerButtonClick;
 		private readonly Action<int> backgroundHandlerButtonClick;
 		private readonly RasterPropMonitor ourMonitor;
@@ -115,7 +115,7 @@ namespace JSI
 
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool> activationMethod, out Action<int> buttonClickMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, InternalModule ourMonitor, out InternalModule moduleInstance, out Action<bool,int> activationMethod, out Action<int> buttonClickMethod)
 		{
 			moduleInstance = null;
 			activationMethod = null;
@@ -134,7 +134,7 @@ namespace JSI
 				if (node.HasValue("pageActiveMethod")) {
 					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 						if (m.Name == node.GetValue("pageActiveMethod")) {
-							activationMethod = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
+							activationMethod = (Action<bool,int>)Delegate.CreateDelegate(typeof(Action<bool,int>), thatModule, m);
 						}
 					}
 				}
@@ -161,9 +161,9 @@ namespace JSI
 		public void Active(bool state)
 		{
 			if (pageHandlerActivate != null)
-				pageHandlerActivate(state);
+				pageHandlerActivate(state,pageNumber);
 			if (backgroundHandlerActivate != null)
-				backgroundHandlerActivate(state);
+				backgroundHandlerActivate(state,pageNumber);
 		}
 
 		public void GlobalButtonClick(int buttonID)
