@@ -65,13 +65,10 @@ namespace JSI
 		private GameObject markerNormalMinus;
 		private GameObject markerRadial;
 		private GameObject markerRadialMinus;
-
-
 		// This is honestly very badly written code, probably the worst of what I have in this project.
 		// Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
 		// the rest is because the problem is all built out of special cases.
 		// Sorry. :)
-
 		public bool RenderPFD(RenderTexture screen)
 		{
 			if (screen == null)
@@ -168,7 +165,7 @@ namespace JSI
 		public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
 		{
 
-			GameObject marker = CreateSimplePlane("RPMPFDMarker" + iconX + iconY, markerScale, drawingLayer);
+			GameObject marker = CreateSimplePlane("RPMPFDMarker" + iconX + iconY + internalProp.propID, markerScale, drawingLayer);
 			marker.renderer.material = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
 			marker.renderer.material.mainTexture = gizmoTexture;
 			marker.renderer.material.mainTextureScale = Vector2.one / 3f;
@@ -211,9 +208,9 @@ namespace JSI
 			if (ballIsEmissive) {
 				navBall.renderer.material.shader = Shader.Find("KSP/Emissive/Diffuse");
 				navBall.renderer.material.SetTexture("_MainTex", horizonTex);
-				navBall.renderer.material.SetTextureOffset("_Emissive",navBall.renderer.material.GetTextureOffset("_MainTex"));
+				navBall.renderer.material.SetTextureOffset("_Emissive", navBall.renderer.material.GetTextureOffset("_MainTex"));
 				navBall.renderer.material.SetTexture("_Emissive", horizonTex);
-				navBall.renderer.material.SetColor("_EmissiveColor",ballColor);
+				navBall.renderer.material.SetColor("_EmissiveColor", ballColor);
 			} else {
 				navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
 				navBall.renderer.material.mainTexture = horizonTex;
@@ -253,14 +250,14 @@ namespace JSI
 			ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
 			ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
 
-			overlay = CreateSimplePlane("RPMPFDOverlay", 1f, drawingLayer);
+			overlay = CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
 			overlay.layer = drawingLayer;
 			overlay.transform.position = new Vector3(0, 0, 1.5f);
 			overlay.renderer.material = overlayMaterial;
 			overlay.transform.parent = cameraBody.transform;
 			FaceCamera(overlay);
 
-			heading = CreateSimplePlane("RPMPFDHeading", 1f, drawingLayer);
+			heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
 			heading.layer = drawingLayer;
 			heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, 1.45f);
 			heading.transform.parent = cameraBody.transform;
