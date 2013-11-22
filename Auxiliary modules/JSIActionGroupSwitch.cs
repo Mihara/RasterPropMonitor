@@ -13,17 +13,17 @@ namespace JSI
 		[KSPField]
 		public string actionName = "lights";
 		[KSPField]
-		public bool reverse = false;
+		public bool reverse;
 		[KSPField]
 		public float customSpeed = 1f;
 		[KSPField]
-		public string internalLightName = null;
+		public string internalLightName;
 		[KSPField]
 		public string switchSound = "Squad/Sounds/sound_click_flick";
 		[KSPField]
 		public float switchSoundVolume = 0.5f;
 		// Neater.
-		private Dictionary<string,KSPActionGroup> groupList = new Dictionary<string,KSPActionGroup> { 
+		private readonly Dictionary<string,KSPActionGroup> groupList = new Dictionary<string,KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -49,12 +49,12 @@ namespace JSI
 		private int actionGroupID;
 		private KSPActionGroup actionGroup;
 		private Animation anim;
-		private bool oldstate = false;
-		private bool iscustomaction = false;
+		private bool oldState;
+		private bool isCustomAction;
 		// Persistence for current state variable.
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
-		private Light[] lightobjects;
+		private Light[] lightObjects;
 		private FXGroup audioOutput;
 
 		private static void LogMessage(string line, params object[] list)
@@ -68,25 +68,25 @@ namespace JSI
 				if (!customGroupList.ContainsKey(actionName)) {
 					LogMessage("Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
-					iscustomaction = true;
+					isCustomAction = true;
 				}
 			} else {
 				actionGroup = groupList[actionName];
 				actionGroupID = BaseAction.GetGroupIndex(actionGroup);
 
-				oldstate = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
+				oldState = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 			}
 
 			// Load our state from storage...
-			if (iscustomaction) {
+			if (isCustomAction) {
 				if (actionName == "intlight")
 					persistentVarName = internalLightName;
 				else
-					persistentVarName = "switch" + internalProp.propID.ToString();
+					persistentVarName = "switch" + internalProp.propID;
 
 				persistence = new PersistenceAccessor(part);
 
-				oldstate = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldstate);
+				oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
 
 			}
 
@@ -96,10 +96,8 @@ namespace JSI
 			// Set up the custom actions..
 			switch (actionName) {
 				case "intlight":
-					lightobjects = internalModel.FindModelComponents<Light>();
+					lightObjects = internalModel.FindModelComponents<Light>();
 					SetInternalLights(customGroupList[actionName]);
-					break;
-				default:
 					break;
 			}
 
@@ -112,7 +110,7 @@ namespace JSI
 				LogMessage("Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
-			if (oldstate ^ reverse) {
+			if (oldState ^ reverse) {
 				anim[animationName].speed = float.MaxValue;
 				anim[animationName].normalizedTime = 0;
 
@@ -131,7 +129,7 @@ namespace JSI
 
 		private void SetInternalLights(bool value)
 		{
-			foreach (Light lightobject in lightobjects) {
+			foreach (Light lightobject in lightObjects) {
 				// I probably shouldn't filter them every time, but I am getting
 				// serously confused by this hierarchy.
 				if (lightobject.name == internalLightName)
@@ -141,7 +139,7 @@ namespace JSI
 
 		public void Click()
 		{
-			if (iscustomaction) {
+			if (isCustomAction) {
 				customGroupList[actionName] = !customGroupList[actionName];
 				persistence.SetVar(persistentVarName, customGroupList[actionName]);
 			} else
@@ -154,32 +152,21 @@ namespace JSI
 				case "stage":
 					Staging.ActivateNextStage();
 					break;
-				default:
-					break;
 			}
 		}
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight ||
-			    vessel != FlightGlobals.ActiveVessel)
+			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
-			/*&&
-			    (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
-			    ))
-				return;*/
+			// So there's no check for internal cameras.
 
 			bool state;
-			if (iscustomaction) {
-				state = customGroupList[actionName];
-			} else {
-				state = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
-			}
+			state = isCustomAction ? customGroupList[actionName] : FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 
-			if (state != oldstate) {
+			if (state != oldState) {
 				if (audioOutput != null) {
 					audioOutput.audio.Play();
 				}
@@ -192,7 +179,7 @@ namespace JSI
 					anim[animationName].speed = -1f * customSpeed;
 					anim.Play(animationName);
 				}
-				oldstate = state;
+				oldState = state;
 			}
 		}
 	}
