@@ -14,7 +14,7 @@ namespace JSI
 		// Pull requests welcome
 		public void SetVar(string varname, int value)
 		{
-			var variables = ParseData();
+			var variables = ParseData(data);
 			try {
 				variables.Add(varname, value);
 			} catch (ArgumentException) {
@@ -23,20 +23,28 @@ namespace JSI
 			data = UnparseData(variables);
 		}
 
-		private string UnparseData(Dictionary<string,int> variables)
+		public int? GetVar(string varname)
 		{
-			List<string> tokens = new List<string>();
+			var variables = ParseData(data);
+			if (variables.ContainsKey(varname))
+				return variables[varname];
+			return null;
+		}
+
+		private static string UnparseData(Dictionary<string,int> variables)
+		{
+			var tokens = new List<string>();
 			foreach (KeyValuePair<string,int> item in variables) {
-				tokens.Add(item.Key + "$" + item.Value.ToString());
+				tokens.Add(item.Key + "$" + item.Value);
 			}
 			return String.Join("|", tokens.ToArray());
 		}
 
-		private Dictionary<string,int> ParseData()
+		private static Dictionary<string,int> ParseData(string dataString)
 		{
 			var variables = new Dictionary<string,int>();
-			if (!string.IsNullOrEmpty(data))
-				foreach (string varstring in data.Split ('|')) {
+			if (!string.IsNullOrEmpty(dataString))
+				foreach (string varstring in dataString.Split ('|')) {
 					string[] tokens = varstring.Split('$');
 					int value;
 					int.TryParse(tokens[1], out value);
@@ -46,16 +54,7 @@ namespace JSI
 			return variables;
 			
 		}
-
-		public int? GetVar(string varname)
-		{
-			var variables = ParseData();
-			if (variables.ContainsKey(varname))
-				return variables[varname];
-			return null;
-		}
 	}
-
 	// Just a helper class to encapsulate this mess.
 	public class PersistenceAccessor
 	{

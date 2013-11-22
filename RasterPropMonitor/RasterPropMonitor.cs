@@ -57,7 +57,7 @@ namespace JSI
 		private int vesselNumParts;
 		private bool firstRenderComplete;
 		private bool textRefreshRequired;
-		private List<MonitorPage> pages = new List<MonitorPage>();
+		private readonly List<MonitorPage> pages = new List<MonitorPage>();
 		private MonitorPage activePage;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		private RasterPropMonitorComputer comp;

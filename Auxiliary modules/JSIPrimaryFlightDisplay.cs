@@ -17,7 +17,7 @@ namespace JSI
 		[KSPField]
 		public float screenAspect = 1.35f;
 		[KSPField]
-		public bool ballIsEmissive = false;
+		public bool ballIsEmissive;
 		[KSPField]
 		public Color backgroundColor = Color.black;
 		[KSPField]
@@ -108,7 +108,7 @@ namespace JSI
 				Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
 				MoveMarker(markerManeuver, burnVector.normalized, maneuverColor, gymbal);
 				MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColor, gymbal);
-				Show(markerManeuver, markerManeuverMinus);
+				ShowHide(true, markerManeuver, markerManeuverMinus);
 			}
 
 			ITargetable target = FlightGlobals.fetch.VesselTarget;
@@ -116,7 +116,7 @@ namespace JSI
 				Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
 				MoveMarker(markerTarget, targetSeparation, targetColor, gymbal);
 				MoveMarker(markerTargetMinus, -targetSeparation, targetColor, gymbal);
-				Show(markerTarget, markerTargetMinus);
+				ShowHide(true, markerTarget, markerTargetMinus);
 			}
 
 
@@ -124,11 +124,13 @@ namespace JSI
 			int backupQuality = QualitySettings.pixelLightCount;
 			QualitySettings.pixelLightCount = 0;
 
-			Show(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
+			ShowHide(true,
+				cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
 				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
 			ballCamera.Render();
 			QualitySettings.pixelLightCount = backupQuality;
-			Hide(cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
+			ShowHide(false,
+				cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
 				markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
 				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
 
@@ -157,11 +159,8 @@ namespace JSI
 			// Witchcraft: It's called mirroring the X axis of the quaternion's conjugate.
 			return new Quaternion(input.x, -input.y, -input.z, input.w);
 		}
-		/*
-		public override void OnUpdate()
-		{
-		}
-		*/
+
+
 		public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
 		{
 
@@ -172,7 +171,7 @@ namespace JSI
 			marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
 			marker.renderer.material.color = nativeColor;
 			marker.transform.position = Vector3.zero;
-			Hide(marker);
+			ShowHide(false, marker);
 			return marker;
 		}
 
@@ -266,7 +265,7 @@ namespace JSI
 			heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
 			FaceCamera(heading);
 
-			Hide(navBall, cameraBody, overlay, heading);
+			ShowHide(false, navBall, cameraBody, overlay, heading);
 		}
 
 		private static void FaceCamera(GameObject thatObject)
@@ -283,41 +282,33 @@ namespace JSI
 			thatObject.transform.rotation = Quaternion.Euler(new Vector3(90, 180, 0));
 		}
 
-		private static void Hide(params GameObject[] objects)
+		private static void ShowHide(bool status, params GameObject[] objects)
 		{
 			foreach (GameObject thatObject in objects) {
-				thatObject.SetActive(false);
+				thatObject.SetActive(status);
 				if (thatObject.renderer != null)
-					thatObject.renderer.enabled = false;
+					thatObject.renderer.enabled = status;
 			}
 		}
 
-		private static void Show(params GameObject[] objects)
-		{
-			foreach (GameObject thatObject in objects) {
-				thatObject.SetActive(true);
-				if (thatObject.renderer != null)
-					thatObject.renderer.enabled = true;
-			}
-		}
 		// This function courtesy of EnhancedNavBall.
 		private static GameObject CreateSimplePlane(
 			string name,
 			float vectorSize,
 			int drawingLayer)
 		{
-			Mesh mesh = new Mesh();
+			var mesh = new Mesh();
 
-			GameObject obj = new GameObject(name);
+			var obj = new GameObject(name);
 			MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
 			obj.AddComponent<MeshRenderer>();
 
 			const float uvize = 1f;
 
-			Vector3 p0 = new Vector3(-vectorSize, 0, vectorSize);
-			Vector3 p1 = new Vector3(vectorSize, 0, vectorSize);
-			Vector3 p2 = new Vector3(-vectorSize, 0, -vectorSize);
-			Vector3 p3 = new Vector3(vectorSize, 0, -vectorSize);
+			var p0 = new Vector3(-vectorSize, 0, vectorSize);
+			var p1 = new Vector3(vectorSize, 0, vectorSize);
+			var p2 = new Vector3(-vectorSize, 0, -vectorSize);
+			var p3 = new Vector3(vectorSize, 0, -vectorSize);
 
 			mesh.vertices = new[] {
 				p0, p1, p2,
@@ -329,10 +320,10 @@ namespace JSI
 				3, 4, 5
 			};
 
-			Vector2 uv1 = new Vector2(0, 0);
-			Vector2 uv2 = new Vector2(uvize, uvize);
-			Vector2 uv3 = new Vector2(0, uvize);
-			Vector2 uv4 = new Vector2(uvize, 0);
+			var uv1 = new Vector2(0, 0);
+			var uv2 = new Vector2(uvize, uvize);
+			var uv3 = new Vector2(0, uvize);
+			var uv4 = new Vector2(uvize, 0);
 
 			mesh.uv = new[] {
 				uv1, uv4, uv3,

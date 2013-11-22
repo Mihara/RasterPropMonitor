@@ -7,9 +7,7 @@ namespace JSI
 	{
 		public object GetFormat(Type formatType)
 		{
-			if (formatType == typeof(ICustomFormatter))
-				return this;
-			return null;
+			return formatType == typeof(ICustomFormatter) ? this : null;
 		}
 		// So our format is:
 		// SIP_05.3
@@ -93,11 +91,8 @@ namespace JSI
 
 		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
 		{
-			IFormattable formattableArg = arg as IFormattable;
-			if (formattableArg != null) {
-				return formattableArg.ToString(format, formatProvider);
-			}
-			return arg.ToString();
+			var formattableArg = arg as IFormattable;
+			return formattableArg != null ? formattableArg.ToString(format, formatProvider) : arg.ToString();
 		}
 		// Once again MechJeb code comes to the rescue with a function I very tenuously understand!
 		//Puts numbers into SI format, e.g. 1234 -> "1.234 k", 0.0045678 -> "4.568 m"
@@ -106,8 +101,9 @@ namespace JSI
 		//while 56789 will be formated as "56.789 k"
 		private static string ConvertToSI(double d, int maxPrecision = -99, int sigFigs = 4, bool needSpace = false)
 		{
+			// Analysis disable once CompareOfFloatsByEqualityOperator
 			if (d == 0 || double.IsInfinity(d) || double.IsNaN(d))
-				return d.ToString() + " ";
+				return d + " ";
 
 			int exponent = (int)Math.Floor(Math.Log10(Math.Abs(d))); //exponent of d if it were expressed in scientific notation
 
@@ -148,7 +144,7 @@ namespace JSI
 			if (digitsAfterDecimal < 0)
 				digitsAfterDecimal = 0;
 
-			StringBuilder result = new StringBuilder(d.ToString("F" + digitsAfterDecimal));
+			var result = new StringBuilder(d.ToString("F" + digitsAfterDecimal));
 			if (needSpace)
 				result.Append(" ");
 			result.Append(unit);

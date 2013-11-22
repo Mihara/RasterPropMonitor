@@ -13,7 +13,7 @@ namespace JSI
 			if (thatProp.part != null) {
 				for (int i = 0; i < thatProp.part.Modules.Count; i++)
 					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
-						RasterPropMonitorComputer other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
+						var other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
 						return other;
 					}
 				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
@@ -44,12 +44,12 @@ namespace JSI
 
 		public static string WordWrap(string text, int maxLineLength)
 		{
-			StringBuilder sb = new StringBuilder();
+			var sb = new StringBuilder();
 			char[] prc = { ' ', ',', '.', '?', '!', ':', ';', '-' };
 			char[] ws = { ' ' };
 
 			foreach (string line in text.Split(new [] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries)) {
-				int currentIndex = 0;
+				int currentIndex;
 				int lastWrap = 0;
 				do {
 					currentIndex = lastWrap + maxLineLength > line.Length ? line.Length : (line.LastIndexOfAny(prc, Math.Min(line.Length - 1, lastWrap + maxLineLength)) + 1);
@@ -233,8 +233,7 @@ namespace JSI
 			get {
 				if (d.ContainsKey(key))
 					return d[key];
-				else
-					return defaultValue;
+				return defaultValue;
 			}
 			set {
 				if (d.ContainsKey(key))

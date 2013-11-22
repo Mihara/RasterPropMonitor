@@ -61,7 +61,6 @@
     <Compile Include="Examples\JSIFlightLog.cs" />
     <Compile Include="RasterPropMonitor\PropMonitorComputer.cs" />
     <Compile Include="RasterPropMonitor\RasterPropMonitor.cs" />
-    <Compile Include="Examples\TestBackgroundHandler.cs" />
     <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
   </ItemGroup>
