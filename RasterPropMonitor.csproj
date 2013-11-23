@@ -43,6 +43,10 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="System.Core" />
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>E:\SteamLibrary\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -63,6 +67,8 @@
     <Compile Include="RasterPropMonitor\RasterPropMonitor.cs" />
     <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
+    <Compile Include="Auxiliary modules\JSIVariableLabel.cs" />
+    <Compile Include="RasterPropMonitor\StringProcessor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -49,8 +49,6 @@ namespace JSI
 		private FlyingCamera cam;
 		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
-		private readonly string[] variableListSeparator = { "$&$" };
-		private readonly string[] variableSeparator = { };
 		// Local variables
 		private int refreshDrawCountdown;
 		private int refreshTextCountdown;
@@ -64,7 +62,6 @@ namespace JSI
 		// Persistence for current page variable.
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
-		private readonly SIFormatProvider fp = new SIFormatProvider();
 		private string[] screenBuffer;
 		private Rect[] fontCharacters;
 		private FXGroup audioOutput;
@@ -222,25 +219,6 @@ namespace JSI
 			);
 
 		}
-
-		private string ProcessString(string input)
-		{
-			if (input.IndexOf(variableListSeparator[0], StringComparison.Ordinal) >= 0) {
-				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
-				if (tokens.Length != 2) {
-					return "FORMAT ERROR";
-				} else {
-					string[] vars = tokens[1].Split(variableSeparator, StringSplitOptions.RemoveEmptyEntries);
-
-					var variables = new object[vars.Length];
-					for (int i = 0; i < vars.Length; i++) {
-						variables[i] = comp.ProcessVariable(vars[i]);
-					}
-					return String.Format(fp, tokens[0], variables);
-				}
-			}
-			return input;
-		}
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
 		{
@@ -316,7 +294,7 @@ namespace JSI
 			screenBuffer = new string[screenHeight];
 			string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
 			for (int i = 0; i < screenHeight; i++)
-				screenBuffer[i] = (i < linesArray.Length) ? ProcessString(linesArray[i]).TrimEnd() : string.Empty;
+				screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
 			textRefreshRequired = false;
 		}
 

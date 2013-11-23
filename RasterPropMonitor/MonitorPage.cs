@@ -74,12 +74,11 @@ namespace JSI
 
 					try {
 						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition, System.Text.Encoding.UTF8));
-						isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 					} catch {
 						// There's no file. Probably.
-						isMutable |= pageDefinition.IndexOf("$&$", StringComparison.Ordinal) != -1;
-						Text = pageDefinition.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
+						Text = StringProcessor.AdjustString(pageDefinition);
 					}
+					isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 				}
 			}
 
