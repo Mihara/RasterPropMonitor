@@ -172,7 +172,7 @@ namespace JSI
 		{
 			if (pageHandlerActivate != null)
 				pageHandlerActivate(state, pageNumber);
-			if (backgroundHandlerActivate != null)
+			if (backgroundHandlerActivate != null && backgroundHandlerActivate != pageHandlerActivate)
 				backgroundHandlerActivate(state, pageNumber);
 		}
 
@@ -180,7 +180,7 @@ namespace JSI
 		{
 			if (pageHandlerButtonClick != null)
 				pageHandlerButtonClick(buttonID);
-			if (backgroundHandlerButtonClick != null)
+			if (backgroundHandlerButtonClick != null && backgroundHandlerButtonClick != pageHandlerButtonClick)
 				backgroundHandlerButtonClick(buttonID);
 		}
 
