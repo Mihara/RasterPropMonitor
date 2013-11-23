@@ -33,6 +33,7 @@ namespace JSI
 		private ProtoCrewMember[] vesselCrew;
 		private double altitudeASL;
 		private double altitudeTrue;
+		private double altitudeBottom;
 		private Orbit targetorbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
@@ -165,8 +166,7 @@ namespace JSI
 			else
 				node = null;
 			time = Planetarium.GetUniversalTime();
-			altitudeASL = vessel.mainBody.GetAltitude(coM);
-			FetchTrueAltitude();
+			FetchAltitudes();
 			if (target != null) {
 				velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
@@ -247,8 +247,9 @@ namespace JSI
 			return resources[resourceName].y;
 		}
 		// Another piece from MechJeb.
-		private void FetchTrueAltitude()
+		private void FetchAltitudes()
 		{
+			altitudeASL = vessel.mainBody.GetAltitude(coM);
 			RaycastHit sfc;
 			if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
 				altitudeTrue = sfc.distance;
@@ -260,6 +261,16 @@ namespace JSI
 				Vector3d.right) - vessel.mainBody.pqsController.radius);
 			} else
 				altitudeTrue = vessel.mainBody.GetAltitude(coM);
+			altitudeBottom = altitudeTrue;
+			if (altitudeTrue < 500d) {
+				foreach (Part p in vessel.parts) {
+					if (p.collider != null) {
+						Vector3d bottomPoint = p.collider.ClosestPointOnBounds(vessel.mainBody.position);
+						double partBottomAlt = vessel.mainBody.GetAltitude(bottomPoint) - altitudeASL;
+						altitudeBottom = Math.Max(0, Math.Min(altitudeBottom, partBottomAlt));
+					}
+				}
+			}
 		}
 
 		private static bool OrbitMakesSense(Vessel thatvessel)
@@ -434,6 +445,8 @@ namespace JSI
 					return altitudeASL;
 				case "RADARALT":
 					return altitudeTrue;
+				case "ALTITUDEBOTTOM":
+					return altitudeBottom;
 
 			// Masses.
 				case "MASSDRY":
