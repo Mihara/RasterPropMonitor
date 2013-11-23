@@ -76,8 +76,15 @@ namespace JSI
 			{ "MFMETHANE", "Methane" },
 			{ "MFNUCLEARFUEL", "nuclearFuel" },
 			{ "MFNUCLEARWASTE", "nuclearWaste" },
+			// Life support resources -- apparently common for TAC and Ioncross these days.
+			{ "LSFOOD","Food" },
+			{ "LSWATER","Water" },
+			{ "LSOXYGEN","Oxygen" },
+			{ "LSCO2","CarbonDioxide" },
+			{ "LSWASTE","Waste" },
+			{ "LSWASTEWATER","WasteWater" },
 		};
-
+		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
 			// Well, it looks like we have to do that bit just like in Firespitter.
