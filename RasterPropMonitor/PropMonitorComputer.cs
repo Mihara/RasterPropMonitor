@@ -203,8 +203,14 @@ namespace JSI
 				foreach (PartResource resource in thatPart.Resources) {
 					resources[resource.resourceName] += new Vector2d(resource.amount, resource.maxAmount);
 				}
-				totalShipDryMass += thatPart.mass;
-				totalShipWetMass += thatPart.mass + thatPart.GetResourceMass();
+
+				if (thatPart.physicalSignificance != Part.PhysicalSignificance.NONE) {
+
+					totalShipDryMass += thatPart.mass;
+					totalShipWetMass += thatPart.mass;
+				}
+
+				totalShipWetMass += thatPart.GetResourceMass();
 
 				foreach (PartModule pm in thatPart.Modules) {
 					if (!pm.isEnabled)
