@@ -70,6 +70,7 @@ namespace JSI
 				CreateLightCone();
 				part.OnEditorAttach += new Callback(DestroyLightCone);
 				part.OnEditorDetach += new Callback(PickupCamera);
+				part.OnEditorDestroy += new Callback(DestroyLightCone);
 			} else {
 				DestroyLightCone();
 			}
@@ -89,7 +90,7 @@ namespace JSI
 				lightConeRenderer = lightCone.AddComponent<LineRenderer>();
 				lightConeRenderer.useWorldSpace = true;
 				lightConeRenderer.material = lightConeMaterial;
-				lightConeRenderer.SetColors(new Color(0f, 0f, 1f, 1f), new Color(0f, 0f, 1f, 0f));
+				lightConeRenderer.SetColors(new Color(0f, 0f, 1f, 0.5f), new Color(0f, 0f, 1f, 0f));
 				lightConeRenderer.SetWidth(0.054f, endSpan);
 				lightConeRenderer.SetVertexCount(2);
 				lightConeRenderer.castShadows = false;
