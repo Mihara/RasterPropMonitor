@@ -745,6 +745,8 @@ namespace JSI
 					return SituationString(vessel.situation);
 				case "RANDOM":
 					return (double)UnityEngine.Random.value;
+				case "PODTEMPERATURE":
+					return (double)part.temperature;
 
 			// SCIENCE!!
 				case "SCIENCEDATA":
