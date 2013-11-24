@@ -104,8 +104,8 @@ namespace JSI
 
 			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
 			Material screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
-			screenMat.SetTexture(textureLayerID, screenTexture);
-			screenTexture.wrapMode = TextureWrapMode.Clamp;
+			foreach (string layerID in textureLayerID.Split())
+				screenMat.SetTexture(layerID.Trim(), screenTexture);
 
 			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
