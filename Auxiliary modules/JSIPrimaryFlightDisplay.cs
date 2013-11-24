@@ -93,7 +93,9 @@ namespace JSI
 			Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
 
 			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
-			heading.renderer.material.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2, 0));
+
+			if (heading != null)
+				heading.renderer.material.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2, 0));
 
 			Quaternion gymbal = stockNavBall.attitudeGymbal;
 
@@ -181,9 +183,11 @@ namespace JSI
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			overlayMaterial = new Material(unlit);
 			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay, false);
-			headingMaterial = new Material(unlit);
-			headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar, false);
 
+			if (!string.IsNullOrEmpty(headingBar)) {
+				headingMaterial = new Material(unlit);
+				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar, false);
+			}
 			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture, false);
 			navBall = GameDatabase.Instance.GetModel(navBallModel);
 
@@ -257,14 +261,16 @@ namespace JSI
 			overlay.transform.parent = cameraBody.transform;
 			FaceCamera(overlay);
 
-			heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
-			heading.layer = drawingLayer;
-			heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
-			heading.transform.parent = cameraBody.transform;
-			heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
-			heading.renderer.material = headingMaterial;
-			heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
-			FaceCamera(heading);
+			if (headingMaterial != null) {
+				heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
+				heading.layer = drawingLayer;
+				heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
+				heading.transform.parent = cameraBody.transform;
+				heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
+				heading.renderer.material = headingMaterial;
+				heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
+				FaceCamera(heading);
+			}
 
 			ShowHide(false, navBall, cameraBody, overlay, heading);
 		}
@@ -286,9 +292,11 @@ namespace JSI
 		private static void ShowHide(bool status, params GameObject[] objects)
 		{
 			foreach (GameObject thatObject in objects) {
-				thatObject.SetActive(status);
-				if (thatObject.renderer != null)
-					thatObject.renderer.enabled = status;
+				if (thatObject != null) {
+					thatObject.SetActive(status);
+					if (thatObject.renderer != null)
+						thatObject.renderer.enabled = status;
+				}
 			}
 		}
 		// This function courtesy of EnhancedNavBall.
