@@ -166,7 +166,7 @@ namespace JSI
 
 		}
 
-		private void PlayClickSound()
+		private static void PlayClickSound(FXGroup audioOutput)
 		{
 			if (audioOutput != null) {
 				audioOutput.audio.Play();
@@ -176,7 +176,7 @@ namespace JSI
 		public void GlobalButtonClick(int buttonID)
 		{
 			activePage.GlobalButtonClick(buttonID);
-			PlayClickSound();
+			PlayClickSound(audioOutput);
 		}
 
 		public void PageButtonClick(MonitorPage triggeredPage)
@@ -191,7 +191,7 @@ namespace JSI
 				comp.updateForced = true;
 				firstRenderComplete = false;
 			}
-			PlayClickSound();
+			PlayClickSound(audioOutput);
 		}
 
 		private void DrawChar(char letter, int x, int y)
