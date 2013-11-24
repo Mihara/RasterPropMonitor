@@ -57,7 +57,7 @@ namespace JSI
 			isDefault |= node.HasValue("default");
 
 			if (node.HasValue("button")) {
-				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), PageButtonClick);
+				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
 			}
 
 
@@ -196,12 +196,6 @@ namespace JSI
 			return false;
 		}
 
-		public void PageButtonClick()
-		{
-			// This method should do more, seriously.
-			// Maybe I can do events?...
-			ourMonitor.PageButtonClick(this);
-		}
 	}
 }
 

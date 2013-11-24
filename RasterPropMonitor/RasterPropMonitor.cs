@@ -179,11 +179,11 @@ namespace JSI
 			PlayClickSound();
 		}
 
-		public void PageButtonClick(MonitorPage callingPage)
+		public void PageButtonClick(MonitorPage triggeredPage)
 		{
-			if (callingPage != activePage) {
+			if (triggeredPage != activePage) {
 				activePage.Active(false);
-				activePage = callingPage;
+				activePage = triggeredPage;
 				activePage.Active(true);
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
 				cam.PointCamera(activePage.camera, activePage.cameraFOV);
