@@ -133,9 +133,10 @@ namespace JSI
 						}
 							
 					}
-					LogMessage("Done setting up pages, {0} pages ready.", pages.Count);
+					break;
 				}
 			}
+			LogMessage("Done setting up pages, {0} pages ready.", pages.Count);
 
 			// Install the calculator module.
 			comp = JUtil.GetComputer(internalProp);
