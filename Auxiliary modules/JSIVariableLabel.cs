@@ -4,6 +4,7 @@ namespace JSI
 {
 	public class JSIVariableLabel: InternalModule
 	{
+		//bloody line endings.
 		[KSPField]
 		public string labelText = "<=0=>$&$ALTITUDE";
 		[KSPField]
