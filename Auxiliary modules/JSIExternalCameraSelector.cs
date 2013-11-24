@@ -67,7 +67,8 @@ namespace JSI
 		{
 			UpdateName();
 			if (state == StartState.Editor) {
-				CreateLightCone();
+				if (part.parent == null)
+					CreateLightCone();
 				part.OnEditorAttach += new Callback(DestroyLightCone);
 				part.OnEditorDetach += new Callback(PickupCamera);
 				part.OnEditorDestroy += new Callback(DestroyLightCone);
@@ -116,12 +117,19 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsEditor)
 				return;
 
-			if (Input.GetKeyDown(KeyCode.Space)) {
+			if (Input.GetKeyDown(KeyCode.Space)) { 
 				RaycastHit whereAmI;
 				Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out whereAmI);
 				if (Part.FromGO(whereAmI.transform.gameObject) == part) {
 					IdPlus();
 				}
+			}
+
+			if (GameSettings.HEADLIGHT_TOGGLE.GetKeyDown()) {
+				CreateLightCone();
+			}
+			if (GameSettings.HEADLIGHT_TOGGLE.GetKeyUp()) {
+				DestroyLightCone();
 			}
 		}
 
