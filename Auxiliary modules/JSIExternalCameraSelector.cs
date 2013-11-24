@@ -59,6 +59,8 @@ namespace JSI
 				actualCamera.parent = containingTransform;
 			}
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
+			if (HighLogic.LoadedSceneIsEditor)
+				ScreenMessages.PostScreenMessage("Camera ID: " + visibleCameraName, 3, ScreenMessageStyle.UPPER_RIGHT);
 		}
 
 		public override void OnStart(PartModule.StartState state)
@@ -67,10 +69,16 @@ namespace JSI
 			if (state == StartState.Editor) {
 				CreateLightCone();
 				part.OnEditorAttach += new Callback(DestroyLightCone);
-				part.OnEditorDetach += new Callback(CreateLightCone);
+				part.OnEditorDetach += new Callback(PickupCamera);
 			} else {
 				DestroyLightCone();
 			}
+		}
+
+		private void PickupCamera()
+		{
+			UpdateName();
+			CreateLightCone();
 		}
 
 		private void CreateLightCone()
@@ -99,6 +107,20 @@ namespace JSI
 				lightConeRenderer = null;
 				Destroy(lightCone);
 				lightCone = null;
+			}
+		}
+
+		public void Update()
+		{
+			if (!HighLogic.LoadedSceneIsEditor)
+				return;
+
+			if (Input.GetKeyDown(KeyCode.Space)) {
+				RaycastHit whereAmI;
+				Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out whereAmI);
+				if (Part.FromGO(whereAmI.transform.gameObject) == part) {
+					IdPlus();
+				}
 			}
 		}
 
