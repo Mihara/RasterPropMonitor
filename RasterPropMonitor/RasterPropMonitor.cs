@@ -298,7 +298,7 @@ namespace JSI
 			RenderTexture.active = backupRenderTexture;
 		}
 
-		public void FillScreenBuffer()
+		private void FillScreenBuffer()
 		{
 			screenBuffer = new string[screenHeight];
 			string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
@@ -307,6 +307,11 @@ namespace JSI
 			textRefreshRequired = false;
 
 			// This is where we request electric charge reserve. And if we don't have any, well... :)
+			CheckForElectricCharge();
+		}
+
+		private void CheckForElectricCharge()
+		{
 			if (needsElectricCharge)
 				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 		}
@@ -329,7 +334,8 @@ namespace JSI
 					FillScreenBuffer();
 					RenderScreen();
 					firstRenderComplete = true;
-				}
+				} else
+					CheckForElectricCharge();
 			} else {
 				if (textRefreshRequired)
 					FillScreenBuffer();
