@@ -158,7 +158,8 @@ namespace JSI
 			return engine.maxThrust;
 		}
 
-		private static double GetRealIsp(ModuleEngines engine) {
+		private static double GetRealIsp(ModuleEngines engine)
+		{
 			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
 				return 0;
 			return engine.realIsp;
@@ -518,10 +519,10 @@ namespace JSI
 						return node.GetBurnVector(vessel.orbit).magnitude;
 					return 0;
 				case "MNODEBURNTIME":
-					if (node != null)
+					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
 						//return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
 						return FormatDateTime(
-							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / totalMaximumThrust,
+							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * localG)),
 							false, true, false);
 					return "";
 				case "MNODEEXISTS":
