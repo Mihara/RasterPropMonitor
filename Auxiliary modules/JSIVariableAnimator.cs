@@ -34,11 +34,6 @@ namespace JSI
 		private FXGroup audioOutput;
 		private bool alarmActive;
 
-		private static void LogMessage(string line, params object[] list)
-		{
-			Debug.Log(String.Format(typeof(JSIVariableAnimator).Name + ": " + line, list));
-		}
-
 		private bool UpdateCheck()
 		{
 			if (updateCountdown <= 0) {
@@ -114,7 +109,7 @@ namespace JSI
 				scaleTop = scalePoints[1] ?? (float)(double)comp.ProcessVariable(varName[1]);
 				varValue = (float)(double)comp.ProcessVariable(variableName);
 			} catch (InvalidCastException e) {
-				LogMessage("Error, one of the variables failed to produce a usable number. {0}", e);
+				JUtil.LogMessage(this,"Error, one of the variables failed to produce a usable number. {0}", e);
 			}
 
 			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);

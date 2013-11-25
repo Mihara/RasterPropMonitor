@@ -21,6 +21,11 @@ namespace JSI
 			return null;
 		}
 
+		public static void LogMessage(InternalModule caller, string line, params object[] list)
+		{
+			Debug.Log(String.Format(caller.ClassName + ": " + line, list));
+		}
+
 		public static FXGroup SetupIVASound(InternalProp thatProp, string buttonClickSound, float buttonClickVolume, bool loopState)
 		{
 			FXGroup audioOutput = null;

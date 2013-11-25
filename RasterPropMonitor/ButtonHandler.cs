@@ -27,7 +27,7 @@ namespace JSI
 		{
 			GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
 			if (buttonObject == (UnityEngine.Object)null) {
-				Debug.LogError("Transform name not found, expect errors.");
+				Debug.LogError("Button transform name not found, expect errors.");
 				return null;
 			} 
 			return buttonObject.AddComponent<SmarterButton>();

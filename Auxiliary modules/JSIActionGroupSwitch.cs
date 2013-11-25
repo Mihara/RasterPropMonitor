@@ -63,16 +63,11 @@ namespace JSI
 		private int lightCheckCountdown;
 		private RasterPropMonitorComputer comp;
 
-		private static void LogMessage(string line, params object[] list)
-		{
-			Debug.Log(String.Format(typeof(JSIActionGroupSwitch).Name + ": " + line, list));
-		}
-
 		public void Start()
 		{
 			if (!groupList.ContainsKey(actionName)) {
 				if (!customGroupList.ContainsKey(actionName)) {
-					LogMessage("Action \"{0}\" not known, the switch will not work correctly.", actionName);
+					JUtil.LogMessage(this,"Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					isCustomAction = true;
 				}
@@ -118,7 +113,7 @@ namespace JSI
 				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				LogMessage("Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+				JUtil.LogMessage(this,"Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
 			if (oldState ^ reverse) {

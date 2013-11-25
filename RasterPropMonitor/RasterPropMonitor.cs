@@ -69,21 +69,17 @@ namespace JSI
 		private FXGroup audioOutput;
 		private double electricChargeReserve;
 
-		private static void LogMessage(string line, params object[] list)
-		{
-			Debug.Log(String.Format(typeof(RasterPropMonitor).Name + ": " + line, list));
-		}
 
 		public void Start()
 		{
 			// Loading the font...
-			LogMessage("Trying to locate \"{0}\" in GameDatabase...", fontTransform);
+			JUtil.LogMessage(this,"Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
 				fontTexture = GameDatabase.Instance.GetTexture(fontTransform.EnforceSlashes(), false);
-				LogMessage("Loading font texture from URL, \"{0}\"", fontTransform);
+				JUtil.LogMessage(this,"Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
 				fontTexture = (Texture2D)internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;
-				LogMessage("Loading font texture from a transform named, \"{0}\"", fontTransform);
+				JUtil.LogMessage(this,"Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
 
@@ -132,14 +128,14 @@ namespace JSI
 								activePage = newPage;
 							pages.Add(newPage);
 						} catch (ArgumentException e) {
-							LogMessage("Warning - {0}", e);
+							JUtil.LogMessage(this,"Warning - {0}", e);
 						}
 							
 					}
 					break;
 				}
 			}
-			LogMessage("Done setting up pages, {0} pages ready.", pages.Count);
+			JUtil.LogMessage(this,"Done setting up pages, {0} pages ready.", pages.Count);
 
 			// Install the calculator module.
 			comp = JUtil.GetComputer(internalProp);
@@ -207,7 +203,7 @@ namespace JSI
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode >= fontCharacters.Length) {
-				LogMessage("Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
+				JUtil.LogMessage(this,"Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
 
