@@ -226,8 +226,8 @@ namespace JSI
 			markerRetrograde = BuildMarker(1, 2, progradeColor);
 			markerManeuver = BuildMarker(2, 0, maneuverColor);
 			markerManeuverMinus = BuildMarker(1, 2, maneuverColor);
-			markerTarget = BuildMarker(2, 2, targetColor);
-			markerTargetMinus = BuildMarker(2, 1, targetColor);
+			markerTarget = BuildMarker(2, 1, targetColor);
+			markerTargetMinus = BuildMarker(2, 2, targetColor);
 			markerNormal = BuildMarker(0, 0, normalColor);
 			markerNormalMinus = BuildMarker(1, 0, normalColor);
 			markerRadial = BuildMarker(0, 1, radialColor);
