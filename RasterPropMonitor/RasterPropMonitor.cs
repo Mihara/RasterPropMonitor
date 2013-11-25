@@ -244,10 +244,10 @@ namespace JSI
 
 		private void RenderScreen()
 		{
-			// Technically, I should also check in case RenderTexture is lost when the screensaver got turned on.
-			// But I'll wait until anyone complains before doing that.
 			RenderTexture backupRenderTexture = RenderTexture.active;
 
+			if (!screenTexture.IsCreated())
+				screenTexture.Create();
 			screenTexture.DiscardContents();
 			RenderTexture.active = screenTexture;
 
