@@ -172,6 +172,13 @@ namespace JSI
 			} else
 				DestroyLightCone();
 		}
+
+		public override string GetInfo()
+		{
+			return "Look for the ID of the camera in the top right corner of the screen.\n" +
+			"Press SPACE while holding the mouse over the part to select the camera's ID number.\n" +
+			"Hold down 'U' to display all the camera fields of view.";
+		}
 	}
 }
 
