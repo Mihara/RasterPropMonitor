@@ -8,11 +8,22 @@ namespace JSI
 		public string soundURL;
 		[KSPField]
 		public float soundVolume = 0.1f;
+		[KSPField]
+		public bool needsElectricCharge = true;
+		private double electricChargeReserve;
+		private RasterPropMonitorComputer comp;
 		private FXGroup audioOutput;
 		private bool isPlaying;
+		private const int soundCheckRate = 60;
+		private int soundCheckCountdown;
 
 		public void Start()
 		{
+			if (needsElectricCharge) {
+				comp = JUtil.GetComputer(internalProp);
+				comp.UpdateRefreshRates(soundCheckRate, soundCheckRate);
+				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+			}
 			audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);
 			audioOutput.audio = internalModel.gameObject.AddComponent<AudioSource>();
 			audioOutput.audio.clip = GameDatabase.Instance.GetAudioClip(soundURL);
@@ -37,8 +48,9 @@ namespace JSI
 			}
 		}
 
-		private void StartPlaying(){
-			if (!isPlaying) {
+		private void StartPlaying()
+		{
+			if (!isPlaying && (!needsElectricCharge || electricChargeReserve > 0.01)) {
 				audioOutput.audio.Play();
 				isPlaying = true;
 			}
@@ -59,6 +71,17 @@ namespace JSI
 				StopPlaying();
 				return;
 			}
+
+			if (needsElectricCharge) {
+				soundCheckCountdown--;
+				if (soundCheckCountdown <= 0) {
+					soundCheckCountdown = soundCheckRate;
+					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+					if (electricChargeReserve < 0.01)
+						StopPlaying();
+				}
+			}
+
 			StartPlaying();
 		}
 	}
