@@ -43,6 +43,7 @@ namespace JSI
 		private double totalShipWetMass;
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
+		private double actualAverageIsp;
 		private double totalDataAmount;
 		private double secondsToImpact;
 		private double localG;
@@ -157,6 +158,12 @@ namespace JSI
 			return engine.maxThrust;
 		}
 
+		private static double GetRealIsp(ModuleEngines engine) {
+			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+				return 0;
+			return engine.realIsp;
+		}
+
 		public void FetchCommonData()
 		{
 			localG = vessel.orbit.referenceBody.GeeASL * gee;
@@ -208,6 +215,7 @@ namespace JSI
 			resources.Clear();
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
 			totalDataAmount = 0;
+			double averageIspContribution = 0;
 
 			foreach (Part thatPart in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
@@ -230,6 +238,9 @@ namespace JSI
 					if (pm is ModuleEngines) {
 						totalCurrentThrust += GetCurrentThrust(pm as ModuleEngines);
 						totalMaximumThrust += GetMaximumThrust(pm as ModuleEngines);
+						double realIsp = GetRealIsp(pm as ModuleEngines);
+						if (realIsp > 0)
+							averageIspContribution += GetMaximumThrust(pm as ModuleEngines) / realIsp;
 					} 
 				}
 
@@ -241,6 +252,8 @@ namespace JSI
 				}
 
 			}
+
+			actualAverageIsp = totalMaximumThrust / averageIspContribution;
 
 			resourcesAlphabetic = resources.Keys.ToArray();
 
@@ -489,6 +502,8 @@ namespace JSI
 					return totalMaximumThrust / totalShipWetMass;
 				case "GFORCE":
 					return vessel.geeForce_immediate;
+				case "REALISP":
+					return actualAverageIsp;
 
 			// Maneuvers
 				case "MNODETIME":
@@ -501,7 +516,10 @@ namespace JSI
 					return 0;
 				case "MNODEBURNTIME":
 					if (node != null)
-						return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
+						//return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
+						return FormatDateTime(
+							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / totalMaximumThrust,
+							false, true, false);
 					return "";
 				case "MNODEEXISTS":
 					if (node != null)
