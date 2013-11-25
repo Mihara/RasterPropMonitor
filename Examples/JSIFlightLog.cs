@@ -80,8 +80,8 @@ namespace JSI
 			}
 			lastCount = FlightLogger.eventLog.Count;
 			string fullLog = JUtil.WordWrap(string.Join(Environment.NewLine, FlightLogger.eventLog.ToArray()), screenWidth);
-			string[] tempBuffer = fullLog.Split(new [] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-			string[] screenBuffer = new string[activeScreenHeight];
+			var tempBuffer = fullLog.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+			var screenBuffer = new string[activeScreenHeight];
 			if (tempBuffer.Length <= activeScreenHeight) {
 				screenBuffer = tempBuffer;
 			} else {

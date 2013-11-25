@@ -338,9 +338,13 @@ namespace JSI
 			}
 			return "??!";
 		}
-		//TODO: I really should make that more sensible, I mean, three boolean flags?...
+		//TODO: I really should make that more sensible, I mean, FOUR boolean flags?...
 		// These three are formatting functions. They're better off moved into the formatter class.
 		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip)
+		{
+			return FormatDateTime(seconds, signed, noyears, plusskip, false);
+		}
+		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip, bool nodays)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
 			if (Double.IsNaN(seconds))
@@ -351,7 +355,8 @@ namespace JSI
 			span -= new TimeSpan(365 * years, 0, 0, 0);
 			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
 
-			string formatstring = (signed ? (plusskip ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + (noyears ? string.Empty : "{1:00}:") + "{2:000}:{3:00}:{4:00}:{5:00.0}";
+			string formatstring = (signed ? (plusskip ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + 
+			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
 
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
 
@@ -518,8 +523,8 @@ namespace JSI
 					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
 						//return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
 						return FormatDateTime(
-							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * localG)),
-							false, true, false);
+							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee)),
+							false, true, false, true);
 					return string.Empty;
 				case "MNODEEXISTS":
 					return node == null ? -1 : 1;

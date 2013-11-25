@@ -98,9 +98,7 @@ namespace JSI
 
 		public static double SignedAngle(Vector3 v1, Vector3 v2, Vector3 up)
 		{
-			if (Vector3.Dot(Vector3.Cross(v1, v2), up) < 0)
-				return -Vector3.Angle(v1, v2);
-			return Vector3.Angle(v1, v2);
+			return Vector3.Dot(Vector3.Cross(v1, v2), up) < 0 ? -Vector3.Angle(v1, v2) : Vector3.Angle(v1, v2);
 		}
 	}
 
@@ -233,8 +231,8 @@ namespace JSI
 	//accessing the value of a nonexistent key returns a default value instead of an error.
 	class DefaultableDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 	{
-		Dictionary<TKey, TValue> d = new Dictionary<TKey, TValue>();
-		TValue defaultValue;
+		readonly Dictionary<TKey, TValue> d = new Dictionary<TKey, TValue>();
+		readonly TValue defaultValue;
 
 		public DefaultableDictionary(TValue defaultValue)
 		{
@@ -243,9 +241,7 @@ namespace JSI
 
 		public TValue this [TKey key] {
 			get {
-				if (d.ContainsKey(key))
-					return d[key];
-				return defaultValue;
+				return d.ContainsKey(key) ? d[key] : defaultValue;
 			}
 			set {
 				if (d.ContainsKey(key))

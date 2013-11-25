@@ -25,8 +25,8 @@ namespace JSI
 		public bool reverse;
 		[KSPField]
 		public string alarmShutdownButton;
-		private float?[] scalePoints = { null, null };
-		private string[] varName = { null, null };
+		private readonly float?[] scalePoints = { null, null };
+		private readonly string[] varName = { null, null };
 		private RasterPropMonitorComputer comp;
 		private int updateCountdown;
 		private Animation anim;

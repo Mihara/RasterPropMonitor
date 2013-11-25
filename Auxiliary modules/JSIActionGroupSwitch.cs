@@ -44,7 +44,7 @@ namespace JSI
 			{ "custom09",KSPActionGroup.Custom09 },
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
-		private Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
+		private readonly Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
 			{ "intlight",false },
 			{ "dummy",false },
 		};

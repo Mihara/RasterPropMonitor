@@ -31,7 +31,7 @@ namespace JSI
 		[KSPField]
 		public float headingSpan = 0.25f;
 		[KSPField]
-		public bool headingAboveOverlay = false;
+		public bool headingAboveOverlay;
 		[KSPField]
 		public Color progradeColor = new Color(0.84f, 0.98f, 0);
 		[KSPField]

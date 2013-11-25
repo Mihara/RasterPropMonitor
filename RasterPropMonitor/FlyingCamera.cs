@@ -9,7 +9,7 @@ namespace JSI
 		private readonly Part ourPart;
 		private GameObject cameraTransform;
 		private Part cameraPart;
-		private Camera[] cameraObject = { null, null, null };
+		private readonly Camera[] cameraObject = { null, null, null };
 		private readonly float cameraAspect;
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
