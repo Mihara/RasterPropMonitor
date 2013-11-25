@@ -597,11 +597,11 @@ namespace JSI
 				case "LATITUDETGT_DMS":
 					if (target is Vessel)
 						return LatitudeDMS(target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
-					return "";
+					return string.Empty;
 				case "LONGITUDETGT_DMS":
 					if (target is Vessel)
 						return LongitudeDMS(JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
-					return "";
+					return string.Empty;
 
 
 			// Orientation
@@ -657,11 +657,11 @@ namespace JSI
 					return targetorbit.altitude;
 				case "TIMETOANWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
-						return "";
+						return string.Empty;
 					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time) - time, true, false, false);
 				case "TIMETODNWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
-						return "";
+						return string.Empty;
 					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time) - time, true, false, false);
 
 			// Ok, what are X, Y and Z here anyway?
