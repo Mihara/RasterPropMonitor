@@ -8,12 +8,7 @@ namespace JSI
 		private static readonly string[] variableListSeparator = { "$&$" };
 		private static readonly string[] variableSeparator = { };
 
-		public static string ProcessString(string input, RasterPropMonitorComputer comp)
-		{
-			return ProcessString(input, comp, true);
-		}
-
-		public static string ProcessString(string input, RasterPropMonitorComputer comp, bool trim)
+		public static string ProcessString(string input, RasterPropMonitorComputer comp, bool trim = true)
 		{
 			if (input.IndexOf(variableListSeparator[0], StringComparison.Ordinal) >= 0) {
 				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);

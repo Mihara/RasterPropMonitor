@@ -340,11 +340,7 @@ namespace JSI
 		}
 		//TODO: I really should make that more sensible, I mean, FOUR boolean flags?...
 		// These three are formatting functions. They're better off moved into the formatter class.
-		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip)
-		{
-			return FormatDateTime(seconds, signed, noyears, plusskip, false);
-		}
-		private static string FormatDateTime(double seconds, bool signed, bool noyears, bool plusskip, bool nodays)
+		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
 			if (Double.IsNaN(seconds))
@@ -355,7 +351,7 @@ namespace JSI
 			span -= new TimeSpan(365 * years, 0, 0, 0);
 			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
 
-			string formatstring = (signed ? (plusskip ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + 
+			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + 
 			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
 
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
@@ -470,7 +466,7 @@ namespace JSI
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 						return string.Empty;
 					}
-					return FormatDateTime(secondsToImpact, false, true, false); 
+					return FormatDateTime(secondsToImpact, false, true); 
 				case "TIMETOIMPACTSECS":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
 						return -1;
@@ -551,17 +547,17 @@ namespace JSI
 			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
 				case "ORBPERIOD":
 					if (orbitSensibility)
-						return FormatDateTime(vessel.orbit.period, false, false, false);
+						return FormatDateTime(vessel.orbit.period);
 					return string.Empty;
 				case "TIMETOAP":
 					if (orbitSensibility)
-						return FormatDateTime(vessel.orbit.timeToAp, false, false, false);
+						return FormatDateTime(vessel.orbit.timeToAp);
 					return string.Empty;
 				case "TIMETOPE":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
-							FormatDateTime(vessel.orbit.timeToPe, true, false, false) : 
-							FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
+							FormatDateTime(vessel.orbit.timeToPe, true) : 
+							FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true);
 					return string.Empty;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
@@ -571,9 +567,9 @@ namespace JSI
 
 			// Time
 				case "UT":
-					return FormatDateTime(time + 365 * 24 * 60 * 60, false, false, false);
+					return FormatDateTime(time + 365 * 24 * 60 * 60);
 				case "MET":
-					return FormatDateTime(vessel.missionTime, false, false, false);
+					return FormatDateTime(vessel.missionTime);
 
 			// Names!
 				case "NAME":
@@ -663,11 +659,11 @@ namespace JSI
 				case "TIMETOANWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time) - time, true, false, false);
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time) - time, true);
 				case "TIMETODNWITHTARGET":
 					if (target == null || !targetOrbitSensibility)
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time) - time, true, false, false);
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time) - time, true);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -734,17 +730,17 @@ namespace JSI
 					return 0;
 				case "TARGETTIMETOAP":
 					if (target != null && targetOrbitSensibility)
-						return FormatDateTime(targetorbit.timeToAp, false, false, false);
+						return FormatDateTime(targetorbit.timeToAp);
 					return string.Empty;
 				case "TARGETORBPERIOD":
 					if (target != null && targetOrbitSensibility)
-						return FormatDateTime(targetorbit.period, false, false, false);
+						return FormatDateTime(targetorbit.period);
 					return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
-							FormatDateTime(targetorbit.timeToPe, true, false, false) : 
-							FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
+							FormatDateTime(targetorbit.timeToPe, true) : 
+							FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true);
 					return string.Empty;
 
 			// Analysis disable RedundantCast
