@@ -10,6 +10,11 @@ namespace JSI
 
 		public static string ProcessString(string input, RasterPropMonitorComputer comp)
 		{
+			return ProcessString(input, comp, true);
+		}
+
+		public static string ProcessString(string input, RasterPropMonitorComputer comp, bool trim)
+		{
 			if (input.IndexOf(variableListSeparator[0], StringComparison.Ordinal) >= 0) {
 				string[] tokens = input.Split(variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {
@@ -21,10 +26,11 @@ namespace JSI
 					for (int i = 0; i < vars.Length; i++) {
 						variables[i] = comp.ProcessVariable(vars[i]);
 					}
-					return String.Format(fp, tokens[0], variables).TrimEnd();
+					string output = string.Format(fp, tokens[0], variables);
+					return trim ? output.TrimEnd() : output;
 				}
 			}
-			return input.TrimEnd();
+			return trim ? input.TrimEnd() : input;
 		}
 	}
 }
