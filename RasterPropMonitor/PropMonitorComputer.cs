@@ -501,7 +501,7 @@ namespace JSI
 					return 0;
 				case "MNODEBURNTIME":
 					if (node != null)
-						return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / FlightGlobals.ActiveVessel.specificAcceleration,false,true,false);
+						return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
 					return "";
 				case "MNODEEXISTS":
 					if (node != null)
