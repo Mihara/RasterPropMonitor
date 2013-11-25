@@ -167,7 +167,8 @@ namespace JSI
 			state = isCustomAction ? customGroupList[actionName] : FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
 
 			if (state != oldState) {
-				if (audioOutput != null) {
+				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+					CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
 					audioOutput.audio.Play();
 				}
 				if (state ^ reverse) {
