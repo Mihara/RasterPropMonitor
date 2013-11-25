@@ -83,8 +83,11 @@ namespace JSI
 			{ "LSCO2","CarbonDioxide" },
 			{ "LSWASTE","Waste" },
 			{ "LSWASTEWATER","WasteWater" },
+			// ECLSS resources
+			{ "ECLSSCO2","CO2" },
+			{ "ECLSSO2C","O2 Candle" },
 			// Deadly reentry ablative shielding
-			{ "ABLATIVESHIELD","AblativeShielding"},
+			{ "ABLATIVESHIELD","AblativeShielding" },
 		};
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
