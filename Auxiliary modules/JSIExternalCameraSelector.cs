@@ -20,11 +20,12 @@ namespace JSI
 		private GameObject lightCone;
 		private LineRenderer lightConeRenderer;
 		private static readonly Material lightConeMaterial = new Material(Shader.Find("Particles/Additive"));
+		private static ScreenMessage cameraMessage;
 		private Transform actualCamera;
 		private const float endSpan = 15f;
 		private const float fovAngle = 60f;
 
-		[KSPEvent(guiActive = true, guiName = "ID+")]
+		[KSPEvent(guiActive = true, guiName = "ID +")]
 		public void IdPlus()
 		{
 			current++;
@@ -33,7 +34,7 @@ namespace JSI
 			UpdateName();
 		}
 
-		[KSPEvent(guiActive = true, guiName = "ID-")]
+		[KSPEvent(guiActive = true, guiName = "ID -")]
 		public void IdMinus()
 		{
 			current--;
@@ -59,22 +60,39 @@ namespace JSI
 				actualCamera.parent = containingTransform;
 			}
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
-			if (HighLogic.LoadedSceneIsEditor)
-				ScreenMessages.PostScreenMessage("Camera ID: " + visibleCameraName, 3, ScreenMessageStyle.UPPER_RIGHT);
+			if (HighLogic.LoadedSceneIsEditor) {
+				if (cameraMessage != null) {
+					ScreenMessages.RemoveMessage(cameraMessage);
+					cameraMessage = null;
+				}
+				cameraMessage = ScreenMessages.PostScreenMessage("Camera ID: " + visibleCameraName, 3, ScreenMessageStyle.UPPER_RIGHT);
+				if (lightConeRenderer != null)
+					ColorizeLightCone();
+			}
 		}
 
 		public override void OnStart(PartModule.StartState state)
 		{
-			UpdateName();
 			if (state == StartState.Editor) {
-				if (part.parent == null)
+				if (part.parent == null) {
+					foreach (Part thatPart in EditorLogic.SortedShipList) {
+						if (thatPart.name == part.name && thatPart != this) {
+							foreach (PartModule thatModule in thatPart.Modules) {
+								var peerModule = thatModule as JSIExternalCameraSelector;
+								if (peerModule != null && peerModule.cameraIDPrefix == cameraIDPrefix && peerModule.current == current)
+									IdPlus();
+							}
+						}
+					}
 					CreateLightCone();
+				}
 				part.OnEditorAttach += new Callback(DestroyLightCone);
 				part.OnEditorDetach += new Callback(PickupCamera);
 				part.OnEditorDestroy += new Callback(DestroyLightCone);
 			} else {
 				DestroyLightCone();
 			}
+			UpdateName();
 		}
 
 		private void PickupCamera()
@@ -91,14 +109,22 @@ namespace JSI
 				lightConeRenderer = lightCone.AddComponent<LineRenderer>();
 				lightConeRenderer.useWorldSpace = true;
 				lightConeRenderer.material = lightConeMaterial;
-				lightConeRenderer.SetColors(new Color(0f, 0f, 1f, 1f), new Color(0f, 0f, 1f, 0f));
 				lightConeRenderer.SetWidth(0.054f, endSpan);
 				lightConeRenderer.SetVertexCount(2);
 				lightConeRenderer.castShadows = false;
 				lightConeRenderer.receiveShadows = false;
 				lightConeRenderer.SetPosition(0, Vector3.zero);
 				lightConeRenderer.SetPosition(1, Vector3.zero);
+				ColorizeLightCone();
 			}
+		}
+
+		private void ColorizeLightCone()
+		{
+			Color start = new Color(0f, 0f, 1f, 0.7f);
+			Color end = new Color(1f, 0f, 0f, 0.7f);
+			Color newStart = Color.Lerp(start, end, 1f / (maximum) * (current - 1));
+			lightConeRenderer.SetColors(newStart, new Color(newStart.r, newStart.g, newStart.b, 0f));
 		}
 
 		private void DestroyLightCone()
@@ -139,10 +165,13 @@ namespace JSI
 				DestroyLightCone();
 			}
 			if (lightConeRenderer != null) {
-				Vector3 origin = actualCamera.transform.TransformPoint(Vector3.zero);
-				Vector3 direction = actualCamera.transform.TransformDirection(Vector3.forward);
-				lightConeRenderer.SetPosition(0, origin);
-				lightConeRenderer.SetPosition(1, origin + direction * (endSpan / 2 / Mathf.Tan(Mathf.Deg2Rad * fovAngle / 2)));
+				if (actualCamera != null) {
+					Vector3 origin = actualCamera.transform.TransformPoint(Vector3.zero);
+					Vector3 direction = actualCamera.transform.TransformDirection(Vector3.forward);
+					lightConeRenderer.SetPosition(0, origin);
+					lightConeRenderer.SetPosition(1, origin + direction * (endSpan / 2 / Mathf.Tan(Mathf.Deg2Rad * fovAngle / 2)));
+				} else
+					DestroyLightCone();
 			}
 		}
 	}
