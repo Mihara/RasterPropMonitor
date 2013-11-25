@@ -149,7 +149,7 @@ namespace JSI
 			persistentVarName = "activePage" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
 			int? activePageID = persistence.GetVar(persistentVarName);
-			if (activePageID != null) {
+			if (activePageID != null && activePageID.Value < pages.Count) {
 				activePage = pages[activePageID.Value];
 			}
 
