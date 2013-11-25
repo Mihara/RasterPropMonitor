@@ -19,6 +19,8 @@ namespace JSI
 		[KSPField]
 		public string internalLightName;
 		[KSPField]
+		public bool needsElectricCharge = true;
+		[KSPField]
 		public string switchSound = "Squad/Sounds/sound_click_flick";
 		[KSPField]
 		public float switchSoundVolume = 0.5f;
@@ -56,6 +58,10 @@ namespace JSI
 		private string persistentVarName;
 		private Light[] lightObjects;
 		private FXGroup audioOutput;
+		private double electricChargeReserve;
+		private const int lightCheckRate = 60;
+		private int lightCheckCountdown;
+		private RasterPropMonitorComputer comp;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -97,6 +103,11 @@ namespace JSI
 			switch (actionName) {
 				case "intlight":
 					lightObjects = internalModel.FindModelComponents<Light>();
+					if (needsElectricCharge) {
+						comp = JUtil.GetComputer(internalProp);
+						comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+						electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+					}
 					SetInternalLights(customGroupList[actionName]);
 					break;
 			}
@@ -129,11 +140,14 @@ namespace JSI
 
 		private void SetInternalLights(bool value)
 		{
+			if (needsElectricCharge && electricChargeReserve < 0.01d)
+				value = false;
 			foreach (Light lightobject in lightObjects) {
 				// I probably shouldn't filter them every time, but I am getting
 				// serously confused by this hierarchy.
-				if (lightobject.name == internalLightName)
-					lightobject.enabled = value;
+				if (lightobject.name == internalLightName) {
+						lightobject.enabled = value;
+				}
 			}
 		}
 
@@ -168,7 +182,7 @@ namespace JSI
 
 			if (state != oldState) {
 				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-					CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
+				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
 					audioOutput.audio.Play();
 				}
 				if (state ^ reverse) {
@@ -182,6 +196,22 @@ namespace JSI
 				}
 				oldState = state;
 			}
+
+			if (actionName == "intlight" && needsElectricCharge) {
+				if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+				   CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+					return;
+
+				lightCheckCountdown--;
+				if (lightCheckCountdown <= 0) {
+					lightCheckCountdown = lightCheckRate;
+					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+					if (customGroupList["intlight"]) {
+						SetInternalLights(true);
+					}
+				}
+			}
+
 		}
 	}
 }
