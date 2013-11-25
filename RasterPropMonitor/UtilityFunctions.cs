@@ -21,6 +21,11 @@ namespace JSI
 			return null;
 		}
 
+		public static string EnforceSlashes(string input)
+		{
+			return input.Replace('\\', '/');
+		}
+
 		public static FXGroup SetupIVASound(InternalProp thatProp, string buttonClickSound, float buttonClickVolume, bool loopState)
 		{
 			FXGroup audioOutput = null;
