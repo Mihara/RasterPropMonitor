@@ -253,7 +253,10 @@ namespace JSI
 
 			}
 
-			actualAverageIsp = totalMaximumThrust / averageIspContribution;
+			if (averageIspContribution > 0)
+				actualAverageIsp = totalMaximumThrust / averageIspContribution;
+			else
+				actualAverageIsp = 0;
 
 			resourcesAlphabetic = resources.Keys.ToArray();
 
