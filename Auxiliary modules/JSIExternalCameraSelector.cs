@@ -164,15 +164,13 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsEditor) {
 				DestroyLightCone();
 			}
-			if (lightConeRenderer != null) {
-				if (actualCamera != null) {
-					Vector3 origin = actualCamera.transform.TransformPoint(Vector3.zero);
-					Vector3 direction = actualCamera.transform.TransformDirection(Vector3.forward);
-					lightConeRenderer.SetPosition(0, origin);
-					lightConeRenderer.SetPosition(1, origin + direction * (endSpan / 2 / Mathf.Tan(Mathf.Deg2Rad * fovAngle / 2)));
-				} else
-					DestroyLightCone();
-			}
+			if (lightConeRenderer != null && actualCamera != null) {
+				Vector3 origin = actualCamera.transform.TransformPoint(Vector3.zero);
+				Vector3 direction = actualCamera.transform.TransformDirection(Vector3.forward);
+				lightConeRenderer.SetPosition(0, origin);
+				lightConeRenderer.SetPosition(1, origin + direction * (endSpan / 2 / Mathf.Tan(Mathf.Deg2Rad * fovAngle / 2)));
+			} else
+				DestroyLightCone();
 		}
 	}
 }
