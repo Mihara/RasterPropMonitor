@@ -40,6 +40,8 @@ namespace JSI
 		public string buttonClickSound;
 		[KSPField]
 		public float buttonClickVolume = 0.5f;
+		[KSPField]
+		public bool needsElectricCharge = true;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
@@ -65,6 +67,7 @@ namespace JSI
 		private string[] screenBuffer;
 		private Rect[] fontCharacters;
 		private FXGroup audioOutput;
+		private double electricChargeReserve;
 
 		private static void LogMessage(string line, params object[] list)
 		{
@@ -252,41 +255,46 @@ namespace JSI
 			screenTexture.DiscardContents();
 			RenderTexture.active = screenTexture;
 
+			if (needsElectricCharge && electricChargeReserve < 0.01d) {
+				// If we're out of electric charge, we're drawing a blank screen.
+				GL.Clear(true, true, emptyColor);
+			} else {
 
-
-			// Draw the background, if any.
-			switch (activePage.background) {
-				case MonitorPage.BackgroundType.Camera:
-					if (!cam.Render())
+				// Draw the background, if any.
+				switch (activePage.background) {
+					case MonitorPage.BackgroundType.Camera:
+						if (!cam.Render())
+							GL.Clear(true, true, emptyColor);
+						break;
+					case MonitorPage.BackgroundType.None:
 						GL.Clear(true, true, emptyColor);
-					break;
-				case MonitorPage.BackgroundType.None:
-					GL.Clear(true, true, emptyColor);
-					break;
-				default:
-					if (!activePage.RenderBackground(screenTexture))
-						GL.Clear(true, true, emptyColor);
-					break;
-			}
+						break;
+					default:
+						if (!activePage.RenderBackground(screenTexture))
+							GL.Clear(true, true, emptyColor);
+						break;
+				}
 
-			// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
-			// Cameras don't care because they have their own matrices, but DrawTexture does.
-			GL.PushMatrix();
-			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
+				// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
+				// Cameras don't care because they have their own matrices, but DrawTexture does.
+				GL.PushMatrix();
+				GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
-			if (!string.IsNullOrEmpty(activePage.Text)) {
-				// Draw the text.
-				for (int y = 0; y < screenHeight && y < screenBuffer.Length; y++) {
-					if (!string.IsNullOrEmpty(screenBuffer[y])) {
-						char[] line = screenBuffer[y].ToCharArray();
-						for (int x = 0; x < screenWidth && x < line.Length; x++) {
-							DrawChar(line[x], x, y);
+				if (!string.IsNullOrEmpty(activePage.Text)) {
+					// Draw the text.
+					for (int y = 0; y < screenHeight && y < screenBuffer.Length; y++) {
+						if (!string.IsNullOrEmpty(screenBuffer[y])) {
+							char[] line = screenBuffer[y].ToCharArray();
+							for (int x = 0; x < screenWidth && x < line.Length; x++) {
+								DrawChar(line[x], x, y);
+							}
 						}
 					}
 				}
-			}
 
-			GL.PopMatrix();
+				GL.PopMatrix();
+
+			}
 			RenderTexture.active = backupRenderTexture;
 		}
 
@@ -297,6 +305,10 @@ namespace JSI
 			for (int i = 0; i < screenHeight; i++)
 				screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
 			textRefreshRequired = false;
+
+			// This is where we request electric charge reserve. And if we don't have any, well... :)
+			if (needsElectricCharge)
+				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 		}
 
 		public override void OnUpdate()
