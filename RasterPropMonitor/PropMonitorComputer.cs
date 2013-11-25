@@ -7,7 +7,7 @@ namespace JSI
 {
 	public class RasterPropMonitorComputer: PartModule
 	{
-		public bool updateForced = false;
+		public bool updateForced;
 		// Data common for various variable calculations
 		private int vesselNumParts;
 		private int updateCountdown;
@@ -37,7 +37,7 @@ namespace JSI
 		private Orbit targetorbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
-		private DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(new Vector2d(0, 0));
+		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(new Vector2d(0, 0));
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
 		private double totalShipWetMass;
@@ -181,10 +181,7 @@ namespace JSI
 
 			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
 			target = FlightGlobals.fetch.VesselTarget;
-			if (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-				node = vessel.patchedConicSolver.maneuverNodes[0];
-			else
-				node = null;
+			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
 			if (target != null) {
@@ -192,10 +189,8 @@ namespace JSI
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
 				targetorbit = target.GetOrbit();
-				if (target is Vessel)
-					targetOrbitSensibility = OrbitMakesSense(target as Vessel);
-				else
-					targetOrbitSensibility = true;
+				var targetVessel = target as Vessel;
+				targetOrbitSensibility = targetVessel == null || OrbitMakesSense(targetVessel);
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrientation = new Quaternion();
@@ -236,12 +231,13 @@ namespace JSI
 				foreach (PartModule pm in thatPart.Modules) {
 					if (!pm.isEnabled)
 						continue;
-					if (pm is ModuleEngines) {
-						totalCurrentThrust += GetCurrentThrust(pm as ModuleEngines);
-						totalMaximumThrust += GetMaximumThrust(pm as ModuleEngines);
-						double realIsp = GetRealIsp(pm as ModuleEngines);
+					var thatEngineModule = pm as ModuleEngines;
+					if (thatEngineModule != null) {
+						totalCurrentThrust += GetCurrentThrust(thatEngineModule);
+						totalMaximumThrust += GetMaximumThrust(thatEngineModule);
+						double realIsp = GetRealIsp(thatEngineModule);
 						if (realIsp > 0)
-							averageIspContribution += GetMaximumThrust(pm as ModuleEngines) / realIsp;
+							averageIspContribution += GetMaximumThrust(thatEngineModule) / realIsp;
 					} 
 				}
 
@@ -355,7 +351,7 @@ namespace JSI
 			span -= new TimeSpan(365 * years, 0, 0, 0);
 			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
 
-			string formatstring = (signed ? (plusskip ? "{0:+;-; }" : "{0: ;-; }") : "") + (noyears ? "" : "{1:00}:") + "{2:000}:{3:00}:{4:00}:{5:00.0}";
+			string formatstring = (signed ? (plusskip ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + (noyears ? string.Empty : "{1:00}:") + "{2:000}:{3:00}:{4:00}:{5:00.0}";
 
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
 
@@ -375,7 +371,7 @@ namespace JSI
 			return AngleToDMS(latitude) + (latitude > 0 ? " N" : " S");
 		}
 
-		private string LongitudeDMS(double longitude)
+		private static string LongitudeDMS(double longitude)
 		{
 			double clampedLongitude = JUtil.ClampDegrees180(longitude);
 			return AngleToDMS(clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
@@ -415,9 +411,7 @@ namespace JSI
 				if (tokens.Length == 3 && tokens[0] == "CREW") { 
 					ushort crewSeatID = Convert.ToUInt16(tokens[1]);
 					if (tokens[2] == "PRESENT") {
-						if (crewSeatID >= vesselCrew.Length)
-							return -1;
-						return 1;
+						return crewSeatID >= vesselCrew.Length ? -1 : 1;
 					}
 					if (crewSeatID >= vesselCrew.Length)
 						return string.Empty;
@@ -437,6 +431,8 @@ namespace JSI
 			}
 
 			switch (input) {
+			// Annoying as it is, those casts to double are not actually redundant:
+			// Analysis disable RedundantCast
 
 			// It's a bit crude, but it's simple enough to populate.
 			// Would be a bit smoother if I had eval() :)
@@ -524,11 +520,9 @@ namespace JSI
 						return FormatDateTime(
 							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * localG)),
 							false, true, false);
-					return "";
+					return string.Empty;
 				case "MNODEEXISTS":
-					if (node != null)
-						return 1;
-					return -1;
+					return node == null ? -1 : 1;
 
 			// Orbital parameters
 				case "ORBITBODY":
@@ -559,15 +553,15 @@ namespace JSI
 						return FormatDateTime(vessel.orbit.timeToAp, false, false, false);
 					return string.Empty;
 				case "TIMETOPE":
-					if (orbitSensibility) {
-						if (vessel.orbit.eccentricity < 1)
-							return FormatDateTime(vessel.orbit.timeToPe, true, false, false);
-						return FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
-					}
+					if (orbitSensibility)
+						return vessel.orbit.eccentricity < 1 ? 
+							FormatDateTime(vessel.orbit.timeToPe, true, false, false) : 
+							FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true, false, false);
 					return string.Empty;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return (double)1;
+						
 					return (double)-1;
 
 			// Time
@@ -634,9 +628,9 @@ namespace JSI
 					return -1;
 				case "RELATIVEINCLINATION":
 					if (target != null) {
-						if (targetorbit.referenceBody != vessel.orbit.referenceBody)
-							return -1;
-						return Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetorbit.SwappedOrbitNormal()));
+						return targetorbit.referenceBody != vessel.orbit.referenceBody ?
+							 -1 : 
+							Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetorbit.SwappedOrbitNormal()));
 					}
 					return -1;
 				case "TARGETORBITBODY":
@@ -656,8 +650,9 @@ namespace JSI
 				case "TARGETALTITUDE":
 					if (target == null)
 						return -1;
-					if (target is Vessel) {
-						return (target as Vessel).mainBody.GetAltitude((target as Vessel).findWorldCenterOfMass());
+					var targetVessel = target as Vessel;
+					if (targetVessel != null) {
+						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
 					}
 					return targetorbit.altitude;
 				case "TIMETOANWITHTARGET":
@@ -680,8 +675,9 @@ namespace JSI
 			// I probably should return something else for vessels. But not sure what exactly right now.
 				case "TARGETANGLEX":
 					if (target != null) {
-						if (target is ModuleDockingNode)
-							return JUtil.NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, up);
+						var targetDockingNode = target as ModuleDockingNode;
+						if (targetDockingNode != null)
+							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
 						if (target is Vessel)
 							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
 						return 0;
@@ -689,8 +685,9 @@ namespace JSI
 					return 0;
 				case "TARGETANGLEY":
 					if (target != null) {
-						if (target is ModuleDockingNode)
-							return JUtil.NormalAngle(-(target as ModuleDockingNode).GetFwdVector(), forward, -right);
+						var targetDockingNode = target as ModuleDockingNode;
+						if (targetDockingNode != null)
+							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right);
 						if (target is Vessel) {
 							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
@@ -699,8 +696,9 @@ namespace JSI
 					return 0;
 				case "TARGETANGLEZ":
 					if (target != null) {
-						if (target is ModuleDockingNode)
-							return JUtil.NormalAngle((target as ModuleDockingNode).GetTransform().up, up, -forward);
+						var targetDockingNode = target as ModuleDockingNode;
+						if (targetDockingNode != null)
+							return JUtil.NormalAngle(targetDockingNode.GetTransform().up, up, -forward);
 						if (target is Vessel) {
 							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
@@ -738,13 +736,13 @@ namespace JSI
 						return FormatDateTime(targetorbit.period, false, false, false);
 					return string.Empty;
 				case "TARGETTIMETOPE":
-					if (target != null && targetOrbitSensibility) {
-						if (vessel.orbit.eccentricity < 1)
-							return FormatDateTime(targetorbit.timeToPe, true, false, false);
-						return FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
-					}
+					if (target != null && targetOrbitSensibility)
+						return vessel.orbit.eccentricity < 1 ? 
+							FormatDateTime(targetorbit.timeToPe, true, false, false) : 
+							FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true, false, false);
 					return string.Empty;
 
+			// Analysis disable RedundantCast
 			// FLight control status
 				case "THROTTLE":
 					return (double)vessel.ctrlState.mainThrottle;
@@ -801,9 +799,7 @@ namespace JSI
 			// Named resources are all the same and better off processed like this:
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
-					if (input.EndsWith("MAX", StringComparison.Ordinal))
-						return resources[resourceType.Value].y;
-					return resources[resourceType.Value].x;
+					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
 				}
 			}
 
