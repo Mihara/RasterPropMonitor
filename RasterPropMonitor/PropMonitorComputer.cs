@@ -37,7 +37,7 @@ namespace JSI
 		private Orbit targetorbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
-		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(new Vector2d(0, 0));
+		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(Vector2d.zero);
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
 		private double totalShipWetMass;
