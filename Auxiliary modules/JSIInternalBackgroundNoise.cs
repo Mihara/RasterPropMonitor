@@ -26,7 +26,7 @@ namespace JSI
 			}
 			audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);
 			audioOutput.audio = internalModel.gameObject.AddComponent<AudioSource>();
-			audioOutput.audio.clip = GameDatabase.Instance.GetAudioClip(soundURL);
+			audioOutput.audio.clip = GameDatabase.Instance.GetAudioClip(soundURL.EnforceSlashes());
 			audioOutput.audio.Stop();
 			audioOutput.audio.volume = GameSettings.SHIP_VOLUME * soundVolume;
 			audioOutput.audio.rolloffMode = AudioRolloffMode.Logarithmic;
