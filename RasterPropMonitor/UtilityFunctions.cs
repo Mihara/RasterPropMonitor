@@ -21,11 +21,6 @@ namespace JSI
 			return null;
 		}
 
-		public static string EnforceSlashes(string input)
-		{
-			return input.Replace('\\', '/');
-		}
-
 		public static FXGroup SetupIVASound(InternalProp thatProp, string buttonClickSound, float buttonClickVolume, bool loopState)
 		{
 			FXGroup audioOutput = null;
@@ -107,6 +102,18 @@ namespace JSI
 				return -Vector3.Angle(v1, v2);
 			return Vector3.Angle(v1, v2);
 		}
+	}
+
+	public static class JStringExtensions
+	{
+		public static string EnforceSlashes(this string input)
+		{
+			return input.Replace('\\', '/');
+		}
+		public static string UnMangleConfigText(this string input) {
+			return input.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
+		}
+
 	}
 	// Should I just import the entire class from MJ?...
 	public static class OrbitExtensions

@@ -182,14 +182,14 @@ namespace JSI
 		{
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			overlayMaterial = new Material(unlit);
-			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(JUtil.EnforceSlashes(staticOverlay), false);
+			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
 
 			if (!string.IsNullOrEmpty(headingBar)) {
 				headingMaterial = new Material(unlit);
-				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(JUtil.EnforceSlashes(headingBar), false);
+				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
 			}
-			horizonTex = GameDatabase.Instance.GetTexture(JUtil.EnforceSlashes(horizonTexture), false);
-			navBall = GameDatabase.Instance.GetModel(JUtil.EnforceSlashes(navBallModel));
+			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
+			navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
 
 			// Cute!
 			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();

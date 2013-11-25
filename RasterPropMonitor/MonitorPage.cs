@@ -73,10 +73,10 @@ namespace JSI
 					string pageDefinition = node.GetValue("text");
 
 					try {
-						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + JUtil.EnforceSlashes(pageDefinition), System.Text.Encoding.UTF8));
+						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition.EnforceSlashes(), System.Text.Encoding.UTF8));
 					} catch {
 						// There's no file. Probably.
-						Text = StringProcessor.AdjustString(pageDefinition);
+						Text = pageDefinition.UnMangleConfigText();
 					}
 					isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 				}
@@ -103,7 +103,7 @@ namespace JSI
 					}
 				} else {
 					if (node.HasValue("textureURL")) {
-						string textureURL = JUtil.EnforceSlashes(node.GetValue("textureURL"));
+						string textureURL = node.GetValue("textureURL").EnforceSlashes();
 						if (GameDatabase.Instance.ExistsTexture(textureURL)) {
 							backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
 							background = BackgroundType.Texture;

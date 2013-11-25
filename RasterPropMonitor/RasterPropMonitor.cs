@@ -78,8 +78,8 @@ namespace JSI
 		{
 			// Loading the font...
 			LogMessage("Trying to locate \"{0}\" in GameDatabase...", fontTransform);
-			if (GameDatabase.Instance.ExistsTexture(JUtil.EnforceSlashes(fontTransform))) {
-				fontTexture = GameDatabase.Instance.GetTexture(JUtil.EnforceSlashes(fontTransform), false);
+			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
+				fontTexture = GameDatabase.Instance.GetTexture(fontTransform.EnforceSlashes(), false);
 				LogMessage("Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
 				fontTexture = (Texture2D)internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;

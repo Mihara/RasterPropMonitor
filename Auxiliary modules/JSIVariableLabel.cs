@@ -25,7 +25,7 @@ namespace JSI
 			comp = JUtil.GetComputer(internalProp);
 			textObjTransform = internalProp.FindModelTransform(transformName);
 			textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
-			sourceString = StringProcessor.AdjustString(labelText);
+			sourceString = labelText.UnMangleConfigText();
 		}
 
 		private bool UpdateCheck()

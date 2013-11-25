@@ -26,9 +26,5 @@ namespace JSI
 			}
 			return input.TrimEnd();
 		}
-
-		public static string AdjustString(string input) {
-			return input.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
-		}
 	}
 }
