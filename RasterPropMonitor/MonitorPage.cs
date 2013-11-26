@@ -13,7 +13,7 @@ namespace JSI
 
 		public string Text {
 			get {
-				return pageHandler != null ? pageHandler() : text;
+				return pageHandler != null ? pageHandler(screenWidth, screenHeight) : text;
 			}
 			private set {
 				text = value;
@@ -38,17 +38,21 @@ namespace JSI
 		public float cameraFOV;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
-		private readonly Func<string> pageHandler;
+		private readonly Func<int,int,string> pageHandler;
 		private readonly Func<RenderTexture,bool> backgroundHandler;
 		private readonly Action<bool,int> pageHandlerActivate;
 		private readonly Action<bool,int> backgroundHandlerActivate;
 		private readonly Action<int> pageHandlerButtonClick;
 		private readonly Action<int> backgroundHandlerButtonClick;
 		private readonly RasterPropMonitor ourMonitor;
+		private int screenWidth, screenHeight;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
 			ourMonitor = thatMonitor;
+			screenWidth = ourMonitor.screenWidth;
+			screenHeight = ourMonitor.screenHeight;
+
 			pageNumber = idNum;
 			isMutable = false;
 			if (!node.HasData)
@@ -65,7 +69,7 @@ namespace JSI
 				InternalModule handlerModule;
 				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
-					pageHandler = (Func<string>)Delegate.CreateDelegate(typeof(Func<string>), handlerModule, handlerMethod);
+					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					isMutable = true;
 				}
 			} else {
@@ -195,7 +199,6 @@ namespace JSI
 			}
 			return false;
 		}
-
 	}
 }
 

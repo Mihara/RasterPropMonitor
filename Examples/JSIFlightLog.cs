@@ -12,22 +12,21 @@ using System;
 // and defined directly in the config file, request a page text from an InternalModule
 // living in the same prop as it does. To do this, configure the page like this:
 //
-// PAGE 
+// PAGE
 // {
 //    PAGEHANDLER
 //    {
-//        name = Name of your module 
+//        name = Name of your module
 //        method = Method name to be called in your module.
 //    }
 //
-// Method name must exist in your module and must be a function that takes no parameters
+// Method name must exist in your module and must be a function that takes two int parameters
 // and returns a string. Any other parameters you include in the PAGEHANDLER block
 // will be passed to your InternalModule as KSPFields.
 //
-// RasterPropMonitor will load your module, attach it to the prop it lives in and 
+// RasterPropMonitor will load your module, attach it to the prop it lives in and
 // poll this function every time it decides the page needs to be refreshed. You need
 // to return a string, that will then be processed just like a page definition text file.
-
 // You will obviously want your own namespace.
 namespace JSI
 {
@@ -36,29 +35,21 @@ namespace JSI
 	{
 		// These KSPFields will actually be loaded from the PAGEHANDLER block
 		[KSPField]
-		public int screenWidth;
-		[KSPField]
-		public int screenHeight;
-		[KSPField]
 		public string pageTitle;
-
 		// We can keep our response buffered and only return it upon request.
 		private string response;
-
 		// We only update the response when the number of lines in the flight log changes.
-		private int lastCount;
-
+		private int lastCount = -1;
 		// This method will be found by RasterPropMonitorGenerator and called to provide a page.
 		// You must return a string. Environment.Newline is the carriage return, nothing fancy.
-		public string ShowLog()
+		public string ShowLog(int screenWidth, int screenHeight)
 		{
 			if (FlightLogger.eventLog.Count != lastCount) {
-				LogToBuffer();
+				LogToBuffer(screenWidth, screenHeight);
 			}
 			return response;
 			
 		}
-
 		// I honestly have no clue why InternalModules need to be initialised
 		// like this, and not with a proper constructor or an OnAwake, but that one always works.
 		// Even a very simple OnAwake can sometimes get the entire IVA to choke.
@@ -66,12 +57,9 @@ namespace JSI
 		{
 			if (!string.IsNullOrEmpty(pageTitle))
 				pageTitle = pageTitle.Replace("<=", "{").Replace("=>", "}");
-			LogToBuffer();
 		}
-
 		// You can have an OnUpdate in this module, this particular one doesn't need it.
-
-		private void LogToBuffer()
+		private void LogToBuffer(int screenWidth, int screenHeight)
 		{
 			// I think I coded this one backwards somehow, but eh, it's a gimmick.
 			int activeScreenHeight = screenHeight;
@@ -97,6 +85,5 @@ namespace JSI
 
 
 		}
-
 	}
 }
