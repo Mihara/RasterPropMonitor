@@ -10,6 +10,7 @@
 // I wish there were some clarity on the subject.
 using SCANsat;
 using UnityEngine;
+using System;
 
 namespace SCANsatRPM
 {
@@ -18,8 +19,6 @@ namespace SCANsatRPM
 		[KSPField]
 		public float screenAspect = 1;
 		[KSPField]
-		public int refreshRate = 3600;
-		[KSPField]
 		public int buttonUp;
 		[KSPField]
 		public int buttonDown = 1;
@@ -27,14 +26,15 @@ namespace SCANsatRPM
 		public int buttonEnter = 2;
 		[KSPField]
 		public int buttonEsc = 3;
+		[KSPField]
+		public int maxZoom = 5;
 		private int mapMode;
 		private int zoomLevel = 0;
-		private const int maxZoom = 5;
-		private int refreshCountdown;
 		private int screenWidth;
 		private int screenHeight;
 		private double mapCenterLong, mapCenterLat;
 		private SCANmap mapGenerator;
+		private CelestialBody orbitingBody;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -89,7 +89,8 @@ namespace SCANsatRPM
 			if (zoomLevel > maxZoom)
 				zoomLevel = maxZoom;
 			if (zoomLevel != oldZoom) {
-				//do rezoom.
+				mapGenerator.mapscale = zoomLevel;
+				mapGenerator.resetMap(mapMode);
 			}
 		}
 
@@ -105,11 +106,13 @@ namespace SCANsatRPM
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
 
-			if (UpdateCheck()) {
+			if (UpdateCheck() || orbitingBody != vessel.mainBody) {
+				orbitingBody = vessel.mainBody;
 				mapGenerator.setBody(vessel.mainBody);
-				mapCenterLong = FlightGlobals.ship_latitude;
-				mapCenterLat = FlightGlobals.ship_longitude;
-				mapGenerator.centerAround(mapCenterLong,mapCenterLat);
+				mapCenterLong = FlightGlobals.ship_longitude;
+				mapCenterLat = FlightGlobals.ship_latitude;
+				mapGenerator.mapscale = zoomLevel;
+				mapGenerator.centerAround(mapCenterLong, mapCenterLat);
 				mapGenerator.resetMap(mapMode);
 			}
 		}
@@ -118,11 +121,11 @@ namespace SCANsatRPM
 		{
 			if (mapGenerator == null)
 				return false;
-			refreshCountdown--;
-			if (refreshCountdown <= 0) {
-				refreshCountdown = refreshRate;
+
+			if ((Math.Abs(FlightGlobals.ship_latitude - mapCenterLat) > 180 / zoomLevel / 2) ||
+			    (Math.Abs(FlightGlobals.ship_longitude - mapCenterLong) > 360 / zoomLevel / 2))
 				return true;
-			}
+
 			return false;
 		}
 
@@ -131,7 +134,8 @@ namespace SCANsatRPM
 			mapGenerator = new SCANmap();
 			mapGenerator.setSize(screenWidth, screenHeight);
 			mapGenerator.setProjection(SCANmap.MapProjection.Rectangular);
-			mapGenerator.setBody(vessel.mainBody);
+			orbitingBody = vessel.mainBody;
+			mapGenerator.setBody(orbitingBody);
 		}
 	}
 }
