@@ -15,39 +15,30 @@ namespace SCANsatRPM
 {
 	public class JSISCANsatRPM: InternalModule
 	{
-
 		[KSPField]
 		public float screenAspect = 1;
 		[KSPField]
-		public int screenWidth;
-		[KSPField]
-		public int screenHeight;
-		[KSPField]
 		public int refreshRate = 3600;
-
-		private const int mapMode = 1;
-
+		private const int mapMode = 0;
 		private int refreshCountdown;
-
+		private int screenWidth;
+		private int screenHeight;
 		private SCANmap mapGenerator;
-		private CelestialBody mapBody;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
 			// Just in case.
 			if (!HighLogic.LoadedSceneIsFlight)
 				return false;
+			if (screenWidth == 0 || screenHeight == 0) {
+				screenWidth = screen.width;
+				screenHeight = screen.height;
+				InitMap();
+				return false;
+			}
 
 			Graphics.Blit(mapGenerator.map, screen);
 			return true;
-		}
-
-		private void CheckOrbitingBody(){
-			if (mapBody != vessel.mainBody) {
-				mapBody = vessel.mainBody;
-				mapGenerator.resetMap(mapMode);
-				mapGenerator.setBody(mapBody);
-			}
 		}
 
 		public override void OnUpdate()
@@ -55,20 +46,24 @@ namespace SCANsatRPM
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
-			if (!mapGenerator.isMapComplete())
+			if (mapGenerator != null && !mapGenerator.isMapComplete())
 				mapGenerator.getPartialMap();
 
 			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-				CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
 
 			if (UpdateCheck()) {
+				mapGenerator.setBody(vessel.mainBody);
+				mapGenerator.centerAround(FlightGlobals.ship_latitude, FlightGlobals.ship_longitude);
 				mapGenerator.resetMap(mapMode);
 			}
 		}
 
 		private bool UpdateCheck()
 		{
+			if (mapGenerator == null)
+				return false;
 			refreshCountdown--;
 			if (refreshCountdown <= 0) {
 				refreshCountdown = refreshRate;
@@ -77,15 +72,12 @@ namespace SCANsatRPM
 			return false;
 		}
 
-		public void Start()
+		private void InitMap()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
-				return;
-
 			mapGenerator = new SCANmap();
 			mapGenerator.setSize(screenWidth, screenHeight);
 			mapGenerator.setProjection(SCANmap.MapProjection.Rectangular);
-			CheckOrbitingBody();
+			mapGenerator.setBody(vessel.mainBody);
 		}
 	}
 }
