@@ -29,12 +29,13 @@ namespace SCANsatRPM
 		[KSPField]
 		public int maxZoom = 5;
 		private int mapMode;
-		private int zoomLevel = 0;
+		private int zoomLevel;
 		private int screenWidth;
 		private int screenHeight;
 		private double mapCenterLong, mapCenterLat;
 		private SCANmap mapGenerator;
 		private CelestialBody orbitingBody;
+		private readonly Texture2D mapIcons = MapView.OrbitIconsMap;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -49,7 +50,75 @@ namespace SCANsatRPM
 			}
 
 			Graphics.Blit(mapGenerator.map, screen);
+			DrawIcon(0.5f,0.5f,vessel.vesselType);
+
 			return true;
+		}
+
+		private void DrawIcon(float x, float y, VesselType vt)
+		{
+			Graphics.DrawTexture(
+				new Rect(x-0.1f,y-0.1f,0.2f,0.2f),
+				mapIcons,
+				VesselTypeIcon(vt),
+				0, 0, 0, 0
+			);
+		}
+
+		private static Rect VesselTypeIcon(VesselType type)
+		{
+			int x, y;
+			switch (type) {
+				case VesselType.Base:
+					x = 2;
+					y = 0;
+					break;
+				case VesselType.Debris:
+					x = 1;
+					y = 3;
+					break;
+				case VesselType.EVA:
+					x = 2;
+					y = 2;
+					break;
+				case VesselType.Flag:
+					x = 4;
+					y = 0;
+					break;
+				case VesselType.Lander:
+					x = 3;
+					y = 0;
+					break;
+				case VesselType.Probe:
+					x = 1;
+					y = 0;
+					break;
+				case VesselType.Rover:
+					x = 0;
+					y = 0;
+					break;
+				case VesselType.Ship:
+					x = 0;
+					y = 3;
+					break;
+				case VesselType.Station:
+					x = 3;
+					y = 1;
+					break;
+				case VesselType.Unknown:
+					x = 3;
+					y = 3;
+					break;
+				default:
+					x = 3;
+					y = 3;
+					break;
+			}
+			var result = new Rect();
+			result.x = 0.2f * x;
+			result.y = 0.2f * y;
+			result.height = result.width = 0.2f;
+			return result;
 		}
 
 		public void ButtonProcessor(int buttonID)
@@ -57,8 +126,10 @@ namespace SCANsatRPM
 			if (screenWidth == 0 || screenHeight == 0)
 				return;
 			if (buttonID == buttonUp) {
+				ChangeZoom(true);
 			}
 			if (buttonID == buttonDown) {
+				ChangeZoom(false);
 			}
 			if (buttonID == buttonEnter) {
 				ChangeMapMode(true);
@@ -99,12 +170,12 @@ namespace SCANsatRPM
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
-			if (mapGenerator != null && !mapGenerator.isMapComplete())
-				mapGenerator.getPartialMap();
-
 			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
+
+			if (mapGenerator != null && !mapGenerator.isMapComplete())
+				mapGenerator.getPartialMap();
 
 			if (UpdateCheck() || orbitingBody != vessel.mainBody) {
 				orbitingBody = vessel.mainBody;
