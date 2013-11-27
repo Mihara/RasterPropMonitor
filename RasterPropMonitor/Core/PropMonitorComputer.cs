@@ -779,6 +779,9 @@ namespace JSI
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;
+				case "BIOMENAME":
+					//TODO: Implement biome detection, which is more complicated than I thought.
+					return string.Empty;
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
