@@ -19,10 +19,21 @@ namespace SCANsatRPM
 		public float screenAspect = 1;
 		[KSPField]
 		public int refreshRate = 3600;
-		private const int mapMode = 0;
+		[KSPField]
+		public int buttonUp;
+		[KSPField]
+		public int buttonDown = 1;
+		[KSPField]
+		public int buttonEnter = 2;
+		[KSPField]
+		public int buttonEsc = 3;
+		private int mapMode;
+		private int zoomLevel = 0;
+		private const int maxZoom = 5;
 		private int refreshCountdown;
 		private int screenWidth;
 		private int screenHeight;
+		private double mapCenterLong, mapCenterLat;
 		private SCANmap mapGenerator;
 
 		public bool MapRenderer(RenderTexture screen)
@@ -41,6 +52,47 @@ namespace SCANsatRPM
 			return true;
 		}
 
+		public void ButtonProcessor(int buttonID)
+		{
+			if (screenWidth == 0 || screenHeight == 0)
+				return;
+			if (buttonID == buttonUp) {
+			}
+			if (buttonID == buttonDown) {
+			}
+			if (buttonID == buttonEnter) {
+				ChangeMapMode(true);
+			}
+			if (buttonID == buttonEsc) {
+				ChangeMapMode(false);
+			}
+		}
+
+		private void ChangeMapMode(bool up)
+		{
+			mapMode += up ? 1 : -1;
+
+			if (mapMode > 2)
+				mapMode = 0;
+			if (mapMode < 0)
+				mapMode = 2;
+
+			mapGenerator.resetMap(mapMode);
+		}
+
+		private void ChangeZoom(bool up)
+		{
+			int oldZoom = zoomLevel;
+			zoomLevel += up ? 1 : -1;
+			if (zoomLevel < 0)
+				zoomLevel = 0;
+			if (zoomLevel > maxZoom)
+				zoomLevel = maxZoom;
+			if (zoomLevel != oldZoom) {
+				//do rezoom.
+			}
+		}
+
 		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
@@ -55,7 +107,9 @@ namespace SCANsatRPM
 
 			if (UpdateCheck()) {
 				mapGenerator.setBody(vessel.mainBody);
-				mapGenerator.centerAround(FlightGlobals.ship_latitude, FlightGlobals.ship_longitude);
+				mapCenterLong = FlightGlobals.ship_latitude;
+				mapCenterLat = FlightGlobals.ship_longitude;
+				mapGenerator.centerAround(mapCenterLong,mapCenterLat);
 				mapGenerator.resetMap(mapMode);
 			}
 		}
