@@ -68,6 +68,9 @@
     <Compile Include="Core\StringProcessor.cs" />
     <Compile Include="Handlers\JSIFlightLog.cs" />
     <Compile Include="Handlers\JSIPrimaryFlightDisplay.cs" />
+    <Compile Include="..\SharedAssemblyInfo.cs">
+      <Link>Properties\SharedAssemblyInfo.cs</Link>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
