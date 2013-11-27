@@ -13,7 +13,7 @@ namespace JSI
 
 		public string Text {
 			get {
-				return pageHandler != null ? pageHandler(screenWidth, screenHeight) : text;
+				return pageHandler != null ? pageHandler(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
 			}
 			private set {
 				text = value;
