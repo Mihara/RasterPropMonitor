@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\bin\Debug</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -26,7 +26,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <OutputPath>..\bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -50,30 +50,27 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RasterPropMonitor\ButtonHandler.cs" />
-    <Compile Include="RasterPropMonitor\FlyingCamera.cs" />
+    <Compile Include="Core\ButtonHandler.cs" />
+    <Compile Include="Core\FlyingCamera.cs" />
     <Compile Include="Auxiliary modules\InternalCameraTargetHelper.cs" />
     <Compile Include="Auxiliary modules\JSIActionGroupSwitch.cs" />
     <Compile Include="Auxiliary modules\JSIExternalCameraSelector.cs" />
-    <Compile Include="RasterPropMonitor\JSIInternalPersistence.cs" />
+    <Compile Include="Core\JSIInternalPersistence.cs" />
     <Compile Include="Auxiliary modules\JSIPropTextureShift.cs" />
     <Compile Include="Auxiliary modules\JSIVariableAnimator.cs" />
-    <Compile Include="RasterPropMonitor\MonitorPage.cs" />
+    <Compile Include="Core\MonitorPage.cs" />
     <Compile Include="Examples\ScreenReflector.cs" />
-    <Compile Include="RasterPropMonitor\SIFormatter.cs" />
-    <Compile Include="RasterPropMonitor\UtilityFunctions.cs" />
+    <Compile Include="Core\SIFormatter.cs" />
+    <Compile Include="Core\UtilityFunctions.cs" />
     <Compile Include="Examples\JSIFlightLog.cs" />
-    <Compile Include="RasterPropMonitor\PropMonitorComputer.cs" />
-    <Compile Include="RasterPropMonitor\RasterPropMonitor.cs" />
+    <Compile Include="Core\PropMonitorComputer.cs" />
+    <Compile Include="Core\RasterPropMonitor.cs" />
     <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
     <Compile Include="Auxiliary modules\JSIVariableLabel.cs" />
-    <Compile Include="RasterPropMonitor\StringProcessor.cs" />
+    <Compile Include="Core\StringProcessor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <None Include="README.md" />
-  </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
@@ -136,7 +133,7 @@
     </MonoDevelop>
   </ProjectExtensions>
   <ItemGroup>
-    <Folder Include="RasterPropMonitor\" />
+    <Folder Include="Core\" />
     <Folder Include="Auxiliary modules\" />
     <Folder Include="Examples\" />
   </ItemGroup>

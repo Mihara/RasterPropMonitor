@@ -1,4 +1,3 @@
-
 namespace JSI
 {
 	public class InternalCameraTargetHelper: InternalModule
