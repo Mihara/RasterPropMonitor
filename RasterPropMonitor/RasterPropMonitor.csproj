@@ -59,16 +59,15 @@
     <Compile Include="Auxiliary modules\JSIPropTextureShift.cs" />
     <Compile Include="Auxiliary modules\JSIVariableAnimator.cs" />
     <Compile Include="Core\MonitorPage.cs" />
-    <Compile Include="Examples\ScreenReflector.cs" />
     <Compile Include="Core\SIFormatter.cs" />
     <Compile Include="Core\UtilityFunctions.cs" />
-    <Compile Include="Examples\JSIFlightLog.cs" />
     <Compile Include="Core\PropMonitorComputer.cs" />
     <Compile Include="Core\RasterPropMonitor.cs" />
     <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
     <Compile Include="Auxiliary modules\JSIVariableLabel.cs" />
     <Compile Include="Core\StringProcessor.cs" />
+    <Compile Include="Auxiliary modules\JSIFlightLog.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
@@ -135,6 +134,5 @@
   <ItemGroup>
     <Folder Include="Core\" />
     <Folder Include="Auxiliary modules\" />
-    <Folder Include="Examples\" />
   </ItemGroup>
 </Project>
