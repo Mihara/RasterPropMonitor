@@ -63,11 +63,11 @@
     <Compile Include="Core\UtilityFunctions.cs" />
     <Compile Include="Core\PropMonitorComputer.cs" />
     <Compile Include="Core\RasterPropMonitor.cs" />
-    <Compile Include="Auxiliary modules\JSIPrimaryFlightDisplay.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
     <Compile Include="Auxiliary modules\JSIVariableLabel.cs" />
     <Compile Include="Core\StringProcessor.cs" />
-    <Compile Include="Auxiliary modules\JSIFlightLog.cs" />
+    <Compile Include="Handlers\JSIFlightLog.cs" />
+    <Compile Include="Handlers\JSIPrimaryFlightDisplay.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
@@ -134,5 +134,6 @@
   <ItemGroup>
     <Folder Include="Core\" />
     <Folder Include="Auxiliary modules\" />
+    <Folder Include="Handlers\" />
   </ItemGroup>
 </Project>
