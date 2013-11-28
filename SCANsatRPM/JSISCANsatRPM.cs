@@ -72,15 +72,15 @@ namespace SCANsatRPM
 			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
-			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
-			if (targetVessel != null)
-				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
 						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
 						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
 			}
+			if (targetVessel != null && targetVessel.mainBody == orbitingBody)
+				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
+			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
 			GL.PopMatrix();
 
 			return true;
