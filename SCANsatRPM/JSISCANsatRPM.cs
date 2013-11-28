@@ -55,6 +55,8 @@ namespace SCANsatRPM
 		private double redrawDeviation;
 		private SCANdata.SCANanomaly[] localAnomalies;
 		private Material iconMaterial;
+		private JSI.PersistenceAccessor persistence;
+		private string persistentVarName;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -63,6 +65,12 @@ namespace SCANsatRPM
 				return false;
 
 			if (screenWidth == 0 || screenHeight == 0) {
+				int? loadedMode = persistence.GetVar(persistentVarName + "mode");
+				mapMode = loadedMode ?? 0;
+				int? loadedZoom = persistence.GetVar(persistentVarName + "zoom");
+				zoomLevel = loadedZoom ?? 1;
+				int? loadedColors = persistence.GetVar(persistentVarName + "color");
+				SCANcontroller.controller.colours = loadedColors ?? 0;
 				screenWidth = screen.width;
 				screenHeight = screen.height;
 				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
@@ -201,6 +209,7 @@ namespace SCANsatRPM
 			if (buttonID == buttonEsc) {
 				// Whatever possessed him to do THAT?
 				SCANcontroller.controller.colours = SCANcontroller.controller.colours == 0 ? 1 : 0;
+				persistence.SetVar(persistentVarName + "color", SCANcontroller.controller.colours);
 				RedrawMap();
 			}
 		}
@@ -213,8 +222,8 @@ namespace SCANsatRPM
 				mapMode = 0;
 			if (mapMode < 0)
 				mapMode = 2;
-
-			map.resetMap(mapMode);
+			persistence.SetVar(persistentVarName + "mode", mapMode);
+			RedrawMap();
 		}
 
 		private void ChangeZoom(bool up)
@@ -226,6 +235,7 @@ namespace SCANsatRPM
 			if (zoomLevel > maxZoom)
 				zoomLevel = maxZoom;
 			if (zoomLevel != oldZoom) {
+				persistence.SetVar(persistentVarName + "zoom", zoomLevel);
 				RedrawMap();
 			}
 		}
@@ -276,6 +286,9 @@ namespace SCANsatRPM
 
 		private void Start()
 		{
+			// Referencing the parent project should work, shouldn't it.
+			persistentVarName = "scansat" + internalProp.propID;
+			persistence = new JSI.PersistenceAccessor(part);
 			// Let's register so that it keeps scanning with unfocused vessels, I see use cases for that.
 			SCANcontroller.controller.registerSensor(vessel, SCANdata.SCANtype.Nothing, 1, 5000000, 5000000, 5000000);
 		}
