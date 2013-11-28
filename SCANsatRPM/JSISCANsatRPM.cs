@@ -27,21 +27,41 @@ namespace SCANsatRPM
 		[KSPField]
 		public int buttonEsc = 3;
 		[KSPField]
-		public int maxZoom = 5;
+		public int maxZoom = 20;
+		[KSPField]
+		public float iconPixelSize = 8f;
+		[KSPField]
+		public Vector2 iconShadowShift = new Vector2(1, 1);
+		[KSPField]
+		public float redrawEdge = 0.8f;
+		[KSPField]
+		public Color iconColorSelf = Color.white;
+		[KSPField]
+		public Color iconColorTarget = Color.yellow;
+		[KSPField]
+		public Color iconColorUnvisitedAnomaly = Color.red;
+		[KSPField]
+		public Color iconColorVisitedAnomaly = Color.green;
+		[KSPField]
+		public Color iconColorShadow = Color.black;
 		private int mapMode;
-		private int zoomLevel;
+		private int zoomLevel = 1;
 		private int screenWidth;
 		private int screenHeight;
 		private double mapCenterLong, mapCenterLat;
-		private SCANmap mapGenerator;
+		private SCANmap map;
 		private CelestialBody orbitingBody;
-		private readonly Texture2D mapIcons = MapView.OrbitIconsMap;
+		private Vessel targetVessel;
+		private double redrawDeviation;
+		private SCANdata.SCANanomaly[] localAnomalies;
+		private Material iconMaterial;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
 			// Just in case.
 			if (!HighLogic.LoadedSceneIsFlight)
 				return false;
+
 			if (screenWidth == 0 || screenHeight == 0) {
 				screenWidth = screen.width;
 				screenHeight = screen.height;
@@ -49,25 +69,67 @@ namespace SCANsatRPM
 				return false;
 			}
 
-			Graphics.Blit(mapGenerator.map, screen);
-			DrawIcon(0.5f,0.5f,vessel.vesselType);
+			Graphics.Blit(map.map, screen);
+			GL.PushMatrix();
+			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
+			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
+			if (targetVessel != null)
+				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
+			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
+				if (anomaly.known)
+					DrawIcon(anomaly.longitude, anomaly.latitude,
+						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
+						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
+			}
+			GL.PopMatrix();
 
 			return true;
 		}
 
-		private void DrawIcon(float x, float y, VesselType vt)
+		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
 		{
-			Graphics.DrawTexture(
-				new Rect(x-0.1f,y-0.1f,0.2f,0.2f),
-				mapIcons,
-				VesselTypeIcon(vt),
-				0, 0, 0, 0
-			);
+			Rect position = new Rect(
+				                (float)(rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360 - iconPixelSize / 2),
+				                (float)(screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180) - iconPixelSize / 2),
+				                iconPixelSize, iconPixelSize);
+
+			Rect shadow = position;
+			shadow.x += iconShadowShift.x;
+			shadow.y += iconShadowShift.y;
+
+			iconMaterial.color = iconColorShadow;
+			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
+
+			iconMaterial.color = iconColor;
+			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
+		}
+
+		private double rescaleLatitude(double lat)
+		{
+			lat = Clamp(lat - map.lat_offset, 180);
+			lat *= 180f / (map.mapheight / map.mapscale);
+			return lat;
+		}
+
+		private double rescaleLongitude(double lon)
+		{
+			lon = Clamp(lon - map.lon_offset, 360);
+			lon *= 360f / (map.mapwidth / map.mapscale);
+			return lon;
+		}
+
+		private static double Clamp(double value, double clamp)
+		{
+			value = value % clamp;
+			if (value < 0)
+				return value + clamp;
+			return value;
 		}
 
 		private static Rect VesselTypeIcon(VesselType type)
 		{
 			int x, y;
+			const float symbolSpan = 0.2f;
 			switch (type) {
 				case VesselType.Base:
 					x = 2;
@@ -111,13 +173,13 @@ namespace SCANsatRPM
 					break;
 				default:
 					x = 3;
-					y = 3;
+					y = 2;
 					break;
 			}
 			var result = new Rect();
-			result.x = 0.2f * x;
-			result.y = 0.2f * y;
-			result.height = result.width = 0.2f;
+			result.x = symbolSpan * x;
+			result.y = symbolSpan * y;
+			result.height = result.width = symbolSpan;
 			return result;
 		}
 
@@ -126,16 +188,21 @@ namespace SCANsatRPM
 			if (screenWidth == 0 || screenHeight == 0)
 				return;
 			if (buttonID == buttonUp) {
-				ChangeZoom(true);
+				ChangeZoom(false);
 			}
 			if (buttonID == buttonDown) {
-				ChangeZoom(false);
+				ChangeZoom(true);
 			}
 			if (buttonID == buttonEnter) {
 				ChangeMapMode(true);
 			}
 			if (buttonID == buttonEsc) {
-				ChangeMapMode(false);
+				// Whatever possessed him to do THAT?
+				if (SCANcontroller.controller.colours == 0)
+					SCANcontroller.controller.colours = 1;
+				else
+					SCANcontroller.controller.colours = 0;
+				RedrawMap();
 			}
 		}
 
@@ -148,20 +215,19 @@ namespace SCANsatRPM
 			if (mapMode < 0)
 				mapMode = 2;
 
-			mapGenerator.resetMap(mapMode);
+			map.resetMap(mapMode);
 		}
 
 		private void ChangeZoom(bool up)
 		{
 			int oldZoom = zoomLevel;
 			zoomLevel += up ? 1 : -1;
-			if (zoomLevel < 0)
-				zoomLevel = 0;
+			if (zoomLevel < 1)
+				zoomLevel = 1;
 			if (zoomLevel > maxZoom)
 				zoomLevel = maxZoom;
 			if (zoomLevel != oldZoom) {
-				mapGenerator.mapscale = zoomLevel;
-				mapGenerator.resetMap(mapMode);
+				RedrawMap();
 			}
 		}
 
@@ -174,27 +240,36 @@ namespace SCANsatRPM
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
 
-			if (mapGenerator != null && !mapGenerator.isMapComplete())
-				mapGenerator.getPartialMap();
-
-			if (UpdateCheck() || orbitingBody != vessel.mainBody) {
-				orbitingBody = vessel.mainBody;
-				mapGenerator.setBody(vessel.mainBody);
-				mapCenterLong = FlightGlobals.ship_longitude;
-				mapCenterLat = FlightGlobals.ship_latitude;
-				mapGenerator.mapscale = zoomLevel;
-				mapGenerator.centerAround(mapCenterLong, mapCenterLat);
-				mapGenerator.resetMap(mapMode);
+			if (map != null && !map.isMapComplete()) {
+				map.getPartialMap();
 			}
+
+			targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
+
+			if (UpdateCheck() || orbitingBody != vessel.mainBody)
+				RedrawMap();
+		}
+
+		private void RedrawMap()
+		{
+			orbitingBody = vessel.mainBody;
+			map.setBody(vessel.mainBody);
+			map.setSize(screenWidth, screenHeight);
+			map.mapscale *= zoomLevel;
+			mapCenterLong = vessel.longitude;
+			mapCenterLat = vessel.latitude;
+			map.centerAround(mapCenterLong, mapCenterLat);
+			map.resetMap(mapMode);
+			redrawDeviation = redrawEdge * 180 / zoomLevel;
+			localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
 		}
 
 		private bool UpdateCheck()
 		{
-			if (mapGenerator == null)
+			if (map == null)
 				return false;
-
-			if ((Math.Abs(FlightGlobals.ship_latitude - mapCenterLat) > 180 / zoomLevel / 2) ||
-			    (Math.Abs(FlightGlobals.ship_longitude - mapCenterLong) > 360 / zoomLevel / 2))
+			if ((Math.Abs(vessel.latitude - mapCenterLat) > redrawDeviation) ||
+			    (Math.Abs(vessel.longitude - mapCenterLong) > redrawDeviation))
 				return true;
 
 			return false;
@@ -202,11 +277,10 @@ namespace SCANsatRPM
 
 		private void InitMap()
 		{
-			mapGenerator = new SCANmap();
-			mapGenerator.setSize(screenWidth, screenHeight);
-			mapGenerator.setProjection(SCANmap.MapProjection.Rectangular);
-			orbitingBody = vessel.mainBody;
-			mapGenerator.setBody(orbitingBody);
+			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			map = new SCANmap();
+			map.setProjection(SCANmap.MapProjection.Rectangular);
+			RedrawMap();
 		}
 	}
 }
