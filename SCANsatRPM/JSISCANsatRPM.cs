@@ -17,8 +17,6 @@ namespace SCANsatRPM
 	public class JSISCANsatRPM: InternalModule
 	{
 		[KSPField]
-		public float screenAspect = 1;
-		[KSPField]
 		public int buttonUp;
 		[KSPField]
 		public int buttonDown = 1;
@@ -44,6 +42,8 @@ namespace SCANsatRPM
 		public Color iconColorVisitedAnomaly = Color.green;
 		[KSPField]
 		public Color iconColorShadow = Color.black;
+		[KSPField]
+		public float zoomModifier;
 		private int mapMode;
 		private int zoomLevel = 1;
 		private int screenWidth;
@@ -88,10 +88,9 @@ namespace SCANsatRPM
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
 		{
-			Rect position = new Rect(
-				                (float)(rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360 - iconPixelSize / 2),
-				                (float)(screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180) - iconPixelSize / 2),
-				                iconPixelSize, iconPixelSize);
+			var position = new Rect((float)(rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360 - iconPixelSize / 2),
+				               (float)(screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180) - iconPixelSize / 2),
+				               iconPixelSize, iconPixelSize);
 
 			Rect shadow = position;
 			shadow.x += iconShadowShift.x;
@@ -198,10 +197,7 @@ namespace SCANsatRPM
 			}
 			if (buttonID == buttonEsc) {
 				// Whatever possessed him to do THAT?
-				if (SCANcontroller.controller.colours == 0)
-					SCANcontroller.controller.colours = 1;
-				else
-					SCANcontroller.controller.colours = 0;
+				SCANcontroller.controller.colours = SCANcontroller.controller.colours == 0 ? 1 : 0;
 				RedrawMap();
 			}
 		}
@@ -255,12 +251,12 @@ namespace SCANsatRPM
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
-			map.mapscale *= zoomLevel;
+			map.mapscale *= (zoomLevel + zoomModifier);
 			mapCenterLong = vessel.longitude;
 			mapCenterLat = vessel.latitude;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
-			redrawDeviation = redrawEdge * 180 / zoomLevel;
+			redrawDeviation = redrawEdge * 180 / (zoomLevel + zoomModifier);
 			localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
 		}
 
