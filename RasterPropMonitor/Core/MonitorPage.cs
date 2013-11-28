@@ -142,8 +142,11 @@ namespace JSI
 				if (thatModule == null)
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
-				if (thatModule == null)
+				if (thatModule == null) {
+					JUtil.LogMessage(ourMonitor,"Warning, handler module \"{0}\" did not load. This could be perfectly normal.",moduleName);
 					return null;
+				}
+					
 
 				if (node.HasValue("pageActiveMethod")) {
 					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
