@@ -48,6 +48,7 @@ namespace JSI
 		private double secondsToImpact;
 		private double localG;
 		private double standardAtmosphere;
+		private double slopeAngle;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -281,8 +282,10 @@ namespace JSI
 		private void FetchAltitudes()
 		{
 			altitudeASL = vessel.mainBody.GetAltitude(coM);
+			slopeAngle = 0;
 			RaycastHit sfc;
 			if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
+				slopeAngle = Vector3.Angle(up, sfc.normal);
 				altitudeTrue = sfc.distance;
 			} else if (vessel.mainBody.pqsController != null) {
 				// from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
@@ -775,6 +778,8 @@ namespace JSI
 					return (double)UnityEngine.Random.value;
 				case "PODTEMPERATURE":
 					return (double)part.temperature;
+				case "SLOPEANGLE":
+					return slopeAngle;
 
 			// SCIENCE!!
 				case "SCIENCEDATA":
