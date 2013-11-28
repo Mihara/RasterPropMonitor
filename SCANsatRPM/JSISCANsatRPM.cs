@@ -57,6 +57,7 @@ namespace SCANsatRPM
 		private Material iconMaterial;
 		private JSI.PersistenceAccessor persistence;
 		private string persistentVarName;
+		private double pixelsPerKm;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -99,8 +100,8 @@ namespace SCANsatRPM
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
 		{
-			var position = new Rect((float)(rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360 - iconPixelSize / 2),
-				               (float)(screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180) - iconPixelSize / 2),
+			var position = new Rect((float)(longitudeToPixels(longitude, latitude) - iconPixelSize / 2),
+				               (float)(latitudeToPixels(longitude, latitude) - iconPixelSize / 2),
 				               iconPixelSize, iconPixelSize);
 
 			Rect shadow = position;
@@ -112,6 +113,16 @@ namespace SCANsatRPM
 
 			iconMaterial.color = iconColor;
 			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
+		}
+
+		private double longitudeToPixels(double longitude, double latitude)
+		{
+			return rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360;
+		}
+
+		private double latitudeToPixels(double longitude, double latitude)
+		{
+			return screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180);
 		}
 
 		private double rescaleLatitude(double lat)
@@ -271,6 +282,12 @@ namespace SCANsatRPM
 			map.resetMap(mapMode);
 			redrawDeviation = redrawEdge * 180 / (zoomLevel + zoomModifier);
 			localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
+			// MATH!
+			double kmPerDegreeLon = (2 * Math.PI * (orbitingBody.Radius / 1000d)) / 360d;
+			double pixelsPerDegree = Math.Abs(longitudeToPixels(mapCenterLong + (((mapCenterLong + 1) > 360) ? -1 : 1), mapCenterLat) - longitudeToPixels(mapCenterLong, mapCenterLat));
+			pixelsPerKm = pixelsPerDegree / kmPerDegreeLon;
+			//Debug.Log(string.Format("KM per degree: {0}, pixels per degree: {1}, pixels Per KM: {2}", kmPerDegreeLon, pixelsPerDegree, pixelsPerKm));
+
 		}
 
 		private bool UpdateCheck()
