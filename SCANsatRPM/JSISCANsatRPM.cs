@@ -65,7 +65,10 @@ namespace SCANsatRPM
 			if (screenWidth == 0 || screenHeight == 0) {
 				screenWidth = screen.width;
 				screenHeight = screen.height;
-				InitMap();
+				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+				map = new SCANmap();
+				map.setProjection(SCANmap.MapProjection.Rectangular);
+				RedrawMap();
 				return false;
 			}
 
@@ -271,12 +274,10 @@ namespace SCANsatRPM
 			return false;
 		}
 
-		private void InitMap()
+		private void Start()
 		{
-			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-			map = new SCANmap();
-			map.setProjection(SCANmap.MapProjection.Rectangular);
-			RedrawMap();
+			// Let's register so that it keeps scanning with unfocused vessels, I see use cases for that.
+			SCANcontroller.controller.registerSensor(vessel, SCANdata.SCANtype.Nothing, 1, 5000000, 5000000, 5000000);
 		}
 	}
 }
