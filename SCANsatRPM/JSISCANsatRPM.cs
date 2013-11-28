@@ -25,7 +25,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public int buttonEsc = 3;
 		[KSPField]
-		public int maxZoom = 20;
+		public int maxZoom = 40;
 		[KSPField]
 		public float iconPixelSize = 8f;
 		[KSPField]
@@ -44,6 +44,11 @@ namespace SCANsatRPM
 		public Color iconColorShadow = Color.black;
 		[KSPField]
 		public float zoomModifier;
+		[KSPField]
+		public float scalePosition = 0.8f;
+		[KSPField]
+		public string scaleBar;
+
 		private int mapMode;
 		private int zoomLevel = 1;
 		private int screenWidth;
@@ -58,6 +63,8 @@ namespace SCANsatRPM
 		private JSI.PersistenceAccessor persistence;
 		private string persistentVarName;
 		private double pixelsPerKm;
+		private Texture2D scaleBarTexture;
+		private int currentMapState;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -84,6 +91,8 @@ namespace SCANsatRPM
 			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
+
+
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
@@ -93,9 +102,20 @@ namespace SCANsatRPM
 			if (targetVessel != null && targetVessel.mainBody == orbitingBody)
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
+			DrawScale();
 			GL.PopMatrix();
 
 			return true;
+		}
+
+		private void DrawScale()
+		{
+			Rect scaleBarRect = new Rect();
+			scaleBarRect.x = 0.1f * screenWidth;
+			scaleBarRect.y = 0.8f * screenHeight;
+			scaleBarRect.height = 0.1f * screenHeight;
+			scaleBarRect.width = (float)(20 * pixelsPerKm);
+			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0,0,1f,1f), 3, 3, 0, 0);
 		}
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
@@ -307,7 +327,8 @@ namespace SCANsatRPM
 			persistentVarName = "scansat" + internalProp.propID;
 			persistence = new JSI.PersistenceAccessor(part);
 			// Let's register so that it keeps scanning with unfocused vessels, I see use cases for that.
-			SCANcontroller.controller.registerSensor(vessel, SCANdata.SCANtype.Nothing, 1, 5000000, 5000000, 5000000);
+			//SCANcontroller.controller.registerSensor(vessel, SCANdata.SCANtype.Nothing, 1, 5000000, 5000000, 5000000);
+			scaleBarTexture = GameDatabase.Instance.GetTexture(scaleBar, false);
 		}
 	}
 }
