@@ -167,7 +167,7 @@ namespace SCANsatRPM
 
 		private void DrawTrail(List<Vector2d> points, Color lineColor, Vector2d endPoint, bool hasEndpoint)
 		{
-			if (points.Count == 0)
+			if (points.Count < 2)
 				return;
 			GL.Begin(GL.LINES);
 			trailMaterial.SetPass(0);
