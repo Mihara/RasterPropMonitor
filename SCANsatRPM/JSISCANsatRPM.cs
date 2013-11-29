@@ -80,7 +80,7 @@ namespace SCANsatRPM
 		private double redrawDeviation;
 		private SCANdata.SCANanomaly[] localAnomalies;
 		private Material iconMaterial;
-		private JSI.PersistenceAccessor persistence;
+		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private double pixelsPerKm;
 		private Texture2D scaleBarTexture, scaleLabelTexture;
@@ -169,7 +169,6 @@ namespace SCANsatRPM
 		{
 			if (points.Count == 0)
 				return;
-			GL.wireframe = true;
 			GL.Begin(GL.LINES);
 			trailMaterial.SetPass(0);
 			GL.Color(lineColor);
@@ -185,7 +184,6 @@ namespace SCANsatRPM
 			if (hasEndpoint)
 				DrawLine(xEnd, yEnd, longitudeToPixels(endPoint.x, endPoint.y), latitudeToPixels(endPoint.x, endPoint.y), screenSpace);
 			GL.End();
-			GL.wireframe = false;
 		}
 
 		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, Rect screenSpace)
