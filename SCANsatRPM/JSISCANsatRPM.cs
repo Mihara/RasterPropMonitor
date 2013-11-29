@@ -5,12 +5,14 @@
 // with it with no ill effects, though -- at least all the features which rely
 // on the compiler, rather than on the libraries.
 // SCANsat is compiled for .NET 4.0 for some reason, which means that
-// this assembly also needs to be compiled for 4.0 to link to it. Which can and probably will
-// cause problems.
+// this assembly also needs to be compiled for 4.0 to link to it.
+// The immediate drawback so far discovered is that I can't use LINQ,
+// while when I compile for 3.5 I can.
 // I wish there were some clarity on the subject.
 using SCANsat;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace SCANsatRPM
 {
@@ -25,7 +27,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public int buttonEsc = 3;
 		[KSPField]
-		public int maxZoom = 40;
+		public int maxZoom = 20;
 		[KSPField]
 		public float iconPixelSize = 8f;
 		[KSPField]
@@ -43,14 +45,21 @@ namespace SCANsatRPM
 		[KSPField]
 		public Color iconColorShadow = Color.black;
 		[KSPField]
-		public float zoomModifier;
-		[KSPField]
-		public float scalePosition = 0.8f;
+		public float zoomModifier = 1.5f;
 		[KSPField]
 		public string scaleBar;
+		[KSPField]
+		public string scaleLabels;
+		[KSPField]
+		public string scaleLevels = "500000,200000,100000,50000,20000,10000,5000,1000";
+		[KSPField]
+		public Vector2 scaleBarPosition = new Vector2(16, 16);
+		[KSPField]
+		public float scaleBarSizeLimit = 512 / 2 - 16;
 
+		// That ends our glut of configurable values.
 		private int mapMode;
-		private int zoomLevel = 1;
+		private int zoomLevel;
 		private int screenWidth;
 		private int screenHeight;
 		private double mapCenterLong, mapCenterLat;
@@ -63,8 +72,9 @@ namespace SCANsatRPM
 		private JSI.PersistenceAccessor persistence;
 		private string persistentVarName;
 		private double pixelsPerKm;
-		private Texture2D scaleBarTexture;
-		private int currentMapState;
+		private Texture2D scaleBarTexture, scaleLabelTexture;
+		private float[] scaleLevelValues;
+		private float scaleLabelSpan;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -110,12 +120,27 @@ namespace SCANsatRPM
 
 		private void DrawScale()
 		{
-			Rect scaleBarRect = new Rect();
-			scaleBarRect.x = 0.1f * screenWidth;
-			scaleBarRect.y = 0.8f * screenHeight;
-			scaleBarRect.height = 0.1f * screenHeight;
-			scaleBarRect.width = (float)(20 * pixelsPerKm);
-			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0,0,1f,1f), 3, 3, 0, 0);
+			if (scaleBarTexture == null || scaleLabelTexture == null)
+				return;
+
+			var scaleBarRect = new Rect();
+			scaleBarRect.x = scaleBarPosition.x;
+			scaleBarRect.height = scaleLabelTexture.height / scaleLevelValues.Length;
+			scaleBarRect.y = screenHeight - scaleBarPosition.y - scaleBarRect.height;
+
+			int scaleID = 0;
+			for (int i = scaleLevelValues.Length; i-- > 0;) {
+				if (scaleLevelValues[i] * pixelsPerKm < scaleBarSizeLimit) {
+					scaleBarRect.width = (float)(scaleLevelValues[i] * pixelsPerKm);
+					scaleID = i;
+					break;
+				}
+			}
+			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4);
+
+			scaleBarRect.x += scaleBarRect.width;
+			scaleBarRect.width = scaleLabelTexture.width;
+			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0);
 		}
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
@@ -261,8 +286,8 @@ namespace SCANsatRPM
 		{
 			int oldZoom = zoomLevel;
 			zoomLevel += up ? 1 : -1;
-			if (zoomLevel < 1)
-				zoomLevel = 1;
+			if (zoomLevel < 0)
+				zoomLevel = 0;
 			if (zoomLevel > maxZoom)
 				zoomLevel = maxZoom;
 			if (zoomLevel != oldZoom) {
@@ -295,7 +320,7 @@ namespace SCANsatRPM
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
-			map.mapscale *= (zoomLevel + zoomModifier);
+			map.mapscale *= (Math.Pow(zoomLevel, 2) + zoomModifier);
 			mapCenterLong = vessel.longitude;
 			mapCenterLat = vessel.latitude;
 			map.centerAround(mapCenterLong, mapCenterLat);
@@ -306,7 +331,6 @@ namespace SCANsatRPM
 			double kmPerDegreeLon = (2 * Math.PI * (orbitingBody.Radius / 1000d)) / 360d;
 			double pixelsPerDegree = Math.Abs(longitudeToPixels(mapCenterLong + (((mapCenterLong + 1) > 360) ? -1 : 1), mapCenterLat) - longitudeToPixels(mapCenterLong, mapCenterLat));
 			pixelsPerKm = pixelsPerDegree / kmPerDegreeLon;
-			//Debug.Log(string.Format("KM per degree: {0}, pixels per degree: {1}, pixels Per KM: {2}", kmPerDegreeLon, pixelsPerDegree, pixelsPerKm));
 
 		}
 
@@ -326,9 +350,21 @@ namespace SCANsatRPM
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
 			persistence = new JSI.PersistenceAccessor(part);
-			// Let's register so that it keeps scanning with unfocused vessels, I see use cases for that.
-			//SCANcontroller.controller.registerSensor(vessel, SCANdata.SCANtype.Nothing, 1, 5000000, 5000000, 5000000);
-			scaleBarTexture = GameDatabase.Instance.GetTexture(scaleBar, false);
+
+			if (!string.IsNullOrEmpty(scaleBar) && !string.IsNullOrEmpty(scaleLabels) && !string.IsNullOrEmpty(scaleLevels)) {
+				scaleBarTexture = GameDatabase.Instance.GetTexture(scaleBar, false);
+				scaleLabelTexture = GameDatabase.Instance.GetTexture(scaleLabels, false);
+				var scales = new List<float>();
+				foreach (string scl in scaleLevels.Split(',')) {
+					float scale;
+					if (float.TryParse(scl.Trim(), out scale))
+						scales.Add(scale / 1000);
+
+				}
+				scaleLevelValues = scales.ToArray();
+				Array.Sort(scaleLevelValues);
+				scaleLabelSpan = 1f / scaleLevelValues.Length;
+			}
 		}
 	}
 }
