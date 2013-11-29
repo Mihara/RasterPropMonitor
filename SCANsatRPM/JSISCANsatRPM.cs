@@ -56,7 +56,12 @@ namespace SCANsatRPM
 		public Vector2 scaleBarPosition = new Vector2(16, 16);
 		[KSPField]
 		public float scaleBarSizeLimit = 512 / 2 - 16;
-
+		[KSPField]
+		public int trailLimit = 100;
+		[KSPField]
+		public Color trailColor = Color.blue;
+		[KSPField]
+		public double trailPointEvery = 10;
 		// That ends our glut of configurable values.
 		private int mapMode;
 		private int zoomLevel;
@@ -75,6 +80,9 @@ namespace SCANsatRPM
 		private Texture2D scaleBarTexture, scaleLabelTexture;
 		private float[] scaleLevelValues;
 		private float scaleLabelSpan;
+		private readonly List<Vector2> trail = new List<Vector2>();
+		private static readonly Material trailMaterial = new Material(Shader.Find("Particles/Additive"));
+		private double trailCounter;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -102,6 +110,32 @@ namespace SCANsatRPM
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
+			if (trailLimit > 0 && trail.Count > 0) {
+				GL.wireframe = true;
+				GL.Begin(GL.LINES);
+				trailMaterial.SetPass(0);
+				GL.Color(trailColor);
+				double xStart = 0, yStart = 0, xEnd = 0, yEnd = 0;
+
+				bool endsInVessel = false;
+				for (int i = 0; i < trail.Count; i++) {
+					xStart = longitudeToPixels(trail[i].x, trail[i].y);
+					yStart = latitudeToPixels(trail[i].x, trail[i].y);
+					if (i + 1 < trail.Count) {
+						xEnd = longitudeToPixels(trail[i + 1].x, trail[i + 1].y);
+						yEnd = latitudeToPixels(trail[i + 1].x, trail[i + 1].y);
+					} else {
+						xEnd = longitudeToPixels(vessel.longitude, vessel.latitude);
+						yEnd = latitudeToPixels(vessel.longitude, vessel.latitude);
+						endsInVessel = true;
+					}
+					DrawLine(xStart, yStart, xEnd, yEnd, screenWidth, screenHeight);
+				}
+				if (!endsInVessel)
+					DrawLine(xEnd, yEnd, longitudeToPixels(vessel.longitude, vessel.latitude), latitudeToPixels(vessel.longitude, vessel.latitude), screenWidth, screenHeight);
+				GL.End();
+				GL.wireframe = false;
+			}
 
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
@@ -116,6 +150,18 @@ namespace SCANsatRPM
 			GL.PopMatrix();
 
 			return true;
+		}
+
+		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, int screenWidth, int screenHeight)
+		{
+			// Normally I wouldn't have to, but in some cases the lines get drawn across the screen,
+			// and I don't feel like digging around to figure out why right now.
+			// So the easiest way to get rid of it is to just not to draw the lines that
+			// start outside the screen..
+			if (xStart < screenWidth && yStart < screenHeight) {
+				GL.Vertex3((float)xStart, (float)yStart, 0);
+				GL.Vertex3((float)xEnd, (float)yEnd, 0);
+			}
 		}
 
 		private void DrawScale()
@@ -301,6 +347,11 @@ namespace SCANsatRPM
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
+			if ((vessel.missionTime - trailPointEvery) > trailCounter) {
+				trailCounter = vessel.missionTime;
+				LeaveTrail();
+			}
+
 			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
@@ -311,8 +362,11 @@ namespace SCANsatRPM
 
 			targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
 
-			if (UpdateCheck() || orbitingBody != vessel.mainBody)
+			if (UpdateCheck() || orbitingBody != vessel.mainBody) {
+				if (orbitingBody != vessel.mainBody)
+					trail.Clear();
 				RedrawMap();
+			}
 		}
 
 		private void RedrawMap()
@@ -345,11 +399,22 @@ namespace SCANsatRPM
 			return false;
 		}
 
+		private void LeaveTrail()
+		{
+			if (trailLimit > 0) {
+				trail.Add(new Vector2((float)vessel.longitude, (float)vessel.latitude));
+				if (trail.Count > trailLimit)
+					trail.RemoveRange(0, trail.Count - trailLimit);
+			}
+		}
+
 		private void Start()
 		{
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
 			persistence = new JSI.PersistenceAccessor(part);
+
+			LeaveTrail();
 
 			if (!string.IsNullOrEmpty(scaleBar) && !string.IsNullOrEmpty(scaleLabels) && !string.IsNullOrEmpty(scaleLevels)) {
 				scaleBarTexture = GameDatabase.Instance.GetTexture(scaleBar, false);
@@ -368,4 +433,5 @@ namespace SCANsatRPM
 		}
 	}
 }
+
 
