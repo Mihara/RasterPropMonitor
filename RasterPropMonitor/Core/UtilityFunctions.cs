@@ -145,8 +145,9 @@ namespace JSI
 			if (!cbmap.exactSearch) {
 				float maxValue = float.MaxValue;
 				for (int i = 0; i < cbmap.Attributes.Length; i++) {
-					Vector4 vector = (Vector4)(cbmap.Attributes[i].mapColor - pixelBilinear);
+					var vector = (Vector4)(cbmap.Attributes[i].mapColor - pixelBilinear);
 					float sqrMagnitude = vector.sqrMagnitude;
+					// Analysis disable once CompareOfFloatsByEqualityOperator
 					if ((sqrMagnitude < maxValue) && ((cbmap.nonExactThreshold == -1f) || (sqrMagnitude < cbmap.nonExactThreshold))) {
 						defaultAttribute = cbmap.Attributes[i];
 						maxValue = sqrMagnitude;
