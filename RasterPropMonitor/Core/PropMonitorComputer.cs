@@ -816,6 +816,8 @@ namespace JSI
 					return totalDataAmount;
 				case "BIOMENAME":
 					return CurrentBiome();
+				case "BIOMEID":
+					return JUtil.CBAttributeMapGetAtt(vessel.mainBody.BiomeMap, vessel.latitude * Math.PI / 180d, vessel.longitude * Math.PI / 180d).name;
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
