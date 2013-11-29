@@ -165,6 +165,24 @@ namespace JSI
 			return input.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 		}
 	}
+
+	public static class CelestialBodyExtensions
+	{
+		public static double TerrainAltitude(this CelestialBody body, Vector3d worldPosition)
+		{
+			return body.TerrainAltitude(body.GetLatitude(worldPosition), body.GetLongitude(worldPosition));
+		}
+
+		public static double TerrainAltitude(this CelestialBody body, double latitude, double longitude)
+		{
+			if (body.pqsController == null) return 0;
+
+			Vector3d pqsRadialVector = QuaternionD.AngleAxis(longitude, Vector3d.down) * QuaternionD.AngleAxis(latitude, Vector3d.forward) * Vector3d.right;
+			double ret = body.pqsController.GetSurfaceHeight(pqsRadialVector) - body.pqsController.radius;
+			if (ret < 0) ret = 0;
+			return ret;
+		}
+	}
 	// Should I just import the entire class from MJ?...
 	public static class OrbitExtensions
 	{
@@ -252,6 +270,19 @@ namespace JSI
 			return (e * Math.Sinh(eE)) - eE;
 		}
 
+		public static Vector3d SwappedAbsolutePositionAtUT(this Orbit o, double UT)
+		{
+			return o.referenceBody.position + o.SwappedRelativePositionAtUT(UT);
+		}
+		public static Vector3d SwappedRelativePositionAtUT(this Orbit o, double UT)
+		{
+			return SwapYZ(o.getRelativePositionAtUT(UT));
+		}
+		//distance from the center of the planet
+		public static double Radius(this Orbit o, double UT)
+		{
+			return o.SwappedRelativePositionAtUT(UT).magnitude;
+		}
 		public static double GetEccentricAnomalyAtTrueAnomaly(this Orbit o, double trueAnomaly)
 		{
 			double e = o.eccentricity;

@@ -66,7 +66,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public double trailPointEvery = 30;
 		[KSPField]
-		public int orbitPoints = 30;
+		public int orbitPoints = 120;
 		// That ends our glut of configurable values.
 		private bool showLines;
 		private int mapMode;
@@ -87,8 +87,9 @@ namespace SCANsatRPM
 		private float[] scaleLevelValues;
 		private float scaleLabelSpan;
 		private readonly List<Vector2d> trail = new List<Vector2d>();
-		private static readonly Material trailMaterial = new Material(Shader.Find("Particles/Additive"));
+		private static Material trailMaterial;
 		private double trailCounter;
+		private Rect screenSpace;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -106,6 +107,9 @@ namespace SCANsatRPM
 				screenWidth = screen.width;
 				screenHeight = screen.height;
 				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+
+				screenSpace = new Rect(0, 0, screenWidth, screenHeight);
+
 				map = new SCANmap();
 				map.setProjection(SCANmap.MapProjection.Rectangular);
 				RedrawMap();
@@ -153,6 +157,9 @@ namespace SCANsatRPM
 					rotOffset = (360 * ((timePoint - start) / thatVessel.mainBody.rotationPeriod)) % 360;
 				}
 				Vector3d pos = thatVessel.orbit.getPositionAtUT(timePoint);
+				// So the orbit ends no later than you would hit the ground.
+				if (thatVessel.orbit.Radius(timePoint) < thatVessel.mainBody.Radius + thatVessel.mainBody.TerrainAltitude(pos))
+					break;
 				points.Add(new Vector2d(thatVessel.mainBody.GetLongitude(pos) - rotOffset, thatVessel.mainBody.GetLatitude(pos)));
 			}
 			DrawTrail(points, thatColor, Vector2d.zero, false);
@@ -173,24 +180,30 @@ namespace SCANsatRPM
 				yStart = latitudeToPixels(points[i].x, points[i].y);
 				xEnd = longitudeToPixels(points[i + 1].x, points[i + 1].y);
 				yEnd = latitudeToPixels(points[i + 1].x, points[i + 1].y);
-				DrawLine(xStart, yStart, xEnd, yEnd, screenWidth, screenHeight);
+				DrawLine(xStart, yStart, xEnd, yEnd, screenSpace);
 			}
 			if (hasEndpoint)
-				DrawLine(xEnd, yEnd, longitudeToPixels(endPoint.x, endPoint.y), latitudeToPixels(endPoint.x, endPoint.y), screenWidth, screenHeight);
+				DrawLine(xEnd, yEnd, longitudeToPixels(endPoint.x, endPoint.y), latitudeToPixels(endPoint.x, endPoint.y), screenSpace);
 			GL.End();
 			GL.wireframe = false;
 		}
 
-		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, int screenWidth, int screenHeight)
+		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, Rect screenSpace)
 		{
 			// Normally I wouldn't have to, but in some cases the lines get drawn across the screen,
 			// and I don't feel like digging around to figure out why right now.
+			// I have a suspicion this is an artifact of the pixel matrix,
+			// because an attempt to draw a line that starts at -10,-10 and ends at screenWidth+10,screenHeight+10 fails.
 			// So the easiest way to get rid of it is to just not to draw the lines that
-			// start outside the screen..
-			if (xStart < screenWidth && yStart < screenHeight) {
-				GL.Vertex3((float)xStart, (float)yStart, 0);
-				GL.Vertex3((float)xEnd, (float)yEnd, 0);
-			}
+			// start or end outside the screen.
+
+			var start = new Vector2((float)xStart, (float)yStart);
+			var end = new Vector2((float)xEnd, (float)yEnd);
+			if (!screenSpace.Contains(start) || !screenSpace.Contains(end))
+				return;
+			GL.Vertex(start);
+			GL.Vertex(end);
+
 		}
 
 		private void DrawScale()
@@ -237,26 +250,22 @@ namespace SCANsatRPM
 
 		private double longitudeToPixels(double longitude, double latitude)
 		{
-			return rescaleLongitude((map.projectLongitude(longitude, latitude) + 180) % 360) * screenWidth / 360;
+			return rescaleLongitude((map.projectLongitude(longitude, latitude) + 180d) % 360d) * (screenWidth / 360d);
 		}
 
 		private double latitudeToPixels(double longitude, double latitude)
 		{
-			return screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90) % 180) * screenHeight / 180);
+			return screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90d) % 180d) * (screenHeight / 180d));
 		}
 
 		private double rescaleLatitude(double lat)
 		{
-			lat = Clamp(lat - map.lat_offset, 180);
-			lat *= 180f / (map.mapheight / map.mapscale);
-			return lat;
+			return Clamp(lat - map.lat_offset, 180d) * (180d / (map.mapheight / map.mapscale));
 		}
 
 		private double rescaleLongitude(double lon)
 		{
-			lon = Clamp(lon - map.lon_offset, 360);
-			lon *= 360f / (map.mapwidth / map.mapscale);
-			return lon;
+			return Clamp(lon - map.lon_offset, 360d) * (360d / (map.mapwidth / map.mapscale));
 		}
 
 		private static double Clamp(double value, double clamp)
@@ -448,6 +457,15 @@ namespace SCANsatRPM
 			persistence = new PersistenceAccessor(part);
 
 			showLines = persistence.GetBool(persistentVarName + "lines") ?? true;
+
+			trailMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
+			"SubShader { Pass {" +
+			"   BindChannels { Bind \"Color\",color }" +
+			"   Blend SrcAlpha OneMinusSrcAlpha" +
+			"   ZWrite Off Cull Off Fog { Mode Off }" +
+			"} } }");
+			trailMaterial.hideFlags = HideFlags.HideAndDontSave;
+			trailMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
 
 			LeaveTrail();
 
