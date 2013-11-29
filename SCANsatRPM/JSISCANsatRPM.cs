@@ -13,6 +13,7 @@ using SCANsat;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using JSI;
 
 namespace SCANsatRPM
 {
@@ -26,6 +27,8 @@ namespace SCANsatRPM
 		public int buttonEnter = 2;
 		[KSPField]
 		public int buttonEsc = 3;
+		[KSPField]
+		public int buttonHome = 4;
 		[KSPField]
 		public int maxZoom = 20;
 		[KSPField]
@@ -62,7 +65,10 @@ namespace SCANsatRPM
 		public Color trailColor = Color.blue;
 		[KSPField]
 		public double trailPointEvery = 30;
+		[KSPField]
+		public int orbitPoints = 60;
 		// That ends our glut of configurable values.
+		private bool showLines;
 		private int mapMode;
 		private int zoomLevel;
 		private int screenWidth;
@@ -80,7 +86,7 @@ namespace SCANsatRPM
 		private Texture2D scaleBarTexture, scaleLabelTexture;
 		private float[] scaleLevelValues;
 		private float scaleLabelSpan;
-		private readonly List<Vector2> trail = new List<Vector2>();
+		private readonly List<Vector2d> trail = new List<Vector2d>();
 		private static readonly Material trailMaterial = new Material(Shader.Find("Particles/Additive"));
 		private double trailCounter;
 
@@ -110,46 +116,67 @@ namespace SCANsatRPM
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
-			if (trailLimit > 0 && trail.Count > 0) {
-				GL.wireframe = true;
-				GL.Begin(GL.LINES);
-				trailMaterial.SetPass(0);
-				GL.Color(trailColor);
-				double xStart = 0, yStart = 0, xEnd = 0, yEnd = 0;
-
-				bool endsInVessel = false;
-				for (int i = 0; i < trail.Count; i++) {
-					xStart = longitudeToPixels(trail[i].x, trail[i].y);
-					yStart = latitudeToPixels(trail[i].x, trail[i].y);
-					if (i + 1 < trail.Count) {
-						xEnd = longitudeToPixels(trail[i + 1].x, trail[i + 1].y);
-						yEnd = latitudeToPixels(trail[i + 1].x, trail[i + 1].y);
-					} else {
-						xEnd = longitudeToPixels(vessel.longitude, vessel.latitude);
-						yEnd = latitudeToPixels(vessel.longitude, vessel.latitude);
-						endsInVessel = true;
-					}
-					DrawLine(xStart, yStart, xEnd, yEnd, screenWidth, screenHeight);
-				}
-				if (!endsInVessel)
-					DrawLine(xEnd, yEnd, longitudeToPixels(vessel.longitude, vessel.latitude), latitudeToPixels(vessel.longitude, vessel.latitude), screenWidth, screenHeight);
-				GL.End();
-				GL.wireframe = false;
-			}
-
+			if (showLines && trailLimit > 0 && trail.Count > 0)
+				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
+		
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
 						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
 						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
 			}
-			if (targetVessel != null && targetVessel.mainBody == orbitingBody)
+			if (targetVessel != null && targetVessel.mainBody == orbitingBody) {
+				if (showLines && JUtil.OrbitMakesSense(targetVessel))
+					DrawOrbit(targetVessel, iconColorTarget);
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
+			}
+
+			if (showLines && JUtil.OrbitMakesSense(vessel))
+				DrawOrbit(vessel, iconColorSelf);
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
 			DrawScale();
 			GL.PopMatrix();
 
 			return true;
+		}
+
+		private void DrawOrbit(Vessel thatVessel, Color thatColor)
+		{
+			double start = Planetarium.GetUniversalTime();
+			double dTstep = Math.Floor(thatVessel.orbit.period / orbitPoints);
+			var points = new List<Vector2d>();
+			for (double timePoint = start; timePoint < start + thatVessel.orbit.period; timePoint += dTstep) {
+				double rotOffset = 0;
+				if (thatVessel.mainBody.rotates) {
+					rotOffset = (360 * ((timePoint - start) / thatVessel.mainBody.rotationPeriod)) % 360;
+				}
+				Vector3d pos = thatVessel.orbit.getPositionAtUT(timePoint);
+				points.Add(new Vector2d(thatVessel.mainBody.GetLongitude(pos) - rotOffset, thatVessel.mainBody.GetLatitude(pos)));
+			}
+			DrawTrail(points, thatColor, Vector2d.zero, false);
+		}
+
+		private void DrawTrail(List<Vector2d> points, Color lineColor, Vector2d endPoint, bool hasEndpoint)
+		{
+			if (points.Count == 0)
+				return;
+			GL.wireframe = true;
+			GL.Begin(GL.LINES);
+			trailMaterial.SetPass(0);
+			GL.Color(lineColor);
+			double xStart, yStart, xEnd = 0, yEnd = 0;
+
+			for (int i = 0; i < points.Count - 1; i++) {
+				xStart = longitudeToPixels(points[i].x, points[i].y);
+				yStart = latitudeToPixels(points[i].x, points[i].y);
+				xEnd = longitudeToPixels(points[i + 1].x, points[i + 1].y);
+				yEnd = latitudeToPixels(points[i + 1].x, points[i + 1].y);
+				DrawLine(xStart, yStart, xEnd, yEnd, screenWidth, screenHeight);
+			}
+			if (hasEndpoint)
+				DrawLine(xEnd, yEnd, longitudeToPixels(endPoint.x, endPoint.y), latitudeToPixels(endPoint.x, endPoint.y), screenWidth, screenHeight);
+			GL.End();
+			GL.wireframe = false;
 		}
 
 		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, int screenWidth, int screenHeight)
@@ -314,6 +341,10 @@ namespace SCANsatRPM
 				persistence.SetVar(persistentVarName + "color", SCANcontroller.controller.colours);
 				RedrawMap();
 			}
+			if (buttonID == buttonHome) {
+				showLines = !showLines;
+				persistence.SetVar(persistentVarName + "lines", showLines);
+			}
 		}
 
 		private void ChangeMapMode(bool up)
@@ -347,8 +378,8 @@ namespace SCANsatRPM
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
-			if ((vessel.missionTime - trailPointEvery) > trailCounter) {
-				trailCounter = vessel.missionTime;
+			if ((Planetarium.GetUniversalTime() - trailPointEvery) > trailCounter) {
+				trailCounter = Planetarium.GetUniversalTime();
 				LeaveTrail();
 			}
 
@@ -402,7 +433,7 @@ namespace SCANsatRPM
 		private void LeaveTrail()
 		{
 			if (trailLimit > 0) {
-				trail.Add(new Vector2((float)vessel.longitude, (float)vessel.latitude));
+				trail.Add(new Vector2d(vessel.longitude, vessel.latitude));
 				if (trail.Count > trailLimit)
 					trail.RemoveRange(0, trail.Count - trailLimit);
 			}
@@ -412,7 +443,9 @@ namespace SCANsatRPM
 		{
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
-			persistence = new JSI.PersistenceAccessor(part);
+			persistence = new PersistenceAccessor(part);
+
+			showLines = persistence.GetBool(persistentVarName + "lines") ?? true;
 
 			LeaveTrail();
 
