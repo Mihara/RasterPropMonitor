@@ -72,7 +72,8 @@ namespace JSI
 					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					isMutable = true;
 				}
-			} else {
+			} 
+			if (pageHandler == null) {
 				if (node.HasValue("text")) {
 					string pageDefinition = node.GetValue("text");
 
@@ -95,7 +96,9 @@ namespace JSI
 					isMutable = true;
 					background = BackgroundType.Handler;
 				}
-			} else {
+			} 
+
+			if (backgroundHandler == null) {
 				if (node.HasValue("cameraTransform")) {
 					isMutable = true;
 					background = BackgroundType.Camera;
@@ -143,7 +146,7 @@ namespace JSI
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
 				if (thatModule == null) {
-					JUtil.LogMessage(ourMonitor,"Warning, handler module \"{0}\" did not load. This could be perfectly normal.",moduleName);
+					JUtil.LogMessage(ourMonitor, "Warning, handler module \"{0}\" did not load. This could be perfectly normal.", moduleName);
 					return null;
 				}
 					
