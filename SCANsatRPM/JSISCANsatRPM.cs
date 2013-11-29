@@ -379,7 +379,7 @@ namespace SCANsatRPM
 			mapCenterLat = vessel.latitude;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
-			redrawDeviation = redrawEdge * 180 / (zoomLevel + zoomModifier);
+			redrawDeviation = redrawEdge * 180 / (Math.Pow(zoomLevel, 2) + zoomModifier);
 			localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
 			// MATH!
 			double kmPerDegreeLon = (2 * Math.PI * (orbitingBody.Radius / 1000d)) / 360d;
