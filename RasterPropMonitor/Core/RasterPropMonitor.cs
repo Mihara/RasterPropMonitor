@@ -42,6 +42,8 @@ namespace JSI
 		public float buttonClickVolume = 0.5f;
 		[KSPField]
 		public bool needsElectricCharge = true;
+		[KSPField]
+		public Color32 defaultFontTint = Color.white;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
@@ -69,17 +71,16 @@ namespace JSI
 		private FXGroup audioOutput;
 		private double electricChargeReserve;
 
-
 		public void Start()
 		{
 			// Loading the font...
-			JUtil.LogMessage(this,"Trying to locate \"{0}\" in GameDatabase...", fontTransform);
+			JUtil.LogMessage(this, "Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
 				fontTexture = GameDatabase.Instance.GetTexture(fontTransform.EnforceSlashes(), false);
-				JUtil.LogMessage(this,"Loading font texture from URL, \"{0}\"", fontTransform);
+				JUtil.LogMessage(this, "Loading font texture from URL, \"{0}\"", fontTransform);
 			} else {
 				fontTexture = (Texture2D)internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;
-				JUtil.LogMessage(this,"Loading font texture from a transform named, \"{0}\"", fontTransform);
+				JUtil.LogMessage(this, "Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
 
@@ -128,14 +129,14 @@ namespace JSI
 								activePage = newPage;
 							pages.Add(newPage);
 						} catch (ArgumentException e) {
-							JUtil.LogMessage(this,"Warning - {0}", e);
+							JUtil.LogMessage(this, "Warning - {0}", e);
 						}
 							
 					}
 					break;
 				}
 			}
-			JUtil.LogMessage(this,"Done setting up pages, {0} pages ready.", pages.Count);
+			JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
 			// Install the calculator module.
 			comp = JUtil.GetComputer(internalProp);
@@ -193,7 +194,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, int x, int y)
+		private void DrawChar(char letter, int x, int y, Color letterColor)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -203,7 +204,7 @@ namespace JSI
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode >= fontCharacters.Length) {
-				JUtil.LogMessage(this,"Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
+				JUtil.LogMessage(this, "Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
 
@@ -215,7 +216,8 @@ namespace JSI
 				new Rect(x * fontLetterWidth, y * fontLetterHeight, fontLetterWidth, fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
-				0, 0, 0, 0
+				0, 0, 0, 0,
+				letterColor
 			);
 
 		}
@@ -280,9 +282,17 @@ namespace JSI
 					// Draw the text.
 					for (int y = 0; y < screenHeight && y < screenBuffer.Length; y++) {
 						if (!string.IsNullOrEmpty(screenBuffer[y])) {
+							Color32 fontColor = defaultFontTint;
 							char[] line = screenBuffer[y].ToCharArray();
-							for (int x = 0; x < screenWidth && x < line.Length; x++) {
-								DrawChar(line[x], x, y);
+							int cursor = 0;
+							for (int x = 0; cursor < screenWidth && x < line.Length; x++) {
+								// Parsing [#rrggbbaa], so...
+								if (x + 11 < line.Length && line[x] == '[' && line[x + 1] == '#' && line[x + 10] == ']') {
+									fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(x + 2, 8));
+									x += 11;
+								}
+								DrawChar(line[x], cursor, y, fontColor);
+								cursor++;
 							}
 						}
 					}
