@@ -358,17 +358,15 @@ namespace JSI
 				case Vessel.Situations.FLYING:
 					if (vessel.altitude < vessel.mainBody.scienceValues.flyingAltitudeThreshold)                        
 						//ExperimentSituations.FlyingLow
-						return "Flying over " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
-					else                
+						return "Flying over " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);                
 						//ExperimentSituations.FlyingHigh
-						return "Upper atmosphere of " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+					return "Upper atmosphere of " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
 				default:
 					if (vessel.altitude < vessel.mainBody.scienceValues.spaceAltitudeThreshold)
 						//ExperimentSituations.InSpaceLow
 						return "Space just above " + vessel.mainBody.theName;
-					else
 						// ExperimentSituations.InSpaceHigh
-						return "Space high over " + vessel.mainBody.theName;
+					return "Space high over " + vessel.mainBody.theName;
 			}
 		}
 		//TODO: I really should make that more sensible, I mean, FOUR boolean flags?...
