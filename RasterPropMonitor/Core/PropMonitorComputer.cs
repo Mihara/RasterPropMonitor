@@ -341,6 +341,36 @@ namespace JSI
 			}
 			return "??!";
 		}
+		// Another MechJeb import.
+		private string CurrentBiome()
+		{
+			if (vessel.landedAt != string.Empty)
+				return vessel.landedAt;
+			string biome = JUtil.CBAttributeMapGetAtt(vessel.mainBody.BiomeMap, vessel.latitude * Math.PI / 180d, vessel.longitude * Math.PI / 180d).name;
+			switch (vessel.situation) {
+			//ExperimentSituations.SrfLanded
+				case Vessel.Situations.LANDED:
+				case Vessel.Situations.PRELAUNCH:
+					return vessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
+			//ExperimentSituations.SrfSplashed
+				case Vessel.Situations.SPLASHED:
+					return vessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
+				case Vessel.Situations.FLYING:
+					if (vessel.altitude < vessel.mainBody.scienceValues.flyingAltitudeThreshold)                        
+						//ExperimentSituations.FlyingLow
+						return "Flying over " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+					else                
+						//ExperimentSituations.FlyingHigh
+						return "Upper atmosphere of " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+				default:
+					if (vessel.altitude < vessel.mainBody.scienceValues.spaceAltitudeThreshold)
+						//ExperimentSituations.InSpaceLow
+						return "Space just above " + vessel.mainBody.theName;
+					else
+						// ExperimentSituations.InSpaceHigh
+						return "Space high over " + vessel.mainBody.theName;
+			}
+		}
 		//TODO: I really should make that more sensible, I mean, FOUR boolean flags?...
 		// These three are formatting functions. They're better off moved into the formatter class.
 		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
@@ -354,7 +384,7 @@ namespace JSI
 			span -= new TimeSpan(365 * years, 0, 0, 0);
 			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
 
-			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) + 
+			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) +
 			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
 
 			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
@@ -785,8 +815,7 @@ namespace JSI
 				case "SCIENCEDATA":
 					return totalDataAmount;
 				case "BIOMENAME":
-					//TODO: Implement biome detection, which is more complicated than I thought.
-					return string.Empty;
+					return CurrentBiome();
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
