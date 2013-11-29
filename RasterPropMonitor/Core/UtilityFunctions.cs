@@ -26,6 +26,17 @@ namespace JSI
 			Debug.Log(String.Format(caller.ClassName + ": " + line, list));
 		}
 
+		public static bool OrbitMakesSense(Vessel thatvessel)
+		{
+			if (thatvessel.situation == Vessel.Situations.FLYING ||
+				thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
+				thatvessel.situation == Vessel.Situations.ORBITING ||
+				thatvessel.situation == Vessel.Situations.ESCAPING ||
+				thatvessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
+				return true;
+			return false;
+		}
+
 		public static FXGroup SetupIVASound(InternalProp thatProp, string buttonClickSound, float buttonClickVolume, bool loopState)
 		{
 			FXGroup audioOutput = null;

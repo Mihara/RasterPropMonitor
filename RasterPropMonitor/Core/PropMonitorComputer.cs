@@ -191,13 +191,13 @@ namespace JSI
 				targetOrientation = target.GetTransform().rotation;
 				targetorbit = target.GetOrbit();
 				var targetVessel = target as Vessel;
-				targetOrbitSensibility = targetVessel == null || OrbitMakesSense(targetVessel);
+				targetOrbitSensibility = targetVessel == null || JUtil.OrbitMakesSense(targetVessel);
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrientation = new Quaternion();
 				targetOrbitSensibility = false;
 			}
-			orbitSensibility = OrbitMakesSense(vessel);
+			orbitSensibility = JUtil.OrbitMakesSense(vessel);
 			if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING) {
 				// Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
 				//  t = (v+sqrt(v²+2gd))/g or something.
@@ -307,16 +307,7 @@ namespace JSI
 			}
 		}
 
-		private static bool OrbitMakesSense(Vessel thatvessel)
-		{
-			if (thatvessel.situation == Vessel.Situations.FLYING ||
-			    thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
-			    thatvessel.situation == Vessel.Situations.ORBITING ||
-			    thatvessel.situation == Vessel.Situations.ESCAPING ||
-			    thatvessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
-				return true;
-			return false;
-		}
+
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
 		private static string SituationString(Vessel.Situations situation)
