@@ -282,7 +282,7 @@ namespace JSI
 		private void FetchAltitudes()
 		{
 			altitudeASL = vessel.mainBody.GetAltitude(coM);
-			slopeAngle = 0;
+			slopeAngle = -1;
 			RaycastHit sfc;
 			if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
 				slopeAngle = Vector3.Angle(up, sfc.normal);
