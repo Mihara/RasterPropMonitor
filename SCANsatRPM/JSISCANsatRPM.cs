@@ -66,7 +66,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public double trailPointEvery = 30;
 		[KSPField]
-		public int orbitPoints = 60;
+		public int orbitPoints = 30;
 		// That ends our glut of configurable values.
 		private bool showLines;
 		private int mapMode;
@@ -142,10 +142,12 @@ namespace SCANsatRPM
 
 		private void DrawOrbit(Vessel thatVessel, Color thatColor)
 		{
+			if (orbitPoints == 0)
+				return;
 			double start = Planetarium.GetUniversalTime();
 			double dTstep = Math.Floor(thatVessel.orbit.period / orbitPoints);
 			var points = new List<Vector2d>();
-			for (double timePoint = start; timePoint < start + thatVessel.orbit.period; timePoint += dTstep) {
+			for (double timePoint = start; timePoint < (start + thatVessel.orbit.period); timePoint += dTstep) {
 				double rotOffset = 0;
 				if (thatVessel.mainBody.rotates) {
 					rotOffset = (360 * ((timePoint - start) / thatVessel.mainBody.rotationPeriod)) % 360;
