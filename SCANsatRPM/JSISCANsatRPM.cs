@@ -61,7 +61,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public Color trailColor = Color.blue;
 		[KSPField]
-		public double trailPointEvery = 10;
+		public double trailPointEvery = 30;
 		// That ends our glut of configurable values.
 		private int mapMode;
 		private int zoomLevel;
