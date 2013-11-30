@@ -111,8 +111,6 @@ namespace SCANsatRPM
 
 				screenSpace = new Rect(0, 0, screenWidth, screenHeight);
 
-				map = new SCANmap();
-				map.setProjection(SCANmap.MapProjection.Rectangular);
 				RedrawMap();
 				return false;
 			}
@@ -421,8 +419,10 @@ namespace SCANsatRPM
 
 		private void RedrawMap()
 		{
-			if (map == null)
-				return;
+			if (map == null) {
+				map = new SCANmap();
+				map.setProjection(SCANmap.MapProjection.Rectangular);
+			}
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
