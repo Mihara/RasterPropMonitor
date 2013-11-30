@@ -383,7 +383,8 @@ namespace SCANsatRPM
 			}
 		}
 
-		public void PageActive(bool status, int pageNumber) {
+		public void PageActive(bool status, int pageNumber)
+		{
 			pageActiveState = status;
 			if (status)
 				Debug.Log("JSISCANsatRPM: Active on page " + pageNumber);
@@ -420,6 +421,8 @@ namespace SCANsatRPM
 
 		private void RedrawMap()
 		{
+			if (map == null)
+				return;
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
@@ -432,7 +435,11 @@ namespace SCANsatRPM
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
 			redrawDeviation = redrawEdge * 180 / (Math.Pow(zoomLevel, 2) + zoomModifier);
-			localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
+			try {
+				localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
+			} catch {
+				Debug.Log("JSISCANsatRPM: Could not get a list of anomalies, what happened?");
+			}
 			// MATH!
 			double kmPerDegreeLon = (2 * Math.PI * (orbitingBody.Radius / 1000d)) / 360d;
 			double pixelsPerDegree = Math.Abs(longitudeToPixels(mapCenterLong + (((mapCenterLong + 1) > 360) ? -1 : 1), mapCenterLat) - longitudeToPixels(mapCenterLong, mapCenterLat));
