@@ -187,17 +187,32 @@ namespace SCANsatRPM
 
 		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, Rect screenSpace)
 		{
-			// Normally I wouldn't have to, but in some cases the lines get drawn across the screen,
-			// and I don't feel like digging around to figure out why right now.
-			// I have a suspicion this is an artifact of the pixel matrix,
-			// because an attempt to draw a line that starts at -10,-10 and ends at screenWidth+10,screenHeight+10 fails.
-			// So the easiest way to get rid of it is to just not to draw the lines that
-			// start or end outside the screen.
+			/* This is annoying, so I'll have to describe what the actual problem is...
+			 * The real issue is that when you need to draw a line that is supposed to wrap around the right or top map edge.
+			 * The correct direction to draw it would be through the infinity, i.e. 
+			 * going infinitely far to the right (or top) and coming out the left (or bottom).
+			 * This is obviously not possible, the line is drawn along the shortest path --
+			 * which is across the map itself. 
+			 * It's proving highly cumbersome to tell such a line from any other kind,
+			 * (On what grounds really?)
+			 * so I'm attempting certain highly hackish solutions that are
+			 * at least better than simply not drawing the lines that cross any edges.
+			*/
+
 
 			var start = new Vector2((float)xStart, (float)yStart);
 			var end = new Vector2((float)xEnd, (float)yEnd);
-			if (!screenSpace.Contains(start) || !screenSpace.Contains(end))
+			if (!screenSpace.Contains(start) && !screenSpace.Contains(end))
 				return;
+
+			// That seems to neatly get rid of the wraparound for X. X is always positive when converted to pixels,
+			// and since the map is natively 2:1, anything less than that works.
+			if (Mathf.Max(start.x, end.x) > screenSpace.width + screenSpace.width / 3)
+				return;
+			// Y is not quite so simple since it gets inverted...
+			if (start.y < 0 || end.y < 0)
+				return;
+
 			GL.Vertex(start);
 			GL.Vertex(end);
 
