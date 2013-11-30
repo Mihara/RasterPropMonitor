@@ -90,6 +90,7 @@ namespace SCANsatRPM
 		private static Material trailMaterial;
 		private double trailCounter;
 		private Rect screenSpace;
+		private bool pageActiveState;
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -382,6 +383,10 @@ namespace SCANsatRPM
 			}
 		}
 
+		public void PageActive(bool status) {
+			pageActiveState = status;
+		}
+
 		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
@@ -396,7 +401,7 @@ namespace SCANsatRPM
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
 
-			if (map != null && !map.isMapComplete()) {
+			if (pageActiveState && map != null && !map.isMapComplete()) {
 				map.getPartialMap();
 			}
 
