@@ -149,6 +149,7 @@ namespace JSI
 			if (activePageID != null && activePageID.Value < pages.Count) {
 				activePage = pages[activePageID.Value];
 			}
+			activePage.Active(true);
 
 			// Create and point the camera.
 			cam = new FlyingCamera(part, screenTexture, cameraAspect);
