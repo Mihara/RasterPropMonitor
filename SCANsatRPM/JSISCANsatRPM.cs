@@ -417,6 +417,9 @@ namespace SCANsatRPM
 			map.mapscale *= (Math.Pow(zoomLevel, 2) + zoomModifier);
 			mapCenterLong = vessel.longitude;
 			mapCenterLat = vessel.latitude;
+			// That's really just sweeping the problem under the carpet instead of fixing it, but meh.
+			if (zoomLevel == 1)
+				mapCenterLat = 0;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
 			redrawDeviation = redrawEdge * 180 / (Math.Pow(zoomLevel, 2) + zoomModifier);
