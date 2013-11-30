@@ -383,8 +383,12 @@ namespace SCANsatRPM
 			}
 		}
 
-		public void PageActive(bool status) {
+		public void PageActive(bool status, int pageNumber) {
 			pageActiveState = status;
+			if (status)
+				Debug.Log("JSISCANsatRPM: Active on page " + pageNumber);
+			else
+				Debug.Log("JSISCANsatRPM: Inactive.");
 		}
 
 		public override void OnUpdate()
