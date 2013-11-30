@@ -102,7 +102,7 @@ namespace SCANsatRPM
 				int? loadedMode = persistence.GetVar(persistentVarName + "mode");
 				mapMode = loadedMode ?? 0;
 				int? loadedZoom = persistence.GetVar(persistentVarName + "zoom");
-				zoomLevel = loadedZoom ?? 1;
+				zoomLevel = loadedZoom ?? 0;
 				int? loadedColors = persistence.GetVar(persistentVarName + "color");
 				SCANcontroller.controller.colours = loadedColors ?? 0;
 				screenWidth = screen.width;
