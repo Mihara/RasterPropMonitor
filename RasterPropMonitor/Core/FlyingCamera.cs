@@ -26,6 +26,7 @@ namespace JSI
 
 		public void PointCamera(string newCameraName, float initialFOV)
 		{
+			CleanupCameraObjects();
 			if (!string.IsNullOrEmpty(newCameraName)) {
 				FOV = initialFOV;
 				// First, we search our own part for this camera transform,
@@ -37,20 +38,14 @@ namespace JSI
 					}
 
 				if (cameraTransform != null) {
-					if (!enabled) {
-						CameraSetup(0, "Camera ScaledSpace");
-						CameraSetup(1, "Camera 01");
-						CameraSetup(2, "Camera 00");
-						enabled = true;
-					}
-					Debug.Log(string.Format("Switching to camera \"{0}\".", cameraTransform.name));
-
-				} else {
-					CleanupCameraObjects();
-					Debug.Log(string.Format("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName));
-				}
-			} else {
-				CleanupCameraObjects();
+					CameraSetup(0, "Camera ScaledSpace");
+					CameraSetup(1, "Camera 01");
+					CameraSetup(2, "Camera 00");
+					enabled = true;
+					Debug.Log(string.Format("Switched to camera \"{0}\".", cameraTransform.name));
+					return;
+				} 
+				Debug.Log(string.Format("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName));
 			}
 		}
 
