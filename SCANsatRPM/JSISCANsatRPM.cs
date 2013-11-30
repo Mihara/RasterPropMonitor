@@ -116,7 +116,7 @@ namespace SCANsatRPM
 				return false;
 			}
 
-			Graphics.Blit(map.getPartialMap(), screen);
+			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
@@ -395,6 +395,10 @@ namespace SCANsatRPM
 			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
+
+			if (map != null && !map.isMapComplete()) {
+				map.getPartialMap();
+			}
 
 			targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
 
