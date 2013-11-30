@@ -38,15 +38,15 @@ namespace SCANsatRPM
 		[KSPField]
 		public float redrawEdge = 0.8f;
 		[KSPField]
-		public Color iconColorSelf = Color.white;
+		public Color32 iconColorSelf = Color.white;
 		[KSPField]
-		public Color iconColorTarget = Color.yellow;
+		public Color32 iconColorTarget = Color.yellow;
 		[KSPField]
-		public Color iconColorUnvisitedAnomaly = Color.red;
+		public Color32 iconColorUnvisitedAnomaly = Color.red;
 		[KSPField]
-		public Color iconColorVisitedAnomaly = Color.green;
+		public Color32 iconColorVisitedAnomaly = Color.green;
 		[KSPField]
-		public Color iconColorShadow = Color.black;
+		public Color32 iconColorShadow = Color.black;
 		[KSPField]
 		public float zoomModifier = 1.5f;
 		[KSPField]
@@ -62,7 +62,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public int trailLimit = 100;
 		[KSPField]
-		public Color trailColor = Color.blue;
+		public Color32 trailColor = Color.blue;
 		[KSPField]
 		public double trailPointEvery = 30;
 		[KSPField]

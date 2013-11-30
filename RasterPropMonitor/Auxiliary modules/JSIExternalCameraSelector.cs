@@ -121,8 +121,8 @@ namespace JSI
 
 		private void ColorizeLightCone()
 		{
-			var newStart = Color.Lerp(new Color(0f, 0f, 1f, 0.7f), new Color(1f, 0f, 0f, 0.7f), 1f / (maximum) * (current - 1));
-			lightConeRenderer.SetColors(newStart, new Color(newStart.r, newStart.g, newStart.b, 0f));
+			var newStart = Color32.Lerp(new Color32(0, 0, 255, 178), new Color32(255, 0, 0, 178), 1f / (maximum) * (current - 1));
+			lightConeRenderer.SetColors(newStart, new Color32(newStart.r, newStart.g, newStart.b, 0));
 		}
 
 		private void DestroyLightCone()

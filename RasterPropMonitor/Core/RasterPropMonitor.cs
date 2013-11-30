@@ -13,7 +13,7 @@ namespace JSI
 		[KSPField]
 		public string textureLayerID = "_MainTex";
 		[KSPField]
-		public Color emptyColor = Color.clear;
+		public Color32 emptyColor = Color.clear;
 		[KSPField]
 		public int screenWidth = 32;
 		[KSPField]
@@ -195,7 +195,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, int x, int y, Color letterColor)
+		private void DrawChar(char letter, int x, int y, Color32 letterColor)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.

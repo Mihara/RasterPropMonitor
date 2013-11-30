@@ -19,11 +19,11 @@ namespace JSI
 		[KSPField]
 		public bool ballIsEmissive;
 		[KSPField]
-		public Color backgroundColor = Color.black;
+		public Color32 backgroundColor = Color.black;
 		[KSPField]
 		public float ballOpacity = 0.8f;
 		[KSPField]
-		public Color ballColor = Color.white;
+		public Color32 ballColor = Color.white;
 		[KSPField]
 		public float markerScale = 0.1f;
 		[KSPField] // x,y, width, height
