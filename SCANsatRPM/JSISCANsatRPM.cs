@@ -418,7 +418,7 @@ namespace SCANsatRPM
 			mapCenterLong = vessel.longitude;
 			mapCenterLat = vessel.latitude;
 			// That's really just sweeping the problem under the carpet instead of fixing it, but meh.
-			if (zoomLevel == 1)
+			if (zoomLevel == 0)
 				mapCenterLat = 0;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
@@ -435,8 +435,10 @@ namespace SCANsatRPM
 		{
 			if (map == null)
 				return false;
-			if ((Math.Abs(vessel.latitude - mapCenterLat) > redrawDeviation) ||
-			    (Math.Abs(vessel.longitude - mapCenterLong) > redrawDeviation))
+			if (Math.Abs(vessel.longitude - mapCenterLong) > redrawDeviation)
+				return true;
+			// Same sweeping.
+			if (Math.Abs(vessel.latitude - mapCenterLat) > redrawDeviation && zoomLevel > 0)
 				return true;
 
 			return false;
