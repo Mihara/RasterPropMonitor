@@ -641,10 +641,12 @@ namespace JSI
 						return string.Empty;
 					if (target is Vessel || target is CelestialBody)
 						return target.GetName();
-				// Later, I think I want to get this to return the ship's name, not the docking node name...
+					// TODO: Decide if that case should return the target vessel's name, or the docking node name as it does now.
 					if (target is ModuleDockingNode)
 						return target.GetName();
-					return "???!";
+					// What remains is MechJeb's ITargetable implementations, which also can return a name,
+					// but I might want to handle them specially as well:
+					return target.GetName();
 				case "TARGETDISTANCE":
 					if (target != null)
 						return Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
