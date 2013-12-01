@@ -90,6 +90,36 @@ namespace JSI
 			{ "ECLSSO2C","O2 Candle" },
 			// Deadly reentry ablative shielding
 			{ "ABLATIVESHIELD","AblativeShielding" },
+			// Interstellar
+			{ "ISTTHERMALPOWER","ThermalPower" },
+			{ "ISTMEGAJOULES","Megajoules" },
+			{ "ISTANTIMATTER","Antimatter" },
+			{ "ISTINTAKEATM","IntakeAtm" },
+			{ "ISTUF4","UF4" },
+			{ "ISTTHF4","ThF4" },
+			{ "ISTACTINIDES","Actinides" },
+			{ "ISTDEPLETEDFUEL","DepletedFuel" },
+			{ "ISTSCIENCE","Science" },
+			{ "ISTVACUUMPLASMA", "VacuumPlasma" },
+			{ "ISTARGON", "Argon" },
+			{ "ISTALIMINIUM", "Aluminium" },
+			{ "ISTEXOTICMATTER", "ExoticMatter" },
+			{ "ISTDEUTERIUM", "Deuterium" },
+			{ "ISTLITHIUM", "Lithium" },
+			{ "ISTTRITIUM", "Tritium" },
+			{ "ISTWASTEHEAT", "WasteHeat" },
+			{ "ISTLQDMETHANE", "LqdMethane" },
+			// Launchpads
+			{ "ELPROCKETPARTS","RocketParts" },
+			{ "ELPMETAL", "Metal" },
+			{ "ELPORE", "Ore" },
+			// Near Future
+			{ "NFARGON","ArgonGas" },
+			{ "NFHYDROGEN","HydrogenGas" },
+			{ "NFPTFE", "Polytetrafluoroethylene" },
+			{ "NFSTOREDCHARGE","StoredCharge" },
+			{ "NFURANIUM","EnrichedUranium" },
+			{ "NFDEPLETEDURANIUM","DepletedUranium" },
 		};
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
@@ -306,8 +336,6 @@ namespace JSI
 				}
 			}
 		}
-
-
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
 		private static string SituationString(Vessel.Situations situation)
