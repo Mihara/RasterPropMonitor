@@ -97,26 +97,27 @@ namespace JSI
 
 		public bool Render()
 		{
-			if (enabled) {
-				if (cameraPart.vessel != FlightGlobals.ActiveVessel) {
-					CleanupCameraObjects();
-				} else {
-					// ScaledSpace camera is special. :(
-					cameraObject[0].transform.rotation = cameraTransform.transform.rotation;
-					cameraObject[0].fieldOfView = FOV;
-					cameraObject[0].Render();
-					for (int i = 1; i < 3; i++) {
-						cameraObject[i].transform.position = cameraTransform.transform.position;
-						cameraObject[i].transform.rotation = cameraTransform.transform.rotation;
-						cameraObject[i].fieldOfView = FOV;
+			if (!enabled)
+				return false;
 
-
-						cameraObject[i].Render();
-					}
-					return true;
-				}
+			if (cameraPart == null || cameraPart.vessel != FlightGlobals.ActiveVessel || cameraTransform == null || cameraTransform.transform == null) {
+				CleanupCameraObjects();
+				return false;
 			}
-			return false;
+
+			// ScaledSpace camera is special. :(
+			cameraObject[0].transform.rotation = cameraTransform.transform.rotation;
+			cameraObject[0].fieldOfView = FOV;
+			cameraObject[0].Render();
+			for (int i = 1; i < 3; i++) {
+				cameraObject[i].transform.position = cameraTransform.transform.position;
+				cameraObject[i].transform.rotation = cameraTransform.transform.rotation;
+				cameraObject[i].fieldOfView = FOV;
+
+
+				cameraObject[i].Render();
+			}
+			return true;
 		}
 	}
 }
