@@ -21,92 +21,8 @@ namespace JSI
 		// This space will count towards the full length of the string.
 		private const string formatPrefix = "SIP";
 
-		public string Format(string format, object arg, IFormatProvider formatProvider)
-		{    
-			if (format == null || !format.StartsWith(formatPrefix, StringComparison.Ordinal)) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
-
-			if (arg is string) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
-
-			// This is approaching a dangerous mess and needs a rewrite.
-
-			double inputValue;
-
-			try {    
-				inputValue = Convert.ToDouble(arg);    
-			} catch (InvalidCastException) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
-
-			string formatData = format.Substring(formatPrefix.Length);
-
-			// We always lose one significant figure, not sure why.
-			int stringLengthModifier = 1;
-
-			// If we're using a space between the number and the prefix,
-			// we lose one significant figure.
-			if (formatData.Length > 0 && formatData[0] == '_') {
-				// First character is underscore, so we need a space.
-				stringLengthModifier++;
-				formatData = formatData.Substring(1);
-			}
-
-			// If there's a zero, pad with zeros -- otherwise spaces.
-			bool zeroPad = false;
-			if (formatData.Length > 0 && formatData[0] == '0') {
-				// First character is zero, padding with zeroes
-				zeroPad = true;
-				formatData = formatData.Substring(1);
-			}
-
-			ushort stringLength;
-			ushort postDecimal = 0;
-
-			if (formatData.IndexOf('.') > 0) {
-				string[] tokens = formatData.Split('.');
-				UInt16.TryParse(tokens[0], out stringLength);
-				UInt16.TryParse(tokens[1], out postDecimal);
-			} else {
-				UInt16.TryParse(formatData, out stringLength);
-			}
-
-			// We lose one significant figure to negative sign.
-			if (inputValue < 0)
-				stringLengthModifier+=2;
-
-			// If we have more digits than the string length as the result,
-			// we're going to be getting a prefix, so we lose one more
-			// significant figure.
-			if (Math.Floor(Math.Log10(inputValue) + 1) > stringLength)
-				stringLengthModifier++;
-
-			return ConvertToSI(inputValue, 
-				-postDecimal, stringLength - stringLengthModifier).PadLeft(stringLength, zeroPad ? '0' : ' ');
-
-
-		}
-
-		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
+		private string GetSIPrefix(int siExponent)
 		{
-			var formattableArg = arg as IFormattable;
-			return formattableArg != null ? formattableArg.ToString(format, formatProvider) : arg.ToString();
-		}
-		// Once again MechJeb code comes to the rescue with a function I very tenuously understand!
-		//Puts numbers into SI format, e.g. 1234 -> "1.234 k", 0.0045678 -> "4.568 m"
-		//maxPrecision is the exponent of the smallest place value that will be shown; for example
-		//if maxPrecision = -1 and digitsAfterDecimal = 3 then 12.345 will be formatted as "12.3"
-		//while 56789 will be formated as "56.789 k"
-		private static string ConvertToSI(double d, int maxPrecision = -99, int sigFigs = 4, bool needSpace = false)
-		{
-			// Analysis disable once CompareOfFloatsByEqualityOperator
-			if (d == 0 || double.IsInfinity(d) || double.IsNaN(d))
-				return d + " ";
-
-			int exponent = (int)Math.Floor(Math.Log10(Math.Abs(d))); //exponent of d if it were expressed in scientific notation
-
 			string[] units = {
 				"y",
 				"z",
@@ -126,30 +42,157 @@ namespace JSI
 				"Z",
 				"Y"
 			};
+
 			const int unitIndexOffset = 8; //index of "" in the units array
-			int unitIndex = (int)Math.Floor(exponent / 3.0) + unitIndexOffset;
-			if (unitIndex < 0)
-				unitIndex = 0;
-			if (unitIndex >= units.Length)
-				unitIndex = units.Length - 1;
-			string unit = units[unitIndex];
 
-			int actualExponent = (unitIndex - unitIndexOffset) * 3; //exponent of the unit we will us, e.g. 3 for k.
-			d /= Math.Pow(10, actualExponent);
+			int index = siExponent/3 + unitIndexOffset;
 
-			int digitsAfterDecimal = sigFigs - (int)(Math.Ceiling(Math.Log10(Math.Abs(d))));
+			index = Math.Max(index, 0);
+			index = Math.Min(index, units.Length-1);
 
-			if (digitsAfterDecimal > actualExponent - maxPrecision)
-				digitsAfterDecimal = actualExponent - maxPrecision;
-			if (digitsAfterDecimal < 0)
-				digitsAfterDecimal = 0;
+			return units[index];
+		}
 
-			var result = new StringBuilder(d.ToString("F" + digitsAfterDecimal));
-			if (needSpace)
+		// MOARdV rewrite of Format():
+		// Format is based on the MechJeb SI formatting function.  It diverges
+		// from MechJeb in that it allows for specified precision after the
+		// decimal.  The formatting behavior is as follows:
+		//
+		// If no decimal specifier is provided, Format will set the decimal
+		// specifier to the number of digits to the left of the decimal place
+		// in the value we are formatting after accounting for the SI
+		// adjustment.  That is, 123456 will be formatted as 123.456 k, and so
+		// will 123456.2.  On the other hand, 0.0123 will be 12 m.  This
+		// behavior mimics MechJeb.
+		//
+		// If we figure out that the number will not fit in the space requested,
+		// we truncate decimal places.  After truncating, if we still can't
+		// fit, well, too bad.
+		//
+		// For a non-negative value, the smallest format that will fit in the
+		// requested format is SIP4.0.  For a value that can be negative, the
+		// smallest format is SIP5.0.
+		public string Format(string format, object arg, IFormatProvider formatProvider)
+		{    
+			if (format == null || !format.StartsWith(formatPrefix, StringComparison.Ordinal)) {    
+				return DefaultFormat(format, arg, formatProvider);    
+			}
+
+			if (arg is string) {    
+				return DefaultFormat(format, arg, formatProvider);    
+			}
+
+			double inputValue;
+
+			try {    
+				inputValue = Convert.ToDouble(arg);    
+			} catch (InvalidCastException) {    
+				return DefaultFormat(format, arg, formatProvider);    
+			}
+
+			// Handle degenerate values (NaN, INF)
+			if (double.IsInfinity(inputValue) || double.IsNaN(inputValue)) {
+				return inputValue + " ";
+			}
+
+			// Get some metrics on the number we are formatting:
+
+			// leadingDigitExponent is the location relative to the original
+			// decimal place for the leading digit.
+			int leadingDigitExponent = (int)Math.Floor(Math.Log10(Math.Abs(inputValue)));
+			if (inputValue == 0.0) {
+				// special case: can't take log(0).
+				leadingDigitExponent = 0;
+			}
+			// siExponent is the location relative to the original decimal of
+			// the SI prefix.  Is is always the greatest multiple-of-3 less
+			// than the leadingDigitExponent.
+			int siExponent = ((int)Math.Floor(leadingDigitExponent / 3.0)) * 3;
+
+			bool isNegative = (inputValue < 0.0);
+
+			string formatData = format.Substring(formatPrefix.Length);
+
+			bool spaceBeforePrefix = false;
+			if (formatData.Length > 0 && formatData[0] == '_') {
+				// First character is underscore, so we need a space.
+				formatData = formatData.Substring(1);
+				spaceBeforePrefix = true;
+			}
+
+			// If there's a zero, pad with zeros -- otherwise spaces.
+			bool zeroPad = false;
+			if (formatData.Length > 0 && formatData[0] == '0') {
+				// First character is zero, padding with zeroes
+				zeroPad = true;
+				formatData = formatData.Substring(1);
+			}
+
+			int stringLength;
+			int postDecimal;
+
+			if (formatData.IndexOf('.') > 0) {
+				string[] tokens = formatData.Split('.');
+				Int32.TryParse(tokens[0], out stringLength);
+				Int32.TryParse(tokens[1], out postDecimal);
+			} else {
+				Int32.TryParse(formatData, out stringLength);
+				// Don't care postDecimal: mimic the MJ SI formatter by setting
+				// it to the number of digits to the left of the original decimal.
+				postDecimal = Math.Max(0, siExponent);
+			}
+
+			// Figure out our character budget:
+			// The number of digits to the left of the decimal (1 + leadingDigitExponent-siExponent)
+			// Plus the sign character (if present)
+			// Plus the space before the suffix (if present)
+			// Plus the siExponent (if present)
+			int charactersRequired = 1 + (leadingDigitExponent - siExponent) + (isNegative ? 1 : 0) + ((siExponent != 0) ? 1 : 0) + (spaceBeforePrefix ? 1 : 0);
+
+			if(charactersRequired >= stringLength) {
+				// We can't fit in the required space, so we will overflow and
+				// drop and decimal values.
+				postDecimal = 0;
+			} else if(postDecimal > 0) {
+				// We will prioritize fitting into the overall character budget:
+				// -1 to account for the '.'
+				int decimalCharactersAvailable = (stringLength - charactersRequired) - 1;
+
+				postDecimal = Math.Min(postDecimal, decimalCharactersAvailable);
+			}
+			//charactersRequired += (postDecimal > 0) ? (postDecimal + 1) : 0;
+
+			double scaledInputValue = inputValue / Math.Pow(10.0, siExponent);
+
+			var result = new StringBuilder(scaledInputValue.ToString("F" + postDecimal));
+
+			if (spaceBeforePrefix) {
 				result.Append(" ");
-			result.Append(unit);
+			}
+			if (siExponent != 0) {
+				result.Append(GetSIPrefix(siExponent));
+			}
 
-			return result.ToString();
+			String resultStr = result.ToString();
+			// MOARdV: This feels kind-of hacky, but I don't know C# formatting
+			// tricks to find a cleaner way to do this.
+			if (zeroPad && isNegative)
+			{
+				String zeros = "";
+				// I have to add an extra '0' if there is no siExponent character
+				zeros = zeros.PadRight(stringLength-resultStr.Length, '0');
+				return resultStr.Insert(1, zeros);
+			}
+			else
+			{
+				return resultStr.PadLeft(stringLength, zeroPad ? '0' : ' ');
+			}
+		}
+
+		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
+		{
+			var formattableArg = arg as IFormattable;
+			return formattableArg != null ? formattableArg.ToString(format, formatProvider) : arg.ToString();
 		}
 	}
 }
