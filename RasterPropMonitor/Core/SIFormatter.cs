@@ -3,7 +3,7 @@ using System.Text;
 
 namespace JSI
 {
-	public class SIFormatProvider : IFormatProvider, ICustomFormatter
+	public class SIFormatProvider: IFormatProvider, ICustomFormatter
 	{
 		public object GetFormat(Type formatType)
 		{
@@ -12,38 +12,7 @@ namespace JSI
 
 		private const string formatPrefixSIP = "SIP";
 		private const string formatPrefixDMS = "DMS";
-
-		private static string GetSIPrefix(int siExponent)
-		{
-			string[] units = {
-				"y",
-				"z",
-				"a",
-				"f",
-				"p",
-				"n",
-				"\u00B5",//"μ", //Because unicode.
-				"m",
-				"",
-				"k",
-				"M",
-				"G",
-				"T",
-				"P",
-				"E",
-				"Z",
-				"Y"
-			};
-
-			const int unitIndexOffset = 8; //index of "" in the units array
-
-			int index = siExponent / 3 + unitIndexOffset;
-
-			index = Math.Max(index, 0);
-			index = Math.Min(index, units.Length - 1);
-
-			return units[index];
-		}
+		private const string formatPrefixKDT = "KDT";
 
 		public string Format(string format, object arg, IFormatProvider formatProvider)
 		{    
@@ -69,10 +38,59 @@ namespace JSI
 				return SIPFormat(format, inputValue);
 			if (format.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
 				return DMSFormat(format, inputValue);
+			//if (format.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
+			//	return KDTFormat(format, inputValue);
 
 
 			return DefaultFormat(format, arg, formatProvider);
 		}
+
+		// KDT -- Kerbal Date/Time format.
+		// y - years
+		// yy - years zero-padded to the number of repeats of y.
+		// d - days
+		// dd -- days zero-padded to 3 characters.
+		// h - hours
+		// hh - zero-padded hours.
+		// m - minutes
+		// mm - zero-padded minutes.
+		// s - seconds
+		// ss - zero-padded seconds.
+		// .s - fractional seconds, with .ssss increasing the number of fractional figures.
+		// - - sign of the date/time span, space if the span is positive.
+		// + - sign of the date/time span, plus if the span is positive
+
+		private static string KDTFormat(string format, double seconds) 
+		{
+
+			if (double.IsNaN(seconds) || double.IsInfinity(seconds))
+				return string.Empty;
+
+			var result = new StringBuilder();
+
+			return result.ToString();
+		}
+
+		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
+		{
+			// I'd love to know when exactly does this happen, but I'll let it slide for now..
+			if (Double.IsNaN(seconds))
+				return string.Empty;
+
+			TimeSpan span = TimeSpan.FromSeconds(Math.Abs(seconds));
+			int years = (int)Math.Floor(span.TotalDays / 365);
+			span -= new TimeSpan(365 * years, 0, 0, 0);
+			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
+
+			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) +
+			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
+
+			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
+
+		}
+
+
+
 		// Mihara: So we define format like this:
 		// DMS -- format prefix, signifies this is a degrees-minutes-seconds value.
 		// N,S,E,W -- will be replaced by the correct sign character.
@@ -288,6 +306,38 @@ namespace JSI
 				return resultStr.Insert(1, zeros);
 			}
 			return resultStr.PadLeft(stringLength, zeroPad ? '0' : ' ');
+		}
+
+		private static string GetSIPrefix(int siExponent)
+		{
+			string[] units = {
+				"y",
+				"z",
+				"a",
+				"f",
+				"p",
+				"n",
+				"\u00B5",//"μ", //Because unicode.
+				"m",
+				"",
+				"k",
+				"M",
+				"G",
+				"T",
+				"P",
+				"E",
+				"Z",
+				"Y"
+			};
+
+			const int unitIndexOffset = 8; //index of "" in the units array
+
+			int index = siExponent / 3 + unitIndexOffset;
+
+			index = Math.Max(index, 0);
+			index = Math.Min(index, units.Length - 1);
+
+			return units[index];
 		}
 
 		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
