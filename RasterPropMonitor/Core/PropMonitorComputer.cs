@@ -885,10 +885,10 @@ namespace JSI
 						return targetBody.atmosphereContainsOxygen ? 1 : -1;
 					return -1;
 				case "ORBITBODYSCALEHEIGHT":
-					return vessel.orbit.referenceBody.atmosphereScaleHeight * 1000;
+					return vessel.orbit.referenceBody.atmosphereScaleHeight;
 				case "TARGETBODYSCALEHEIGHT":
 					if (targetBody != null)
-						return targetBody.atmosphereScaleHeight * 1000;
+						return targetBody.atmosphereScaleHeight;
 					return -1;
 				case "ORBITBODYRADIUS":
 					return vessel.orbit.referenceBody.Radius;
