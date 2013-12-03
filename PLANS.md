@@ -2,13 +2,9 @@
 
 * Find out why Visual Enhancements doesn't show on cameras.
 
-## Trivial new features
-
-* Planet information as per tracking station output, for current planet and for target planet.
-
 ## Minor new features
 
-* Extend the formatter class to also handle kerbal time and degrees/minutes/seconds.
+* Extend the formatter class to also handle kerbal time and move all time variables to seconds. Deprecate old time variables.
 * Vector patterns on the map, defined in files.
 * Work out an API setting to direct handler loader to look at another prop?
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
