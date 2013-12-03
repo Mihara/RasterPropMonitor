@@ -49,6 +49,8 @@ namespace JSI
 		private double localG;
 		private double standardAtmosphere;
 		private double slopeAngle;
+		private double atmPressure;
+		private double dynamicPressure; // the 'Q' value
 		private CelestialBody targetBody;
 		// Local data fetching variables...
 		private int gearGroupNumber;
@@ -219,6 +221,10 @@ namespace JSI
 			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
+
+			atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
+			dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
+
 			if (target != null) {
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
@@ -535,6 +541,14 @@ namespace JSI
 					return altitudeTrue;
 				case "ALTITUDEBOTTOM":
 					return altitudeBottom;
+
+			// Atmospheric values
+				case "ATMPRESSURE":
+					return atmPressure;
+				case "ATMDENSITY":
+					return vessel.atmDensity;
+				case "DYNAMICPRESSURE":
+					return dynamicPressure;
 
 			// Masses.
 				case "MASSDRY":
