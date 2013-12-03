@@ -9,19 +9,10 @@ namespace JSI
 		{
 			return formatType == typeof(ICustomFormatter) ? this : null;
 		}
-		// So our format is:
-		// SIP_05.3
-		// Where: SI is the constant prefix indicating format.
-		// 5 is the length of the entire string counting the suffix.
-		// 3 is the number of digits after the decimal point.
-		// 0 means that string is to be right-justified with zeroes
-		// otherwise spaces will be used.
-		// If there is an underscore, a space will be inserted
-		// before the SI suffix, otherwise, no space.
-		// This space will count towards the full length of the string.
-		private const string formatPrefix = "SIP";
 
-		private string GetSIPrefix(int siExponent)
+		private const string formatPrefixSIP = "SIP";
+
+		private static string GetSIPrefix(int siExponent)
 		{
 			string[] units = {
 				"y",
@@ -45,16 +36,52 @@ namespace JSI
 
 			const int unitIndexOffset = 8; //index of "" in the units array
 
-			int index = siExponent/3 + unitIndexOffset;
+			int index = siExponent / 3 + unitIndexOffset;
 
 			index = Math.Max(index, 0);
-			index = Math.Min(index, units.Length-1);
+			index = Math.Min(index, units.Length - 1);
 
 			return units[index];
 		}
 
+		public string Format(string format, object arg, IFormatProvider formatProvider)
+		{    
+
+			if (format == null || arg is string) {    
+				return DefaultFormat(format, arg, formatProvider);    
+			}
+
+			// But otherwise we're dealing with something we can cast to a double.
+			// And if we can't, we aren't dealing with it.
+			double inputValue;
+
+			try {    
+				inputValue = Convert.ToDouble(arg);
+			} catch (InvalidCastException) {    
+				return DefaultFormat(format, arg, formatProvider);    
+			}
+
+			// This way we can chain prefixes for other KSP-specific formats,
+			// like Kerbal Time or degrees-minutes-seconds, which are internally
+			// also doubles, right.
+			if (format.StartsWith(formatPrefixSIP, StringComparison.Ordinal)) {    
+				return SIPFormat(format, inputValue);
+			}
+
+			return DefaultFormat(format, arg, formatProvider);
+		}
+		// Mihara: SIP format spec is:
+		// SIP_05.3
+		// Where: SI is the constant prefix indicating format.
+		// 5 is the length of the entire string counting the suffix.
+		// 3 is the number of digits after the decimal point.
+		// 0 means that string is to be right-justified with zeroes
+		// otherwise spaces will be used.
+		// If there is an underscore, a space will be inserted
+		// before the SI suffix, otherwise, no space.
+		// This space will count towards the full length of the string.
 		// MOARdV rewrite of Format():
-		// Format is based on the MechJeb SI formatting function.  It diverges
+		// SIPFormat is based on the MechJeb SI formatting function.  It diverges
 		// from MechJeb in that it allows for specified precision after the
 		// decimal.  The formatting behavior is as follows:
 		//
@@ -72,23 +99,8 @@ namespace JSI
 		// For a non-negative value, the smallest format that will fit in the
 		// requested format is SIP4.0.  For a value that can be negative, the
 		// smallest format is SIP5.0.
-		public string Format(string format, object arg, IFormatProvider formatProvider)
-		{    
-			if (format == null || !format.StartsWith(formatPrefix, StringComparison.Ordinal)) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
-
-			if (arg is string) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
-
-			double inputValue;
-
-			try {    
-				inputValue = Convert.ToDouble(arg);    
-			} catch (InvalidCastException) {    
-				return DefaultFormat(format, arg, formatProvider);    
-			}
+		public string SIPFormat(string format, double inputValue)
+		{
 
 			// Handle degenerate values (NaN, INF)
 			if (double.IsInfinity(inputValue) || double.IsNaN(inputValue)) {
@@ -100,7 +112,8 @@ namespace JSI
 			// leadingDigitExponent is the location relative to the original
 			// decimal place for the leading digit.
 			int leadingDigitExponent = (int)Math.Floor(Math.Log10(Math.Abs(inputValue)));
-			if (inputValue == 0.0) {
+			// Analysis disable once CompareOfFloatsByEqualityOperator
+			if (inputValue == 0d) {
 				// special case: can't take log(0).
 				leadingDigitExponent = 0;
 			}
@@ -111,7 +124,7 @@ namespace JSI
 
 			bool isNegative = (inputValue < 0.0);
 
-			string formatData = format.Substring(formatPrefix.Length);
+			string formatData = format.Substring(formatPrefixSIP.Length);
 
 			bool spaceBeforePrefix = false;
 			if (formatData.Length > 0 && formatData[0] == '_') {
@@ -149,11 +162,11 @@ namespace JSI
 			// Plus the siExponent (if present)
 			int charactersRequired = 1 + (leadingDigitExponent - siExponent) + (isNegative ? 1 : 0) + ((siExponent != 0) ? 1 : 0) + (spaceBeforePrefix ? 1 : 0);
 
-			if(charactersRequired >= stringLength) {
+			if (charactersRequired >= stringLength) {
 				// We can't fit in the required space, so we will overflow and
 				// drop and decimal values.
 				postDecimal = 0;
-			} else if(postDecimal > 0) {
+			} else if (postDecimal > 0) {
 				// We will prioritize fitting into the overall character budget:
 				// -1 to account for the '.'
 				int decimalCharactersAvailable = (stringLength - charactersRequired) - 1;
@@ -176,17 +189,13 @@ namespace JSI
 			String resultStr = result.ToString();
 			// MOARdV: This feels kind-of hacky, but I don't know C# formatting
 			// tricks to find a cleaner way to do this.
-			if (zeroPad && isNegative)
-			{
+			if (zeroPad && isNegative) {
 				String zeros = "";
 				// I have to add an extra '0' if there is no siExponent character
-				zeros = zeros.PadRight(stringLength-resultStr.Length, '0');
+				zeros = zeros.PadRight(stringLength - resultStr.Length, '0');
 				return resultStr.Insert(1, zeros);
 			}
-			else
-			{
-				return resultStr.PadLeft(stringLength, zeroPad ? '0' : ' ');
-			}
+			return resultStr.PadLeft(stringLength, zeroPad ? '0' : ' ');
 		}
 
 		private static string DefaultFormat(string format, object arg, IFormatProvider formatProvider)
