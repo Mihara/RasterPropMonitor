@@ -220,10 +220,18 @@ namespace JSI
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
 			if (target != null) {
-				velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
+
 				targetOrbit = target.GetOrbit();
+				if (targetOrbit != null)
+				{
+					velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
+				}
+				else
+				{
+					velocityRelativeTarget = Vector3d.zero;
+				}
 				var targetVessel = target as Vessel;
 
 				targetBody = target as CelestialBody;	
@@ -727,7 +735,10 @@ namespace JSI
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
 					}
-					return targetOrbit.altitude;
+					else if (targetOrbit != null) {
+						return targetOrbit.altitude;
+					}
+					return -1;
 				case "TIMETOANWITHTARGET":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
@@ -804,7 +815,7 @@ namespace JSI
 						return FormatDateTime(targetOrbit.timeToAp);
 					return string.Empty;
 				case "TARGETORBPERIOD":
-					if (target != null && targetOrbitSensibility)
+					if (target != null && targetOrbit != null && targetOrbitSensibility)
 						return FormatDateTime(targetOrbit.period);
 					return string.Empty;
 				case "TARGETTIMETOPE":
