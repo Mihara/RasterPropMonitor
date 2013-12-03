@@ -49,6 +49,7 @@ namespace JSI
 		private double localG;
 		private double standardAtmosphere;
 		private double slopeAngle;
+		private CelestialBody targetBody;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -225,6 +226,9 @@ namespace JSI
 				targetOrbit = target.GetOrbit();
 				var targetVessel = target as Vessel;
 
+				targetBody = target as CelestialBody;	
+
+
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
@@ -237,6 +241,7 @@ namespace JSI
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
+				targetBody = null;
 				targetOrientation = vessel.GetTransform().rotation;
 				targetOrbitSensibility = false;
 			}
@@ -865,6 +870,80 @@ namespace JSI
 					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
 					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
+
+			// Database information about planetary bodies.
+				case "ORBITBODYATMOSPHERE":
+					return vessel.orbit.referenceBody.atmosphere ? 1 : -1;
+				case "TARGETBODYATMOSPHERE":
+					if (targetBody != null)
+						return targetBody.atmosphere ? 1 : -1;
+					return -1;
+				case "ORBITBODYOXYGEN":
+					return vessel.orbit.referenceBody.atmosphereContainsOxygen ? 1 : -1;
+				case "TARGETBODYOXYGEN":
+					if (targetBody != null)
+						return targetBody.atmosphereContainsOxygen ? 1 : -1;
+					return -1;
+				case "ORBITBODYSCALEHEIGHT":
+					return vessel.orbit.referenceBody.atmosphereScaleHeight * 1000;
+				case "TARGETBODYSCALEHEIGHT":
+					if (targetBody != null)
+						return targetBody.atmosphereScaleHeight * 1000;
+					return -1;
+				case "ORBITBODYRADIUS":
+					return vessel.orbit.referenceBody.Radius;
+				case "TARGETBODYRADIUS":
+					if (targetBody != null)
+						return targetBody.Radius;
+					return -1;
+				case "ORBITBODYMASS":
+					return vessel.orbit.referenceBody.Mass;
+				case "TARGETBODYMASS":
+					if (targetBody != null)
+						return targetBody.Mass;
+					return -1;
+				case "ORBITBODYROTATIONPERIOD":
+					return vessel.orbit.referenceBody.rotationPeriod;
+				case "TARGETBODYROTATIONPERIOD":
+					if (targetBody != null)
+						return targetBody.rotationPeriod;
+					return -1;
+				case "ORBITBODYSOI":
+					return vessel.orbit.referenceBody.sphereOfInfluence;
+				case "TARGETBODYSOI":
+					if (targetBody != null)
+						return targetBody.sphereOfInfluence;
+					return -1;
+				case "ORBITBODYGEEASL":
+					return vessel.orbit.referenceBody.GeeASL;
+				case "TARGETBODYGEEASL":
+					if (targetBody != null)
+						return targetBody.GeeASL;
+					return -1;
+				case "ORBITBODYGM":
+					return vessel.orbit.referenceBody.gravParameter;
+				case "TARGETBODYGM":
+					if (targetBody != null)
+						return targetBody.gravParameter;
+					return -1;
+				case "ORBITBODYATMOSPHERETOP":
+					return vessel.orbit.referenceBody.maxAtmosphereAltitude;
+				case "TARGETBODYATMOSPHERETOP":
+					if (targetBody != null)
+						return targetBody.maxAtmosphereAltitude;
+					return -1;
+				case "ORBITBODYESCAPEVEL":
+					return Math.Sqrt(2 * vessel.orbit.referenceBody.gravParameter / vessel.orbit.referenceBody.Radius);
+				case "TARGETBODYESCAPEVEL":
+					if (targetBody != null)
+						return Math.Sqrt(2 * targetBody.gravParameter / targetBody.Radius);
+					return -1;
+				case "ORBITBODYAREA":
+					return 4 * Math.PI * Math.Pow(vessel.orbit.referenceBody.Radius, 2);
+				case "TARGETBODYAREA":
+					if (targetBody != null)
+						return 4 * Math.PI * Math.Pow(targetBody.Radius, 2);
+					return -1;
 
 			}
 
