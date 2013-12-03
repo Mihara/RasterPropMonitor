@@ -11,6 +11,7 @@ namespace JSI
 		}
 
 		private const string formatPrefixSIP = "SIP";
+		private const string formatPrefixDMS = "DMS";
 
 		private static string GetSIPrefix(int siExponent)
 		{
@@ -64,11 +65,98 @@ namespace JSI
 			// This way we can chain prefixes for other KSP-specific formats,
 			// like Kerbal Time or degrees-minutes-seconds, which are internally
 			// also doubles, right.
-			if (format.StartsWith(formatPrefixSIP, StringComparison.Ordinal)) {    
+			if (format.StartsWith(formatPrefixSIP, StringComparison.Ordinal))
 				return SIPFormat(format, inputValue);
-			}
+			if (format.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
+				return DMSFormat(format, inputValue);
+
 
 			return DefaultFormat(format, arg, formatProvider);
+		}
+		// Mihara: So we define format like this:
+		// DMS -- format prefix, signifies this is a degrees-minutes-seconds value.
+		// N,S,E,W -- will be replaced by the correct sign character.
+		//            N and S will mean latitude is used, E and W will mean longitude is used.
+		// + is replaced by the appropriate degree-minute-second symbol
+		// when used after d,m and s.
+		// d - degrees, no padding.
+		// dd - degrees, zero padding.
+		// m - minutes, no padding
+		// mm - minutes, zero padding.
+		// s - seconds, no padding.
+		// ss - seconds, zero padding.
+		// All other symbols seen are copied into the string as is.
+		// Format string that duplicated prior behaviour for longitude is DMSd+ mm+ ss+ E
+		// Format string that duplicated prior behaviour for latitude is DMSd+ mm+ ss+ N
+		private static string DMSFormat(string format, double angle)
+		{
+			// First calculate our values, then go in order.
+
+			int degrees = (int)Math.Floor(Math.Abs(angle));
+			int minutes = (int)Math.Floor(60 * (Math.Abs(angle) - degrees));
+			int seconds = (int)Math.Floor(3600 * (Math.Abs(angle) - degrees - minutes / 60d));
+			var result = new StringBuilder();
+			var formatChars = format.ToCharArray();
+
+
+			for (int i = formatPrefixDMS.Length; i < formatChars.Length; i++) {
+				switch (formatChars[i]) {
+					case 'd':
+						if (i < formatChars.Length - 1 && formatChars[i + 1] == 'd') {
+							i ++;
+							result.Append(degrees.ToString().PadLeft(3, '0'));
+						} else
+							result.Append(degrees);
+						break;
+					case 'm':
+						if (i < formatChars.Length - 1 && formatChars[i + 1] == 'm') {
+							i ++;
+							result.Append(minutes.ToString().PadLeft(2, '0'));
+						} else
+							result.Append(minutes);
+						break;
+					case 's':
+						if (i < formatChars.Length - 1 && formatChars[i + 1] == 's') {
+							i ++;
+							result.Append(seconds.ToString().PadLeft(2, '0'));
+						} else
+							result.Append(seconds);
+						break;
+					case '+':
+						if (i > formatPrefixDMS.Length) {
+							switch (formatChars[i - 1]) {
+								case 'd':
+									result.Append('°');
+									break;
+								case 'm':
+									result.Append("'");
+									break;
+								case 's':
+									result.Append('"');
+									break;
+								default:
+									result.Append(formatChars[i]);
+									break;
+							}
+						} else {
+							result.Append(formatChars[i]);
+						}
+						break;
+					case 'N':
+					case 'S':
+						result.Append((angle >= 0) ? 'N' : 'S');
+						break;
+					case 'E':
+					case 'W':
+						result.Append((angle >= 0) ? 'E' : 'W');
+						break;
+					default:
+						result.Append(formatChars[i]);
+						break;
+				}
+			}
+
+			return result.ToString();
 		}
 		// Mihara: SIP format spec is:
 		// SIP_05.3
@@ -186,7 +274,7 @@ namespace JSI
 				result.Append(GetSIPrefix(siExponent));
 			}
 
-			String resultStr = result.ToString();
+			var resultStr = result.ToString();
 			// MOARdV: This feels kind-of hacky, but I don't know C# formatting
 			// tricks to find a cleaner way to do this.
 			if (zeroPad && isNegative) {

@@ -44,7 +44,28 @@ namespace FormatterTests
 				Console.WriteLine(string.Format(fp, "SIP09.3 :>{0:SIP09.3}<|", value));
 				Console.WriteLine(string.Format(fp, "SIP_10  :>{0:SIP_10}|", value));
 			}
-			Console.WriteLine("Done");
+			Console.WriteLine("SIP tests done, press any key to start DMS tests");
+			Console.ReadKey();
+			Console.WriteLine();
+
+			double[] degrees = {
+				123.45,
+				-123.45,
+				1.234,
+				0.1234,
+				0,
+			};
+
+
+			foreach (double value in degrees) {
+				Console.WriteLine(string.Format(fp,"DMSd°m's\":       {0:DMSd°m's\"} ({0})",value));
+				Console.WriteLine(string.Format(fp,"DMSdd+m+s+E:     {0:DMSdd+m+s+E} ({0})",value));
+				Console.WriteLine(string.Format(fp,"DMSdd+mm+ss+E:   {0:DMSdd+mm+ss+E} ({0})",value));
+				Console.WriteLine(string.Format(fp,"DMSddNm+s+:      {0:DMSddNm+s+} ({0})",value));
+				// The string as it was previously returned is...
+				Console.WriteLine(string.Format(fp,"DMSd+ mm+ ss+ N: {0:DMSd+ mm+ ss+ N} ({0})",value));
+			}
+
 		}
 	}
 }

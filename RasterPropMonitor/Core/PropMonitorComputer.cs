@@ -55,6 +55,9 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
+		// This is only here to support the deprecated DMS variables.
+		// These should be gone as soon as possible.
+		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		// Some constant things...
 		private const double gee = 9.81d;
 		private readonly Dictionary<string,string> namedResources = new Dictionary<string,string> {
@@ -408,26 +411,6 @@ namespace JSI
 
 		}
 
-		private static string AngleToDMS(double angle)
-		{
-			int degrees = (int)Math.Floor(Math.Abs(angle));
-			int minutes = (int)Math.Floor(60 * (Math.Abs(angle) - degrees));
-			int seconds = (int)Math.Floor(3600 * (Math.Abs(angle) - degrees - minutes / 60.0));
-
-			return String.Format("{0:0}° {1:00}' {2:00}\"", degrees, minutes, seconds);
-		}
-
-		private static string LatitudeDMS(double latitude)
-		{
-			return AngleToDMS(latitude) + (latitude > 0 ? " N" : " S");
-		}
-
-		private static string LongitudeDMS(double longitude)
-		{
-			double clampedLongitude = JUtil.ClampDegrees180(longitude);
-			return AngleToDMS(clampedLongitude) + (clampedLongitude > 0 ? " E" : " W");
-		}
-
 		public object ProcessVariable(string input)
 		{
 
@@ -640,18 +623,19 @@ namespace JSI
 						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
 					return -1;
 
-			// Coordinates in degrees-minutes-seconds. Strictly speaking it would be better to teach String.Format to handle them, but that is currently beyond me.
+			// Coordinates in degrees-minutes-seconds.
+			// DEPRECATED. Do not use.
 				case "LATITUDE_DMS":
-					return LatitudeDMS(vessel.mainBody.GetLatitude(coM));
+					return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", vessel.mainBody.GetLatitude(coM));
 				case "LONGITUDE_DMS":
-					return LongitudeDMS(vessel.mainBody.GetLongitude(coM));
+					return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM)));
 				case "LATITUDETGT_DMS":
 					if (target is Vessel)
-						return LatitudeDMS(target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
+						return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
 					return string.Empty;
 				case "LONGITUDETGT_DMS":
 					if (target is Vessel)
-						return LongitudeDMS(JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
+						return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
 					return string.Empty;
 
 
