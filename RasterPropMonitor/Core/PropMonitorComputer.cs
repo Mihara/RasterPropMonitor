@@ -224,7 +224,16 @@ namespace JSI
 				targetOrientation = target.GetTransform().rotation;
 				targetOrbit = target.GetOrbit();
 				var targetVessel = target as Vessel;
-				targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
+
+				// This is kind of messy.
+				targetOrbitSensibility = false;
+				// All celestial bodies except the sun have orbits that make sense.
+				// Can you target the sun though?...
+				targetOrbitSensibility |= target is CelestialBody;
+				if (target is Vessel)
+					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
+				if (target is ModuleDockingNode)
+					targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
@@ -667,7 +676,7 @@ namespace JSI
 						return target.GetName();
 					// What remains is MechJeb's ITargetable implementations, which also can return a name,
 					// but the newline they return in some cases needs to be removed.
-					return target.GetName().Replace('\n',' ');
+					return target.GetName().Replace('\n', ' ');
 				case "TARGETDISTANCE":
 					if (target != null)
 						return Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
@@ -707,7 +716,6 @@ namespace JSI
 						return SituationString(target.GetVessel().situation);
 					return string.Empty;
 				case "TARGETALTITUDE":
-					// TODO: This should be able to correctly handle a celestialbody's altitude too.
 					if (target == null)
 						return -1;
 					var targetVessel = target as Vessel;
@@ -716,13 +724,11 @@ namespace JSI
 					}
 					return targetOrbit.altitude;
 				case "TIMETOANWITHTARGET":
-					// TODO: This should handle celestial bodies too.
-					if (target == null || !targetOrbitSensibility)
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
 					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time, true);
 				case "TIMETODNWITHTARGET":
-					// TODO: This should handle celestial bodies too.
-					if (target == null || !targetOrbitSensibility)
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
 					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time, true);
 
@@ -768,7 +774,6 @@ namespace JSI
 					}
 					return 0;
 			
-			// TODO: All of these need to correctly handle celestial bodies too.
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.ApA;
@@ -799,7 +804,7 @@ namespace JSI
 					return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility)
-						return vessel.orbit.eccentricity < 1 ? 
+						return targetOrbit.eccentricity < 1 ? 
 							FormatDateTime(targetOrbit.timeToPe, true) : 
 							FormatDateTime(-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period), true);
 					return string.Empty;
