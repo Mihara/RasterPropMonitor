@@ -50,7 +50,8 @@ namespace JSI
 		private double standardAtmosphere;
 		private double slopeAngle;
 		private double atmPressure;
-		private double dynamicPressure; // the 'Q' value
+		private double dynamicPressure;
+		// the 'Q' value
 		private CelestialBody targetBody;
 		// Local data fetching variables...
 		private int gearGroupNumber;
@@ -230,12 +231,9 @@ namespace JSI
 				targetOrientation = target.GetTransform().rotation;
 
 				targetOrbit = target.GetOrbit();
-				if (targetOrbit != null)
-				{
+				if (targetOrbit != null) {
 					velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
-				}
-				else
-				{
+				} else {
 					velocityRelativeTarget = Vector3d.zero;
 				}
 				var targetVessel = target as Vessel;
@@ -748,8 +746,7 @@ namespace JSI
 					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
-					}
-					else if (targetOrbit != null) {
+					} else if (targetOrbit != null) {
 						return targetOrbit.altitude;
 					}
 					return -1;
