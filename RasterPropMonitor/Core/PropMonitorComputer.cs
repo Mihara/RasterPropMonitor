@@ -615,16 +615,24 @@ namespace JSI
 				case "LONGITUDE":
 					return JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM));
 				case "LATITUDETGT":
-					if (target is Vessel)
+					// These targetables definitely don't have any coordinates.
+					if (target == null || target is CelestialBody)
+						return double.NaN;
+					// These definitely do.
+					if (target is Vessel || target is ModuleDockingNode)
 						return target.GetVessel().mainBody.GetLatitude(target.GetTransform().position);
-					return -1;
+					// We're going to take a guess here and expect MechJeb's PositionTarget and DirectionTarget,
+					// which don't have vessel structures but do have a transform.
+					return vessel.mainBody.GetLatitude(target.GetTransform().position);
 				case "LONGITUDETGT":
-					if (target is Vessel)
+					if (target == null || target is CelestialBody)
+						return double.NaN;
+					if (target is Vessel || target is ModuleDockingNode)
 						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
-					return -1;
+					return vessel.mainBody.GetLatitude(target.GetTransform().position);
 
 			// Coordinates in degrees-minutes-seconds.
-			// DEPRECATED. Do not use.
+			// DEPRECATED. Do not use. And I don't want to fix them for MechJeb's target classes because these variables should be gone.
 				case "LATITUDE_DMS":
 					return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", vessel.mainBody.GetLatitude(coM));
 				case "LONGITUDE_DMS":
