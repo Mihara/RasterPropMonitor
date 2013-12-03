@@ -418,8 +418,7 @@ namespace JSI
 					return "Space high over " + vessel.mainBody.theName;
 			}
 		}
-		//TODO: I really should make that more sensible, I mean, FOUR boolean flags?...
-		// These three are formatting functions. They're better off moved into the formatter class.
+		//TODO: This is getting turned into a format specifier ASAP.
 		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
 		{
 			// I'd love to know when exactly does this happen, but I'll let it slide for now..
@@ -746,7 +745,8 @@ namespace JSI
 					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
-					} else if (targetOrbit != null) {
+					}
+					if (targetOrbit != null) {
 						return targetOrbit.altitude;
 					}
 					return -1;
