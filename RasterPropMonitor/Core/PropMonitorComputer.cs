@@ -34,7 +34,7 @@ namespace JSI
 		private double altitudeASL;
 		private double altitudeTrue;
 		private double altitudeBottom;
-		private Orbit targetorbit;
+		private Orbit targetOrbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
 		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(Vector2d.zero);
@@ -222,12 +222,13 @@ namespace JSI
 				velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
-				targetorbit = target.GetOrbit();
+				targetOrbit = target.GetOrbit();
 				var targetVessel = target as Vessel;
-				targetOrbitSensibility = targetVessel == null || JUtil.OrbitMakesSense(targetVessel);
+				targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
-				targetOrientation = new Quaternion();
+				targetOrbit = null;
+				targetOrientation = vessel.GetTransform().rotation;
 				targetOrbitSensibility = false;
 			}
 			orbitSensibility = JUtil.OrbitMakesSense(vessel);
@@ -665,22 +666,23 @@ namespace JSI
 					if (target is ModuleDockingNode)
 						return target.GetName();
 					// What remains is MechJeb's ITargetable implementations, which also can return a name,
-					// but I might want to handle them specially as well:
-					return target.GetName();
+					// but the newline they return in some cases needs to be removed.
+					return target.GetName().Replace('\n',' ');
 				case "TARGETDISTANCE":
 					if (target != null)
 						return Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
-					return -1;
+					return -1d;
 				case "RELATIVEINCLINATION":
-					if (target != null) {
-						return targetorbit.referenceBody != vessel.orbit.referenceBody ?
-							 -1 : 
-							Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetorbit.SwappedOrbitNormal()));
+					// MechJeb's targetables don't have orbits.
+					if (target != null && targetOrbit != null) {
+						return targetOrbit.referenceBody != vessel.orbit.referenceBody ?
+							-1d : 
+							Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetOrbit.SwappedOrbitNormal()));
 					}
-					return -1;
+					return -1d;
 				case "TARGETORBITBODY":
-					if (target != null)
-						return targetorbit.referenceBody.name;
+					if (target != null && targetOrbit != null)
+						return targetOrbit.referenceBody.name;
 					return string.Empty;
 				case "TARGETEXISTS":
 					if (target == null)
@@ -693,21 +695,24 @@ namespace JSI
 						return SituationString(target.GetVessel().situation);
 					return string.Empty;
 				case "TARGETALTITUDE":
+					// TODO: This should be able to correctly handle a celestialbody's altitude too.
 					if (target == null)
 						return -1;
 					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
 					}
-					return targetorbit.altitude;
+					return targetOrbit.altitude;
 				case "TIMETOANWITHTARGET":
+					// TODO: This should handle celestial bodies too.
 					if (target == null || !targetOrbitSensibility)
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetorbit, time) - time, true);
+					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time, true);
 				case "TIMETODNWITHTARGET":
+					// TODO: This should handle celestial bodies too.
 					if (target == null || !targetOrbitSensibility)
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetorbit, time) - time, true);
+					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time, true);
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -717,7 +722,7 @@ namespace JSI
 				case "TARGETDISTANCEZ":
 					return Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
 
-			// I probably should return something else for vessels. But not sure what exactly right now.
+			// TODO: I probably should return something else for vessels. But not sure what exactly right now.
 				case "TARGETANGLEX":
 					if (target != null) {
 						var targetDockingNode = target as ModuleDockingNode;
@@ -751,40 +756,40 @@ namespace JSI
 					}
 					return 0;
 			
-			// There goes the neighbourhood...
+			// TODO: All of these need to correctly handle celestial bodies too.
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
-						return targetorbit.ApA;
+						return targetOrbit.ApA;
 					return 0;
 				case "TARGETPERIAPSIS":
 					if (target != null && targetOrbitSensibility)
-						return targetorbit.PeA;
+						return targetOrbit.PeA;
 					return 0;
 				case "TARGETINCLINATION":
 					if (target != null && targetOrbitSensibility)
-						return targetorbit.inclination;
+						return targetOrbit.inclination;
 					return 0;
 				case "TARGETECCENTRICITY":
 					if (target != null && targetOrbitSensibility)
-						return targetorbit.eccentricity;
+						return targetOrbit.eccentricity;
 					return 0;
 				case "TARGETORBITALVEL":
 					if (target != null && targetOrbitSensibility)
-						return targetorbit.orbitalSpeed;
+						return targetOrbit.orbitalSpeed;
 					return 0;
 				case "TARGETTIMETOAP":
 					if (target != null && targetOrbitSensibility)
-						return FormatDateTime(targetorbit.timeToAp);
+						return FormatDateTime(targetOrbit.timeToAp);
 					return string.Empty;
 				case "TARGETORBPERIOD":
 					if (target != null && targetOrbitSensibility)
-						return FormatDateTime(targetorbit.period);
+						return FormatDateTime(targetOrbit.period);
 					return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
-							FormatDateTime(targetorbit.timeToPe, true) : 
-							FormatDateTime(-targetorbit.meanAnomaly / (2 * Math.PI / targetorbit.period), true);
+							FormatDateTime(targetOrbit.timeToPe, true) : 
+							FormatDateTime(-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period), true);
 					return string.Empty;
 
 			// Analysis disable RedundantCast

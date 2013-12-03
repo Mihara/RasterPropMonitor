@@ -35,13 +35,15 @@ namespace JSI
 			return new Color32(r,g,b,a);
 		}
 
-		public static bool OrbitMakesSense(Vessel thatvessel)
+		public static bool OrbitMakesSense(Vessel thatVessel)
 		{
-			if (thatvessel.situation == Vessel.Situations.FLYING ||
-				thatvessel.situation == Vessel.Situations.SUB_ORBITAL ||
-				thatvessel.situation == Vessel.Situations.ORBITING ||
-				thatvessel.situation == Vessel.Situations.ESCAPING ||
-				thatvessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
+			if (thatVessel == null)
+				return false;
+			if (thatVessel.situation == Vessel.Situations.FLYING ||
+				thatVessel.situation == Vessel.Situations.SUB_ORBITAL ||
+				thatVessel.situation == Vessel.Situations.ORBITING ||
+				thatVessel.situation == Vessel.Situations.ESCAPING ||
+				thatVessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
 				return true;
 			return false;
 		}
