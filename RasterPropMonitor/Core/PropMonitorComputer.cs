@@ -690,6 +690,18 @@ namespace JSI
 					if (target is Vessel)
 						return 1;
 					return 0;
+				case "TARGETISDOCKINGPORT":
+					if (target == null)
+						return -1;
+					if (target is ModuleDockingNode)
+						return 1;
+					return 0;
+				case "TARGETISCELESTIAL":
+					if (target == null)
+						return -1;
+					if (target is CelestialBody)
+						return 1;
+					return 0;
 				case "TARGETSITUATION":
 					if (target is Vessel)
 						return SituationString(target.GetVessel().situation);
