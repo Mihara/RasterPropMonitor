@@ -90,6 +90,10 @@ namespace JSI
 		// Format string that duplicated prior behaviour for latitude is DMSd+ mm+ ss+ N
 		private static string DMSFormat(string format, double angle)
 		{
+
+			if (double.IsInfinity(angle) || double.IsNaN(angle))
+				return string.Empty;
+
 			// First calculate our values, then go in order.
 
 			int degrees = (int)Math.Floor(Math.Abs(angle));
