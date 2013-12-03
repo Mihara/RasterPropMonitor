@@ -25,6 +25,7 @@ namespace FormatterTests
 				-0.0001234,
 				0.0123,
 				-0.0123,
+				0,
 			};
 
 			foreach (double value in values) {
