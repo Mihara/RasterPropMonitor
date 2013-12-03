@@ -65,6 +65,30 @@ namespace FormatterTests
 				// The string as it was previously returned is...
 				Console.WriteLine(string.Format(fp,"DMSd+ mm+ ss+ N: {0:DMSd+ mm+ ss+ N} ({0})",value));
 			}
+			Console.WriteLine("DMS tests done, press any key to start KDT tests");
+			Console.ReadKey();
+			Console.WriteLine();
+
+			double[] seconds = {
+				12,
+				-12,
+				1234,
+				-1234,
+				123456,
+				-123456,
+				12345.6789,
+				-12345.6789,
+			};
+
+			foreach (double value in seconds) {
+				// The full time format is...
+				Console.WriteLine(string.Format(fp,"KDT+y:ddd:hh:mm:ss >{0:KDT+y:ddd:hh:mm:ss} ({0})",value));
+				Console.WriteLine(string.Format(fp,"KDT-y:ddd:hh:mm:ss >{0:KDT-y:ddd:hh:mm:ss} ({0})",value));
+				Console.WriteLine(string.Format(fp,"KDTy:d:h:m:s >{0:KDTy:d:h:m:s} ({0})",value));
+				Console.WriteLine(string.Format(fp,"KDTS.f >{0:KDTS.f} ({0})",value));
+				Console.WriteLine(string.Format(fp,"KDTS.fff >{0:KDTS.fff} ({0})",value));
+			}
+
 
 		}
 	}

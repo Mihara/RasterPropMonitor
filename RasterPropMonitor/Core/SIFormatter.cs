@@ -38,59 +38,134 @@ namespace JSI
 				return SIPFormat(format, inputValue);
 			if (format.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
 				return DMSFormat(format, inputValue);
-			//if (format.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
-			//	return KDTFormat(format, inputValue);
+			if (format.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
+				return KDTFormat(format, inputValue);
 
 
 			return DefaultFormat(format, arg, formatProvider);
 		}
-
 		// KDT -- Kerbal Date/Time format.
 		// y - years
-		// yy - years zero-padded to the number of repeats of y.
 		// d - days
-		// dd -- days zero-padded to 3 characters.
+		// D - whole days.
 		// h - hours
-		// hh - zero-padded hours.
+		// H - whole hours.
 		// m - minutes
-		// mm - zero-padded minutes.
+		// M - whole minutes.
 		// s - seconds
-		// ss - zero-padded seconds.
-		// .s - fractional seconds, with .ssss increasing the number of fractional figures.
+		// S - whole seconds
+		// f - fractional seconds.
+		// Repeat of a character means 'pad to this number of characters with zeros.'
 		// - - sign of the date/time span, space if the span is positive.
 		// + - sign of the date/time span, plus if the span is positive
-
-		private static string KDTFormat(string format, double seconds) 
+		private static string KDTFormat(string format, double seconds)
 		{
 
 			if (double.IsNaN(seconds) || double.IsInfinity(seconds))
 				return string.Empty;
 
+			bool positive = true;
+			if (seconds < 0)
+				positive = false;
+			seconds = Math.Abs(seconds);
+
+			const int minuteLength = 60;
+			const int hourLength = 60 * minuteLength;
+			const int dayLength = 24 * hourLength;
+			const int yearLength = 365 * dayLength;
+
+			int years = (int)Math.Floor(seconds / yearLength);
+			int wholeDays = (int)Math.Floor(seconds / dayLength);
+			int wholeHours = (int)Math.Floor(seconds / hourLength);
+			int wholeMinutes = (int)Math.Floor(seconds / minuteLength);
+			int wholeSeconds = (int)Math.Floor(seconds);
+			double fracSeconds = seconds - wholeSeconds;
+
+			seconds = wholeSeconds - years * yearLength;
+			int days = (int)Math.Floor(seconds / dayLength);
+			seconds -= days * dayLength;
+			int hours = (int)Math.Floor(seconds / hourLength);
+			seconds -= hours * hourLength;
+			int minutes = (int)Math.Floor(seconds / minuteLength);
+			seconds -= minutes * minuteLength;
+			// So now we should have years, wholeDays/days, wholeHours/hours, wholeMinutes/minutes, wholeSeconds/seconds and fracSeconds....
+
 			var result = new StringBuilder();
+			var formatChars = format.ToCharArray();
+			for (int i = formatPrefixKDT.Length; i < formatChars.Length; i++) {
+				switch (formatChars[i]) {
+					case '+':
+						if (positive)
+							result.Append('+');
+						else
+							result.Append('-');
+						break;
+					case '-':
+						if (positive)
+							result.Append(' ');
+						else
+							result.Append('-');
+						break;
+					case 'y':
+						i += AppendRepeated(formatChars, result, years, 'y', i);
+						break;
+					case 'd':
+						i += AppendRepeated(formatChars, result, days, 'd', i);
+						break;
+					case 'D':
+						i += AppendRepeated(formatChars, result, wholeDays, 'D', i);
+						break;
+					case 'h':
+						i += AppendRepeated(formatChars, result, hours, 'h', i);
+						break;
+					case 'H':
+						i += AppendRepeated(formatChars, result, wholeHours, 'H', i);
+						break;
+					case 'm':
+						i += AppendRepeated(formatChars, result, minutes, 'm', i);
+						break;
+					case 'M':
+						i += AppendRepeated(formatChars, result, wholeMinutes, 'M', i);
+						break;
+					case 's':
+						i += AppendRepeated(formatChars, result, (int)seconds, 's', i);
+						break;
+					case 'S':
+						i += AppendRepeated(formatChars, result, wholeSeconds, 'S', i);
+						break;
+					case 'f':
+						int count = CountRepeats(formatChars, i, 'f');
+						result.Append(fracSeconds.ToString(".".PadRight(count,'#')));
+						i += count - 1;
+						break;
+					default:
+						result.Append(formatChars[i]);
+						break;
+				}
+			}
 
 			return result.ToString();
 		}
 
-		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
-		{
-			// I'd love to know when exactly does this happen, but I'll let it slide for now..
-			if (Double.IsNaN(seconds))
-				return string.Empty;
-
-			TimeSpan span = TimeSpan.FromSeconds(Math.Abs(seconds));
-			int years = (int)Math.Floor(span.TotalDays / 365);
-			span -= new TimeSpan(365 * years, 0, 0, 0);
-			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
-
-			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) +
-			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
-
-			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
-
+		private static int AppendRepeated(char[] thatArray, StringBuilder result, int value, char formatChar, int start) {
+			int count = CountRepeats(thatArray, start, formatChar);
+			if (count == 1) {
+				result.Append(value.ToString());
+			} else {
+				result.Append(value.ToString().PadLeft(count, '0'));
+			}
+			return count-1;
 		}
 
-
-
+		private static int CountRepeats(char[] thatArray, int start, char thatChar)
+		{
+			int i;
+			for (i = start; i < thatArray.Length; i++) {
+				if (thatArray[i] != thatChar)
+					break;
+			}
+			return i - start;
+		}
 		// Mihara: So we define format like this:
 		// DMS -- format prefix, signifies this is a degrees-minutes-seconds value.
 		// N,S,E,W -- will be replaced by the correct sign character.
@@ -125,21 +200,21 @@ namespace JSI
 				switch (formatChars[i]) {
 					case 'd':
 						if (i < formatChars.Length - 1 && formatChars[i + 1] == 'd') {
-							i ++;
+							i++;
 							result.Append(degrees.ToString().PadLeft(3, '0'));
 						} else
 							result.Append(degrees);
 						break;
 					case 'm':
 						if (i < formatChars.Length - 1 && formatChars[i + 1] == 'm') {
-							i ++;
+							i++;
 							result.Append(minutes.ToString().PadLeft(2, '0'));
 						} else
 							result.Append(minutes);
 						break;
 					case 's':
 						if (i < formatChars.Length - 1 && formatChars[i + 1] == 's') {
-							i ++;
+							i++;
 							result.Append(seconds.ToString().PadLeft(2, '0'));
 						} else
 							result.Append(seconds);
