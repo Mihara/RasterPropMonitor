@@ -418,24 +418,7 @@ namespace JSI
 					return "Space high over " + vessel.mainBody.theName;
 			}
 		}
-		//TODO: This is getting turned into a format specifier ASAP.
-		private static string FormatDateTime(double seconds, bool signed = false, bool noyears = false, bool explicitPlus = false, bool nodays = false)
-		{
-			// I'd love to know when exactly does this happen, but I'll let it slide for now..
-			if (Double.IsNaN(seconds))
-				return string.Empty;
 
-			TimeSpan span = TimeSpan.FromSeconds(Math.Abs(seconds));
-			int years = (int)Math.Floor(span.TotalDays / 365);
-			span -= new TimeSpan(365 * years, 0, 0, 0);
-			double fracseconds = Math.Round(span.TotalSeconds - Math.Floor(span.TotalSeconds), 1);
-
-			string formatstring = (signed ? (explicitPlus ? "{0:+;-; }" : "{0: ;-; }") : string.Empty) +
-			                      (noyears ? string.Empty : "{1:00}:") + (nodays ? string.Empty : "{2:000}:") + "{3:00}:{4:00}:{5:00.0}";
-
-			return String.Format(formatstring, Math.Sign(seconds), years, span.Days, span.Hours, span.Minutes, span.Seconds + fracseconds);
-
-		}
 
 		public object ProcessVariable(string input)
 		{
@@ -521,11 +504,6 @@ namespace JSI
 
 			// Time to impact. This is quite imprecise, because a precise calculation pulls in pages upon pages of MechJeb code.
 			// It accounts for gravity now, though. Pull requests welcome.
-				case "TIMETOIMPACT":
-					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
-						return string.Empty;
-					}
-					return FormatDateTime(secondsToImpact, false, true); 
 				case "TIMETOIMPACTSECS":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
 						return -1;
@@ -574,21 +552,18 @@ namespace JSI
 					return actualAverageIsp;
 
 			// Maneuvers
-				case "MNODETIME":
+				case "MNODETIMESECS":
 					if (node != null)
-						return FormatDateTime(-(node.UT - time), true, false, true);
-					return string.Empty;
+						return -(node.UT - time);
+					return 0;
 				case "MNODEDV":
 					if (node != null)
 						return node.GetBurnVector(vessel.orbit).magnitude;
 					return 0;
-				case "MNODEBURNTIME":
+				case "MNODEBURNTIMESECS":
 					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
-						//return FormatDateTime(node.GetBurnVector(vessel.orbit).magnitude / vessel.specificAcceleration,false,true,false);
-						return FormatDateTime(
-							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee)),
-							false, true, false, true);
-					return string.Empty;
+						return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
+					return -1;
 				case "MNODEEXISTS":
 					return node == null ? -1 : 1;
 
@@ -611,21 +586,21 @@ namespace JSI
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity;
 					return 0;
-			// Time to apoapsis and periapsis are converted to DateTime objects and their formatting trickery applies.
-				case "ORBPERIOD":
+			
+				case "ORBPERIODSECS":
 					if (orbitSensibility)
-						return FormatDateTime(vessel.orbit.period);
-					return string.Empty;
-				case "TIMETOAP":
+						return vessel.orbit.period;
+					return -1;
+				case "TIMETOAPSECS":
 					if (orbitSensibility)
-						return FormatDateTime(vessel.orbit.timeToAp);
-					return string.Empty;
-				case "TIMETOPE":
+						return vessel.orbit.timeToAp;
+					return 0;
+				case "TIMETOPESECS":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
-							FormatDateTime(vessel.orbit.timeToPe, true) : 
-							FormatDateTime(-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period), true);
-					return string.Empty;
+							vessel.orbit.timeToPe : 
+							-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
+					return 0;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return (double)1;
@@ -633,11 +608,10 @@ namespace JSI
 					return (double)-1;
 
 			// Time
-				case "UT":
-					return FormatDateTime(time + 365 * 24 * 60 * 60);
-				case "MET":
-					return FormatDateTime(vessel.missionTime);
-
+				case "UTSECS":
+					return time + 365 * 24 * 60 * 60;
+				case "METSECS":
+					return vessel.missionTime;
 			// Names!
 				case "NAME":
 					return vessel.vesselName;
@@ -734,14 +708,14 @@ namespace JSI
 						return targetOrbit.altitude;
 					}
 					return -1;
-				case "TIMETOANWITHTARGET":
+				case "TIMETOANWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time, true);
-				case "TIMETODNWITHTARGET":
+					return vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time;
+				case "TIMETODNWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
-					return FormatDateTime(vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time, true);
+					return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -805,19 +779,19 @@ namespace JSI
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.orbitalSpeed;
 					return 0;
-				case "TARGETTIMETOAP":
+				case "TARGETTIMETOAPSECS":
 					if (target != null && targetOrbitSensibility)
-						return FormatDateTime(targetOrbit.timeToAp);
-					return string.Empty;
-				case "TARGETORBPERIOD":
+						return targetOrbit.timeToAp;
+					return 0;
+				case "TARGETORBPERIODSECS":
 					if (target != null && targetOrbit != null && targetOrbitSensibility)
-						return FormatDateTime(targetOrbit.period);
-					return string.Empty;
-				case "TARGETTIMETOPE":
+						return targetOrbit.period;
+					return -1;
+				case "TARGETTIMETOPESECS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity < 1 ? 
-							FormatDateTime(targetOrbit.timeToPe, true) : 
-							FormatDateTime(-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period), true);
+							targetOrbit.timeToPe : 
+							-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
 					return string.Empty;
 
 			// Analysis disable RedundantCast
@@ -963,6 +937,63 @@ namespace JSI
 				case "LONGITUDETGT_DMS":
 					if (target is Vessel)
 						return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
+					return string.Empty;
+				case "TIMETOIMPACT":
+					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
+						return string.Empty;
+					}
+					return string.Format(fp,"{0:KDTddd:hh:mm:ss.f}",secondsToImpact); 
+				case "MNODETIME":
+					if (node != null)
+						return string.Format(fp,"{0:KDT+yy:ddd:hh:mm:ss.f}",-(node.UT - time));
+					return string.Empty;
+				case "MNODEBURNTIME":
+					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
+						return string.Format(fp,"{0:KDThh:mm:ss.f}",
+							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee))
+						);
+					return string.Empty;
+				case "ORBPERIOD":
+					if (orbitSensibility)
+						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.orbit.period);
+					return string.Empty;
+				case "TIMETOAP":
+					if (orbitSensibility)
+						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.orbit.timeToAp);
+					return string.Empty;
+				case "TIMETOPE":
+					if (orbitSensibility)
+						return vessel.orbit.eccentricity < 1 ? 
+							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.orbit.timeToPe) : 
+							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+					return string.Empty;
+
+				case "UT":
+					return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",time + 365 * 24 * 60 * 60);
+
+				case "MET":
+					return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.missionTime);
+				case "TIMETOANWITHTARGET":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return string.Empty;
+					return string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time);
+				case "TIMETODNWITHTARGET":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return string.Empty;
+					return string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time);
+				case "TARGETTIMETOAP":
+					if (target != null && targetOrbitSensibility)
+						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",targetOrbit.timeToAp);
+					return string.Empty;
+				case "TARGETORBPERIOD":
+					if (target != null && targetOrbit != null && targetOrbitSensibility)
+						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",targetOrbit.period);
+					return string.Empty;
+				case "TARGETTIMETOPE":
+					if (target != null && targetOrbitSensibility)
+						return targetOrbit.eccentricity < 1 ? 
+							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",targetOrbit.timeToPe) : 
+							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period));
 					return string.Empty;
 			}
 
