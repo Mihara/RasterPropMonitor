@@ -419,7 +419,6 @@ namespace JSI
 			}
 		}
 
-
 		public object ProcessVariable(string input)
 		{
 
@@ -444,6 +443,12 @@ namespace JSI
 							if (resourceID >= resources.Count)
 								return 0;
 							return resources[resourcesAlphabetic[resourceID]].y;
+						case "PERCENT":
+							if (resourceID >= resources.Count)
+								return 0;
+							if (resources[resourcesAlphabetic[resourceID]].y > 0)
+								return resources[resourcesAlphabetic[resourceID]].x / resources[resourcesAlphabetic[resourceID]].y;
+							return 0;
 					}
 
 
@@ -942,58 +947,58 @@ namespace JSI
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0) {
 						return string.Empty;
 					}
-					return string.Format(fp,"{0:KDTddd:hh:mm:ss.f}",secondsToImpact); 
+					return string.Format(fp, "{0:KDTddd:hh:mm:ss.f}", secondsToImpact); 
 				case "MNODETIME":
 					if (node != null)
-						return string.Format(fp,"{0:KDT+yy:ddd:hh:mm:ss.f}",-(node.UT - time));
+						return string.Format(fp, "{0:KDT+yy:ddd:hh:mm:ss.f}", -(node.UT - time));
 					return string.Empty;
 				case "MNODEBURNTIME":
 					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
-						return string.Format(fp,"{0:KDThh:mm:ss.f}",
+						return string.Format(fp, "{0:KDThh:mm:ss.f}",
 							actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee))
 						);
 					return string.Empty;
 				case "ORBPERIOD":
 					if (orbitSensibility)
-						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.orbit.period);
+						return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", vessel.orbit.period);
 					return string.Empty;
 				case "TIMETOAP":
 					if (orbitSensibility)
-						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.orbit.timeToAp);
+						return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", vessel.orbit.timeToAp);
 					return string.Empty;
 				case "TIMETOPE":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
-							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.orbit.timeToPe) : 
-							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+							string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", vessel.orbit.timeToPe) : 
+							string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
 					return string.Empty;
 
 				case "UT":
-					return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",time + 365 * 24 * 60 * 60);
+					return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", time + 365 * 24 * 60 * 60);
 
 				case "MET":
-					return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",vessel.missionTime);
+					return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", vessel.missionTime);
 				case "TIMETOANWITHTARGET":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
-					return string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time);
+					return string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time);
 				case "TIMETODNWITHTARGET":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
-					return string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time);
+					return string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time);
 				case "TARGETTIMETOAP":
 					if (target != null && targetOrbitSensibility)
-						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",targetOrbit.timeToAp);
+						return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", targetOrbit.timeToAp);
 					return string.Empty;
 				case "TARGETORBPERIOD":
 					if (target != null && targetOrbit != null && targetOrbitSensibility)
-						return string.Format(fp,"{0:KDTyy:ddd:hh:mm:ss.f}",targetOrbit.period);
+						return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", targetOrbit.period);
 					return string.Empty;
 				case "TARGETTIMETOPE":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity < 1 ? 
-							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",targetOrbit.timeToPe) : 
-							string.Format(fp,"{0:KDT-yy:ddd:hh:mm:ss.f}",-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period));
+							string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", targetOrbit.timeToPe) : 
+							string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", -targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period));
 					return string.Empty;
 			}
 
@@ -1002,6 +1007,11 @@ namespace JSI
 			// Named resources are all the same and better off processed like this:
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
+					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
+						if (resources[resourceType.Value].y > 0)
+							return resources[resourceType.Value].x / resources[resourceType.Value].y;
+						return 0;
+					}
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
 				}
 			}
