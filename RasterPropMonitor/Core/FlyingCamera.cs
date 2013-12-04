@@ -14,6 +14,8 @@ namespace JSI
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
 
+		private readonly bool hasVisualEnhancements;
+
 		public float FOV { get; set; }
 
 		public FlyingCamera(Part thatPart, RenderTexture screen, float aspect)
@@ -22,6 +24,8 @@ namespace JSI
 			ourPart = thatPart;
 			screenTexture = screen;
 			cameraAspect = aspect;
+
+			hasVisualEnhancements = GameDatabase.Instance.ExistsTexture("BoulderCo/Clouds/Textures/particle");
 		}
 
 		public void PointCamera(string newCameraName, float initialFOV)
@@ -93,6 +97,12 @@ namespace JSI
 			cameraObject[index].enabled = false;
 			cameraObject[index].targetTexture = screenTexture;
 			cameraObject[index].aspect = cameraAspect;
+
+			// Special handling for Visual Enhancements mod.
+			if (hasVisualEnhancements && index == 0) {
+				cameraObject[index].cullingMask |= (1 << 3) | (1 << 2);
+			}
+
 		}
 
 		public bool Render()
