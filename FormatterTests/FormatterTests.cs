@@ -70,6 +70,7 @@ namespace FormatterTests
 			Console.WriteLine();
 
 			double[] seconds = {
+				0,
 				12,
 				-12,
 				1234,
