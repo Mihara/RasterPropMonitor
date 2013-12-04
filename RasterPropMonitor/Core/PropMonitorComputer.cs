@@ -203,7 +203,7 @@ namespace JSI
 			return engine.realIsp;
 		}
 
-		public void FetchCommonData()
+		private void FetchCommonData()
 		{
 			localG = vessel.orbit.referenceBody.GeeASL * gee;
 			coM = vessel.findWorldCenterOfMass();
@@ -267,7 +267,7 @@ namespace JSI
 
 		}
 
-		public void FetchPerPartData()
+		private void FetchPerPartData()
 		{
 			resources.Clear();
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
