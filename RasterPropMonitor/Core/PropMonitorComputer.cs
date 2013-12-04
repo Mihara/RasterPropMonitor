@@ -665,22 +665,6 @@ namespace JSI
 						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
 					return vessel.mainBody.GetLatitude(target.GetTransform().position);
 
-			// Coordinates in degrees-minutes-seconds.
-			// DEPRECATED. Do not use. And I don't want to fix them for MechJeb's target classes because these variables should be gone.
-				case "LATITUDE_DMS":
-					return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", vessel.mainBody.GetLatitude(coM));
-				case "LONGITUDE_DMS":
-					return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM)));
-				case "LATITUDETGT_DMS":
-					if (target is Vessel)
-						return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
-					return string.Empty;
-				case "LONGITUDETGT_DMS":
-					if (target is Vessel)
-						return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
-					return string.Empty;
-
-
 			// Orientation
 				case "HEADING":
 					return rotationVesselSurface.eulerAngles.y;
@@ -967,7 +951,21 @@ namespace JSI
 						return 4 * Math.PI * Math.Pow(targetBody.Radius, 2);
 					return -1;
 
+			// These variables are no longer documented and are DEPRECATED. They will be removed as soon as I can see that people aren't using them.
+				case "LATITUDE_DMS":
+					return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", vessel.mainBody.GetLatitude(coM));
+				case "LONGITUDE_DMS":
+					return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM)));
+				case "LATITUDETGT_DMS":
+					if (target is Vessel)
+						return string.Format(fp, "{0:DMSd+ mm+ ss+ N}", target.GetVessel().mainBody.GetLatitude(target.GetVessel().GetWorldPos3D()));
+					return string.Empty;
+				case "LONGITUDETGT_DMS":
+					if (target is Vessel)
+						return string.Format(fp, "{0:DMSd+ mm+ ss+ E}", JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetVessel().GetWorldPos3D())));
+					return string.Empty;
 			}
+
 
 
 			// Named resources are all the same and better off processed like this:
@@ -976,6 +974,7 @@ namespace JSI
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
 				}
 			}
+
 
 			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
