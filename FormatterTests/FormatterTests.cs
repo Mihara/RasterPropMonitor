@@ -10,6 +10,7 @@ namespace FormatterTests
 	{
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 
+		// Analysis disable once UnusedParameter
 		public static void Main(string[] args)
 		{
 			double[] values = {
