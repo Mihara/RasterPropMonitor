@@ -64,9 +64,7 @@ namespace JSI
 			if (double.IsNaN(seconds) || double.IsInfinity(seconds))
 				return string.Empty;
 
-			bool positive = true;
-			if (seconds < 0)
-				positive = false;
+			bool positive = true && seconds >= 0;
 			seconds = Math.Abs(seconds);
 
 			const int minuteLength = 60;
