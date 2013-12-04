@@ -79,6 +79,8 @@ namespace FormatterTests
 				-123456,
 				12345.6789,
 				-12345.6789,
+				12345.95,
+				-12345.95,
 			};
 
 			foreach (double value in seconds) {

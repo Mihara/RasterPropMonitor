@@ -133,7 +133,7 @@ namespace JSI
 						break;
 					case 'f':
 						int count = CountRepeats(formatChars, i, 'f');
-						result.Append(fracSeconds.ToString(".".PadRight(count+1,'0')).Substring(1));
+						result.Append(fracSeconds.ToString(".".PadRight(20,'0')).Substring(1,count));
 						i += count - 1;
 						break;
 					default:
