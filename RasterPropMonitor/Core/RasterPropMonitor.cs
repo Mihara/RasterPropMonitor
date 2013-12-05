@@ -288,9 +288,12 @@ namespace JSI
 
 							for (int charIndex = 0, cursor = 0; cursor < screenWidth && charIndex < line.Length; charIndex++, cursor++) {
 								// Parsing [#rrggbbaa], so...
-								if (charIndex + 10 < line.Length && line[charIndex] == '[' && line[charIndex + 1] == '#' && line[charIndex + 10] == ']') {
-									fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(charIndex + 2, 8));
-									charIndex += 11;
+								while (line[charIndex] == '[') {
+									if (charIndex < line.Length - 11 && line[charIndex + 1] == '#' && line[charIndex + 10] == ']') {
+										fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(charIndex + 2, 8));
+										charIndex += 11;
+									} else
+										break;
 								}
 								if (charIndex < line.Length)
 									DrawChar(line[charIndex], cursor, y, fontColor);
