@@ -59,8 +59,8 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
-		// This is only here to support the deprecated DMS variables.
-		// These should be gone as soon as possible.
+		// This is only here to support the deprecated DMS and KDT variables.
+		// These should be gone as soon as possible along with this class instance.
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		// Some constant things...
 		private const double gee = 9.81d;
@@ -328,7 +328,6 @@ namespace JSI
 			// I seriously hope you don't have crew jumping in and out more than once per second.
 			vesselCrew = (vessel.GetVesselCrew()).ToArray();
 		}
-
 		// Another piece from MechJeb.
 		private void FetchAltitudes()
 		{
@@ -429,18 +428,18 @@ namespace JSI
 							return resourcesAlphabetic[resourceID];
 						case "VAL":
 							if (resourceID >= resources.Count)
-								return (double)0;
+								return 0d;
 							return resources[resourcesAlphabetic[resourceID]].x;
 						case "MAX":
 							if (resourceID >= resources.Count)
-								return (double)0;
+								return 0d;
 							return resources[resourcesAlphabetic[resourceID]].y;
 						case "PERCENT":
 							if (resourceID >= resources.Count)
-								return (double)0;
+								return 0d;
 							if (resources[resourcesAlphabetic[resourceID]].y > 0)
 								return resources[resourcesAlphabetic[resourceID]].x / resources[resourcesAlphabetic[resourceID]].y;
-							return (double)0;
+							return 0d;
 					}
 
 
@@ -503,7 +502,7 @@ namespace JSI
 			// It accounts for gravity now, though. Pull requests welcome.
 				case "TIMETOIMPACTSECS":
 					if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
-						return -1;
+						return -1d;
 					return secondsToImpact;
 
 			// Altitudes
@@ -552,17 +551,17 @@ namespace JSI
 				case "MNODETIMESECS":
 					if (node != null)
 						return -(node.UT - time);
-					return 0;
+					return 0d;
 				case "MNODEDV":
 					if (node != null)
 						return node.GetBurnVector(vessel.orbit).magnitude;
-					return 0;
+					return 0d;
 				case "MNODEBURNTIMESECS":
 					if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
 						return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
-					return -1;
+					return double.NaN;
 				case "MNODEEXISTS":
-					return node == null ? (double)-1 : (double)1;
+					return node == null ? -1d : 1d;
 
 			// Orbital parameters
 				case "ORBITBODY":
@@ -570,39 +569,38 @@ namespace JSI
 				case "PERIAPSIS":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.PeA;
-					return 0;
+					return double.NaN;
 				case "APOAPSIS":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.ApA;
-					return 0;
+					return double.NaN;
 				case "INCLINATION":
 					if (orbitSensibility)
 						return FlightGlobals.ship_orbit.inclination;
-					return 0;
+					return double.NaN;
 				case "ECCENTRICITY":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity;
-					return 0;
+					return double.NaN;
 			
 				case "ORBPERIODSECS":
 					if (orbitSensibility)
 						return vessel.orbit.period;
-					return -1;
+					return double.NaN;
 				case "TIMETOAPSECS":
 					if (orbitSensibility)
 						return vessel.orbit.timeToAp;
-					return 0;
+					return double.NaN;
 				case "TIMETOPESECS":
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity < 1 ? 
 							vessel.orbit.timeToPe : 
 							-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
-					return 0;
+					return double.NaN;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
-						return (double)1;
-						
-					return (double)-1;
+						return 1d;
+					return -1d;
 
 			// Time
 				case "UTSECS":
@@ -667,36 +665,36 @@ namespace JSI
 							-1d : 
 							Math.Abs(Vector3d.Angle(vessel.GetOrbit().SwappedOrbitNormal(), targetOrbit.SwappedOrbitNormal()));
 					}
-					return -1d;
+					return double.NaN;
 				case "TARGETORBITBODY":
 					if (target != null && targetOrbit != null)
 						return targetOrbit.referenceBody.name;
 					return string.Empty;
 				case "TARGETEXISTS":
 					if (target == null)
-						return (double)-1;
+						return -1d;
 					if (target is Vessel)
-						return (double)1;
-					return (double)0;
+						return 1d;
+					return 0d;
 				case "TARGETISDOCKINGPORT":
 					if (target == null)
-						return (double)-1;
+						return -1d;
 					if (target is ModuleDockingNode)
-						return (double)1;
-					return (double)0;
+						return 1d;
+					return 0d;
 				case "TARGETISCELESTIAL":
 					if (target == null)
-						return (double)-1;
+						return -1d;
 					if (target is CelestialBody)
-						return (double)1;
-					return (double)0;
+						return 1d;
+					return 0d;
 				case "TARGETSITUATION":
 					if (target is Vessel)
 						return SituationString(target.GetVessel().situation);
 					return string.Empty;
 				case "TARGETALTITUDE":
 					if (target == null)
-						return (double)-1;
+						return -1d;
 					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
@@ -704,7 +702,7 @@ namespace JSI
 					if (targetOrbit != null) {
 						return targetOrbit.altitude;
 					}
-					return (double)-1;
+					return -1d;
 				case "TIMETOANWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
@@ -730,9 +728,9 @@ namespace JSI
 							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
 						if (target is Vessel)
 							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
-						return (double)0;
+						return 0d;
 					}
-					return (double)0;
+					return 0d;
 				case "TARGETANGLEY":
 					if (target != null) {
 						var targetDockingNode = target as ModuleDockingNode;
@@ -741,9 +739,9 @@ namespace JSI
 						if (target is Vessel) {
 							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
-						return (double)0;
+						return 0d;
 					}
-					return (double)0;
+					return 0d;
 				case "TARGETANGLEZ":
 					if (target != null) {
 						var targetDockingNode = target as ModuleDockingNode;
@@ -752,44 +750,44 @@ namespace JSI
 						if (target is Vessel) {
 							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
-						return (double)0;
+						return 0d;
 					}
-					return (double)0;
+					return 0d;
 			
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.ApA;
-					return (double)0;
+					return double.NaN;
 				case "TARGETPERIAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.PeA;
-					return (double)0;
+					return double.NaN;
 				case "TARGETINCLINATION":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.inclination;
-					return (double)0;
+					return double.NaN;
 				case "TARGETECCENTRICITY":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity;
-					return (double)0;
+					return double.NaN;
 				case "TARGETORBITALVEL":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.orbitalSpeed;
-					return (double)0;
+					return double.NaN;
 				case "TARGETTIMETOAPSECS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.timeToAp;
-					return (double)0;
+					return double.NaN;
 				case "TARGETORBPERIODSECS":
 					if (target != null && targetOrbit != null && targetOrbitSensibility)
 						return targetOrbit.period;
-					return (double)-1;
+					return double.NaN;
 				case "TARGETTIMETOPESECS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity < 1 ? 
 							targetOrbit.timeToPe : 
 							-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
-					return string.Empty;
+					return double.NaN;
 
 			// Analysis disable RedundantCast
 			// FLight control status
@@ -850,77 +848,77 @@ namespace JSI
 
 			// Database information about planetary bodies.
 				case "ORBITBODYATMOSPHERE":
-					return vessel.orbit.referenceBody.atmosphere ? 1 : -1;
+					return vessel.orbit.referenceBody.atmosphere ? 1d : -1d;
 				case "TARGETBODYATMOSPHERE":
 					if (targetBody != null)
-						return targetBody.atmosphere ? 1 : -1;
-					return -1;
+						return targetBody.atmosphere ? 1d : -1d;
+					return 0d;
 				case "ORBITBODYOXYGEN":
-					return vessel.orbit.referenceBody.atmosphereContainsOxygen ? 1 : -1;
+					return vessel.orbit.referenceBody.atmosphereContainsOxygen ? 1d : -1d;
 				case "TARGETBODYOXYGEN":
 					if (targetBody != null)
-						return targetBody.atmosphereContainsOxygen ? 1 : -1;
-					return -1;
+						return targetBody.atmosphereContainsOxygen ? 1d : -1d;
+					return -1d;
 				case "ORBITBODYSCALEHEIGHT":
 					return vessel.orbit.referenceBody.atmosphereScaleHeight;
 				case "TARGETBODYSCALEHEIGHT":
 					if (targetBody != null)
 						return targetBody.atmosphereScaleHeight;
-					return -1;
+					return -1d;
 				case "ORBITBODYRADIUS":
 					return vessel.orbit.referenceBody.Radius;
 				case "TARGETBODYRADIUS":
 					if (targetBody != null)
 						return targetBody.Radius;
-					return -1;
+					return -1d;
 				case "ORBITBODYMASS":
 					return vessel.orbit.referenceBody.Mass;
 				case "TARGETBODYMASS":
 					if (targetBody != null)
 						return targetBody.Mass;
-					return -1;
+					return -1d;
 				case "ORBITBODYROTATIONPERIOD":
 					return vessel.orbit.referenceBody.rotationPeriod;
 				case "TARGETBODYROTATIONPERIOD":
 					if (targetBody != null)
 						return targetBody.rotationPeriod;
-					return -1;
+					return -1d;
 				case "ORBITBODYSOI":
 					return vessel.orbit.referenceBody.sphereOfInfluence;
 				case "TARGETBODYSOI":
 					if (targetBody != null)
 						return targetBody.sphereOfInfluence;
-					return -1;
+					return -1d;
 				case "ORBITBODYGEEASL":
 					return vessel.orbit.referenceBody.GeeASL;
 				case "TARGETBODYGEEASL":
 					if (targetBody != null)
 						return targetBody.GeeASL;
-					return -1;
+					return -1d;
 				case "ORBITBODYGM":
 					return vessel.orbit.referenceBody.gravParameter;
 				case "TARGETBODYGM":
 					if (targetBody != null)
 						return targetBody.gravParameter;
-					return -1;
+					return -1d;
 				case "ORBITBODYATMOSPHERETOP":
 					return vessel.orbit.referenceBody.maxAtmosphereAltitude;
 				case "TARGETBODYATMOSPHERETOP":
 					if (targetBody != null)
 						return targetBody.maxAtmosphereAltitude;
-					return -1;
+					return -1d;
 				case "ORBITBODYESCAPEVEL":
 					return Math.Sqrt(2 * vessel.orbit.referenceBody.gravParameter / vessel.orbit.referenceBody.Radius);
 				case "TARGETBODYESCAPEVEL":
 					if (targetBody != null)
 						return Math.Sqrt(2 * targetBody.gravParameter / targetBody.Radius);
-					return -1;
+					return -1d;
 				case "ORBITBODYAREA":
 					return 4 * Math.PI * Math.Pow(vessel.orbit.referenceBody.Radius, 2);
 				case "TARGETBODYAREA":
 					if (targetBody != null)
 						return 4 * Math.PI * Math.Pow(targetBody.Radius, 2);
-					return -1;
+					return -1d;
 
 			// These variables are no longer documented and are DEPRECATED. They will be removed as soon as I can see that people aren't using them.
 				case "LATITUDE_DMS":
@@ -1002,7 +1000,7 @@ namespace JSI
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
 						if (resources[resourceType.Value].y > 0)
 							return resources[resourceType.Value].x / resources[resourceType.Value].y;
-						return (double)0;
+						return 0d;
 					}
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
 				}
