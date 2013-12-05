@@ -329,15 +329,6 @@ namespace JSI
 			vesselCrew = (vessel.GetVesselCrew()).ToArray();
 		}
 
-		private double GetResourceByName(string resourceName)
-		{
-			return resources[resourceName].x;
-		}
-
-		private double GetMaxResourceByName(string resourceName)
-		{
-			return resources[resourceName].y;
-		}
 		// Another piece from MechJeb.
 		private void FetchAltitudes()
 		{
