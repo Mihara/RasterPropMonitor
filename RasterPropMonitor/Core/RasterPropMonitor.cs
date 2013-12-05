@@ -285,15 +285,15 @@ namespace JSI
 						if (!string.IsNullOrEmpty(screenBuffer[y])) {
 							Color32 fontColor = defaultFontTint;
 							char[] line = screenBuffer[y].ToCharArray();
-							int cursor = 0;
-							for (int x = 0; cursor < screenWidth && x < line.Length; x++) {
+
+							for (int charIndex = 0, cursor = 0; cursor < screenWidth && charIndex < line.Length; charIndex++, cursor++) {
 								// Parsing [#rrggbbaa], so...
-								if (x + 11 < line.Length && line[x] == '[' && line[x + 1] == '#' && line[x + 10] == ']') {
-									fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(x + 2, 8));
-									x += 11;
+								if (charIndex + 10 < line.Length && line[charIndex] == '[' && line[charIndex + 1] == '#' && line[charIndex + 10] == ']') {
+									fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(charIndex + 2, 8));
+									charIndex += 11;
 								}
-								DrawChar(line[x], cursor, y, fontColor);
-								cursor++;
+								if (charIndex < line.Length)
+									DrawChar(line[charIndex], cursor, y, fontColor);
 							}
 						}
 					}
