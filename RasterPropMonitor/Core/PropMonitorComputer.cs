@@ -551,7 +551,7 @@ namespace JSI
 				case "MNODETIMESECS":
 					if (node != null)
 						return -(node.UT - time);
-					return 0d;
+					return double.NaN;
 				case "MNODEDV":
 					if (node != null)
 						return node.GetBurnVector(vessel.orbit).magnitude;
@@ -705,11 +705,11 @@ namespace JSI
 					return -1d;
 				case "TIMETOANWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
-						return string.Empty;
+						return double.NaN;
 					return vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time;
 				case "TIMETODNWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
-						return string.Empty;
+						return double.NaN;
 					return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
 
 			// Ok, what are X, Y and Z here anyway?
