@@ -422,6 +422,7 @@ namespace JSI
 		public object ProcessVariable(string input)
 		{
 
+			// Analysis disable RedundantCast
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
 				string[] tokens = input.Split('_');
@@ -437,18 +438,18 @@ namespace JSI
 							return resourcesAlphabetic[resourceID];
 						case "VAL":
 							if (resourceID >= resources.Count)
-								return 0;
+								return (double)0;
 							return resources[resourcesAlphabetic[resourceID]].x;
 						case "MAX":
 							if (resourceID >= resources.Count)
-								return 0;
+								return (double)0;
 							return resources[resourcesAlphabetic[resourceID]].y;
 						case "PERCENT":
 							if (resourceID >= resources.Count)
-								return 0;
+								return (double)0;
 							if (resources[resourcesAlphabetic[resourceID]].y > 0)
 								return resources[resourcesAlphabetic[resourceID]].x / resources[resourcesAlphabetic[resourceID]].y;
-							return 0;
+							return (double)0;
 					}
 
 
@@ -1010,7 +1011,7 @@ namespace JSI
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
 						if (resources[resourceType.Value].y > 0)
 							return resources[resourceType.Value].x / resources[resourceType.Value].y;
-						return 0;
+						return (double)0;
 					}
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
 				}
