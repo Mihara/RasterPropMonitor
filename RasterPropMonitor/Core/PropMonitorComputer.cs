@@ -570,7 +570,7 @@ namespace JSI
 						return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
 					return -1;
 				case "MNODEEXISTS":
-					return node == null ? -1 : 1;
+					return node == null ? (double)-1 : (double)1;
 
 			// Orbital parameters
 				case "ORBITBODY":
@@ -682,29 +682,29 @@ namespace JSI
 					return string.Empty;
 				case "TARGETEXISTS":
 					if (target == null)
-						return -1;
+						return (double)-1;
 					if (target is Vessel)
-						return 1;
-					return 0;
+						return (double)1;
+					return (double)0;
 				case "TARGETISDOCKINGPORT":
 					if (target == null)
-						return -1;
+						return (double)-1;
 					if (target is ModuleDockingNode)
-						return 1;
-					return 0;
+						return (double)1;
+					return (double)0;
 				case "TARGETISCELESTIAL":
 					if (target == null)
-						return -1;
+						return (double)-1;
 					if (target is CelestialBody)
-						return 1;
-					return 0;
+						return (double)1;
+					return (double)0;
 				case "TARGETSITUATION":
 					if (target is Vessel)
 						return SituationString(target.GetVessel().situation);
 					return string.Empty;
 				case "TARGETALTITUDE":
 					if (target == null)
-						return -1;
+						return (double)-1;
 					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
@@ -712,7 +712,7 @@ namespace JSI
 					if (targetOrbit != null) {
 						return targetOrbit.altitude;
 					}
-					return -1;
+					return (double)-1;
 				case "TIMETOANWITHTARGETSECS":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return string.Empty;
@@ -738,9 +738,9 @@ namespace JSI
 							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
 						if (target is Vessel)
 							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
-						return 0;
+						return (double)0;
 					}
-					return 0;
+					return (double)0;
 				case "TARGETANGLEY":
 					if (target != null) {
 						var targetDockingNode = target as ModuleDockingNode;
@@ -749,9 +749,9 @@ namespace JSI
 						if (target is Vessel) {
 							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
-						return 0;
+						return (double)0;
 					}
-					return 0;
+					return (double)0;
 				case "TARGETANGLEZ":
 					if (target != null) {
 						var targetDockingNode = target as ModuleDockingNode;
@@ -760,38 +760,38 @@ namespace JSI
 						if (target is Vessel) {
 							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
-						return 0;
+						return (double)0;
 					}
-					return 0;
+					return (double)0;
 			
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.ApA;
-					return 0;
+					return (double)0;
 				case "TARGETPERIAPSIS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.PeA;
-					return 0;
+					return (double)0;
 				case "TARGETINCLINATION":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.inclination;
-					return 0;
+					return (double)0;
 				case "TARGETECCENTRICITY":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity;
-					return 0;
+					return (double)0;
 				case "TARGETORBITALVEL":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.orbitalSpeed;
-					return 0;
+					return (double)0;
 				case "TARGETTIMETOAPSECS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.timeToAp;
-					return 0;
+					return (double)0;
 				case "TARGETORBPERIODSECS":
 					if (target != null && targetOrbit != null && targetOrbitSensibility)
 						return targetOrbit.period;
-					return -1;
+					return (double)-1;
 				case "TARGETTIMETOPESECS":
 					if (target != null && targetOrbitSensibility)
 						return targetOrbit.eccentricity < 1 ? 
@@ -824,7 +824,7 @@ namespace JSI
 
 			// Staging and other stuff
 				case "STAGE":
-					return Staging.CurrentStage;
+					return (double)Staging.CurrentStage;
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
