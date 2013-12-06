@@ -42,8 +42,11 @@ namespace JSI
 			"Vessels"
 		};
 		private ITargetable currentTarget;
+		private Vessel selectedVessel;
+		private ModuleDockingNode selectedPort;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
+		private int sortMode;
 		// Analysis disable once UnusedParameter
 		public string ShowMenu(int width, int height)
 		{
@@ -69,17 +72,27 @@ namespace JSI
 						if (currentMenuItem == 0) {
 							currentMenu = 1;
 							currentMenuCount = celestialsList.Count;
+							UpdateLists();
 						} else {
 							currentMenu = 2;
 							currentMenuCount = vesselsList.Count;
+							UpdateLists();
 						}
 						currentMenuItem = 0;
 						break;
 					case 1:
 						celestialsList[currentMenuItem].SetTarget();
+						selectedVessel = null;
+						selectedPort = null;
 						break;
 					case 2:
-						vesselsList[currentMenuItem].SetTarget();
+						if (selectedVessel == vesselsList[currentMenuItem].vessel) {
+							// Vessel already selected, check for switch to docking port menu...
+						} else {
+							vesselsList[currentMenuItem].SetTarget();
+							selectedVessel = vesselsList[currentMenuItem].vessel;
+							selectedPort = null;
+						}
 						break;
 				}
 			}
@@ -89,7 +102,10 @@ namespace JSI
 				currentMenuItem = 0;
 			}
 			if (buttonID == buttonHome) {
-				// Sort mode.
+				sortMode++;
+				if (sortMode > 1)
+					sortMode = 0;
+				UpdateLists();
 			}
 		}
 
@@ -112,17 +128,13 @@ namespace JSI
 					}
 					break;
 				case 2:
-					if (currentMenuItem > vesselsList.Count)
-						currentMenuItem = vesselsList.Count - 1;
-					var selectedVessel = currentTarget as Vessel;
-					var targetNode = currentTarget as ModuleDockingNode;
-					if (targetNode != null)
-						selectedVessel = targetNode.vessel;
 					for (int i = 0; i < vesselsList.Count; i++) {
 						menu.Add(FormatItem(vesselsList[i].name, vesselsList[i].distance,
 							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel)));
 
 					}
+					break;
+				case 3:
 					break;
 			}
 			if (!string.IsNullOrEmpty(pageTitle))
@@ -179,14 +191,50 @@ namespace JSI
 
 			if (!UpdateCheck())
 				return;
-			foreach (Celestial body in celestialsList)
-				body.UpdateDistance();
+			UpdateLists();
+		}
 
-			vesselsList.Clear();
-			foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
-				if (vessel != thatVessel) {
-					vesselsList.Add(new TargetableVessel(vessel, thatVessel));
-				}
+		private void UpdateLists()
+		{
+
+			switch (currentMenu) {
+				case 1: 
+					foreach (Celestial body in celestialsList)
+						body.UpdateDistance();
+
+					CelestialBody currentBody = celestialsList[currentMenuItem].body;
+					switch (sortMode) {
+						case 0:
+							celestialsList.Sort(CelestialAlphabeticSort);
+							break;
+						case 1: 
+							celestialsList.Sort(CelestialDistanceSort);
+							break;
+					}
+					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
+					break;
+				case 2:
+					vesselsList.Clear();
+					foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
+						if (vessel != thatVessel) {
+							vesselsList.Add(new TargetableVessel(vessel, thatVessel));
+						}
+					}
+					if (currentMenuItem > vesselsList.Count)
+						currentMenuItem = vesselsList.Count - 1;
+					Vessel currentVessel = vesselsList[currentMenuItem].vessel;
+					
+					switch (sortMode) {
+						case 0:
+							vesselsList.Sort(VesselAlphabeticSort);
+							break;
+						case 1: 
+							vesselsList.Sort(VesselDistanceSort);
+							break;
+					}
+					currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
+
+					break;
 			}
 
 		}
@@ -205,6 +253,32 @@ namespace JSI
 				if (body.bodyName != "Sun")
 					celestialsList.Add(new Celestial(vessel, body));
 			}
+		}
+
+		private static int CelestialDistanceSort(Celestial first, Celestial second)
+		{
+			return first.distance.CompareTo(second.distance);
+		}
+
+		private static int CelestialAlphabeticSort(Celestial first, Celestial second)
+		{
+			return string.Compare(first.name, second.name, StringComparison.Ordinal);
+		}
+
+		private static int VesselDistanceSort(TargetableVessel first, TargetableVessel second)
+		{
+			if (first.vessel == null || second.vessel == null)
+				return 0;
+			if (first.vessel.mainBody != second.vessel.mainBody)
+				return -1;
+			return first.distance.CompareTo(second.distance);
+		}
+
+		private static int VesselAlphabeticSort(TargetableVessel first, TargetableVessel second)
+		{
+			if (first.vessel == null || second.vessel == null)
+				return 0;
+			return string.Compare(first.name, second.name, StringComparison.Ordinal);
 		}
 
 		private class Celestial
