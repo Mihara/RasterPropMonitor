@@ -7,6 +7,7 @@
 * Vector patterns on the map, defined in files.
 * Work out an API setting to direct handler loader to look at another prop?
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
+* Page handler to select between different page definition files based on variable values.
 
 ## Major new features
 
