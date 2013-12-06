@@ -28,11 +28,23 @@ namespace JSI
 
 		public static Color32 HexRGBAToColor(string hex)
 		{
-			byte r = byte.Parse(hex.Substring(0,2), System.Globalization.NumberStyles.HexNumber);
-			byte g = byte.Parse(hex.Substring(2,2), System.Globalization.NumberStyles.HexNumber);
-			byte b = byte.Parse(hex.Substring(4,2), System.Globalization.NumberStyles.HexNumber);
-			byte a = byte.Parse(hex.Substring(6,2), System.Globalization.NumberStyles.HexNumber);
-			return new Color32(r,g,b,a);
+			byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+			byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+			byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+			byte a = byte.Parse(hex.Substring(6, 2), System.Globalization.NumberStyles.HexNumber);
+			return new Color32(r, g, b, a);
+		}
+
+		public static string ColorToColorTag(Color32 color)
+		{
+			StringBuilder result = new StringBuilder();
+			result.Append("[#");
+			result.Append(color.r.ToString("X").PadLeft(2,'0'));
+			result.Append(color.g.ToString("X").PadLeft(2,'0'));
+			result.Append(color.b.ToString("X").PadLeft(2,'0'));
+			result.Append(color.a.ToString("X").PadLeft(2,'0'));
+			result.Append("]");
+			return result.ToString();
 		}
 
 		public static bool OrbitMakesSense(Vessel thatVessel)
@@ -40,10 +52,10 @@ namespace JSI
 			if (thatVessel == null)
 				return false;
 			if (thatVessel.situation == Vessel.Situations.FLYING ||
-				thatVessel.situation == Vessel.Situations.SUB_ORBITAL ||
-				thatVessel.situation == Vessel.Situations.ORBITING ||
-				thatVessel.situation == Vessel.Situations.ESCAPING ||
-				thatVessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
+			    thatVessel.situation == Vessel.Situations.SUB_ORBITAL ||
+			    thatVessel.situation == Vessel.Situations.ORBITING ||
+			    thatVessel.situation == Vessel.Situations.ESCAPING ||
+			    thatVessel.situation == Vessel.Situations.DOCKED) // Not sure about this last one.
 				return true;
 			return false;
 		}
@@ -187,11 +199,13 @@ namespace JSI
 
 		public static double TerrainAltitude(this CelestialBody body, double latitude, double longitude)
 		{
-			if (body.pqsController == null) return 0;
+			if (body.pqsController == null)
+				return 0;
 
 			Vector3d pqsRadialVector = QuaternionD.AngleAxis(longitude, Vector3d.down) * QuaternionD.AngleAxis(latitude, Vector3d.forward) * Vector3d.right;
 			double ret = body.pqsController.GetSurfaceHeight(pqsRadialVector) - body.pqsController.radius;
-			if (ret < 0) ret = 0;
+			if (ret < 0)
+				ret = 0;
 			return ret;
 		}
 	}
@@ -286,6 +300,7 @@ namespace JSI
 		{
 			return o.referenceBody.position + o.SwappedRelativePositionAtUT(UT);
 		}
+
 		public static Vector3d SwappedRelativePositionAtUT(this Orbit o, double UT)
 		{
 			return SwapYZ(o.getRelativePositionAtUT(UT));
@@ -295,6 +310,7 @@ namespace JSI
 		{
 			return o.SwappedRelativePositionAtUT(UT).magnitude;
 		}
+
 		public static double GetEccentricAnomalyAtTrueAnomaly(this Orbit o, double trueAnomaly)
 		{
 			double e = o.eccentricity;
