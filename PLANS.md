@@ -4,10 +4,6 @@
 
 * Vector patterns on the map, defined in files.
 
-## Major new features
-
-* Target selection menu page handler.
-
 # Future targets
 
 ## Issues.
@@ -22,5 +18,5 @@
 
 ## Major new features
 
-* Graphs using the vector tech and variables.
+* Graphs using the vector tech from JSISCANsatRPM and variables.
 * Orbit display a-la Orbiter?
