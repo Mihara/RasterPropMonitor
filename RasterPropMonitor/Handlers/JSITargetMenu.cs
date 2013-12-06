@@ -47,6 +47,7 @@ namespace JSI
 		private CelestialBody selectedCelestial;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
+		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private int sortMode;
 		private bool pageActiveState;
 		// Analysis disable once UnusedParameter
@@ -92,18 +93,40 @@ namespace JSI
 					case 2:
 						if (selectedVessel == vesselsList[currentMenuItem].vessel && selectedVessel.loaded) {
 							// Vessel already selected and loaded, so we can switch to docking port menu...
+							if (UpdatePortsList() > 0) {
+								currentMenu = 3;
+								currentMenuItem = 0;
+								UpdateLists();
+							} else
+								return;
 						} else {
 							vesselsList[currentMenuItem].SetTarget();
 							selectedVessel = vesselsList[currentMenuItem].vessel;
 							selectedPort = null;
 						}
 						break;
+					case 3:
+						if (selectedVessel != null && selectedVessel.loaded && portsList[currentMenuItem] != null) {
+							FlightGlobals.fetch.SetVesselTarget(portsList[currentMenuItem]);
+						}
+						break;
 				}
 			}
 			if (buttonID == buttonEsc) {
-				currentMenu = 0;
-				currentMenuCount = rootMenu.Count;
-				currentMenuItem = 0;
+				if (currentMenu == 3) {
+					currentMenu = 2;
+					if (selectedVessel != null) {
+						currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
+					}
+					UpdateLists();
+				} else {
+					if (currentMenu == 2)
+						currentMenuItem = 1;
+					else
+						currentMenuItem = 0;
+					currentMenu = 0;
+					currentMenuCount = rootMenu.Count;
+				}
 			}
 			if (buttonID == buttonHome) {
 				sortMode++;
@@ -139,12 +162,17 @@ namespace JSI
 					}
 					break;
 				case 3:
-					if (selectedVessel == null || !selectedVessel.loaded) {
+					if (selectedVessel == null || !selectedVessel.loaded || portsList.Count == 0) {
 						currentMenu = 2;
+						currentMenuItem = 0;
 						UpdateLists();
 						return string.Empty;
 					}
-
+					for (int i = 0; i < portsList.Count; i++) {
+						menu.Add(FormatItem(portsList[i].GetName(),
+							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
+							(currentMenuItem == i), (portsList[i] == selectedPort)));
+					}
 					break;
 			}
 			if (!string.IsNullOrEmpty(pageTitle))
@@ -162,11 +190,30 @@ namespace JSI
 			return result.ToString();
 		}
 
-		/*
-		private List<ModuleDockingNode> ListPorts(Vessel thatVessel) {
-			var result = new List<ModuleDockingNode>();
-			//foreach
-		}*/
+		private static List<ModuleDockingNode> ListAvailablePorts(Vessel thatVessel)
+		{
+			var unavailableParts = new List<uint>();
+			var availablePorts = new List<ModuleDockingNode>();
+			for (int i = 0; i < 2; i++) {
+				foreach (Part thatPart in thatVessel.parts) {
+					foreach (PartModule thatModule in thatPart.Modules) {
+						var thatPort = thatModule as ModuleDockingNode;
+						if (thatPort != null) {
+							if (i == 0) {
+								if (thatPort.state.ToLower().Contains("docked")) {
+									unavailableParts.Add(thatPort.part.flightID);
+									unavailableParts.Add(thatPort.dockedPartUId);
+								}
+							} else {
+								if (!unavailableParts.Contains(thatPort.part.flightID))
+									availablePorts.Add(thatPort);
+							}
+						}
+					}
+				}
+			}
+			return availablePorts;
+		}
 
 		private string FormatItem(string itemText, double distance, bool current, bool selected)
 		{
@@ -270,8 +317,22 @@ namespace JSI
 						currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
 
 					break;
+				case 3:
+					UpdatePortsList();
+					break;
 			}
 
+		}
+
+		private int UpdatePortsList()
+		{
+			portsList = ListAvailablePorts(selectedVessel);
+			if (currentMenu == 3) {
+				currentMenuCount = portsList.Count;
+				if (currentMenuItem > currentMenuCount)
+					currentMenuItem = 0;
+			}
+			return portsList.Count;
 		}
 
 		public void Start()
