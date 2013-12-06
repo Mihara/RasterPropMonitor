@@ -44,14 +44,20 @@ namespace JSI
 		private ITargetable currentTarget;
 		private Vessel selectedVessel;
 		private ModuleDockingNode selectedPort;
+		private CelestialBody selectedCelestial;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
 		private int sortMode;
+		private bool pageActiveState;
 		// Analysis disable once UnusedParameter
 		public string ShowMenu(int width, int height)
 		{
-			currentTarget = FlightGlobals.fetch.VesselTarget;
 			return FormatMenu(height, currentMenu);
+		}
+		// Analysis disable once UnusedParameter
+		public void PageActive(bool active, int pageNumber)
+		{
+			pageActiveState = active;
 		}
 
 		public void ButtonProcessor(int buttonID)
@@ -71,11 +77,9 @@ namespace JSI
 					case 0:
 						if (currentMenuItem == 0) {
 							currentMenu = 1;
-							currentMenuCount = celestialsList.Count;
 							UpdateLists();
 						} else {
 							currentMenu = 2;
-							currentMenuCount = vesselsList.Count;
 							UpdateLists();
 						}
 						currentMenuItem = 0;
@@ -86,8 +90,8 @@ namespace JSI
 						selectedPort = null;
 						break;
 					case 2:
-						if (selectedVessel == vesselsList[currentMenuItem].vessel) {
-							// Vessel already selected, check for switch to docking port menu...
+						if (selectedVessel == vesselsList[currentMenuItem].vessel && selectedVessel.loaded) {
+							// Vessel already selected and loaded, so we can switch to docking port menu...
 						} else {
 							vesselsList[currentMenuItem].SetTarget();
 							selectedVessel = vesselsList[currentMenuItem].vessel;
@@ -123,7 +127,7 @@ namespace JSI
 				case 1: 
 					for (int i = 0; i < celestialsList.Count; i++) {
 						menu.Add(FormatItem(celestialsList[i].name, celestialsList[i].distance,
-							(currentMenuItem == i), (currentTarget as CelestialBody == celestialsList[i].body)));
+							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body)));
 
 					}
 					break;
@@ -135,6 +139,12 @@ namespace JSI
 					}
 					break;
 				case 3:
+					if (selectedVessel == null || !selectedVessel.loaded) {
+						currentMenu = 2;
+						UpdateLists();
+						return string.Empty;
+					}
+
 					break;
 			}
 			if (!string.IsNullOrEmpty(pageTitle))
@@ -151,6 +161,12 @@ namespace JSI
 				result.AppendLine(item);
 			return result.ToString();
 		}
+
+		/*
+		private List<ModuleDockingNode> ListPorts(Vessel thatVessel) {
+			var result = new List<ModuleDockingNode>();
+			//foreach
+		}*/
 
 		private string FormatItem(string itemText, double distance, bool current, bool selected)
 		{
@@ -181,13 +197,22 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
+			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel || !pageActiveState)
 				return;
 
 			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 				return;
+
+			if (pageActiveState) {
+				currentTarget = FlightGlobals.fetch.VesselTarget;
+				selectedCelestial = currentTarget as CelestialBody;
+				selectedVessel = currentTarget as Vessel;
+				selectedPort = currentTarget as ModuleDockingNode;
+				if (selectedPort != null)
+					selectedVessel = selectedPort.vessel;
+
+			}
 
 			if (!UpdateCheck())
 				return;
@@ -200,7 +225,7 @@ namespace JSI
 			switch (currentMenu) {
 				case 1: 
 					foreach (Celestial body in celestialsList)
-						body.UpdateDistance();
+						body.UpdateDistance(vessel.transform.position);
 
 					CelestialBody currentBody = celestialsList[currentMenuItem].body;
 					switch (sortMode) {
@@ -212,18 +237,27 @@ namespace JSI
 							break;
 					}
 					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
+					currentMenuCount = celestialsList.Count;
 					break;
 				case 2:
+					Vessel currentVessel = null;
+					if (vesselsList.Count > 0 && currentMenuItem < vesselsList.Count) {
+						if (vesselsList[currentMenuItem].vessel == null)
+							currentMenuItem = 0;
+
+						if (vesselsList[currentMenuItem].vessel != null)
+							currentVessel = vesselsList[currentMenuItem].vessel;
+					} else
+						currentMenuItem = 0;
+
 					vesselsList.Clear();
 					foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
 						if (vessel != thatVessel) {
-							vesselsList.Add(new TargetableVessel(vessel, thatVessel));
+							vesselsList.Add(new TargetableVessel(thatVessel, vessel.transform.position));
 						}
 					}
-					if (currentMenuItem > vesselsList.Count)
-						currentMenuItem = vesselsList.Count - 1;
-					Vessel currentVessel = vesselsList[currentMenuItem].vessel;
-					
+					currentMenuCount = vesselsList.Count;
+
 					switch (sortMode) {
 						case 0:
 							vesselsList.Sort(VesselAlphabeticSort);
@@ -232,7 +266,8 @@ namespace JSI
 							vesselsList.Sort(VesselDistanceSort);
 							break;
 					}
-					currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
+					if (currentVessel != null)
+						currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
 
 					break;
 			}
@@ -241,6 +276,8 @@ namespace JSI
 
 		public void Start()
 		{
+			if (!HighLogic.LoadedSceneIsFlight)
+				return;
 			nameColorTag = JUtil.ColorToColorTag(nameColor);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColor);
 			selectedColorTag = JUtil.ColorToColorTag(selectedColor);
@@ -251,7 +288,7 @@ namespace JSI
 
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				if (body.bodyName != "Sun")
-					celestialsList.Add(new Celestial(vessel, body));
+					celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 		}
 
@@ -286,20 +323,17 @@ namespace JSI
 			public string name;
 			public readonly CelestialBody body;
 			public double distance;
-			private readonly Vessel ourVessel;
 
-			public Celestial(Vessel thisVessel, CelestialBody thisBody)
+			public Celestial(CelestialBody thisBody, Vector3d position)
 			{
 				name = thisBody.bodyName;
 				body = thisBody;
-				ourVessel = thisVessel;
-				UpdateDistance();
-
+				UpdateDistance(position);
 			}
 
-			public void UpdateDistance()
+			public void UpdateDistance(Vector3d position)
 			{
-				distance = Vector3d.Distance(ourVessel.transform.position, body.GetTransform().position);
+				distance = Vector3d.Distance(position, body.GetTransform().position);
 			}
 
 			public void SetTarget()
@@ -313,19 +347,17 @@ namespace JSI
 			public string name;
 			public readonly Vessel vessel;
 			public double distance;
-			private readonly Vessel ourVessel;
 
-			public TargetableVessel(Vessel thisVessel, Vessel thatVessel)
+			public TargetableVessel(Vessel thatVessel, Vector3d position)
 			{
-				ourVessel = thisVessel;
 				vessel = thatVessel;
 				name = thatVessel.vesselName;
-				UpdateDistance();
+				UpdateDistance(position);
 			}
 
-			public void UpdateDistance()
+			public void UpdateDistance(Vector3d position)
 			{
-				distance = Vector3d.Distance(ourVessel.transform.position, vessel.transform.position);
+				distance = Vector3d.Distance(position, vessel.transform.position);
 			}
 
 			public void SetTarget()
