@@ -73,6 +73,7 @@ namespace SCANsatRPM
 		private int zoomLevel;
 		private int screenWidth;
 		private int screenHeight;
+		private Vector2d mapSizeScale;
 		private double mapCenterLong, mapCenterLat;
 		private SCANmap map;
 		private CelestialBody orbitingBody;
@@ -171,47 +172,70 @@ namespace SCANsatRPM
 			GL.Begin(GL.LINES);
 			trailMaterial.SetPass(0);
 			GL.Color(lineColor);
-			double xStart, yStart, xEnd = 0, yEnd = 0;
+			float xStart, yStart;
+			// actualMapWidth is the width of the virtual map (accounting for
+			// zoom level).  We use this value to determine if a particular
+			// line segment wraps around from the right edge to the left edge.
+			// We compute the value once here, instead of doing it every single
+			// segment.
+			float actualMapWidth = (float)mapSizeScale.x * screenWidth;
 
-			for (int i = 0; i < points.Count - 1; i++) {
-				xStart = longitudeToPixels(points[i].x, points[i].y);
-				yStart = latitudeToPixels(points[i].x, points[i].y);
-				xEnd = longitudeToPixels(points[i + 1].x, points[i + 1].y);
-				yEnd = latitudeToPixels(points[i + 1].x, points[i + 1].y);
-				DrawLine(xStart, yStart, xEnd, yEnd, screenSpace);
+			xStart = (float)longitudeToPixels(points[0].x, points[0].y);
+			yStart = (float)latitudeToPixels(points[0].x, points[0].y);
+			for (int i = 1; i < points.Count; i++)
+			{
+				float xEnd = (float)longitudeToPixels(points[i].x, points[i].y);
+				float yEnd = (float)latitudeToPixels(points[i].x, points[i].y);
+				DrawLine(xStart, yStart, xEnd, yEnd, screenSpace, actualMapWidth);
+
+				xStart = xEnd;
+				yStart = yEnd;
 			}
 			if (hasEndpoint)
-				DrawLine(xEnd, yEnd, longitudeToPixels(endPoint.x, endPoint.y), latitudeToPixels(endPoint.x, endPoint.y), screenSpace);
+				DrawLine(xStart, yStart, (float)longitudeToPixels(endPoint.x, endPoint.y), (float)latitudeToPixels(endPoint.x, endPoint.y), screenSpace, actualMapWidth);
 			GL.End();
 		}
 
-		private static void DrawLine(double xStart, double yStart, double xEnd, double yEnd, Rect screenSpace)
+		private static void DrawLine(float xStart, float yStart, float xEnd, float yEnd, Rect screenSpace, float actualMapWidth)
 		{
-			/* This is annoying, so I'll have to describe what the actual problem is...
-			 * The real issue is that when you need to draw a line that is supposed to wrap around the right or top map edge.
-			 * The correct direction to draw it would be through the infinity, i.e. 
-			 * going infinitely far to the right (or top) and coming out the left (or bottom).
-			 * This is obviously not possible, the line is drawn along the shortest path --
-			 * which is across the map itself. 
-			 * It's proving highly cumbersome to tell such a line from any other kind,
-			 * (On what grounds really?)
-			 * so I'm attempting certain highly hackish solutions that are
-			 * at least better than simply not drawing the lines that cross any edges.
-			*/
+			var start = new Vector2(xStart, yStart);
+			var end = new Vector2(xEnd, yEnd);
 
-
-			var start = new Vector2((float)xStart, (float)yStart);
-			var end = new Vector2((float)xEnd, (float)yEnd);
 			if (!screenSpace.Contains(start) && !screenSpace.Contains(end))
 				return;
 
-			// That seems to neatly get rid of the wraparound for X. X is always positive when converted to pixels,
-			// and since the map is natively 2:1, anything less than that works.
-			if (Mathf.Max(start.x, end.x) > screenSpace.width + screenSpace.width / 3)
-				return;
-			// Y is not quite so simple since it gets inverted...
-			if (start.y < 0 || end.y < 0)
-				return;
+			// We order these so we don't have to mess with absolute values.
+			float leftX  = Math.Min(start.x, end.x);
+			float rightX = Math.Max(start.x, end.x);
+
+			// MOARdV:
+			// We treat the map as a cylinder here, since it is one as far as
+			// the rectangular projection of it is concerned.
+			// Compute the x component of the Manhattan distance between the
+			// two points, and compare that to the distance if we move the
+			// left end point one scaled map width to the right (moving it to
+			// the right of the right end point).  If the repositioned point
+			// is closer than the original point, we infer that the line
+			// segment wraps around the edge of the map.  This will always be
+			// true as long as we don't generate a line segment longer than
+			// 1/2 of the map's width.  If the two points are diametrically
+			// opposed to each other on the map, we don't have enough
+			// information to guess which way is the right way, so do nothing.
+			// The Manhattan distance of the original arrangement of points
+			// is rightX - leftX.  The MD of the repositioned point is
+			// (leftX + actualMapWidth) - rightX.  Move like terms and
+			// divide by two, and here's what you get:
+			if (leftX + actualMapWidth * 0.5f < rightX)
+			{
+				if(start.x < end.x)
+				{
+					end.x -= actualMapWidth;
+				}
+				else
+				{
+					start.x -= actualMapWidth;
+				}
+			}
 
 			GL.Vertex(start);
 			GL.Vertex(end);
@@ -267,17 +291,28 @@ namespace SCANsatRPM
 
 		private double latitudeToPixels(double longitude, double latitude)
 		{
-			return screenHeight - (rescaleLatitude((map.projectLatitude(longitude, latitude) + 90d) % 180d) * (screenHeight / 180d));
-		}
+			// MOARdV:
+			// I haven't thoroughly tested this, nor have I looked at the
+			// source, but I believe map.project* are mapping the lat/lon
+			// to a 360 x 180 2D surface that repeats in the X direction
+			// like a cylinder.  On that assumption, we don't want to apply
+			// the remainder operator to latitude - that would cause a value
+			// of 181 to become 1, for instance, moving the point from one
+			// pole to the other.  We have to translate the latitude by 90 to
+			// put the baseline latitude in the range [0,180] instead of
+			// [-90, +90].
+			double projLat = map.projectLatitude(longitude, latitude);
+			double translatedLat = 90.0 + projLat - map.lat_offset;
+			double scaledLat = translatedLat * mapSizeScale.y;
+			double pix = scaledLat * screenHeight / 180.0;
 
-		private double rescaleLatitude(double lat)
-		{
-			return Clamp(lat - map.lat_offset, 180d) * (180d / (map.mapheight / map.mapscale));
+			// Invert the y value
+			return screenHeight - pix;
 		}
 
 		private double rescaleLongitude(double lon)
 		{
-			return Clamp(lon - map.lon_offset, 360d) * (360d / (map.mapwidth / map.mapscale));
+			return Clamp(lon - map.lon_offset, 360d) * mapSizeScale.x;
 		}
 
 		private static double Clamp(double value, double clamp)
@@ -449,6 +484,11 @@ namespace SCANsatRPM
 				mapCenterLat = 0;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			map.resetMap(mapMode);
+
+			// Compute and store the map scale factors in mapSizeScale.  We
+			// use these values for every segment when drawing trails, so it
+			// makes sense to compute it only when it changes.
+			mapSizeScale = new Vector2d(360.0 * map.mapscale / map.mapwidth, 180.0 * map.mapscale / map.mapheight);
 			redrawDeviation = redrawEdge * 180 / (Math.Pow(zoomLevel, 2) + zoomModifier);
 			try {
 				localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
