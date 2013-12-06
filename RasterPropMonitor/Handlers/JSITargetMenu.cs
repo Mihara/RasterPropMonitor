@@ -78,9 +78,15 @@ namespace JSI
 					case 0:
 						if (currentMenuItem == 0) {
 							currentMenu = 1;
+							if (selectedCelestial != null) {
+								currentMenuItem = celestialsList.FindIndex(x => x.body == selectedCelestial);
+							}
 							UpdateLists();
 						} else {
 							currentMenu = 2;
+							if (selectedVessel != null) {
+								currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
+							}
 							UpdateLists();
 						}
 						currentMenuItem = 0;
