@@ -17,8 +17,8 @@ namespace JSI
 			if (needsRestoring && target != null && FlightGlobals.fetch.VesselTarget == null) {
 				FlightGlobals.fetch.SetVesselTarget(target);
 				needsRestoring = false;
-			}
-			target = FlightGlobals.fetch.VesselTarget;
+			} else
+				target = FlightGlobals.fetch.VesselTarget;
 		}
 
 		public void LateUpdate()
