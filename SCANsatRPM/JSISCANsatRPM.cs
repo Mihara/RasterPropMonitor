@@ -122,11 +122,12 @@ namespace SCANsatRPM
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
-			foreach (MapMarkupLine vectorLine in mapMarkup) {
-				if (vectorLine.body == orbitingBody && vectorLine.points.Count > 0) {
-					DrawTrail(vectorLine.points, vectorLine.color, Vector2d.zero, false);
+			if (showLines)
+				foreach (MapMarkupLine vectorLine in mapMarkup) {
+					if (vectorLine.body == orbitingBody && vectorLine.points.Count > 0) {
+						DrawTrail(vectorLine.points, vectorLine.color, Vector2d.zero, false);
+					}
 				}
-			}
 
 			if (showLines && trailLimit > 0 && trail.Count > 0)
 				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
