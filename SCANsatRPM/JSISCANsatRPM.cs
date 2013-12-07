@@ -14,6 +14,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using JSI;
+using System.Globalization;
 
 namespace SCANsatRPM
 {
@@ -92,7 +93,7 @@ namespace SCANsatRPM
 		private double trailCounter;
 		private Rect screenSpace;
 		private bool pageActiveState;
-		private readonly List<MapFeature> mapMarkup = new List<MapFeature>();
+		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -121,9 +122,9 @@ namespace SCANsatRPM
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
-			foreach (MapFeature vectorline in mapMarkup) {
-				if (vectorline.body == orbitingBody && vectorline.points.Count > 0) {
-					DrawTrail(vectorline.points, vectorline.color, Vector2d.zero, false);
+			foreach (MapMarkupLine vectorLine in mapMarkup) {
+				if (vectorLine.body == orbitingBody && vectorLine.points.Count > 0) {
+					DrawTrail(vectorLine.points, vectorLine.color, Vector2d.zero, false);
 				}
 			}
 
@@ -151,7 +152,7 @@ namespace SCANsatRPM
 			return true;
 		}
 
-		private void DrawOrbit(Vessel thatVessel, Color thatColor)
+		private void DrawOrbit(Vessel thatVessel, Color32 thatColor)
 		{
 			if (orbitPoints == 0)
 				return;
@@ -172,7 +173,7 @@ namespace SCANsatRPM
 			DrawTrail(points, thatColor, Vector2d.zero, false);
 		}
 
-		private void DrawTrail(List<Vector2d> points, Color lineColor, Vector2d endPoint, bool hasEndpoint)
+		private void DrawTrail(List<Vector2d> points, Color32 lineColor, Vector2d endPoint, bool hasEndpoint)
 		{
 			if (points.Count < 2)
 				return;
@@ -563,19 +564,22 @@ namespace SCANsatRPM
 			// Now the fun bit: Locate all cfg files depicting map features anywhere.
 
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSISCANSATVECTORMARK")) {
-				mapMarkup.Add(new MapFeature(node));
+				mapMarkup.Add(new MapMarkupLine(node));
 			}
 
 		}
 
-		private class MapFeature
+		private class MapMarkupLine
 		{
 			public CelestialBody body;
 			public Color32 color;
 			public List<Vector2d> points = new List<Vector2d>();
 
-			public MapFeature(ConfigNode node)
+			public MapMarkupLine(ConfigNode node)
 			{
+				if (!node.HasData)
+					throw new ArgumentException("Map markup section with no data?!");
+
 				if (node.HasValue("body")) {
 					string bodyName = node.GetValue("body").ToLower();
 					foreach (CelestialBody thatBody in FlightGlobals.fetch.bodies) {
@@ -585,15 +589,28 @@ namespace SCANsatRPM
 						}
 					}
 					if (body == null)
-						throw new ArgumentException("Could not assign map markup to a celestial body.");
+						throw new ArgumentException("No celestial body matching '" + bodyName + "'.");
 				} else {
 					throw new ArgumentException("Found a map markup section that does not say which celestial body it refers to.");
 				}
 
 				color = Color.white;
 				if (node.HasValue("color"))
-					color = ConfigNode.ParseColor32(node.GetValue("color"));
+					color = ConfigNode.ParseColor(node.GetValue("color"));
 				// Now to actually load in the points...
+
+				foreach (string pointData in node.GetValues("vertex")) {
+					string[] tokens = pointData.Split(',');
+					if (tokens.Length != 2)
+						throw new ArgumentException("Incorrect vertex format.");
+					double x, y;
+					if (!(double.TryParse(tokens[0].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out x) &&
+					    double.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out y)))
+						throw new ArgumentException("Could not parse a vertex position.");
+					if (x > 180d || x < -180d || y > 90d || y < -90d)
+						throw new ArgumentException("Vertex positions must be in degrees appropriate to longitude and latitude.");
+					points.Add(new Vector2d(x, y));
+				}
 			}
 		}
 	}
