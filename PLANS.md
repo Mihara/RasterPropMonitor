@@ -1,8 +1,14 @@
 # 0.10 milestone targets
 
+* Pre-release testing!
+* Example display config cleanup.
+
+# 0.11 milestone targets
+
 ## Minor new features
 
-* Vector patterns on the map, defined in files.
+* Page handler to select between different page definition files based on variable values.
+* Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement.
 
 # Future targets
 
@@ -14,8 +20,6 @@
 
 * Work out an API setting to direct handler loader to look at another prop?
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
-* Page handler to select between different page definition files based on variable values.
-* Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement?
 * It should be possible to SetReferenceTransform to a specific docking port while in IVA... It might even be possible
   to do that to the port we're currently looking out of.
 
