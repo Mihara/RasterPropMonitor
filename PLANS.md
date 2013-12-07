@@ -10,6 +10,10 @@
 * Page handler to select between different page definition files based on variable values.
 * Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement.
 
+## Major new features
+
+* Graphs using the vector tech from JSISCANsatRPM and variables.
+
 # Future targets
 
 ## Issues.
@@ -25,5 +29,5 @@
 
 ## Major new features
 
-* Graphs using the vector tech from JSISCANsatRPM and variables.
+* Maneuver node creator/editor menu?
 * Orbit display a-la Orbiter?
