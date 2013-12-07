@@ -92,6 +92,7 @@ namespace SCANsatRPM
 		private double trailCounter;
 		private Rect screenSpace;
 		private bool pageActiveState;
+		private readonly List<MapFeature> mapMarkup = new List<MapFeature>();
 
 		public bool MapRenderer(RenderTexture screen)
 		{
@@ -119,6 +120,12 @@ namespace SCANsatRPM
 			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
+
+			foreach (MapFeature vectorline in mapMarkup) {
+				if (vectorline.body == orbitingBody && vectorline.points.Count > 0) {
+					DrawTrail(vectorline.points, vectorline.color, Vector2d.zero, false);
+				}
+			}
 
 			if (showLines && trailLimit > 0 && trail.Count > 0)
 				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
@@ -182,8 +189,7 @@ namespace SCANsatRPM
 
 			xStart = (float)longitudeToPixels(points[0].x, points[0].y);
 			yStart = (float)latitudeToPixels(points[0].x, points[0].y);
-			for (int i = 1; i < points.Count; i++)
-			{
+			for (int i = 1; i < points.Count; i++) {
 				float xEnd = (float)longitudeToPixels(points[i].x, points[i].y);
 				float yEnd = (float)latitudeToPixels(points[i].x, points[i].y);
 				DrawLine(xStart, yStart, xEnd, yEnd, screenSpace, actualMapWidth);
@@ -205,7 +211,7 @@ namespace SCANsatRPM
 				return;
 
 			// We order these so we don't have to mess with absolute values.
-			float leftX  = Math.Min(start.x, end.x);
+			float leftX = Math.Min(start.x, end.x);
 			float rightX = Math.Max(start.x, end.x);
 
 			// MOARdV:
@@ -225,14 +231,10 @@ namespace SCANsatRPM
 			// is rightX - leftX.  The MD of the repositioned point is
 			// (leftX + actualMapWidth) - rightX.  Move like terms and
 			// divide by two, and here's what you get:
-			if (leftX + actualMapWidth * 0.5f < rightX)
-			{
-				if(start.x < end.x)
-				{
+			if (leftX + actualMapWidth * 0.5f < rightX) {
+				if (start.x < end.x) {
 					end.x -= actualMapWidth;
-				}
-				else
-				{
+				} else {
 					start.x -= actualMapWidth;
 				}
 			}
@@ -556,6 +558,42 @@ namespace SCANsatRPM
 				scaleLevelValues = scales.ToArray();
 				Array.Sort(scaleLevelValues);
 				scaleLabelSpan = 1f / scaleLevelValues.Length;
+			}
+
+			// Now the fun bit: Locate all cfg files depicting map features anywhere.
+
+			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSISCANSATVECTORMARK")) {
+				mapMarkup.Add(new MapFeature(node));
+			}
+
+		}
+
+		private class MapFeature
+		{
+			public CelestialBody body;
+			public Color32 color;
+			public List<Vector2d> points = new List<Vector2d>();
+
+			public MapFeature(ConfigNode node)
+			{
+				if (node.HasValue("body")) {
+					string bodyName = node.GetValue("body").ToLower();
+					foreach (CelestialBody thatBody in FlightGlobals.fetch.bodies) {
+						if (thatBody.GetName().ToLower() == bodyName) {
+							body = thatBody;
+							break;
+						}
+					}
+					if (body == null)
+						throw new ArgumentException("Could not assign map markup to a celestial body.");
+				} else {
+					throw new ArgumentException("Found a map markup section that does not say which celestial body it refers to.");
+				}
+
+				color = Color.white;
+				if (node.HasValue("color"))
+					color = ConfigNode.ParseColor32(node.GetValue("color"));
+				// Now to actually load in the points...
 			}
 		}
 	}
