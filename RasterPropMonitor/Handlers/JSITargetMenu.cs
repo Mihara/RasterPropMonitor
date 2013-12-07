@@ -28,6 +28,8 @@ namespace JSI
 		[KSPField]
 		public Color32 selectedColor = Color.green;
 		[KSPField]
+		public Color32 unavailableColor = Color.gray;
+		[KSPField]
 		public int distanceColumn = 30;
 		[KSPField]
 		public string distanceFormatString = " <=0:SIP_6=>m";
@@ -35,7 +37,7 @@ namespace JSI
 		private MenuList currentMenu;
 		private int currentMenuItem;
 		private int currentMenuCount = 2;
-		private string nameColorTag, distanceColorTag, selectedColorTag;
+		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
@@ -166,20 +168,22 @@ namespace JSI
 			switch (current) {
 				case MenuList.Root:
 					for (int i = 0; i < rootMenu.Count; i++) {
-						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false));
+						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, false));
 					}
 					break;
 				case MenuList.Celestials: 
 					for (int i = 0; i < celestialsList.Count; i++) {
 						menu.Add(FormatItem(celestialsList[i].name, celestialsList[i].distance,
-							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body)));
+							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body),
+							(vessel.mainBody == celestialsList[i].body)));
 
 					}
 					break;
 				case MenuList.Vessels:
 					for (int i = 0; i < vesselsList.Count; i++) {
 						menu.Add(FormatItem(vesselsList[i].name, vesselsList[i].distance,
-							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel)));
+							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel),
+							false));
 
 					}
 					break;
@@ -193,7 +197,8 @@ namespace JSI
 					for (int i = 0; i < portsList.Count; i++) {
 						menu.Add(FormatItem(portsList[i].GetName(),
 							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
-							(currentMenuItem == i), (portsList[i] == selectedPort)));
+							(currentMenuItem == i), (portsList[i] == selectedPort),
+							false));
 					}
 					break;
 			}
@@ -237,14 +242,17 @@ namespace JSI
 			return availablePorts;
 		}
 
-		private string FormatItem(string itemText, double distance, bool current, bool selected)
+		private string FormatItem(string itemText, double distance, bool current, bool selected, bool unavailable)
 		{
 			var result = new StringBuilder();
 			result.Append(current ? "> " : "  ");
 			if (selected)
 				result.Append(selectedColorTag);
+			else if (unavailable)
+				result.Append(unavailableColorTag);
 			else
 				result.Append(nameColorTag);
+
 			result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
 			if (distance > 0) {
 				result.Append(distanceColorTag);
@@ -364,6 +372,7 @@ namespace JSI
 			nameColorTag = JUtil.ColorToColorTag(nameColor);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColor);
 			selectedColorTag = JUtil.ColorToColorTag(selectedColor);
+			unavailableColorTag = JUtil.ColorToColorTag(unavailableColor);
 			distanceFormatString = distanceFormatString.UnMangleConfigText();
 
 			if (!string.IsNullOrEmpty(pageTitle))
