@@ -41,7 +41,8 @@ namespace JSI
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
-			"Vessels"
+			"Vessels",
+			"Clear target",
 		};
 
 		private enum MenuList
@@ -93,20 +94,21 @@ namespace JSI
 			if (buttonID == buttonEnter) {
 				switch (currentMenu) {
 					case MenuList.Root:
-						if (currentMenuItem == 0) {
-							currentMenu = MenuList.Celestials;
-							if (selectedCelestial != null) {
-								currentMenuItem = celestialsList.FindIndex(x => x.body == selectedCelestial);
-							}
-							UpdateLists();
-						} else {
-							currentMenu = MenuList.Vessels;
-							if (selectedVessel != null) {
-								currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
-							}
-							UpdateLists();
+						switch (rootMenu[currentMenuItem]) {
+							case "Celestials":
+								currentMenu = MenuList.Celestials;
+								currentMenuItem = selectedCelestial != null ? celestialsList.FindIndex(x => x.body == selectedCelestial) : 0;
+								UpdateLists();
+								break;
+							case "Vessels":
+								currentMenu = MenuList.Vessels;
+								currentMenuItem = selectedVessel != null ? vesselsList.FindIndex(x => x.vessel == selectedVessel) : 0;
+								UpdateLists();
+								break;
+							case "Clear target":
+								FlightGlobals.fetch.SetVesselTarget(null);
+								break;
 						}
-						currentMenuItem = 0;
 						break;
 					case MenuList.Celestials:
 						celestialsList[currentMenuItem].SetTarget();
@@ -379,8 +381,7 @@ namespace JSI
 				pageTitle = pageTitle.Replace("<=", "{").Replace("=>", "}");
 
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
-				if (body.bodyName != "Sun")
-					celestialsList.Add(new Celestial(body, vessel.transform.position));
+				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 		}
 
