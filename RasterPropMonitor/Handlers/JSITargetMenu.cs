@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using System.Linq;
 
 namespace JSI
 {
@@ -41,7 +42,20 @@ namespace JSI
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
+			"Filters",
 			"Clear target",
+		};
+		private readonly Dictionary<VesselType,bool> vesselFilter = new Dictionary<VesselType,bool> {
+			{ VesselType.Ship,true },
+			{ VesselType.Station,true },
+			{ VesselType.Probe,false },
+			{ VesselType.Lander,false },
+			{ VesselType.Rover,false },
+			{ VesselType.EVA,false },
+			{ VesselType.Flag,false },
+			{ VesselType.Base,false },
+			{ VesselType.Debris,false },
+			{ VesselType.Unknown,false },
 		};
 		private int currentMenuCount;
 
@@ -51,6 +65,7 @@ namespace JSI
 			Celestials,
 			Vessels,
 			Ports,
+			Filters,
 		};
 
 		private enum SortMode
@@ -105,6 +120,11 @@ namespace JSI
 								currentMenuItem = selectedVessel != null ? vesselsList.FindIndex(x => x.vessel == selectedVessel) : 0;
 								UpdateLists();
 								break;
+							case "Filters":
+								currentMenu = MenuList.Filters;
+								currentMenuCount = vesselFilter.Count;
+								currentMenuItem = 0;
+								break;
 							case "Clear target":
 								FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
 								break;
@@ -134,6 +154,9 @@ namespace JSI
 						if (selectedVessel != null && selectedVessel.loaded && portsList[currentMenuItem] != null) {
 							FlightGlobals.fetch.SetVesselTarget(portsList[currentMenuItem]);
 						}
+						break;
+					case MenuList.Filters:
+						vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key] = !vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key];
 						break;
 				}
 			}
@@ -178,9 +201,20 @@ namespace JSI
 
 			switch (current) {
 				case MenuList.Root:
-					menuTitle = MakeMenuTitle("Root menu", width);
+					if (currentTarget != null) 
+						menuTitle = MakeMenuTitle("Root menu", width);
 					for (int i = 0; i < rootMenu.Count; i++) {
 						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, false));
+					}
+					break;
+				case MenuList.Filters:
+					menuTitle = "== Vessel filtering:";
+
+					for (int i = 0; i < vesselFilter.Count; i++) {
+						var filter = vesselFilter.ElementAt(i);
+						menu.Add(FormatItem(
+							filter.Key.ToString().PadRight(9) + (filter.Value ? "- On" : "- Off"), 0,
+							(currentMenuItem == i), filter.Value, false));
 					}
 					break;
 				case MenuList.Celestials: 
@@ -351,7 +385,12 @@ namespace JSI
 					vesselsList.Clear();
 					foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
 						if (vessel != thatVessel) {
-							vesselsList.Add(new TargetableVessel(thatVessel, vessel.transform.position));
+							foreach (var filter in vesselFilter) {
+								if (thatVessel.vesselType == filter.Key && filter.Value) {
+									vesselsList.Add(new TargetableVessel(thatVessel, vessel.transform.position));
+									break;
+								}
+							}
 						}
 					}
 					currentMenuCount = vesselsList.Count;
@@ -366,7 +405,8 @@ namespace JSI
 					}
 					if (currentVessel != null)
 						currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
-
+					if (currentMenuItem < 0)
+						currentMenuItem = 0;
 					break;
 				case MenuList.Ports:
 					UpdatePortsList();
