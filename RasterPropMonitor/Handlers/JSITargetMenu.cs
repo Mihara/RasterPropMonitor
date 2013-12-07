@@ -269,7 +269,14 @@ namespace JSI
 				height--;
 
 			if (menu.Count > height) {
-				menu = menu.GetRange(Math.Min(currentMenuItem, menu.Count - height), height);
+				int midpoint = (int)Math.Ceiling(height / 2d);
+				if (currentMenuItem < midpoint) {
+					menu = menu.GetRange(0, height);
+				} else if (midpoint + currentMenuItem > menu.Count) {
+					menu = menu.GetRange(menu.Count - height, height);
+				} else {
+					menu = menu.GetRange(currentMenuItem - midpoint, height);
+				}
 			}
 			var result = new StringBuilder();
 
