@@ -122,6 +122,7 @@ namespace SCANsatRPM
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
 
+			// Markup lines are the lowest layer.
 			if (showLines)
 				foreach (MapMarkupLine vectorLine in mapMarkup) {
 					if (vectorLine.body == orbitingBody && vectorLine.points.Count > 0) {
@@ -129,24 +130,29 @@ namespace SCANsatRPM
 					}
 				}
 
+			// Trails go above markup lines
 			if (showLines && trailLimit > 0 && trail.Count > 0)
 				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
 		
+			// Anomalies go above trails
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
 						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
 						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
 			}
+			// Target orbit and targets go above anomalies
 			if (targetVessel != null && targetVessel.mainBody == orbitingBody) {
 				if (showLines && JUtil.OrbitMakesSense(targetVessel))
 					DrawOrbit(targetVessel, iconColorTarget);
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
 			}
-
+			// Own orbit goes above that.
 			if (showLines && JUtil.OrbitMakesSense(vessel))
 				DrawOrbit(vessel, iconColorSelf);
+			// Own icon goes above that
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
+			// And scale goes above everything.
 			DrawScale();
 			GL.PopMatrix();
 
