@@ -373,8 +373,6 @@ namespace JSI
 		{
 			if (first.vessel == null || second.vessel == null)
 				return 0;
-			if (first.vessel.mainBody != second.vessel.mainBody)
-				return -1;
 			return first.distance.CompareTo(second.distance);
 		}
 
