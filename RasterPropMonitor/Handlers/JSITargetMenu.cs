@@ -83,6 +83,8 @@ namespace JSI
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private SortMode sortMode;
 		private bool pageActiveState;
+		private PersistenceAccessor persistence;
+		private string persistentVarName;
 
 		public string ShowMenu(int width, int height)
 		{
@@ -157,23 +159,34 @@ namespace JSI
 						break;
 					case MenuList.Filters:
 						vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key] = !vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key];
+						persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
 						break;
 				}
 			}
 			if (buttonID == buttonEsc) {
-				if (currentMenu == MenuList.Ports) {
-					currentMenu = MenuList.Vessels;
-					if (selectedVessel != null) {
-						currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
-					}
-					UpdateLists();
-				} else {
-					if (currentMenu == MenuList.Vessels)
-						currentMenuItem = 1;
-					else
+				switch (currentMenu) {
+					case MenuList.Celestials:
 						currentMenuItem = 0;
-					currentMenu = 0;
-					currentMenuCount = rootMenu.Count;
+						currentMenu = MenuList.Root;
+						currentMenuCount = rootMenu.Count;
+						break;
+					case MenuList.Vessels:
+						currentMenuItem = 1;
+						currentMenu = MenuList.Root;
+						currentMenuCount = rootMenu.Count;
+						break;
+					case MenuList.Filters:
+						currentMenuItem = 2;
+						currentMenu = MenuList.Root;
+						currentMenuCount = rootMenu.Count;
+						break;
+					case MenuList.Ports:
+						currentMenu = MenuList.Vessels;
+						if (selectedVessel != null) {
+							currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
+						}
+						UpdateLists();
+						break;
 				}
 			}
 			if (buttonID == buttonHome) {
@@ -201,7 +214,7 @@ namespace JSI
 
 			switch (current) {
 				case MenuList.Root:
-					if (currentTarget != null) 
+					if (currentTarget != null)
 						menuTitle = MakeMenuTitle("Root menu", width);
 					for (int i = 0; i < rootMenu.Count; i++) {
 						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, false));
@@ -209,7 +222,6 @@ namespace JSI
 					break;
 				case MenuList.Filters:
 					menuTitle = "== Vessel filtering:";
-
 					for (int i = 0; i < vesselFilter.Count; i++) {
 						var filter = vesselFilter.ElementAt(i);
 						menu.Add(FormatItem(
@@ -430,6 +442,12 @@ namespace JSI
 		{
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
+
+			persistentVarName = "targetfilter" + internalProp.propID;
+			persistence = new PersistenceAccessor(part);
+			// 7 is the bitmask for ship-station-probe;
+			VesselFilterFromBitmask(persistence.GetVar(persistentVarName) ?? 7);
+
 			nameColorTag = JUtil.ColorToColorTag(nameColor);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColor);
 			selectedColorTag = JUtil.ColorToColorTag(selectedColor);
@@ -467,6 +485,47 @@ namespace JSI
 			if (first.vessel == null || second.vessel == null)
 				return 0;
 			return string.Compare(first.name, second.name, StringComparison.Ordinal);
+		}
+
+		private static int VesselFilterToBitmask(Dictionary<VesselType,bool> filterList)
+		{
+			// Because VesselType is not [Flags]. Gweh.
+			int mask = 0;
+			if (filterList[VesselType.Ship])
+				mask |= 1 << 0;
+			if (filterList[VesselType.Station])
+				mask |= 1 << 1;
+			if (filterList[VesselType.Probe])
+				mask |= 1 << 2;
+			if (filterList[VesselType.Lander])
+				mask |= 1 << 3;
+			if (filterList[VesselType.Rover])
+				mask |= 1 << 4;
+			if (filterList[VesselType.EVA])
+				mask |= 1 << 5;
+			if (filterList[VesselType.Flag])
+				mask |= 1 << 6;
+			if (filterList[VesselType.Base])
+				mask |= 1 << 7;
+			if (filterList[VesselType.Debris])
+				mask |= 1 << 8;
+			if (filterList[VesselType.Unknown])
+				mask |= 1 << 9;
+			return mask;
+		}
+
+		private void VesselFilterFromBitmask(int mask)
+		{
+			vesselFilter[VesselType.Ship] = (mask & (1 << 0)) > 0;
+			vesselFilter[VesselType.Station] = (mask & (1 << 1)) > 0;
+			vesselFilter[VesselType.Probe] = (mask & (1 << 2)) > 0;
+			vesselFilter[VesselType.Lander] = (mask & (1 << 3)) > 0;
+			vesselFilter[VesselType.Rover] = (mask & (1 << 4)) > 0;
+			vesselFilter[VesselType.EVA] = (mask & (1 << 5)) > 0;
+			vesselFilter[VesselType.Flag] = (mask & (1 << 6)) > 0;
+			vesselFilter[VesselType.Base] = (mask & (1 << 7)) > 0;
+			vesselFilter[VesselType.Debris] = (mask & (1 << 8)) > 0;
+			vesselFilter[VesselType.Unknown] = (mask & (1 << 9)) > 0;
 		}
 
 		private class Celestial
