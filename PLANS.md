@@ -16,6 +16,8 @@
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
 * Page handler to select between different page definition files based on variable values.
 * Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement?
+* It should be possible to SetReferenceTransform to a specific docking port while in IVA... It might even be possible
+  to do that to the port we're currently looking out of.
 
 ## Major new features
 
