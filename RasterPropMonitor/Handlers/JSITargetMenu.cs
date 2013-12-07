@@ -32,7 +32,7 @@ namespace JSI
 		[KSPField]
 		public string distanceFormatString = " <=0:SIP_6=>m";
 		private int refreshMenuCountdown;
-		private int currentMenu;
+		private MenuList currentMenu;
 		private int currentMenuItem;
 		private int currentMenuCount = 2;
 		private string nameColorTag, distanceColorTag, selectedColorTag;
@@ -41,6 +41,21 @@ namespace JSI
 			"Celestials",
 			"Vessels"
 		};
+
+		private enum MenuList
+		{
+			Root,
+			Celestials,
+			Vessels,
+			Ports,
+		};
+
+		private enum SortMode
+		{
+			Alphabetic,
+			Distance,
+		}
+
 		private ITargetable currentTarget;
 		private Vessel selectedVessel;
 		private ModuleDockingNode selectedPort;
@@ -48,7 +63,7 @@ namespace JSI
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
-		private int sortMode;
+		private SortMode sortMode;
 		private bool pageActiveState;
 		// Analysis disable once UnusedParameter
 		public string ShowMenu(int width, int height)
@@ -75,15 +90,15 @@ namespace JSI
 			}
 			if (buttonID == buttonEnter) {
 				switch (currentMenu) {
-					case 0:
+					case MenuList.Root:
 						if (currentMenuItem == 0) {
-							currentMenu = 1;
+							currentMenu = MenuList.Celestials;
 							if (selectedCelestial != null) {
 								currentMenuItem = celestialsList.FindIndex(x => x.body == selectedCelestial);
 							}
 							UpdateLists();
 						} else {
-							currentMenu = 2;
+							currentMenu = MenuList.Vessels;
 							if (selectedVessel != null) {
 								currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
 							}
@@ -91,16 +106,16 @@ namespace JSI
 						}
 						currentMenuItem = 0;
 						break;
-					case 1:
+					case MenuList.Celestials:
 						celestialsList[currentMenuItem].SetTarget();
 						selectedVessel = null;
 						selectedPort = null;
 						break;
-					case 2:
+					case MenuList.Vessels:
 						if (selectedVessel == vesselsList[currentMenuItem].vessel && selectedVessel.loaded) {
 							// Vessel already selected and loaded, so we can switch to docking port menu...
 							if (UpdatePortsList() > 0) {
-								currentMenu = 3;
+								currentMenu = MenuList.Ports;
 								currentMenuItem = 0;
 								UpdateLists();
 							} else
@@ -111,7 +126,7 @@ namespace JSI
 							selectedPort = null;
 						}
 						break;
-					case 3:
+					case MenuList.Ports:
 						if (selectedVessel != null && selectedVessel.loaded && portsList[currentMenuItem] != null) {
 							FlightGlobals.fetch.SetVesselTarget(portsList[currentMenuItem]);
 						}
@@ -119,14 +134,14 @@ namespace JSI
 				}
 			}
 			if (buttonID == buttonEsc) {
-				if (currentMenu == 3) {
-					currentMenu = 2;
+				if (currentMenu == MenuList.Ports) {
+					currentMenu = MenuList.Vessels;
 					if (selectedVessel != null) {
 						currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
 					}
 					UpdateLists();
 				} else {
-					if (currentMenu == 2)
+					if (currentMenu == MenuList.Vessels)
 						currentMenuItem = 1;
 					else
 						currentMenuItem = 0;
@@ -135,41 +150,42 @@ namespace JSI
 				}
 			}
 			if (buttonID == buttonHome) {
-				sortMode++;
-				if (sortMode > 1)
-					sortMode = 0;
+				if (sortMode == SortMode.Alphabetic)
+					sortMode = SortMode.Distance;
+				else
+					sortMode = SortMode.Alphabetic;
 				UpdateLists();
 			}
 		}
 
-		private string FormatMenu(int height, int current)
+		private string FormatMenu(int height, MenuList current)
 		{
 
 			var menu = new List<string>();
 
 			switch (current) {
-				case 0:
+				case MenuList.Root:
 					for (int i = 0; i < rootMenu.Count; i++) {
 						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false));
 					}
 					break;
-				case 1: 
+				case MenuList.Celestials: 
 					for (int i = 0; i < celestialsList.Count; i++) {
 						menu.Add(FormatItem(celestialsList[i].name, celestialsList[i].distance,
 							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body)));
 
 					}
 					break;
-				case 2:
+				case MenuList.Vessels:
 					for (int i = 0; i < vesselsList.Count; i++) {
 						menu.Add(FormatItem(vesselsList[i].name, vesselsList[i].distance,
 							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel)));
 
 					}
 					break;
-				case 3:
+				case MenuList.Ports:
 					if (selectedVessel == null || !selectedVessel.loaded || portsList.Count == 0) {
-						currentMenu = 2;
+						currentMenu = MenuList.Vessels;
 						currentMenuItem = 0;
 						UpdateLists();
 						return string.Empty;
@@ -276,23 +292,23 @@ namespace JSI
 		{
 
 			switch (currentMenu) {
-				case 1: 
+				case MenuList.Celestials: 
 					foreach (Celestial body in celestialsList)
 						body.UpdateDistance(vessel.transform.position);
 
 					CelestialBody currentBody = celestialsList[currentMenuItem].body;
 					switch (sortMode) {
-						case 0:
+						case SortMode.Alphabetic:
 							celestialsList.Sort(CelestialAlphabeticSort);
 							break;
-						case 1: 
+						case SortMode.Distance: 
 							celestialsList.Sort(CelestialDistanceSort);
 							break;
 					}
 					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
 					currentMenuCount = celestialsList.Count;
 					break;
-				case 2:
+				case MenuList.Vessels:
 					Vessel currentVessel = null;
 					if (vesselsList.Count > 0 && currentMenuItem < vesselsList.Count) {
 						if (vesselsList[currentMenuItem].vessel == null)
@@ -312,10 +328,10 @@ namespace JSI
 					currentMenuCount = vesselsList.Count;
 
 					switch (sortMode) {
-						case 0:
+						case SortMode.Alphabetic:
 							vesselsList.Sort(VesselAlphabeticSort);
 							break;
-						case 1: 
+						case SortMode.Distance: 
 							vesselsList.Sort(VesselDistanceSort);
 							break;
 					}
@@ -323,7 +339,7 @@ namespace JSI
 						currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
 
 					break;
-				case 3:
+				case MenuList.Ports:
 					UpdatePortsList();
 					break;
 			}
@@ -333,7 +349,7 @@ namespace JSI
 		private int UpdatePortsList()
 		{
 			portsList = ListAvailablePorts(selectedVessel);
-			if (currentMenu == 3) {
+			if (currentMenu == MenuList.Ports) {
 				currentMenuCount = portsList.Count;
 				if (currentMenuItem > currentMenuCount)
 					currentMenuItem = 0;
