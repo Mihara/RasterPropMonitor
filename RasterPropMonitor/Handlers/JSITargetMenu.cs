@@ -36,7 +36,7 @@ namespace JSI
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private int currentMenuItem;
-		private int currentMenuCount = 2;
+
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private readonly List<string> rootMenu = new List<string> {
@@ -45,6 +45,7 @@ namespace JSI
 			"Clear target",
 		};
 
+		private int currentMenuCount;
 		private enum MenuList
 		{
 			Root,
@@ -383,6 +384,7 @@ namespace JSI
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
+			currentMenuCount = rootMenu.Count;
 		}
 
 		private static int CelestialDistanceSort(Celestial first, Celestial second)
