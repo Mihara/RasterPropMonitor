@@ -217,7 +217,7 @@ namespace JSI
 					if (currentTarget != null)
 						menuTitle = MakeMenuTitle("Root menu", width);
 					for (int i = 0; i < rootMenu.Count; i++) {
-						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, false));
+						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, (rootMenu[i] == "Clear target" && currentTarget == null)));
 					}
 					break;
 				case MenuList.Filters:
