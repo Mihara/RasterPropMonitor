@@ -36,7 +36,6 @@ namespace JSI
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private int currentMenuItem;
-
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private readonly List<string> rootMenu = new List<string> {
@@ -44,8 +43,8 @@ namespace JSI
 			"Vessels",
 			"Clear target",
 		};
-
 		private int currentMenuCount;
+
 		private enum MenuList
 		{
 			Root,
@@ -69,10 +68,10 @@ namespace JSI
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private SortMode sortMode;
 		private bool pageActiveState;
-		// Analysis disable once UnusedParameter
+
 		public string ShowMenu(int width, int height)
 		{
-			return FormatMenu(height, currentMenu);
+			return FormatMenu(width, height, currentMenu);
 		}
 		// Analysis disable once UnusedParameter
 		public void PageActive(bool active, int pageNumber)
@@ -107,7 +106,7 @@ namespace JSI
 								UpdateLists();
 								break;
 							case "Clear target":
-								FlightGlobals.fetch.SetVesselTarget(null);
+								FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
 								break;
 						}
 						break;
@@ -155,26 +154,37 @@ namespace JSI
 				}
 			}
 			if (buttonID == buttonHome) {
-				if (sortMode == SortMode.Alphabetic)
-					sortMode = SortMode.Distance;
-				else
-					sortMode = SortMode.Alphabetic;
+				sortMode = sortMode == SortMode.Alphabetic ? SortMode.Distance : SortMode.Alphabetic;
 				UpdateLists();
 			}
 		}
+		// Analysis disable once UnusedParameter
+		private string MakeMenuTitle(string titleString, int width)
+		{
+			string targetName = string.Empty;
+			if (selectedCelestial != null)
+				targetName = selectedCelestial.GetName();
+			if (selectedVessel != null)
+				targetName = selectedVessel.GetName();
+			return currentTarget != null ? "== Current: " + targetName : "== " + titleString;
+		}
 
-		private string FormatMenu(int height, MenuList current)
+		private string FormatMenu(int width, int height, MenuList current)
 		{
 
 			var menu = new List<string>();
 
+			string menuTitle = string.Empty;
+
 			switch (current) {
 				case MenuList.Root:
+					menuTitle = MakeMenuTitle("Root menu", width);
 					for (int i = 0; i < rootMenu.Count; i++) {
 						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, false));
 					}
 					break;
 				case MenuList.Celestials: 
+					menuTitle = MakeMenuTitle("Celestial bodies", width);
 					for (int i = 0; i < celestialsList.Count; i++) {
 						menu.Add(FormatItem(celestialsList[i].name, celestialsList[i].distance,
 							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body),
@@ -183,10 +193,11 @@ namespace JSI
 					}
 					break;
 				case MenuList.Vessels:
+					menuTitle = MakeMenuTitle("Vessels", width);
 					for (int i = 0; i < vesselsList.Count; i++) {
 						menu.Add(FormatItem(vesselsList[i].name, vesselsList[i].distance,
 							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel),
-							false));
+							(vesselsList[i].vessel.mainBody != vessel.mainBody)));
 
 					}
 					break;
@@ -197,6 +208,7 @@ namespace JSI
 						UpdateLists();
 						return string.Empty;
 					}
+					menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
 					for (int i = 0; i < portsList.Count; i++) {
 						menu.Add(FormatItem(portsList[i].GetName(),
 							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
@@ -207,14 +219,20 @@ namespace JSI
 			}
 			if (!string.IsNullOrEmpty(pageTitle))
 				height--;
+			if (!string.IsNullOrEmpty(menuTitle))
+				height--;
 
 			if (menu.Count > height) {
 				menu = menu.GetRange(Math.Min(currentMenuItem, menu.Count - height), height);
 			}
-
 			var result = new StringBuilder();
+
 			if (!string.IsNullOrEmpty(pageTitle))
 				result.AppendLine(pageTitle);
+
+			if (!string.IsNullOrEmpty(menuTitle))
+				result.AppendLine(menuTitle);
+
 			foreach (string item in menu)
 				result.AppendLine(item);
 			return result.ToString();
