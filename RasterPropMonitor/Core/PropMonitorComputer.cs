@@ -240,12 +240,13 @@ namespace JSI
 
 				targetBody = target as CelestialBody;	
 
-
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				// Can you target the sun though?...
 				targetOrbitSensibility |= target is CelestialBody;
+				// Well, yes, you can target the sun.
+				if (targetBody != null && targetBody.bodyName == "Sun")
+					targetOrbitSensibility = false;
 				if (target is Vessel)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
 				if (target is ModuleDockingNode)
