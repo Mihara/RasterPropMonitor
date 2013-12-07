@@ -39,10 +39,10 @@ namespace JSI
 		{
 			StringBuilder result = new StringBuilder();
 			result.Append("[#");
-			result.Append(color.r.ToString("X").PadLeft(2,'0'));
-			result.Append(color.g.ToString("X").PadLeft(2,'0'));
-			result.Append(color.b.ToString("X").PadLeft(2,'0'));
-			result.Append(color.a.ToString("X").PadLeft(2,'0'));
+			result.Append(color.r.ToString("X").PadLeft(2, '0'));
+			result.Append(color.g.ToString("X").PadLeft(2, '0'));
+			result.Append(color.b.ToString("X").PadLeft(2, '0'));
+			result.Append(color.a.ToString("X").PadLeft(2, '0'));
 			result.Append("]");
 			return result.ToString();
 		}
