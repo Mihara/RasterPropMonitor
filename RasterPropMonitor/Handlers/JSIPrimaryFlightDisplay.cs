@@ -189,7 +189,7 @@ namespace JSI
 				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
 			}
 			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
-			navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+
 
 			// Cute!
 			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
@@ -203,6 +203,8 @@ namespace JSI
 			// ...well, it does, but the result is bizarre,
 			// apparently, because the stock BALL ITSELF IS MIRRORED.
 
+			navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+			Destroy(navBall.collider);
 			navBall.name = "RPMNB" + navBall.GetInstanceID();
 			navBall.layer = drawingLayer;
 			navBall.transform.position = Vector3.zero;
