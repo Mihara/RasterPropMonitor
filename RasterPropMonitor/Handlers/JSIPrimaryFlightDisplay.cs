@@ -15,8 +15,6 @@ namespace JSI
 		[KSPField]
 		public string headingBar;
 		[KSPField]
-		public float screenAspect = 1.35f;
-		[KSPField]
 		public bool ballIsEmissive;
 		[KSPField]
 		public Color32 backgroundColor = Color.black;
@@ -67,14 +65,21 @@ namespace JSI
 		private GameObject markerNormalMinus;
 		private GameObject markerRadial;
 		private GameObject markerRadialMinus;
+		// Misc...
+		private float cameraAspect;
 		// This is honestly very badly written code, probably the worst of what I have in this project.
 		// Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
 		// the rest is because the problem is all built out of special cases.
 		// Sorry. :)
-		public bool RenderPFD(RenderTexture screen)
+		public bool RenderPFD(RenderTexture screen, float aspect)
 		{
 			if (screen == null)
 				return false;
+			// Analysis disable once CompareOfFloatsByEqualityOperator
+			if (aspect != cameraAspect) {
+				cameraAspect = aspect;
+				ballCamera.aspect = cameraAspect;
+			}
 			GL.Clear(true, true, backgroundColor);
 
 			ballCamera.targetTexture = screen;
@@ -245,7 +250,6 @@ namespace JSI
 			ballCamera.clearFlags = CameraClearFlags.Nothing;
 			ballCamera.eventMask = 0;
 			ballCamera.farClipPlane = 3f;
-			ballCamera.aspect = screenAspect;
 			ballCamera.orthographicSize = cameraSpan;
 			ballCamera.cullingMask = 1 << drawingLayer;
 			ballCamera.clearFlags = CameraClearFlags.Depth;
