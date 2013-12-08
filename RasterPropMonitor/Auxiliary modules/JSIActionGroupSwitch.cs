@@ -67,7 +67,7 @@ namespace JSI
 		{
 			if (!groupList.ContainsKey(actionName)) {
 				if (!customGroupList.ContainsKey(actionName)) {
-					JUtil.LogMessage(this,"Action \"{0}\" not known, the switch will not work correctly.", actionName);
+					JUtil.LogMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					isCustomAction = true;
 				}
@@ -83,7 +83,7 @@ namespace JSI
 				if (actionName == "intlight")
 					persistentVarName = internalLightName;
 				else
-					persistentVarName = "switch" + internalProp.propID;
+					persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
 
 				persistence = new PersistenceAccessor(part);
 
@@ -113,7 +113,7 @@ namespace JSI
 				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				JUtil.LogMessage(this,"Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+				JUtil.LogMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
 			if (oldState ^ reverse) {
@@ -141,7 +141,7 @@ namespace JSI
 				// I probably shouldn't filter them every time, but I am getting
 				// serously confused by this hierarchy.
 				if (lightobject.name == internalLightName) {
-						lightobject.enabled = value;
+					lightobject.enabled = value;
 				}
 			}
 		}
@@ -194,7 +194,7 @@ namespace JSI
 
 			if (actionName == "intlight" && needsElectricCharge) {
 				if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-				   CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
 					return;
 
 				lightCheckCountdown--;
