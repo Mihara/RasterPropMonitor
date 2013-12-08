@@ -243,11 +243,8 @@ namespace JSI
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				targetOrbitSensibility |= target is CelestialBody;
-				// Well, yes, you can target the sun.
-				if (targetBody != null && targetBody.bodyName == "Sun")
-					targetOrbitSensibility = false;
-				if (target is Vessel)
+				targetOrbitSensibility |= targetBody != null && targetBody.bodyName != "Sun";
+				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
 				if (target is ModuleDockingNode)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
@@ -644,10 +641,7 @@ namespace JSI
 				case "TARGETNAME":
 					if (target == null)
 						return string.Empty;
-					if (target is Vessel || target is CelestialBody)
-						return target.GetName();
-					// TODO: Decide if that case should return the target vessel's name, or the docking node name as it does now.
-					if (target is ModuleDockingNode)
+					if (target is Vessel || target is CelestialBody || target is ModuleDockingNode)
 						return target.GetName();
 					// What remains is MechJeb's ITargetable implementations, which also can return a name,
 					// but the newline they return in some cases needs to be removed.
