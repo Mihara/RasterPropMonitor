@@ -37,7 +37,7 @@ namespace JSI
 
 		public static string ColorToColorTag(Color32 color)
 		{
-			StringBuilder result = new StringBuilder();
+			var result = new StringBuilder();
 			result.Append("[#");
 			result.Append(color.r.ToString("X").PadLeft(2, '0'));
 			result.Append(color.g.ToString("X").PadLeft(2, '0'));
