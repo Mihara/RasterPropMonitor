@@ -256,7 +256,7 @@ namespace JSI
 					}
 					menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
 					for (int i = 0; i < portsList.Count; i++) {
-						menu.Add(FormatItem(portsList[i].GetName(),
+						menu.Add(FormatItem(string.Format("{0}. {1}", i + 1, portsList[i].part.name),
 							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
 							(currentMenuItem == i), (portsList[i] == selectedPort),
 							false));
