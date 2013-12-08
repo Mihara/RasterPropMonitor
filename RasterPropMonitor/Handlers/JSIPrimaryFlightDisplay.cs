@@ -132,7 +132,7 @@ namespace JSI
 				if (targetPort != null) {
 					// Thanks to Michael Enßlin 
 					Transform targetTransform = targetPort.transform;
-					Transform selfTransform = FlightGlobals.ActiveVessel.ReferenceTransform;
+					Transform selfTransform = vessel.ReferenceTransform;
 					Vector3 targetOrientationVector = -targetTransform.up.normalized;
 
 					Vector3 v1 = Vector3.Cross(selfTransform.up, targetTransform.forward);
