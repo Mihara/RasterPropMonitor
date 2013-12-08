@@ -62,7 +62,7 @@ namespace JSI
 		{
 
 			if (double.IsNaN(seconds) || double.IsInfinity(seconds))
-				return string.Empty;
+				return seconds.ToString().PadLeft(format.Length - formatPrefixKDT.Length);
 
 			bool positive = true && seconds >= 0;
 			seconds = Math.Abs(seconds);
@@ -133,7 +133,7 @@ namespace JSI
 						break;
 					case 'f':
 						int count = CountRepeats(formatChars, i, 'f');
-						result.Append(fracSeconds.ToString(".".PadRight(20,'0')).Substring(1,count));
+						result.Append(fracSeconds.ToString(".".PadRight(20, '0')).Substring(1, count));
 						i += count - 1;
 						break;
 					default:
@@ -145,14 +145,15 @@ namespace JSI
 			return result.ToString();
 		}
 
-		private static int AppendRepeated(char[] thatArray, StringBuilder result, int value, char formatChar, int start) {
+		private static int AppendRepeated(char[] thatArray, StringBuilder result, int value, char formatChar, int start)
+		{
 			int count = CountRepeats(thatArray, start, formatChar);
 			if (count == 1) {
 				result.Append(value.ToString());
 			} else {
 				result.Append(value.ToString().PadLeft(count, '0'));
 			}
-			return count-1;
+			return count - 1;
 		}
 
 		private static int CountRepeats(char[] thatArray, int start, char thatChar)
@@ -182,8 +183,19 @@ namespace JSI
 		private static string DMSFormat(string format, double angle)
 		{
 
-			if (double.IsInfinity(angle) || double.IsNaN(angle))
-				return string.Empty;
+			var formatChars = format.ToCharArray();
+
+			if (double.IsInfinity(angle) || double.IsNaN(angle)) {
+				// I shouldn't have defined the format this way, now I can't easily compute the length.
+				// Oh well.
+				int formatLength = 0;
+				for (int i = formatPrefixDMS.Length; i < formatChars.Length; i++) {
+					if (formatChars[i]=='d' && formatChars[i - 1] == 'd')
+						formatLength++;
+					formatLength++;
+				}
+				return angle.ToString().PadLeft(formatLength);
+			}
 
 			// First calculate our values, then go in order.
 
@@ -191,7 +203,6 @@ namespace JSI
 			int minutes = (int)Math.Floor(60 * (Math.Abs(angle) - degrees));
 			int seconds = (int)Math.Floor(3600 * (Math.Abs(angle) - degrees - minutes / 60d));
 			var result = new StringBuilder();
-			var formatChars = format.ToCharArray();
 
 
 			for (int i = formatPrefixDMS.Length; i < formatChars.Length; i++) {
@@ -285,9 +296,34 @@ namespace JSI
 		public string SIPFormat(string format, double inputValue)
 		{
 
+			string formatData = format.Substring(formatPrefixSIP.Length);
+			bool spaceBeforePrefix = false;
+			if (formatData.Length > 0 && formatData[0] == '_') {
+				// First character is underscore, so we need a space.
+				formatData = formatData.Substring(1);
+				spaceBeforePrefix = true;
+			}
+
+			// If there's a zero, pad with zeros -- otherwise spaces.
+			bool zeroPad = false;
+			if (formatData.Length > 0 && formatData[0] == '0') {
+				// First character is zero, padding with zeroes
+				zeroPad = true;
+				formatData = formatData.Substring(1);
+			}
+
 			// Handle degenerate values (NaN, INF)
+			// We should return the string of requested length if we can even then.
+			// Which is why we parse the format string first.
 			if (double.IsInfinity(inputValue) || double.IsNaN(inputValue)) {
-				return inputValue + " ";
+				int blankLength;
+				if (formatData.IndexOf('.') > 0) {
+					string[] tokens = formatData.Split('.');
+					Int32.TryParse(tokens[0], out blankLength);
+				} else {
+					Int32.TryParse(formatData, out blankLength);
+				}
+				return (inputValue + " ").PadLeft(blankLength);
 			}
 
 			// Get some metrics on the number we are formatting:
@@ -306,23 +342,6 @@ namespace JSI
 			int siExponent = ((int)Math.Floor(leadingDigitExponent / 3.0)) * 3;
 
 			bool isNegative = (inputValue < 0.0);
-
-			string formatData = format.Substring(formatPrefixSIP.Length);
-
-			bool spaceBeforePrefix = false;
-			if (formatData.Length > 0 && formatData[0] == '_') {
-				// First character is underscore, so we need a space.
-				formatData = formatData.Substring(1);
-				spaceBeforePrefix = true;
-			}
-
-			// If there's a zero, pad with zeros -- otherwise spaces.
-			bool zeroPad = false;
-			if (formatData.Length > 0 && formatData[0] == '0') {
-				// First character is zero, padding with zeroes
-				zeroPad = true;
-				formatData = formatData.Substring(1);
-			}
 
 			int stringLength;
 			int postDecimal;
