@@ -831,7 +831,6 @@ namespace JSI
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
-			// Casting it to double is redundant, but JSIVariableAnimator type conversions need it to work well.
 				case "GEAR":
 					return FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
 				case "BRAKES":
