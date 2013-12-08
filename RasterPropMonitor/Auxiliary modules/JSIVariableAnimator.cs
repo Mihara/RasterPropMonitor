@@ -87,6 +87,22 @@ namespace JSI
 			}
 		}
 
+		private static float FixType(object thatValue)
+		{
+			// We only produce doubles, floats and ints in there.
+			// I hope this way I can get rid of all the silly typecasting in RPMC.
+			if (thatValue is double) {
+				return (float)(double)thatValue;
+			}
+			if (thatValue is float) {
+				return (float)thatValue;
+			}
+			if (thatValue is int) {
+				return (float)(int)thatValue;
+			}
+			return float.NaN;
+		}
+
 		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
@@ -101,18 +117,20 @@ namespace JSI
 			if (!UpdateCheck())
 				return;
 
-			float scaleBottom = 0;
-			float scaleTop = 0;
-			float varValue = 0;
-			try {
-				scaleBottom = scalePoints[0] ?? (float)(double)comp.ProcessVariable(varName[0]);
-				scaleTop = scalePoints[1] ?? (float)(double)comp.ProcessVariable(varName[1]);
-				varValue = (float)(double)comp.ProcessVariable(variableName);
-			} catch (InvalidCastException e) {
-				JUtil.LogMessage(this,"Error, one of the variables failed to produce a usable number. {0}", e);
-			}
+			float scaleBottom = scalePoints[0] ?? FixType(comp.ProcessVariable(varName[0]));
+			if (float.IsNaN(scaleBottom))
+				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[0]);
+
+			float scaleTop = scalePoints[1] ?? FixType(comp.ProcessVariable(varName[1]));
+			if (float.IsNaN(scaleTop))
+				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[1]);
+
+			float varValue = FixType(comp.ProcessVariable(variableName));
+			if (float.IsNaN(varValue))
+				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", variableName);
 
 			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
+
 			if (thresholdMode) {
 				if (scaledValue >= threshold.x && scaledValue <= threshold.y) {
 					if (audioOutput != null && !alarmActive) {

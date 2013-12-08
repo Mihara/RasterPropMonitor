@@ -413,7 +413,6 @@ namespace JSI
 		public object ProcessVariable(string input)
 		{
 
-			// Analysis disable RedundantCast
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
 				string[] tokens = input.Split('_');
@@ -471,8 +470,6 @@ namespace JSI
 			}
 
 			switch (input) {
-			// Annoying as it is, those casts to double are not actually redundant:
-			// Analysis disable RedundantCast
 
 			// It's a bit crude, but it's simple enough to populate.
 			// Would be a bit smoother if I had eval() :)
@@ -790,38 +787,37 @@ namespace JSI
 							-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
 					return double.NaN;
 
-			// Analysis disable RedundantCast
 			// FLight control status
 				case "THROTTLE":
-					return (double)vessel.ctrlState.mainThrottle;
+					return vessel.ctrlState.mainThrottle;
 				case "STICKPITCH":
-					return (double)vessel.ctrlState.pitch;
+					return vessel.ctrlState.pitch;
 				case "STICKROLL":
-					return (double)vessel.ctrlState.roll;
+					return vessel.ctrlState.roll;
 				case "STICKYAW":
-					return (double)vessel.ctrlState.yaw;
+					return vessel.ctrlState.yaw;
 				case "STICKPITCHTRIM":
-					return (double)vessel.ctrlState.pitchTrim;
+					return vessel.ctrlState.pitchTrim;
 				case "STICKROLLTRIM":
-					return (double)vessel.ctrlState.rollTrim;
+					return vessel.ctrlState.rollTrim;
 				case "STICKYAWTRIM":
-					return (double)vessel.ctrlState.yawTrim;
+					return vessel.ctrlState.yawTrim;
 				case "STICKRCSX":
-					return (double)vessel.ctrlState.X;
+					return vessel.ctrlState.X;
 				case "STICKRCSY":
-					return (double)vessel.ctrlState.Y;
+					return vessel.ctrlState.Y;
 				case "STICKRCSZ":
-					return (double)vessel.ctrlState.Z;				
+					return vessel.ctrlState.Z;				
 
 			// Staging and other stuff
 				case "STAGE":
-					return (double)Staging.CurrentStage;
+					return Staging.CurrentStage;
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
-					return (double)UnityEngine.Random.value;
+					return UnityEngine.Random.value;
 				case "PODTEMPERATURE":
-					return (double)part.temperature;
+					return part.temperature;
 				case "SLOPEANGLE":
 					return slopeAngle;
 
@@ -837,15 +833,15 @@ namespace JSI
 			// {0:on;0;OFF}
 			// Casting it to double is redundant, but JSIVariableAnimator type conversions need it to work well.
 				case "GEAR":
-					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
 				case "BRAKES":
-					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
 				case "SAS":
-					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
 				case "LIGHTS":
-					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
-					return (double)FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
+					return FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
 
 			// Database information about planetary bodies.
 				case "ORBITBODYATMOSPHERE":
