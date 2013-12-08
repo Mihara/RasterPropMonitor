@@ -9,7 +9,6 @@
 
 * Page handler to select between different page definition files based on variable values.
 * Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement.
-* JSIExternalCameraSelector option to turn the child camera relative to parent camera.
 
 ## Major new features
 

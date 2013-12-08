@@ -11,6 +11,8 @@ namespace JSI
 		public string cameraIDPrefix = "ExtCam";
 		[KSPField]
 		public int maximum = 8;
+		[KSPField]
+		public Vector3 rotateCamera = Vector3.zero;
 		// Internal data storage.
 		[KSPField(isPersistant = true)]
 		public int current = 1;
@@ -55,10 +57,14 @@ namespace JSI
 			// I'm amused to find that this does appear to work.
 			if (actualCamera == null) {
 				actualCamera = new GameObject().transform;
-				actualCamera.position = containingTransform.position;
-				actualCamera.rotation = containingTransform.rotation;
 				actualCamera.parent = containingTransform;
 			}
+			actualCamera.position = containingTransform.position;
+			actualCamera.rotation = containingTransform.rotation;
+
+			if (rotateCamera != Vector3.zero)
+				actualCamera.transform.Rotate(rotateCamera);
+
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
 			if (HighLogic.LoadedSceneIsEditor) {
 				if (cameraMessage != null) {
