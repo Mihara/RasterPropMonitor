@@ -932,10 +932,10 @@ namespace JSI
 						return Math.Sqrt(2 * targetBody.gravParameter / targetBody.Radius);
 					return -1d;
 				case "ORBITBODYAREA":
-					return 4 * Math.PI * Math.Pow(vessel.orbit.referenceBody.Radius, 2);
+					return 4 * Math.PI * vessel.orbit.referenceBody.Radius * vessel.orbit.referenceBody.Radius;
 				case "TARGETBODYAREA":
 					if (targetBody != null)
-						return 4 * Math.PI * Math.Pow(targetBody.Radius, 2);
+						return 4 * Math.PI * targetBody.Radius * targetBody.Radius;
 					return -1d;
 
 			// These variables are no longer documented and are DEPRECATED. They will be removed as soon as I can see that people aren't using them.
@@ -1017,10 +1017,11 @@ namespace JSI
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
 						if (resources[resourceType.Value].y > 0)
-							return resources[resourceType.Value].x / resources[resourceType.Value].y;
+							return (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d);
 						return 0d;
 					}
-					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
+					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y :
+						resources[resourceType.Value].x.Clamp(0d, resources[resourceType.Value].y);
 				}
 			}
 
