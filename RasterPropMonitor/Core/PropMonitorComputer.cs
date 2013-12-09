@@ -989,10 +989,11 @@ namespace JSI
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
 						if (resources[resourceType.Value].y > 0)
-							return resources[resourceType.Value].x / resources[resourceType.Value].y;
+							return (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d);
 						return 0d;
 					}
-					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y : resources[resourceType.Value].x;
+					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y :
+						resources[resourceType.Value].x.Clamp(0d, resources[resourceType.Value].y);
 				}
 			}
 
