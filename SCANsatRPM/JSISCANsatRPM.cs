@@ -94,7 +94,6 @@ namespace SCANsatRPM
 		private Rect screenSpace;
 		private bool pageActiveState;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
-
 		// Analysis disable once UnusedParameter
 		public bool MapRenderer(RenderTexture screen, float cameraAspect)
 		{
@@ -487,7 +486,7 @@ namespace SCANsatRPM
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
-			map.mapscale *= (Math.Pow(zoomLevel, 2) + zoomModifier);
+			map.mapscale *= (zoomLevel * zoomLevel + zoomModifier);
 			mapCenterLong = vessel.longitude;
 			mapCenterLat = vessel.latitude;
 			// That's really just sweeping the problem under the carpet instead of fixing it, but meh.
@@ -500,7 +499,7 @@ namespace SCANsatRPM
 			// use these values for every segment when drawing trails, so it
 			// makes sense to compute it only when it changes.
 			mapSizeScale = new Vector2d(360.0 * map.mapscale / map.mapwidth, 180.0 * map.mapscale / map.mapheight);
-			redrawDeviation = redrawEdge * 180 / (Math.Pow(zoomLevel, 2) + zoomModifier);
+			redrawDeviation = redrawEdge * 180 / (zoomLevel * zoomLevel + zoomModifier);
 			try {
 				localAnomalies = SCANcontroller.controller.getData(vessel.mainBody).getAnomalies();
 			} catch {
