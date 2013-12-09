@@ -39,19 +39,21 @@ namespace JSI
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<int,int,string> pageHandler;
-		private readonly Func<RenderTexture,bool> backgroundHandler;
+		private readonly Func<RenderTexture,float,bool> backgroundHandler;
 		private readonly Action<bool,int> pageHandlerActivate;
 		private readonly Action<bool,int> backgroundHandlerActivate;
 		private readonly Action<int> pageHandlerButtonClick;
 		private readonly Action<int> backgroundHandlerButtonClick;
 		private readonly RasterPropMonitor ourMonitor;
 		private int screenWidth, screenHeight;
+		private readonly float cameraAspect;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
 			ourMonitor = thatMonitor;
 			screenWidth = ourMonitor.screenWidth;
 			screenHeight = ourMonitor.screenHeight;
+			cameraAspect = ourMonitor.cameraAspect;
 
 			pageNumber = idNum;
 			isMutable = false;
@@ -92,7 +94,7 @@ namespace JSI
 				InternalModule handlerModule;
 				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
-					backgroundHandler = (Func<RenderTexture,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,bool>), handlerModule, handlerMethod);
+					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					isMutable = true;
 					background = BackgroundType.Handler;
 				}
@@ -201,7 +203,7 @@ namespace JSI
 					Graphics.Blit(backgroundTexture, screen);
 					return true;
 				case BackgroundType.Handler:
-					return backgroundHandler(screen);
+					return backgroundHandler(screen,cameraAspect);
 			}
 			return false;
 		}

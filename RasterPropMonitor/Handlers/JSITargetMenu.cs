@@ -34,6 +34,8 @@ namespace JSI
 		public int distanceColumn = 30;
 		[KSPField]
 		public string distanceFormatString = " <=0:SIP_6=>m";
+		[KSPField]
+		public string menuTitleFormatString = "== {0}";
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private int currentMenuItem;
@@ -202,7 +204,7 @@ namespace JSI
 				targetName = selectedCelestial.GetName();
 			if (selectedVessel != null)
 				targetName = selectedVessel.GetName();
-			return currentTarget != null ? "== Current: " + targetName : "== " + titleString;
+			return currentTarget != null ? string.Format(fp, menuTitleFormatString, "Current: " + targetName) : string.Format(fp, menuTitleFormatString, titleString);
 		}
 
 		private string FormatMenu(int width, int height, MenuList current)
@@ -221,7 +223,7 @@ namespace JSI
 					}
 					break;
 				case MenuList.Filters:
-					menuTitle = "== Vessel filtering:";
+					menuTitle = string.Format(fp, menuTitleFormatString, "Vessel filtering");
 					for (int i = 0; i < vesselFilter.Count; i++) {
 						var filter = vesselFilter.ElementAt(i);
 						menu.Add(FormatItem(
@@ -460,9 +462,10 @@ namespace JSI
 			selectedColorTag = JUtil.ColorToColorTag(selectedColor);
 			unavailableColorTag = JUtil.ColorToColorTag(unavailableColor);
 			distanceFormatString = distanceFormatString.UnMangleConfigText();
+			menuTitleFormatString = menuTitleFormatString.UnMangleConfigText();
 
 			if (!string.IsNullOrEmpty(pageTitle))
-				pageTitle = pageTitle.Replace("<=", "{").Replace("=>", "}");
+				pageTitle = pageTitle.UnMangleConfigText();
 
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				celestialsList.Add(new Celestial(body, vessel.transform.position));

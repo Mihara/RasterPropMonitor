@@ -27,6 +27,9 @@ namespace FormatterTests
 				0.0123,
 				-0.0123,
 				0,
+				double.NaN,
+				double.PositiveInfinity,
+				double.NegativeInfinity,
 			};
 
 			foreach (double value in values) {
@@ -55,6 +58,9 @@ namespace FormatterTests
 				1.234,
 				0.1234,
 				0,
+				double.NaN,
+				double.PositiveInfinity,
+				double.NegativeInfinity,
 			};
 
 
@@ -82,6 +88,9 @@ namespace FormatterTests
 				-12345.6789,
 				12345.95,
 				-12345.95,
+				double.NaN,
+				double.PositiveInfinity,
+				double.NegativeInfinity,
 			};
 
 			foreach (double value in seconds) {

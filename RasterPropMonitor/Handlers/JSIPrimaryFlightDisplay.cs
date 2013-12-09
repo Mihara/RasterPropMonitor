@@ -15,8 +15,6 @@ namespace JSI
 		[KSPField]
 		public string headingBar;
 		[KSPField]
-		public float screenAspect = 1.35f;
-		[KSPField]
 		public bool ballIsEmissive;
 		[KSPField]
 		public Color32 backgroundColor = Color.black;
@@ -43,6 +41,8 @@ namespace JSI
 		[KSPField]
 		public Color radialColor = new Color(0, 1, 0.958f);
 		[KSPField]
+		public Color dockingColor = Color.red;
+		[KSPField]
 		public float cameraSpan = 1f;
 		[KSPField]
 		public Vector2 cameraShift = Vector2.zero;
@@ -67,14 +67,22 @@ namespace JSI
 		private GameObject markerNormalMinus;
 		private GameObject markerRadial;
 		private GameObject markerRadialMinus;
+		private GameObject markerDockingAlignment;
+		// Misc...
+		private float cameraAspect;
 		// This is honestly very badly written code, probably the worst of what I have in this project.
 		// Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
 		// the rest is because the problem is all built out of special cases.
 		// Sorry. :)
-		public bool RenderPFD(RenderTexture screen)
+		public bool RenderPFD(RenderTexture screen, float aspect)
 		{
 			if (screen == null)
 				return false;
+			// Analysis disable once CompareOfFloatsByEqualityOperator
+			if (aspect != cameraAspect) {
+				cameraAspect = aspect;
+				ballCamera.aspect = cameraAspect;
+			}
 			GL.Clear(true, true, backgroundColor);
 
 			ballCamera.targetTexture = screen;
@@ -120,6 +128,22 @@ namespace JSI
 				Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
 				MoveMarker(markerTarget, targetSeparation, targetColor, gymbal);
 				MoveMarker(markerTargetMinus, -targetSeparation, targetColor, gymbal);
+				ModuleDockingNode targetPort = target as ModuleDockingNode;
+				if (targetPort != null) {
+					// Thanks to Michael Enßlin 
+					Transform targetTransform = targetPort.transform;
+					Transform selfTransform = vessel.ReferenceTransform;
+					Vector3 targetOrientationVector = -targetTransform.up.normalized;
+
+					Vector3 v1 = Vector3.Cross(selfTransform.up, targetTransform.forward);
+					Vector3 v2 = Vector3.Cross(selfTransform.up, selfTransform.forward);
+					float angle = Vector3.Angle(v1, v2);
+					if (Vector3.Dot(selfTransform.up, Vector3.Cross(v1, v2)) < 0)
+						angle = -angle;
+					MoveMarker(markerDockingAlignment, targetOrientationVector, dockingColor, gymbal);
+					markerDockingAlignment.transform.Rotate(Vector3.up, -angle);
+					ShowHide(true, markerDockingAlignment);
+				}
 				ShowHide(true, markerTarget, markerTargetMinus);
 			}
 
@@ -136,7 +160,7 @@ namespace JSI
 			ShowHide(false,
 				cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
 				markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
-				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
+				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus, markerDockingAlignment);
 
 			return true;
 		}
@@ -235,6 +259,8 @@ namespace JSI
 			markerRadial = BuildMarker(0, 1, radialColor);
 			markerRadialMinus = BuildMarker(1, 1, radialColor);
 
+			markerDockingAlignment = BuildMarker(0, 2, dockingColor);
+
 			// Non-moving parts...
 			cameraBody = new GameObject();
 			cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
@@ -245,7 +271,6 @@ namespace JSI
 			ballCamera.clearFlags = CameraClearFlags.Nothing;
 			ballCamera.eventMask = 0;
 			ballCamera.farClipPlane = 3f;
-			ballCamera.aspect = screenAspect;
 			ballCamera.orthographicSize = cameraSpan;
 			ballCamera.cullingMask = 1 << drawingLayer;
 			ballCamera.clearFlags = CameraClearFlags.Depth;
@@ -288,7 +313,7 @@ namespace JSI
 			thatObject.transform.LookAt(Vector3.down,Vector3.back);
 			thatObject.transform.position = originalPosition;
 			*/
-			thatObject.transform.rotation = Quaternion.Euler(new Vector3(90, 180, 0));
+			thatObject.transform.rotation = Quaternion.Euler(90, 180, 0);
 		}
 
 		private static void ShowHide(bool status, params GameObject[] objects)

@@ -95,7 +95,8 @@ namespace SCANsatRPM
 		private bool pageActiveState;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
 
-		public bool MapRenderer(RenderTexture screen)
+		// Analysis disable once UnusedParameter
+		public bool MapRenderer(RenderTexture screen, float cameraAspect)
 		{
 			// Just in case.
 			if (!HighLogic.LoadedSceneIsFlight)
