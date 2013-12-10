@@ -1,7 +1,3 @@
-# 0.10 milestone targets
-
-* Pre-release testing!
-
 # 0.11 milestone targets
 
 ## Minor new features
