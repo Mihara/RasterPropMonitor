@@ -87,6 +87,11 @@ namespace JSI
 		private bool pageActiveState;
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
+		// unfocusedRange for stock ModuleDockingNode is 200f
+		// so it should in theory work from at least this far.
+		// Something drops target forcibly though, and this
+		// can probably be prevented - but I can't find what it is.
+		private const float targetablePortDistance = 200f;
 
 		public string ShowMenu(int width, int height)
 		{
@@ -258,10 +263,10 @@ namespace JSI
 					}
 					menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
 					for (int i = 0; i < portsList.Count; i++) {
+						float distance = Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position);
 						menu.Add(FormatItem(string.Format("{0}. {1}", i + 1, portsList[i].part.name),
-							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
-							(currentMenuItem == i), (portsList[i] == selectedPort),
-							false));
+							distance, (currentMenuItem == i), (portsList[i] == selectedPort),
+							(distance < targetablePortDistance)));
 					}
 					break;
 			}
@@ -397,8 +402,7 @@ namespace JSI
 					if (vesselsList.Count > 0 && currentMenuItem < vesselsList.Count) {
 						if (vesselsList[currentMenuItem].vessel == null)
 							currentMenuItem = 0;
-
-						if (vesselsList[currentMenuItem].vessel != null)
+						else
 							currentVessel = vesselsList[currentMenuItem].vessel;
 					} else
 						currentMenuItem = 0;
