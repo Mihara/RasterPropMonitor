@@ -1,25 +1,32 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace JSI
 {
 	public class SmarterButton: MonoBehaviour
 	{
 		private Action<int> handlerID;
-		private Action<MonitorPage> handlerPageReference;
+		private Action<MonitorPage> pageSelectionHandlerFunction;
 		private Action handler;
 		private int id;
-		private MonitorPage pageReference;
+		private readonly List<MonitorPage> pageReferences = new List<MonitorPage>();
+		private int listCounter;
 
 		public void OnMouseDown()
 		{
-			if (handlerPageReference != null) {
-				handlerPageReference(pageReference);
+			if (pageReferences.Count > 0) {
+				pageSelectionHandlerFunction(pageReferences[listCounter]);
+				listCounter++;
+				if (listCounter >= pageReferences.Count)
+					listCounter = 0;
 				return;
 			}
-			if (handlerID != null)
+			if (handlerID != null) {
 				handlerID(id);
-			else
+				return;
+			}
+			if (handler != null)
 				handler();
 		}
 
@@ -30,14 +37,15 @@ namespace JSI
 				Debug.LogError("Button transform name not found, expect errors.");
 				return null;
 			} 
-			return buttonObject.AddComponent<SmarterButton>();
+			SmarterButton thatComponent = buttonObject.GetComponent<SmarterButton>() ?? buttonObject.AddComponent<SmarterButton>();
+			return thatComponent;
 		}
 
 		public static void CreateButton(InternalProp thatProp, string buttonName, MonitorPage thatPage, Action<MonitorPage> handlerFunction)
 		{
 			SmarterButton buttonBehaviour = AttachBehaviour(thatProp, buttonName);
-			buttonBehaviour.pageReference = thatPage;
-			buttonBehaviour.handlerPageReference = handlerFunction;
+			buttonBehaviour.pageSelectionHandlerFunction = handlerFunction;
+			buttonBehaviour.pageReferences.Add(thatPage);
 		}
 
 
