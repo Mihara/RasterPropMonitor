@@ -87,6 +87,11 @@ namespace JSI
 		private bool pageActiveState;
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
+		// unfocusedRange for stock ModuleDockingNode is 200f
+		// so it should in theory work from at least this far.
+		// Something drops target forcibly though, and this
+		// can probably be prevented - but I can't find what it is.
+		private const float targetablePortDistance = 200f;
 
 		public string ShowMenu(int width, int height)
 		{
@@ -258,10 +263,10 @@ namespace JSI
 					}
 					menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
 					for (int i = 0; i < portsList.Count; i++) {
+						float distance = Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position);
 						menu.Add(FormatItem(string.Format("{0}. {1}", i + 1, portsList[i].part.name),
-							Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position),
-							(currentMenuItem == i), (portsList[i] == selectedPort),
-							false));
+							distance, (currentMenuItem == i), (portsList[i] == selectedPort),
+							(distance > targetablePortDistance)));
 					}
 					break;
 			}
@@ -383,10 +388,10 @@ namespace JSI
 					CelestialBody currentBody = celestialsList[currentMenuItem].body;
 					switch (sortMode) {
 						case SortMode.Alphabetic:
-							celestialsList.Sort(CelestialAlphabeticSort);
+							celestialsList.Sort(Celestial.AlphabeticSort);
 							break;
 						case SortMode.Distance: 
-							celestialsList.Sort(CelestialDistanceSort);
+							celestialsList.Sort(Celestial.DistanceSort);
 							break;
 					}
 					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
@@ -397,8 +402,7 @@ namespace JSI
 					if (vesselsList.Count > 0 && currentMenuItem < vesselsList.Count) {
 						if (vesselsList[currentMenuItem].vessel == null)
 							currentMenuItem = 0;
-
-						if (vesselsList[currentMenuItem].vessel != null)
+						else
 							currentVessel = vesselsList[currentMenuItem].vessel;
 					} else
 						currentMenuItem = 0;
@@ -418,10 +422,10 @@ namespace JSI
 
 					switch (sortMode) {
 						case SortMode.Alphabetic:
-							vesselsList.Sort(VesselAlphabeticSort);
+							vesselsList.Sort(TargetableVessel.AlphabeticSort);
 							break;
 						case SortMode.Distance: 
-							vesselsList.Sort(VesselDistanceSort);
+							vesselsList.Sort(TargetableVessel.DistanceSort);
 							break;
 					}
 					if (currentVessel != null)
@@ -471,30 +475,6 @@ namespace JSI
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 			currentMenuCount = rootMenu.Count;
-		}
-
-		private static int CelestialDistanceSort(Celestial first, Celestial second)
-		{
-			return first.distance.CompareTo(second.distance);
-		}
-
-		private static int CelestialAlphabeticSort(Celestial first, Celestial second)
-		{
-			return string.Compare(first.name, second.name, StringComparison.Ordinal);
-		}
-
-		private static int VesselDistanceSort(TargetableVessel first, TargetableVessel second)
-		{
-			if (first.vessel == null || second.vessel == null)
-				return 0;
-			return first.distance.CompareTo(second.distance);
-		}
-
-		private static int VesselAlphabeticSort(TargetableVessel first, TargetableVessel second)
-		{
-			if (first.vessel == null || second.vessel == null)
-				return 0;
-			return string.Compare(first.name, second.name, StringComparison.Ordinal);
 		}
 
 		private static int VesselFilterToBitmask(Dictionary<VesselType,bool> filterList)
@@ -560,6 +540,16 @@ namespace JSI
 			{
 				FlightGlobals.fetch.SetVesselTarget(body);
 			}
+
+			public static int DistanceSort(Celestial first, Celestial second)
+			{
+				return first.distance.CompareTo(second.distance);
+			}
+
+			public static int AlphabeticSort(Celestial first, Celestial second)
+			{
+				return string.Compare(first.name, second.name, StringComparison.Ordinal);
+			}
 		}
 
 		private class TargetableVessel
@@ -583,6 +573,20 @@ namespace JSI
 			public void SetTarget()
 			{
 				FlightGlobals.fetch.SetVesselTarget(vessel);
+			}
+
+			public static int DistanceSort(TargetableVessel first, TargetableVessel second)
+			{
+				if (first.vessel == null || second.vessel == null)
+					return 0;
+				return first.distance.CompareTo(second.distance);
+			}
+
+			public static int AlphabeticSort(TargetableVessel first, TargetableVessel second)
+			{
+				if (first.vessel == null || second.vessel == null)
+					return 0;
+				return string.Compare(first.name, second.name, StringComparison.Ordinal);
 			}
 		}
 	}

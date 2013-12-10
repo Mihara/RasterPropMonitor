@@ -190,7 +190,7 @@ namespace JSI
 				// Oh well.
 				int formatLength = 0;
 				for (int i = formatPrefixDMS.Length; i < formatChars.Length; i++) {
-					if (formatChars[i]=='d' && formatChars[i - 1] == 'd')
+					if (formatChars[i] == 'd' && formatChars[i - 1] == 'd')
 						formatLength++;
 					formatLength++;
 				}
@@ -377,8 +377,14 @@ namespace JSI
 			}
 			//charactersRequired += (postDecimal > 0) ? (postDecimal + 1) : 0;
 
-			double scaledInputValue = inputValue / Math.Pow(10.0, siExponent);
+			// Mihara: In some rare and hard to catch cases, ToString("F"+postDecimal)
+			// seems to produce one more symbol than it should. No idea how exactly,
+			// but it's possible that the difference is due to the test executable
+			// running under the Windows .NET while KSP runs the plugin with it's own copy
+			// of Mono. I'm hoping that explicit rounding will get rid of that effect.
+			double scaledInputValue = Math.Round(inputValue / Math.Pow(10.0, siExponent), postDecimal);
 
+			// Mihara: I think this way of assembling it is more consistent.
 			var result = new StringBuilder(scaledInputValue.ToString("F" + postDecimal));
 
 			if (spaceBeforePrefix) {
@@ -388,16 +394,11 @@ namespace JSI
 				result.Append(GetSIPrefix(siExponent));
 			}
 
-			var resultStr = result.ToString();
-			// MOARdV: This feels kind-of hacky, but I don't know C# formatting
-			// tricks to find a cleaner way to do this.
-			if (zeroPad && isNegative) {
-				String zeros = "";
-				// I have to add an extra '0' if there is no siExponent character
-				zeros = zeros.PadRight(stringLength - resultStr.Length, '0');
-				return resultStr.Insert(1, zeros);
-			}
-			return resultStr.PadLeft(stringLength, zeroPad ? '0' : ' ');
+			if (stringLength > result.Length)
+				result.Insert((isNegative && zeroPad) ? 1 : 0, zeroPad ? "0" : " ", stringLength - result.Length);
+
+			return result.ToString();
+
 		}
 
 		private static string GetSIPrefix(int siExponent)

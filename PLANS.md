@@ -1,7 +1,6 @@
 # 0.10 milestone targets
 
 * Pre-release testing!
-* Example display config cleanup.
 
 # 0.11 milestone targets
 
@@ -9,11 +8,12 @@
 
 * Page handler to select between different page definition files based on variable values.
 * Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement.
+* Rearrange code so that the page class gets a pointer to the camera class and can change FOV of the camera with globalButtons if there are no other handlers.
 
 ## Major new features
 
 * Graphs using the vector tech from JSISCANsatRPM and variables.
-* MechJeb SmartASS interface menu.
+* MechJeb SmartASS interface menu with an 'execute node' option.
 
 # Future targets
 
@@ -25,10 +25,12 @@
 
 * Work out an API setting to direct handler loader to look at another prop?
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
-* It should be possible to SetReferenceTransform to a specific docking port while in IVA... It might even be possible
-  to do that to the port we're currently looking out of.
+* It should be possible to SetReferenceTransform to a specific docking port while in IVA, (ModuleDockingNode.MakeReferenceTransform() *should* work.) but experiments suggest results can be bizarre, and multiple screens can be problematic. *(Which setter takes precedence? What if we are watching multiple port cameras?)* If this can be done, this should be part of the targeting menu...
+* Side idea: If this does work, it might be possible to create a variable orientation pod that can switch control direction depending on whether you want to use it for a spaceship or a rover.
 
 ## Major new features
 
+* Special shader for printing text with well-defined behaviour?
 * Maneuver node creator/editor menu?
 * Orbit display a-la Orbiter?
+* kOSTER ("Campfire") -- A full keyboard kOS terminal. :)

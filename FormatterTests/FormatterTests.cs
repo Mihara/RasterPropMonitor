@@ -30,6 +30,7 @@ namespace FormatterTests
 				double.NaN,
 				double.PositiveInfinity,
 				double.NegativeInfinity,
+				100019.9999,
 			};
 
 			foreach (double value in values) {

@@ -51,6 +51,7 @@ namespace JSI
 		private double slopeAngle;
 		private double atmPressure;
 		private double dynamicPressure;
+		private readonly double upperAtmosphereLimit = Math.Log(100000);
 		// the 'Q' value
 		private CelestialBody targetBody;
 		// Local data fetching variables...
@@ -243,7 +244,7 @@ namespace JSI
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				targetOrbitSensibility |= targetBody != null && targetBody.bodyName != "Sun";
+				targetOrbitSensibility |= targetBody != null && targetBody != FlightGlobals.Bodies[0];
 				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
 				if (target is ModuleDockingNode)
@@ -547,6 +548,13 @@ namespace JSI
 					return vessel.atmDensity;
 				case "DYNAMICPRESSURE":
 					return dynamicPressure;
+				case "ATMOSPHEREDEPTH":
+					if (vessel.mainBody.atmosphere) {
+						return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure) /
+						FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.staticPressureASL))) / upperAtmosphereLimit).Clamp(0d, 1d);
+					}
+					return 0d;
+
 
 			// Masses.
 				case "MASSDRY":
