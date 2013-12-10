@@ -25,7 +25,8 @@
 
 * Work out an API setting to direct handler loader to look at another prop?
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
-* It should be possible to SetReferenceTransform to a specific docking port while in IVA... It might even be possible to do that to the port we're currently looking out of, and I can use JSIExternalCameraSelector to provide the reference.
+* It should be possible to SetReferenceTransform to a specific docking port while in IVA, (ModuleDockingNode.MakeReferenceTransform() *should* work.) but experiments suggest results can be bizarre, and multiple screens can be problematic. *(Which setter takes precedence? What if we are watching multiple port cameras?)* If this can be done, this should be part of the targeting menu...
+* Side idea: If this does work, it might be possible to create a variable orientation pod that can switch control direction depending on whether you want to use it for a spaceship or a rover.
 
 ## Major new features
 
