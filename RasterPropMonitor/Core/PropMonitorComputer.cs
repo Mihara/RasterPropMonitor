@@ -51,6 +51,7 @@ namespace JSI
 		private double slopeAngle;
 		private double atmPressure;
 		private double dynamicPressure;
+		private readonly double upperAtmosphereLimit = Math.Log(100000);
 		// the 'Q' value
 		private CelestialBody targetBody;
 		// Local data fetching variables...
@@ -515,6 +516,13 @@ namespace JSI
 					return vessel.atmDensity;
 				case "DYNAMICPRESSURE":
 					return dynamicPressure;
+				case "ATMOSPHEREDEPTH":
+					if (vessel.mainBody.atmosphere) {
+						return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure) /
+						FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.staticPressureASL))) / upperAtmosphereLimit).Clamp(0d, 1d);
+					}
+					return 0d;
+
 
 			// Masses.
 				case "MASSDRY":
