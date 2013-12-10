@@ -73,12 +73,13 @@ namespace JSI
 			}
 
 
-			if (node.HasNode("PAGEHANDLER")) {
+			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("PAGEHANDLER"), ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					isMutable = true;
+					break;
 				}
 			} 
 			if (pageHandler == null) {
@@ -89,15 +90,16 @@ namespace JSI
 			}
 
 
-			if (node.HasNode("BACKGROUNDHANDLER")) {
+			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(node.GetNode("BACKGROUNDHANDLER"), ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					isMutable = true;
 					background = BackgroundType.Handler;
+					break;
 				}
-			} 
+			}
 
 			if (background == BackgroundType.None) {
 				if (node.HasValue("cameraTransform")) {
