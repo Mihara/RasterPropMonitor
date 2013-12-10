@@ -383,10 +383,10 @@ namespace JSI
 					CelestialBody currentBody = celestialsList[currentMenuItem].body;
 					switch (sortMode) {
 						case SortMode.Alphabetic:
-							celestialsList.Sort(CelestialAlphabeticSort);
+							celestialsList.Sort(Celestial.AlphabeticSort);
 							break;
 						case SortMode.Distance: 
-							celestialsList.Sort(CelestialDistanceSort);
+							celestialsList.Sort(Celestial.DistanceSort);
 							break;
 					}
 					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
@@ -418,10 +418,10 @@ namespace JSI
 
 					switch (sortMode) {
 						case SortMode.Alphabetic:
-							vesselsList.Sort(VesselAlphabeticSort);
+							vesselsList.Sort(TargetableVessel.AlphabeticSort);
 							break;
 						case SortMode.Distance: 
-							vesselsList.Sort(VesselDistanceSort);
+							vesselsList.Sort(TargetableVessel.DistanceSort);
 							break;
 					}
 					if (currentVessel != null)
@@ -471,30 +471,6 @@ namespace JSI
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 			currentMenuCount = rootMenu.Count;
-		}
-
-		private static int CelestialDistanceSort(Celestial first, Celestial second)
-		{
-			return first.distance.CompareTo(second.distance);
-		}
-
-		private static int CelestialAlphabeticSort(Celestial first, Celestial second)
-		{
-			return string.Compare(first.name, second.name, StringComparison.Ordinal);
-		}
-
-		private static int VesselDistanceSort(TargetableVessel first, TargetableVessel second)
-		{
-			if (first.vessel == null || second.vessel == null)
-				return 0;
-			return first.distance.CompareTo(second.distance);
-		}
-
-		private static int VesselAlphabeticSort(TargetableVessel first, TargetableVessel second)
-		{
-			if (first.vessel == null || second.vessel == null)
-				return 0;
-			return string.Compare(first.name, second.name, StringComparison.Ordinal);
 		}
 
 		private static int VesselFilterToBitmask(Dictionary<VesselType,bool> filterList)
@@ -560,6 +536,16 @@ namespace JSI
 			{
 				FlightGlobals.fetch.SetVesselTarget(body);
 			}
+
+			public static int DistanceSort(Celestial first, Celestial second)
+			{
+				return first.distance.CompareTo(second.distance);
+			}
+
+			public static int AlphabeticSort(Celestial first, Celestial second)
+			{
+				return string.Compare(first.name, second.name, StringComparison.Ordinal);
+			}
 		}
 
 		private class TargetableVessel
@@ -583,6 +569,20 @@ namespace JSI
 			public void SetTarget()
 			{
 				FlightGlobals.fetch.SetVesselTarget(vessel);
+			}
+
+			public static int DistanceSort(TargetableVessel first, TargetableVessel second)
+			{
+				if (first.vessel == null || second.vessel == null)
+					return 0;
+				return first.distance.CompareTo(second.distance);
+			}
+
+			public static int AlphabeticSort(TargetableVessel first, TargetableVessel second)
+			{
+				if (first.vessel == null || second.vessel == null)
+					return 0;
+				return string.Compare(first.name, second.name, StringComparison.Ordinal);
 			}
 		}
 	}
