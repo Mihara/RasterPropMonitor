@@ -176,12 +176,16 @@ namespace JSI
 
 		public void GlobalButtonClick(int buttonID)
 		{
+			if (needsElectricCharge && electricChargeReserve < 0.01d)
+				return;
 			activePage.GlobalButtonClick(buttonID);
 			PlayClickSound(audioOutput);
 		}
 
 		public void PageButtonClick(MonitorPage triggeredPage)
 		{
+			if (needsElectricCharge && electricChargeReserve < 0.01d)
+				return;
 			if (triggeredPage != activePage) {
 				activePage.Active(false);
 				activePage = triggeredPage;
