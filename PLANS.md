@@ -28,6 +28,7 @@
 * Multiple pages sharing a button transform should get cycled on it!
 * It should be possible to SetReferenceTransform to a specific docking port while in IVA, (ModuleDockingNode.MakeReferenceTransform() *should* work.) but experiments suggest results can be bizarre, and multiple screens can be problematic. *(Which setter takes precedence? What if we are watching multiple port cameras?)* If this can be done, this should be part of the targeting menu...
 * Side idea: If this does work, it might be possible to create a variable orientation pod that can switch control direction depending on whether you want to use it for a spaceship or a rover.
+* Multiple and-ed conditions in VariableAnimator?...
 
 ## Major new features
 
