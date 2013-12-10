@@ -394,7 +394,8 @@ namespace JSI
 				result.Append(GetSIPrefix(siExponent));
 			}
 
-			result.Insert((isNegative && zeroPad) ? 1 : 0, zeroPad ? "0" : " ", stringLength - result.Length);
+			if (stringLength < result.Length)
+				result.Insert((isNegative && zeroPad) ? 1 : 0, zeroPad ? "0" : " ", stringLength - result.Length);
 
 			return result.ToString();
 
