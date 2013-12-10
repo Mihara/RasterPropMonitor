@@ -265,10 +265,11 @@ namespace JSI
 				double accelUp = Vector3d.Dot(vessel.acceleration, up);
 
 				double altitude = altitudeTrue;
-				if(vessel.mainBody.ocean)
+				if (vessel.mainBody.ocean && altitudeASL > 0.0)
 				{
 					// AltitudeTrue shows distance above the floor of the ocean,
-					// so use ASL if it's closer in this case.
+					// so use ASL if it's closer in this case, and we're not
+					// already below SL.
 					altitude = Math.Min(altitudeASL, altitudeTrue);
 				}
 
