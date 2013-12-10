@@ -263,9 +263,13 @@ namespace JSI
 				// What is the vertical component of current acceleration?
 				double accelUp = Vector3d.Dot(vessel.acceleration, up);
 
-				// AltitudeTrue shows distance above the floor of the ocean,
-				// so use ASL if it's closer.
-				double altitude = Math.Min(altitudeASL, altitudeTrue);
+				double altitude = altitudeTrue;
+				if(vessel.mainBody.ocean)
+				{
+					// AltitudeTrue shows distance above the floor of the ocean,
+					// so use ASL if it's closer in this case.
+					altitude = Math.Min(altitudeASL, altitudeTrue);
+				}
 
 				if (accelUp < 0.0 || speedVertical >= 0.0 || Planetarium.TimeScale > 1.0) {
 					// If accelUp is negative, we can't use it in the general
