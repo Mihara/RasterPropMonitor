@@ -346,7 +346,8 @@ namespace JSI
 					firstRenderComplete = true;
 				} else {
 					CheckForElectricCharge();
-					firstRenderComplete &= !needsElectricCharge || electricChargeReserve >= 0.01d;
+					if (needsElectricCharge && electricChargeReserve < 0.01d)
+						RenderScreen();
 				}
 			} else {
 				if (textRefreshRequired)
