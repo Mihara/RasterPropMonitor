@@ -107,7 +107,7 @@ namespace JSI
 			foreach (string layerID in textureLayerID.Split())
 				screenMat.SetTexture(layerID.Trim(), screenTexture);
 
-			// The neat trick. IConfigMode doesn't work. No amount of kicking got it to work.
+			// The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
 				// Now, we know our own prop name.
