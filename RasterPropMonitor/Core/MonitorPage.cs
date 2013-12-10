@@ -24,7 +24,7 @@ namespace JSI
 		// A page is immutable if and only if it has only unchanging text and unchanging background and no handlers.
 		public bool isMutable;
 
-		public enum BackgroundType
+		private enum BackgroundType
 		{
 			None,
 			Camera,
@@ -32,9 +32,10 @@ namespace JSI
 			Handler}
 		;
 
-		public BackgroundType background = BackgroundType.None;
-		public string camera;
-		public float cameraFOV;
+		private readonly BackgroundType background = BackgroundType.None;
+		private readonly float cameraFOV;
+		private readonly string camera;
+		private readonly FlyingCamera cameraObject;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<int,int,string> pageHandler;
@@ -53,6 +54,7 @@ namespace JSI
 			screenWidth = ourMonitor.screenWidth;
 			screenHeight = ourMonitor.screenHeight;
 			cameraAspect = ourMonitor.cameraAspect;
+			cameraObject = thatMonitor.CameraStructure;
 
 			pageNumber = idNum;
 			isMutable = false;
@@ -174,6 +176,8 @@ namespace JSI
 
 		public void Active(bool state)
 		{
+			if (state)
+				cameraObject.PointCamera(camera, cameraFOV);
 			if (pageHandlerActivate != null)
 				pageHandlerActivate(state, pageNumber);
 			if (backgroundHandlerActivate != null && backgroundHandlerActivate != pageHandlerActivate)
@@ -188,16 +192,24 @@ namespace JSI
 				backgroundHandlerButtonClick(buttonID);
 		}
 
-		public bool RenderBackground(RenderTexture screen)
+		public void RenderBackground(RenderTexture screen)
 		{
 			switch (background) {
+				case BackgroundType.None:
+					GL.Clear(true, true, ourMonitor.emptyColor);
+					break;
+				case BackgroundType.Camera:
+					if (!cameraObject.Render())
+						GL.Clear(true, true, ourMonitor.emptyColor);
+					break;
 				case BackgroundType.Texture:
 					Graphics.Blit(backgroundTexture, screen);
-					return true;
+					break;
 				case BackgroundType.Handler:
-					return backgroundHandler(screen, cameraAspect);
+					if (!backgroundHandler(screen, cameraAspect))
+						GL.Clear(true, true, ourMonitor.emptyColor);
+					break;
 			}
-			return false;
 		}
 	}
 }

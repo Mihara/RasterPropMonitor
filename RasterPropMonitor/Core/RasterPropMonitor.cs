@@ -44,13 +44,14 @@ namespace JSI
 		public bool needsElectricCharge = true;
 		[KSPField]
 		public Color32 defaultFontTint = Color.white;
+		// This needs to be public so that pages can point it.
+		public FlyingCamera CameraStructure;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		private const float defaultFOV = 60f;
 		// Internal stuff.
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
-		private FlyingCamera cam;
 		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
 		// Local variables
@@ -107,6 +108,9 @@ namespace JSI
 			foreach (string layerID in textureLayerID.Split())
 				screenMat.SetTexture(layerID.Trim(), screenTexture);
 
+			// Create camera instance...
+			CameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
+
 			// The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
@@ -151,10 +155,6 @@ namespace JSI
 			}
 			activePage.Active(true);
 
-			// Create and point the camera.
-			cam = new FlyingCamera(part, screenTexture, cameraAspect);
-			cam.PointCamera(activePage.camera, activePage.cameraFOV);
-
 			// If we have global buttons, set them up.
 			if (!string.IsNullOrEmpty(globalButtons)) {
 				string[] tokens = globalButtons.Split(',');
@@ -191,7 +191,6 @@ namespace JSI
 				activePage = triggeredPage;
 				activePage.Active(true);
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
-				cam.PointCamera(activePage.camera, activePage.cameraFOV);
 				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
 				firstRenderComplete = false;
@@ -263,20 +262,8 @@ namespace JSI
 				GL.Clear(true, true, emptyColor);
 			} else {
 
-				// Draw the background, if any.
-				switch (activePage.background) {
-					case MonitorPage.BackgroundType.Camera:
-						if (!cam.Render())
-							GL.Clear(true, true, emptyColor);
-						break;
-					case MonitorPage.BackgroundType.None:
-						GL.Clear(true, true, emptyColor);
-						break;
-					default:
-						if (!activePage.RenderBackground(screenTexture))
-							GL.Clear(true, true, emptyColor);
-						break;
-				}
+				// Actual rendering of the background is delegated to the page object.
+				activePage.RenderBackground(screenTexture);
 
 				// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
 				// Cameras don't care because they have their own matrices, but DrawTexture does.
