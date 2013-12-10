@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using System.IO;
 using UnityEngine;
 
 namespace JSI
@@ -77,14 +76,7 @@ namespace JSI
 			} 
 			if (pageHandler == null) {
 				if (node.HasValue("text")) {
-					string pageDefinition = node.GetValue("text");
-
-					try {
-						Text = String.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition.EnforceSlashes(), System.Text.Encoding.UTF8));
-					} catch {
-						// There's no file. Probably.
-						Text = pageDefinition.UnMangleConfigText();
-					}
+					Text = JUtil.LoadPageDefinition(node.GetValue("text"));
 					isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 				}
 			}
@@ -203,7 +195,7 @@ namespace JSI
 					Graphics.Blit(backgroundTexture, screen);
 					return true;
 				case BackgroundType.Handler:
-					return backgroundHandler(screen,cameraAspect);
+					return backgroundHandler(screen, cameraAspect);
 			}
 			return false;
 		}

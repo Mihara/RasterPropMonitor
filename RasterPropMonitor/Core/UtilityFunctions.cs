@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
 
 namespace JSI
 {
@@ -39,6 +40,15 @@ namespace JSI
 				return (float)(int)thatValue;
 			}
 			return float.NaN;
+		}
+
+		public static string LoadPageDefinition(string pageDefinition)
+		{
+			try {
+				return string.Join(Environment.NewLine, File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + pageDefinition.EnforceSlashes(), Encoding.UTF8));
+			} catch {
+				return pageDefinition.UnMangleConfigText();
+			}
 		}
 
 		public static Color32 HexRGBAToColor(string hex)
