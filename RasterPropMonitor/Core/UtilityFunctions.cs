@@ -196,9 +196,7 @@ namespace JSI
 		{
 			if (val.CompareTo(min) < 0)
 				return min;
-			if (val.CompareTo(max) > 0)
-				return max;
-			return val;
+			return val.CompareTo(max) > 0 ? max : val;
 		}
 	}
 
