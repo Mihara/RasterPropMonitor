@@ -44,6 +44,8 @@ namespace JSI
 		public bool needsElectricCharge = true;
 		[KSPField]
 		public Color32 defaultFontTint = Color.white;
+		[KSPField]
+		public string noSignalTextureURL;
 		// This needs to be public so that pages can point it.
 		public FlyingCamera CameraStructure;
 		// Some things in life are constant;
@@ -71,6 +73,7 @@ namespace JSI
 		private Rect[] fontCharacters;
 		private FXGroup audioOutput;
 		private double electricChargeReserve;
+		public Texture2D noSignalTexture;
 
 		public void Start()
 		{
@@ -107,6 +110,10 @@ namespace JSI
 			Material screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
 			foreach (string layerID in textureLayerID.Split())
 				screenMat.SetTexture(layerID.Trim(), screenTexture);
+
+			if (GameDatabase.Instance.ExistsTexture(noSignalTextureURL.EnforceSlashes())) {
+				noSignalTexture = GameDatabase.Instance.GetTexture(noSignalTextureURL.EnforceSlashes(), false);
+			}
 
 			// Create camera instance...
 			CameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);

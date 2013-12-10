@@ -241,8 +241,12 @@ namespace JSI
 					GL.Clear(true, true, ourMonitor.emptyColor);
 					break;
 				case BackgroundType.Camera:
-					if (!cameraObject.Render())
-						GL.Clear(true, true, ourMonitor.emptyColor);
+					if (!cameraObject.Render()) {
+						if (ourMonitor.noSignalTexture != null)
+							Graphics.Blit(ourMonitor.noSignalTexture, screen);
+						else
+							GL.Clear(true, true, ourMonitor.emptyColor);
+					}
 					break;
 				case BackgroundType.Texture:
 					Graphics.Blit(backgroundTexture, screen);
