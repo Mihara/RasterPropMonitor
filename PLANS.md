@@ -32,3 +32,4 @@
 * Special shader for printing text with well-defined behaviour?
 * Maneuver node creator/editor menu?
 * Orbit display a-la Orbiter?
+* kOSTER ("Campfire") -- A full keyboard kOS terminal. :)
