@@ -48,7 +48,6 @@ namespace JSI
 			buttonBehaviour.pageReferences.Add(thatPage);
 		}
 
-
 		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction)
 		{
 			SmarterButton buttonBehaviour = AttachBehaviour(thatProp, buttonName);
