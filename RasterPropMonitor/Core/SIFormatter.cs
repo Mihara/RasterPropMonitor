@@ -377,7 +377,12 @@ namespace JSI
 			}
 			//charactersRequired += (postDecimal > 0) ? (postDecimal + 1) : 0;
 
-			double scaledInputValue = inputValue / Math.Pow(10.0, siExponent);
+			// Mihara: In some rare and hard to catch cases, ToString("F"+postDecimal)
+			// seems to produce one more symbol than it should. No idea how exactly,
+			// but it's possible that the difference is due to the test executable
+			// running under the Windows .NET while KSP runs the plugin with it's own copy
+			// of Mono. I'm hoping that explicit rounding will get rid of that effect.
+			double scaledInputValue = Math.Round(inputValue / Math.Pow(10.0, siExponent),postDecimal);
 
 			var result = new StringBuilder(scaledInputValue.ToString("F" + postDecimal));
 
