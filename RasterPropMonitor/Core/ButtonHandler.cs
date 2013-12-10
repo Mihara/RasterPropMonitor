@@ -20,11 +20,9 @@ namespace JSI
 				listCounter++;
 				if (listCounter >= pageReferences.Count)
 					listCounter = 0;
-				return;
 			}
 			if (handlerID != null) {
 				handlerID(id);
-				return;
 			}
 			if (handler != null)
 				handler();
