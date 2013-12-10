@@ -266,7 +266,7 @@ namespace JSI
 						float distance = Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position);
 						menu.Add(FormatItem(string.Format("{0}. {1}", i + 1, portsList[i].part.name),
 							distance, (currentMenuItem == i), (portsList[i] == selectedPort),
-							(distance < targetablePortDistance)));
+							(distance > targetablePortDistance)));
 					}
 					break;
 			}
