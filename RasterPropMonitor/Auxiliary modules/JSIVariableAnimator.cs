@@ -86,21 +86,7 @@ namespace JSI
 			}
 		}
 
-		private static float FixType(object thatValue)
-		{
-			// We only produce doubles, floats and ints in there.
-			// I hope this way I can get rid of all the silly typecasting in RPMC.
-			if (thatValue is double) {
-				return (float)(double)thatValue;
-			}
-			if (thatValue is float) {
-				return (float)thatValue;
-			}
-			if (thatValue is int) {
-				return (float)(int)thatValue;
-			}
-			return float.NaN;
-		}
+
 
 		public override void OnUpdate()
 		{
@@ -116,15 +102,15 @@ namespace JSI
 			if (!UpdateCheck())
 				return;
 
-			float scaleBottom = scalePoints[0] ?? FixType(comp.ProcessVariable(varName[0]));
+			float scaleBottom = scalePoints[0] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[0]));
 			if (float.IsNaN(scaleBottom))
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[0]);
 
-			float scaleTop = scalePoints[1] ?? FixType(comp.ProcessVariable(varName[1]));
+			float scaleTop = scalePoints[1] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[1]));
 			if (float.IsNaN(scaleTop))
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[1]);
 
-			float varValue = FixType(comp.ProcessVariable(variableName));
+			float varValue = JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
 			if (float.IsNaN(varValue))
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", variableName);
 

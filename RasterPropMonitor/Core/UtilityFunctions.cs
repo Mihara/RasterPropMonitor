@@ -26,6 +26,21 @@ namespace JSI
 			Debug.Log(String.Format(caller.ClassName + ": " + line, list));
 		}
 
+		public static float MassageObjectToFloat(object thatValue)
+		{
+			// RPMC only produces doubles, floats, ints and strings.
+			if (thatValue is double) {
+				return (float)(double)thatValue;
+			}
+			if (thatValue is float) {
+				return (float)thatValue;
+			}
+			if (thatValue is int) {
+				return (float)(int)thatValue;
+			}
+			return float.NaN;
+		}
+
 		public static Color32 HexRGBAToColor(string hex)
 		{
 			byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
