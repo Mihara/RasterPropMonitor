@@ -8,7 +8,6 @@
 
 * Page handler to select between different page definition files based on variable values.
 * Remote button clicking from other props by directly calling their SmarterButton/OnMouseDown, or another similar arrangement.
-* Rearrange code so that the page class gets a pointer to the camera class and can change FOV of the camera with globalButtons if there are no other handlers.
 
 ## Major new features
 

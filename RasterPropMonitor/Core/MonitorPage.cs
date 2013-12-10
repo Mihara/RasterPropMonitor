@@ -47,6 +47,11 @@ namespace JSI
 		private readonly RasterPropMonitor ourMonitor;
 		private int screenWidth, screenHeight;
 		private readonly float cameraAspect;
+		private readonly int zoomUpButton, zoomDownButton;
+		private readonly float maxFOV, minFOV;
+		private readonly int zoomSteps;
+		private readonly float zoomSkip;
+		private int currentZoom;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
@@ -94,7 +99,7 @@ namespace JSI
 				}
 			} 
 
-			if (backgroundHandler == null) {
+			if (background == BackgroundType.None) {
 				if (node.HasValue("cameraTransform")) {
 					isMutable = true;
 					background = BackgroundType.Camera;
@@ -103,18 +108,33 @@ namespace JSI
 					if (node.HasValue("fov")) {
 						float fov;
 						cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
-					}
-				} else {
-					if (node.HasValue("textureURL")) {
-						string textureURL = node.GetValue("textureURL").EnforceSlashes();
-						if (GameDatabase.Instance.ExistsTexture(textureURL)) {
-							backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
-							background = BackgroundType.Texture;
+					} else if (node.HasValue("zoomFov") && node.HasValue("zoomButtons")) {
+						Vector3 zoomFov = ConfigNode.ParseVector3(node.GetValue("zoomFov"));
+						Vector2 zoomButtons = ConfigNode.ParseVector2(node.GetValue("zoomButtons"));
+						if ((int)zoomFov.z != 0 && ((int)zoomButtons.x != (int)zoomButtons.y)) {
+							maxFOV = Math.Max(zoomFov.x, zoomFov.y);
+							minFOV = Math.Min(zoomFov.x, zoomFov.y);
+							zoomSteps = (int)zoomFov.z;
+							zoomUpButton = (int)zoomButtons.x;
+							zoomDownButton = (int)zoomButtons.y;
+							zoomSkip = (maxFOV - minFOV) / zoomSteps;
+							currentZoom = 0;
+							cameraFOV = maxFOV;
+						} else {
+							JUtil.LogMessage(ourMonitor, "Ignored invalid camera zoom settings on page {0}.", pageNumber);
 						}
+					}
+				} 
+			}
+			if (background == BackgroundType.None) {
+				if (node.HasValue("textureURL")) {
+					string textureURL = node.GetValue("textureURL").EnforceSlashes();
+					if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+						backgroundTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+						background = BackgroundType.Texture;
 					}
 				}
 			}
-
 		}
 
 		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out Action<bool,int> activationMethod, out Action<int> buttonClickMethod)
@@ -174,10 +194,17 @@ namespace JSI
 			return null;
 		}
 
+		private float ComputeFOV()
+		{
+			if (zoomSteps == 0)
+				return cameraFOV;
+			return maxFOV - zoomSkip * currentZoom;
+		}
+
 		public void Active(bool state)
 		{
 			if (state)
-				cameraObject.PointCamera(camera, cameraFOV);
+				cameraObject.PointCamera(camera, ComputeFOV());
 			if (pageHandlerActivate != null)
 				pageHandlerActivate(state, pageNumber);
 			if (backgroundHandlerActivate != null && backgroundHandlerActivate != pageHandlerActivate)
@@ -190,6 +217,19 @@ namespace JSI
 				pageHandlerButtonClick(buttonID);
 			if (backgroundHandlerButtonClick != null && backgroundHandlerButtonClick != pageHandlerButtonClick)
 				backgroundHandlerButtonClick(buttonID);
+			else if (zoomSteps > 0) {
+				if (buttonID == zoomUpButton) {
+					currentZoom--;
+				}
+				if (buttonID == zoomDownButton) {
+					currentZoom++;
+				}
+				if (currentZoom < 0)
+					currentZoom = 0;
+				if (currentZoom > zoomSteps)
+					currentZoom = zoomSteps;
+				cameraObject.FOV = ComputeFOV();
+			}
 		}
 
 		public void RenderBackground(RenderTexture screen)
