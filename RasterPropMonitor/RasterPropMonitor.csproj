@@ -73,6 +73,7 @@
     </Compile>
     <Compile Include="Auxiliary modules\JSISetInternalCameraFOV.cs" />
     <Compile Include="Handlers\JSITargetMenu.cs" />
+    <Compile Include="Auxiliary modules\JSIRemoteButton.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
