@@ -248,6 +248,8 @@ namespace JSI
 				if (targetOrbitSensibility)
 					targetOrbit = target.GetOrbit();
 
+				// TODO: Actually, there's a lot of nonsensical cases here that need more reasonable handling.
+				// Like what if we're targeting a vessel landed on a moon of another planet?...
 				if (targetOrbit != null) {
 					velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
 				} else {
