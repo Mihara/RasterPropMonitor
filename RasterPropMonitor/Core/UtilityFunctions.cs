@@ -42,6 +42,20 @@ namespace JSI
 			return float.NaN;
 		}
 
+		public static double MassageObjectToDouble(object thatValue)
+		{
+			// RPMC only produces doubles, floats, ints and strings.
+			if (thatValue is double) {
+				return (double)thatValue;
+			}
+			if (thatValue is float) {
+				return (double)(float)thatValue;
+			}
+			if (thatValue is int) {
+				return (double)(int)thatValue;
+			}
+			return double.NaN;
+		}
 		public static string LoadPageDefinition(string pageDefinition)
 		{
 			try {
