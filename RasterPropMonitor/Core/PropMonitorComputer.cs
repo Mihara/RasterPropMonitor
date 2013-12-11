@@ -231,12 +231,6 @@ namespace JSI
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
 
-				targetOrbit = target.GetOrbit();
-				if (targetOrbit != null) {
-					velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
-				} else {
-					velocityRelativeTarget = Vector3d.zero;
-				}
 				var targetVessel = target as Vessel;
 
 				targetBody = target as CelestialBody;	
@@ -244,11 +238,22 @@ namespace JSI
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				targetOrbitSensibility |= targetBody != null && targetBody != FlightGlobals.Bodies[0];
+				targetOrbitSensibility |= targetBody != null && targetOrbit != null;
+
 				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
 				if (target is ModuleDockingNode)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
+
+				if (targetOrbitSensibility)
+					targetOrbit = target.GetOrbit();
+
+				if (targetOrbit != null) {
+					velocityRelativeTarget = vessel.orbit.GetVel() - target.GetOrbit().GetVel();
+				} else {
+					velocityRelativeTarget = vessel.orbit.GetVel();
+				}
+
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
@@ -265,8 +270,7 @@ namespace JSI
 				double accelUp = Vector3d.Dot(vessel.acceleration, up);
 
 				double altitude = altitudeTrue;
-				if (vessel.mainBody.ocean && altitudeASL > 0.0)
-				{
+				if (vessel.mainBody.ocean && altitudeASL > 0.0) {
 					// AltitudeTrue shows distance above the floor of the ocean,
 					// so use ASL if it's closer in this case, and we're not
 					// already below SL.
@@ -283,7 +287,7 @@ namespace JSI
 					// do not use this case, we would fall to the simple
 					// formula, which is wrong.
 					secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * localG * altitude)) / localG;
-				} else if(accelUp > 0.005) {
+				} else if (accelUp > 0.005) {
 					// This general case takes into account vessel acceleration,
 					// so estimates on craft that include parachutes or do
 					// powered descents are more accurate.
@@ -293,8 +297,7 @@ namespace JSI
 					// errors that tend to make secondsToImpact get really big.
 					secondsToImpact = altitude / -speedVertical;
 				}
-			}
-			else
+			} else
 				secondsToImpact = Double.NaN;
 
 		}
