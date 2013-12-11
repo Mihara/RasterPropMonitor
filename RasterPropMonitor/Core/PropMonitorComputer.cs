@@ -238,7 +238,7 @@ namespace JSI
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				targetOrbitSensibility |= targetBody != null && targetOrbit != null;
+				targetOrbitSensibility |= targetBody != null && targetBody != FlightGlobals.Bodies[0];
 
 				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
