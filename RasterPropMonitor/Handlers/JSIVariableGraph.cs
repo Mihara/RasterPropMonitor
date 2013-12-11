@@ -15,8 +15,14 @@ namespace JSI
 
 			// Unexpected stumbling block: I can't get at blocks within a BACKGROUNDHANDLER block
 			// using my GameDatabase trick because I don't really know which page instantiated this module.
-			// This could be a problem...
+			// I need some other method... Probably, a global GameData named block and an in-handler-block
+			// reference by name.
 
+		}
+
+		public bool RenderGraphs(RenderTexture screen, float cameraAspect)
+		{
+			return false;
 		}
 
 		public override void OnUpdate()
