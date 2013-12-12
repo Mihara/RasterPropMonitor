@@ -4,16 +4,14 @@ namespace MechJebRPM
 {
 	public class MechJebRPM: InternalModule
 	{
-
 		MechJebCore activeJeb;
 		MechJebModuleSmartASS activeSmartass;
-
 		bool pageActiveState;
-
 		// Analysis disable UnusedParameter
 		public string ShowMenu(int width, int height)
 		// Analysis restore UnusedParameter
 		{
+			UpdateJebReferences();
 			if (activeSmartass != null) {
 				return activeSmartass.mode.ToString();
 			}
@@ -25,12 +23,19 @@ namespace MechJebRPM
 			pageActiveState = active;
 		}
 
-		public void Start()
+		private void UpdateJebReferences()
 		{
 			activeJeb = vessel.GetMasterMechJeb();
 			if (activeJeb != null) {
 				activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			} else {
+				activeSmartass = null;
 			}
+		}
+
+		public void Start()
+		{
+			UpdateJebReferences();
 		}
 	}
 }
