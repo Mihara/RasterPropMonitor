@@ -86,8 +86,6 @@ namespace JSI
 			}
 		}
 
-
-
 		public override void OnUpdate()
 		{
 			if (!HighLogic.LoadedSceneIsFlight ||
@@ -103,16 +101,22 @@ namespace JSI
 				return;
 
 			float scaleBottom = scalePoints[0] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[0]));
-			if (float.IsNaN(scaleBottom))
+			if (float.IsNaN(scaleBottom)) {
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[0]);
+				return;
+			}
 
 			float scaleTop = scalePoints[1] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[1]));
-			if (float.IsNaN(scaleTop))
+			if (float.IsNaN(scaleTop)) {
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[1]);
+				return;
+			}
 
 			float varValue = JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
-			if (float.IsNaN(varValue))
+			if (float.IsNaN(varValue)) {
 				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", variableName);
+				return;
+			}
 
 			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
 
