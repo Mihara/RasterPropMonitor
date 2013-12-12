@@ -6,7 +6,6 @@
 
 ## Major new features
 
-* Graphs using the vector tech from JSISCANsatRPM and variables.
 * MechJeb SmartASS interface menu with an 'execute node' option.
 
 # Future targets

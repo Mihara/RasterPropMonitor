@@ -48,10 +48,10 @@ namespace JSI
 				backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
 			}
 
-			Vector2 bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
-			Vector2 bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
-			Vector2 topLeft = new Vector2(graphSpace.xMin, graphSpace.yMax);
-			Vector2 topRight = new Vector2(graphSpace.xMax, graphSpace.yMax);
+			var bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
+			var bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
+			var topLeft = new Vector2(graphSpace.xMin, graphSpace.yMax);
+			var topRight = new Vector2(graphSpace.xMax, graphSpace.yMax);
 
 
 			switch (borders) {
@@ -156,7 +156,10 @@ namespace JSI
 
 			public void Update(double time)
 			{
-				points.Add(new Vector2d(time, JUtil.MassageObjectToDouble(comp.ProcessVariable(variableName))));
+				double value = JUtil.MassageObjectToDouble(comp.ProcessVariable(variableName));
+				if (double.IsNaN(value) || double.IsInfinity(value))
+					return;
+				points.Add(new Vector2d(time, value));
 				if (points.Count > maxPoints)
 					points.RemoveRange(0, points.Count - maxPoints);
 			}
