@@ -71,6 +71,18 @@ namespace JSI
 
 		public void Start()
 		{
+
+			string[] tokens = scale.Split(',');
+
+			for (int i = 0; i < tokens.Length; i++) {
+				float realValue;
+				if (float.TryParse(tokens[i], out realValue)) {
+					scalePoints[i] = realValue;
+				} else {
+					varName[i] = tokens[i].Trim();
+				}
+			}
+
 			textIn = JUtil.LoadPageDefinition(definitionIn);
 			textOut = JUtil.LoadPageDefinition(definitionOut);
 			comp = JUtil.GetComputer(internalProp);
