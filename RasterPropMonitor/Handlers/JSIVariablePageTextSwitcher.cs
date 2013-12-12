@@ -47,7 +47,7 @@ namespace JSI
 		// I don't like this mess of copypaste, but how can I improve it away?...
 		public override void OnUpdate()
 		{
-			if (!JUtil.VesselIsInIVA(vessel) || !pageActiveState || !UpdateCheck())
+			if (!pageActiveState || !JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
 			// Well, that looks a little like code reuse now.
