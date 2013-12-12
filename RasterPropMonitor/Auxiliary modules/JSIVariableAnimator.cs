@@ -32,7 +32,7 @@ namespace JSI
 		private bool thresholdMode;
 		private FXGroup audioOutput;
 		private bool alarmActive;
-		private bool[] warningMade = { false, false, false };
+		private readonly bool[] warningMade = { false, false, false };
 
 		private bool UpdateCheck()
 		{
@@ -86,38 +86,37 @@ namespace JSI
 				audioOutput.audio.Stop();
 			}
 		}
+		// It's messy but it's static and it abstracts some of the mess away.
+		public static bool MassageScalePoint(out float destination, float? source, string variableName, ref bool warningFlag, RasterPropMonitorComputer compReference, InternalModule caller)
+		{
+			destination = source ?? JUtil.MassageObjectToFloat(compReference.ProcessVariable(variableName));
+			if (float.IsNaN(destination) || float.IsInfinity(destination)) {
+				if (!warningFlag) {
+					JUtil.LogMessage(caller, "Warning, {0} can fail to produce a usable number.", variableName);
+					warningFlag = true;
+					return false;
+				}
+
+			}
+			return true;
+		}
 
 		public override void OnUpdate()
 		{
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			float scaleBottom = scalePoints[0] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[0]));
-			if (float.IsNaN(scaleBottom)) {
-				if (!warningMade[0]) {
-					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", varName[0]);
-					warningMade[0] = true;
-				}
+			float scaleBottom;
+			if (!MassageScalePoint(out scaleBottom, scalePoints[0], varName[0], ref warningMade[0], comp, this))
 				return;
-			}
 
-			float scaleTop = scalePoints[1] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[1]));
-			if (float.IsNaN(scaleTop)) {
-				if (!warningMade[1]) {
-					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", varName[1]);
-					warningMade[1] = true;
-				}
+			float scaleTop;
+			if (!MassageScalePoint(out scaleTop, scalePoints[1], varName[1], ref warningMade[1], comp, this))
 				return;
-			}
 
-			float varValue = JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
-			if (float.IsNaN(varValue)) {
-				if (!warningMade[2]) {
-					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", variableName);
-					warningMade[2] = true;
-				}
+			float varValue;
+			if (!MassageScalePoint(out varValue, null, variableName, ref warningMade[2], comp, this))
 				return;
-			}
 
 			if (thresholdMode) {
 				float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);

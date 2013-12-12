@@ -75,6 +75,7 @@
     <Compile Include="Handlers\JSITargetMenu.cs" />
     <Compile Include="Auxiliary modules\JSIRemoteButton.cs" />
     <Compile Include="Handlers\JSIVariableGraph.cs" />
+    <Compile Include="Handlers\JSIVariablePageTextSwitcher.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
