@@ -16,11 +16,6 @@ namespace JSI
 
 		public void Start()
 		{
-			GameObject localButtonObject = internalProp.FindModelTransform(localButtonTransform).gameObject;
-			if (localButtonObject == (UnityEngine.Object)null) {
-				JUtil.LogErrorMessage(this, "Could not find a local transform named '{0}', aborting.", localButtonTransform);
-				return;
-			}
 
 			if (internalModel.props.Count < remoteButtonPropID) {
 				JUtil.LogErrorMessage(this, "There is no prop ID {0}, aborting.", remoteButtonPropID);
@@ -39,12 +34,17 @@ namespace JSI
 				return;
 			}
 
-			SmarterButton.CreateButton(internalProp, localButtonTransform, RedirectButton);
+			SmarterButton.CreateButton(internalProp, localButtonTransform, RedirectButtonDown, RedirectButtonUp);
 		}
 
-		public void RedirectButton()
+		public void RedirectButtonDown()
 		{
 			remoteButtonBehaviour.OnMouseDown();
+		}
+
+		public void RedirectButtonUp()
+		{
+			remoteButtonBehaviour.OnMouseUp();
 		}
 	}
 }
