@@ -134,7 +134,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (cameraObject == null) {
+			if (!JUtil.VesselIsInIVA(vessel) || cameraObject == null) {
 				return;
 			}
 
