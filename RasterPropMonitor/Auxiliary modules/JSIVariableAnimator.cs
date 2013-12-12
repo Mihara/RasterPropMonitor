@@ -71,6 +71,7 @@ namespace JSI
 				anim = internalProp.FindModelAnimators(animationName)[0];
 				anim.enabled = true;
 				anim[animationName].speed = 0;
+				anim[animationName].normalizedTime = reverse ? 1f : 0f;
 				anim.Play();
 			}
 		}
