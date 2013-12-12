@@ -59,6 +59,7 @@ namespace JSI
 	public class PersistenceAccessor
 	{
 		private readonly JSIInternalPersistence persistenceStorage;
+		private const string errorMessage = "Warning: RasterPropMonitor components want JSIInternalPersistence to be loaded by the pod they're in. {0}";
 
 		public PersistenceAccessor(Part thatPart)
 		{
@@ -67,17 +68,12 @@ namespace JSI
 					persistenceStorage = thatPart.Modules[i] as JSIInternalPersistence;
 		}
 
-		private static void LogWarning(Exception e)
-		{
-			Debug.Log(String.Format("Warning: RasterPropMonitor components want JSIInternalPersistence to be loaded by the pod they're in. {0}", e.Message));
-		}
-
 		public int? GetVar(string persistentVarName)
 		{
 			try {
 				return persistenceStorage.GetVar(persistentVarName);
 			} catch (NullReferenceException e) {
-				LogWarning(e);
+				JUtil.LogMessage(this,errorMessage, e.Message);
 			}
 			return null;
 		}
@@ -98,7 +94,7 @@ namespace JSI
 			try {
 				persistenceStorage.SetVar(persistentVarName, varvalue);
 			} catch (NullReferenceException e) {
-				LogWarning(e);
+				JUtil.LogMessage(this,errorMessage, e.Message);
 			}
 		}
 

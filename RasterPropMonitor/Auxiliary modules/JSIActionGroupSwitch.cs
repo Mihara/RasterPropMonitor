@@ -67,7 +67,7 @@ namespace JSI
 		{
 			if (!groupList.ContainsKey(actionName)) {
 				if (!customGroupList.ContainsKey(actionName)) {
-					JUtil.LogMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
+					JUtil.LogErrorMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					isCustomAction = true;
 				}
@@ -99,7 +99,7 @@ namespace JSI
 				case "intlight":
 					lightObjects = internalModel.FindModelComponents<Light>();
 					if (needsElectricCharge) {
-						comp = JUtil.GetComputer(internalProp);
+						comp = RasterPropMonitorComputer.Instantiate(internalProp);
 						comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
 						electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 					}
@@ -113,7 +113,7 @@ namespace JSI
 				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				JUtil.LogMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+				JUtil.LogErrorMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
 			if (oldState ^ reverse) {

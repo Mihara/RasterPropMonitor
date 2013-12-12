@@ -77,6 +77,11 @@ namespace JSI
 
 		public void Start()
 		{
+
+			// Install the calculator module.
+			comp = RasterPropMonitorComputer.Instantiate(internalProp);
+			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
+
 			// Loading the font...
 			JUtil.LogMessage(this, "Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
@@ -149,10 +154,6 @@ namespace JSI
 			}
 			JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
-			// Install the calculator module.
-			comp = JUtil.GetComputer(internalProp);
-			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
-
 			// Load our state from storage...
 			persistentVarName = "activePage" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
@@ -223,7 +224,7 @@ namespace JSI
 			charCode -= firstCharacter;
 
 			if (charCode < 0 || charCode >= fontCharacters.Length) {
-				JUtil.LogMessage(this, "Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
+				JUtil.LogErrorMessage(this, "Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
 				return;
 			}
 

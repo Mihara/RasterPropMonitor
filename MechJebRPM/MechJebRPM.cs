@@ -1,5 +1,6 @@
 using MuMech;
 using System;
+using System.Text;
 
 namespace MechJebRPM
 {
@@ -13,10 +14,14 @@ namespace MechJebRPM
 		// Analysis restore UnusedParameter
 		{
 			UpdateJebReferences();
+			var result = new StringBuilder();
 			if (activeSmartass != null) {
-				return activeSmartass.mode.ToString();
+				result.AppendLine(activeSmartass.target.ToString());
+				result.AppendLine(activeSmartass.mode.ToString());
+			} else {
+				result.AppendLine("Not found.");
 			}
-			return "Not found.";
+			return result.ToString();
 		}
 		// Analysis disable once UnusedParameter
 		public void PageActive(bool active, int pageNumber)
