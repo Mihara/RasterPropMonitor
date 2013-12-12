@@ -9,15 +9,15 @@ namespace JSI
 		[KSPField]
 		public string graphSet;
 		[KSPField]
-		public Vector4 graphRect = new Vector4(16, 16, 624, 624);
+		public Vector4 graphRect = new Vector4(32, 32, 608, 608);
 		[KSPField]
-		public double xSpan;
+		public float xSpan;
 		[KSPField]
 		public Vector2 ySpan;
 		[KSPField]
 		public Color32 scaleColor = Color.white;
 		[KSPField]
-		public double secondsBetweenSamples = 0.25;
+		public float secondsBetweenSamples = 0.5f;
 		[KSPField]
 		public Color32 backgroundColor = Color.black;
 		[KSPField]
@@ -28,12 +28,15 @@ namespace JSI
 		private Rect graphSpace;
 		private double lastDataPoint;
 		private Texture2D backgroundTexture;
+		// Because KSPField can't handle double. :E
+		private double xGraphSpan, interval;
 
 		public void Start()
 		{
 			comp = JUtil.GetComputer(internalProp);
 			graphSpace = new Rect(graphRect.x, graphRect.y, graphRect.z, graphRect.w);
-
+			xGraphSpan = xSpan;
+			interval = secondsBetweenSamples;
 			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes())) {
 				backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
 			}
@@ -41,8 +44,9 @@ namespace JSI
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSIGRAPHSET")) {
 				if (node.HasValue("name") && node.GetValue("name") == graphSet)
 					foreach (ConfigNode graphNode in node.GetNodes("GRAPH"))
-						graphs.Add(new GraphLine(graphNode, xSpan, ySpan, secondsBetweenSamples, comp));
+						graphs.Add(new GraphLine(graphNode, xGraphSpan, ySpan, interval, comp));
 			}
+			JUtil.LogMessage(this, "Graphing {0} values.", graphs.Count);
 		}
 		// Analysis disable once UnusedParameter
 		public bool RenderGraphs(RenderTexture screen, float cameraAspect)
@@ -72,10 +76,10 @@ namespace JSI
 			return true;
 		}
 
-		public override void OnFixedUpdate()
+		public override void OnUpdate()
 		{
 			double time = Planetarium.GetUniversalTime();
-			if (lastDataPoint < time - secondsBetweenSamples) {
+			if (lastDataPoint + (double)secondsBetweenSamples < time) {
 				foreach (GraphLine graph in graphs) {
 					graph.Update(time);
 				}
@@ -103,7 +107,7 @@ namespace JSI
 				if (!node.HasData)
 					throw new ArgumentException("Graph block with no data?");
 				if (node.HasValue("variableName")) {
-					variableName = node.GetValue("variableName");
+					variableName = node.GetValue("variableName").Trim();
 				} else
 					throw new ArgumentException("Draw a graph of what?");
 
