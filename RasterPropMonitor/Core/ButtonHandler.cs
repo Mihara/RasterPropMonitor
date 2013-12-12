@@ -41,7 +41,7 @@ namespace JSI
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
 		{
 
-			string[] tokens = buttonName.Split(',');
+			string[] tokens = buttonName.Split('|');
 			if (tokens.Length == 2) {
 				// First token is the button name, second is the prop ID.
 				int propID;
