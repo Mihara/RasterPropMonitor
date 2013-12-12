@@ -58,16 +58,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight) {
-				StopPlaying();
-				return;
-			}
-			if (vessel != FlightGlobals.ActiveVessel) {
-				StopPlaying();
-				return;
-			}
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
+			if (!JUtil.VesselIsInIVA(vessel)) {
 				StopPlaying();
 				return;
 			}

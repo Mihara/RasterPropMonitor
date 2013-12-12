@@ -460,8 +460,7 @@ namespace SCANsatRPM
 				LeaveTrail();
 			}
 
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+			if (!JUtil.IsInIVA())
 				return;
 
 			if (pageActiveState && map != null && !map.isMapComplete()) {

@@ -9,13 +9,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
-				return;
-
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
-				return;
-			if (CameraManager.Instance.currentCameraMode != oldCameraMode && InternalCamera.Instance.isActive) {
+			if (JUtil.VesselIsInIVA(vessel) && CameraManager.Instance.currentCameraMode != oldCameraMode && InternalCamera.Instance.isActive) {
 				InternalCamera.Instance.SetFOV(fov);
 				oldCameraMode = CameraManager.Instance.currentCameraMode;
 			}

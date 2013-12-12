@@ -89,16 +89,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight ||
-			    vessel != FlightGlobals.ActiveVessel)
-				return;
-
-			// Let's see if it works that way first.
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
-				return;
-
-			if (!UpdateCheck())
+			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
 			float scaleBottom = scalePoints[0] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[0]));

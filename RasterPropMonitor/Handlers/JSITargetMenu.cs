@@ -355,22 +355,15 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel || !pageActiveState)
+			if (!pageActiveState || !JUtil.VesselIsInIVA(vessel))
 				return;
 
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
-				return;
-
-			if (pageActiveState) {
-				currentTarget = FlightGlobals.fetch.VesselTarget;
-				selectedCelestial = currentTarget as CelestialBody;
-				selectedVessel = currentTarget as Vessel;
-				selectedPort = currentTarget as ModuleDockingNode;
-				if (selectedPort != null)
-					selectedVessel = selectedPort.vessel;
-
-			}
+			currentTarget = FlightGlobals.fetch.VesselTarget;
+			selectedCelestial = currentTarget as CelestialBody;
+			selectedVessel = currentTarget as Vessel;
+			selectedPort = currentTarget as ModuleDockingNode;
+			if (selectedPort != null)
+				selectedVessel = selectedPort.vessel;
 
 			if (!UpdateCheck())
 				return;

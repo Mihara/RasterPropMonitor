@@ -7,11 +7,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
-				return;
-
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+			if (!JUtil.VesselIsInIVA(vessel))
 				return;
 
 			if (needsRestoring && target != null && FlightGlobals.fetch.VesselTarget == null) {
@@ -23,11 +19,7 @@ namespace JSI
 
 		public void LateUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
-				return;
-
-			if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+			if (!JUtil.VesselIsInIVA(vessel))
 				return;
 
 			needsRestoring |= Mouse.Left.GetDoubleClick();
