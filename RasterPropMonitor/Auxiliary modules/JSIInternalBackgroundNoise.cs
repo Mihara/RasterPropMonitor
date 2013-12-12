@@ -20,7 +20,7 @@ namespace JSI
 		public void Start()
 		{
 			if (needsElectricCharge) {
-				comp = JUtil.GetComputer(internalProp);
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
 				comp.UpdateRefreshRates(soundCheckRate, soundCheckRate);
 				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 			}

@@ -129,6 +129,20 @@ namespace JSI
 			{ "NFURANIUM","EnrichedUranium" },
 			{ "NFDEPLETEDURANIUM","DepletedUranium" },
 		};
+
+		public static RasterPropMonitorComputer Instantiate(InternalProp thatProp)
+		{
+			if (thatProp.part != null) {
+				for (int i = 0; i < thatProp.part.Modules.Count; i++)
+					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
+						var other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
+						return other;
+					}
+				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+			}
+			return null;
+		}
+
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{

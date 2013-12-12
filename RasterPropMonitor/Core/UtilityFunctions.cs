@@ -8,19 +8,6 @@ namespace JSI
 {
 	public static class JUtil
 	{
-		public static RasterPropMonitorComputer GetComputer(InternalProp thatProp)
-		{
-			// I hate copypaste, and this is what I'm going to do about it.
-			if (thatProp.part != null) {
-				for (int i = 0; i < thatProp.part.Modules.Count; i++)
-					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
-						var other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
-						return other;
-					}
-				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
-			}
-			return null;
-		}
 
 		public static Material DrawLineMaterial()
 		{

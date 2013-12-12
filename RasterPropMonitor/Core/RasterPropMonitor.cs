@@ -79,7 +79,7 @@ namespace JSI
 		{
 
 			// Install the calculator module.
-			comp = JUtil.GetComputer(internalProp);
+			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
 			// Loading the font...

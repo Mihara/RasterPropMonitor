@@ -50,7 +50,7 @@ namespace JSI
 				JUtil.LogMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
 			else {
 
-				comp = JUtil.GetComputer(internalProp);
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
 				scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
 				scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
 				scaleEnds[2] = new VariableOrNumber(variableName, comp, this);

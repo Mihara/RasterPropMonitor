@@ -66,7 +66,7 @@ namespace JSI
 
 			if (tokens.Length == 2) {
 
-				comp = JUtil.GetComputer(internalProp);
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
 				scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
 				scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
 				scaleEnds[2] = new VariableOrNumber(variableName, comp, this);

@@ -99,7 +99,7 @@ namespace JSI
 				case "intlight":
 					lightObjects = internalModel.FindModelComponents<Light>();
 					if (needsElectricCharge) {
-						comp = JUtil.GetComputer(internalProp);
+						comp = RasterPropMonitorComputer.Instantiate(internalProp);
 						comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
 						electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 					}

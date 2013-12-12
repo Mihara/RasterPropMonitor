@@ -36,7 +36,7 @@ namespace JSI
 
 		public void Start()
 		{
-			comp = JUtil.GetComputer(internalProp);
+			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			graphSpace = new Rect();
 			graphSpace.xMin = graphRect.x;
 			graphSpace.yMin = graphRect.y;

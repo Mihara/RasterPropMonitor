@@ -22,7 +22,7 @@ namespace JSI
 
 		public void Start()
 		{
-			comp = JUtil.GetComputer(internalProp);
+			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			textObjTransform = internalProp.FindModelTransform(transformName);
 			textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
 			sourceString = labelText.UnMangleConfigText();
