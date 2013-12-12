@@ -70,31 +70,30 @@ namespace JSI
 
 			isDefault |= node.HasValue("default");
 
-			if (node.HasValue("button")) {
+			if (node.HasValue("button"))
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
-			}
-
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick, out pageHandlerButtonRelease);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, 
+					                           out pageHandlerActivate, out pageHandlerButtonClick, out pageHandlerButtonRelease);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					isMutable = true;
 					break;
 				}
 			} 
-			if (pageHandler == null) {
-				if (node.HasValue("text")) {
-					Text = JUtil.LoadPageDefinition(node.GetValue("text"));
-					isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
-				}
-			}
 
+			if (pageHandler == null)
+			if (node.HasValue("text")) {
+				Text = JUtil.LoadPageDefinition(node.GetValue("text"));
+				isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
+			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick, out backgroundHandlerButtonRelease);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, 
+					                           out backgroundHandlerActivate, out backgroundHandlerButtonClick, out backgroundHandlerButtonRelease);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -124,9 +123,8 @@ namespace JSI
 							zoomSkip = (maxFOV - minFOV) / zoomSteps;
 							currentZoom = 0;
 							cameraFOV = maxFOV;
-						} else {
+						} else
 							JUtil.LogMessage(ourMonitor, "Ignored invalid camera zoom settings on page {0}.", pageNumber);
-						}
 					}
 				} 
 			}
@@ -141,7 +139,8 @@ namespace JSI
 			}
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out Action<bool, int> activationMethod, out Action<int> buttonClickMethod, out Action<int> buttonReleaseMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, 
+		                                             out Action<bool, int> activationMethod, out Action<int> buttonClickMethod, out Action<int> buttonReleaseMethod)
 		{
 			moduleInstance = null;
 			activationMethod = null;
@@ -155,14 +154,13 @@ namespace JSI
 				node.CopyTo(handlerConfiguration);
 
 				InternalModule thatModule = null;
-				if (node.HasValue("multiHandler")) {
-					foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules) {
+				if (node.HasValue("multiHandler"))
+					foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules)
 						if (potentialModule.ClassName == moduleName) {
 							thatModule = potentialModule;
 							break;
 						}
-					}
-				}
+
 				if (thatModule == null)
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
@@ -172,36 +170,31 @@ namespace JSI
 				}
 					
 
-				if (node.HasValue("pageActiveMethod")) {
-					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+				if (node.HasValue("pageActiveMethod"))
+					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("pageActiveMethod")) {
 							activationMethod = (Action<bool,int>)Delegate.CreateDelegate(typeof(Action<bool,int>), thatModule, m);
+							break;
 						}
-					}
-				}
 
-				if (node.HasValue("buttonClickMethod")) {
-					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+				if (node.HasValue("buttonClickMethod"))
+					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("buttonClickMethod")) {
 							buttonClickMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							break;
 						}
-					}
-				}
 
-				if (node.HasValue("buttonReleaseMethod")) {
-					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+				if (node.HasValue("buttonReleaseMethod"))
+					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("buttonReleaseMethod")) {
 							buttonReleaseMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							break;
 						}
-					}
-				}
 
 				moduleInstance = thatModule;
-				foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
-					if (m.Name == methodName) {
+				foreach (MethodInfo m in thatModule.GetType().GetMethods())
+					if (m.Name == methodName)
 						return m;
-					}
-				}
 
 			}
 			return null;
@@ -231,12 +224,10 @@ namespace JSI
 			if (backgroundHandlerButtonClick != null && backgroundHandlerButtonClick != pageHandlerButtonClick)
 				backgroundHandlerButtonClick(buttonID);
 			else if (zoomSteps > 0) {
-				if (buttonID == zoomUpButton) {
+				if (buttonID == zoomUpButton)
 					currentZoom--;
-				}
-				if (buttonID == zoomDownButton) {
+				if (buttonID == zoomDownButton)
 					currentZoom++;
-				}
 				if (currentZoom < 0)
 					currentZoom = 0;
 				if (currentZoom > zoomSteps)
@@ -260,12 +251,11 @@ namespace JSI
 					GL.Clear(true, true, ourMonitor.emptyColor);
 					break;
 				case BackgroundType.Camera:
-					if (!cameraObject.Render()) {
-						if (ourMonitor.noSignalTexture != null)
-							Graphics.Blit(ourMonitor.noSignalTexture, screen);
-						else
-							GL.Clear(true, true, ourMonitor.emptyColor);
-					}
+					if (!cameraObject.Render())
+					if (ourMonitor.noSignalTexture != null)
+						Graphics.Blit(ourMonitor.noSignalTexture, screen);
+					else
+						GL.Clear(true, true, ourMonitor.emptyColor);
 					break;
 				case BackgroundType.Texture:
 					Graphics.Blit(backgroundTexture, screen);
