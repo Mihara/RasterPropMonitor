@@ -15,7 +15,9 @@ namespace JSI
 		[KSPField]
 		public Vector2 ySpan;
 		[KSPField]
-		public Color32 scaleColor = Color.white;
+		public Color32 borderColor = Color.white;
+		[KSPField]
+		public int borders = 2;
 		[KSPField]
 		public float secondsBetweenSamples = 0.5f;
 		[KSPField]
@@ -30,6 +32,7 @@ namespace JSI
 		private Texture2D backgroundTexture;
 		// Because KSPField can't handle double. :E
 		private double xGraphSpan, interval;
+		private readonly List<Vector2> borderVertices = new List<Vector2>();
 
 		public void Start()
 		{
@@ -43,6 +46,27 @@ namespace JSI
 			interval = secondsBetweenSamples;
 			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes())) {
 				backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
+			}
+
+			Vector2 bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
+			Vector2 bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
+			Vector2 topLeft = new Vector2(graphSpace.xMin, graphSpace.yMax);
+			Vector2 topRight = new Vector2(graphSpace.xMax, graphSpace.yMax);
+
+
+			switch (borders) {
+				case 2:
+					borderVertices.Add(bottomRight);
+					borderVertices.Add(bottomLeft);
+					borderVertices.Add(topLeft);
+					break;
+				case 4:
+					borderVertices.Add(bottomLeft);
+					borderVertices.Add(topLeft);
+					borderVertices.Add(topRight);
+					borderVertices.Add(bottomRight);
+					borderVertices.Add(bottomLeft);
+					break;
 			}
 
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSIGRAPHSET")) {
@@ -67,11 +91,8 @@ namespace JSI
 			foreach (GraphLine graph in graphs) {
 				graph.Draw(graphSpace, time);
 			}
-			GraphLine.DrawVector(new List<Vector2> {
-				new Vector2(graphSpace.xMax,graphSpace.yMin),
-				new Vector2(graphSpace.xMin,graphSpace.yMin),
-				new Vector2(graphSpace.xMin,graphSpace.yMax),
-			}, scaleColor);
+			if (borders > 0)
+				GraphLine.DrawVector(borderVertices, borderColor);
 
 			GL.PopMatrix();
 			return true;
