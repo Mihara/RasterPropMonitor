@@ -74,6 +74,10 @@ namespace JSI
 			textIn = JUtil.LoadPageDefinition(definitionIn);
 			textOut = JUtil.LoadPageDefinition(definitionOut);
 			comp = JUtil.GetComputer(internalProp);
+			float min = Mathf.Min(threshold.x, threshold.y);
+			float max = Mathf.Max(threshold.x, threshold.y);
+			threshold.x = min;
+			threshold.y = max;
 		}
 	}
 }
