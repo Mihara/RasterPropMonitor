@@ -173,14 +173,10 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
-			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) {
+			if (!UpdateCheck())
+				return;
 
-				if (!UpdateCheck())
-					return;
-
-				FetchCommonData();
-			}
+			FetchCommonData();
 		}
 		// Sigh. MechJeb math.
 		private static double GetCurrentThrust(ModuleEngines engine)
