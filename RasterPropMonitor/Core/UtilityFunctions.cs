@@ -64,6 +64,40 @@ namespace JSI
 			return double.NaN;
 		}
 
+		// Working in a generic to make that a generic function for all numbers is too much work
+		// and we only need these two anyway.
+		public static float DualLerp(float from, float to, float from2, float to2, float value)
+		{
+			if (from2 < to2) {
+				if (value < from2)
+					value = from2;
+				else if (value > to2)
+					value = to2;
+			} else {
+				if (value < to2)
+					value = to2;
+				else if (value > from2)
+					value = from2;	
+			}
+			return (to - from) * ((value - from2) / (to2 - from2)) + from;
+		}
+
+		public static double DualLerp(double from, double to, double from2, double to2, double value)
+		{
+			if (from2 < to2) {
+				if (value < from2)
+					value = from2;
+				else if (value > to2)
+					value = to2;
+			} else {
+				if (value < to2)
+					value = to2;
+				else if (value > from2)
+					value = from2;	
+			}
+			return (to - from) * ((value - from2) / (to2 - from2)) + from;
+		}
+
 		public static string LoadPageDefinition(string pageDefinition)
 		{
 			try {

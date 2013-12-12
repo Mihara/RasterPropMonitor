@@ -34,7 +34,11 @@ namespace JSI
 		public void Start()
 		{
 			comp = JUtil.GetComputer(internalProp);
-			graphSpace = new Rect(graphRect.x, graphRect.y, graphRect.z, graphRect.w);
+			graphSpace = new Rect();
+			graphSpace.xMin = graphRect.x;
+			graphSpace.yMin = graphRect.y;
+			graphSpace.xMax = graphRect.z;
+			graphSpace.yMax = graphRect.w;
 			xGraphSpan = xSpan;
 			interval = secondsBetweenSamples;
 			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes())) {
@@ -64,12 +68,9 @@ namespace JSI
 				graph.Draw(graphSpace, time);
 			}
 			GraphLine.DrawVector(new List<Vector2> {
-				new Vector2(graphRect.x, graphRect.y),
-				new Vector2(graphRect.x, graphRect.w)
-			}, scaleColor);
-			GraphLine.DrawVector(new List<Vector2> {
-				new Vector2(graphRect.x, graphRect.y),
-				new Vector2(graphRect.z, graphRect.y)
+				new Vector2(graphSpace.xMax,graphSpace.yMin),
+				new Vector2(graphSpace.xMin,graphSpace.yMin),
+				new Vector2(graphSpace.xMin,graphSpace.yMax),
 			}, scaleColor);
 
 			GL.PopMatrix();
@@ -121,11 +122,13 @@ namespace JSI
 				double mintime = time - horizontalSpan;
 				var actualXY = new List<Vector2>();
 				foreach (Vector2d dataPoint in points) {
-					if (dataPoint.x > mintime)
-						actualXY.Add(new Vector2(
-							(float)(screenRect.xMin + (dataPoint.x - mintime) * screenRect.width / horizontalSpan),
-							Mathf.Lerp(screenRect.yMin, screenRect.yMax, Mathf.InverseLerp(verticalSpan.x, verticalSpan.y, (float)dataPoint.y))
-						));
+					if (dataPoint.x > mintime) {
+						var actual = new Vector2(
+							             (float)JUtil.DualLerp(screenRect.xMin, screenRect.xMax, mintime, time, dataPoint.x),
+							             (float)JUtil.DualLerp(screenRect.yMin, screenRect.yMax, verticalSpan.x, verticalSpan.y, dataPoint.y)
+						             );
+						actualXY.Add(actual);
+					}
 				}
 				DrawVector(actualXY, lineColor);
 			}
