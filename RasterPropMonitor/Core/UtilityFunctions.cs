@@ -43,30 +43,24 @@ namespace JSI
 		public static float MassageObjectToFloat(object thatValue)
 		{
 			// RPMC only produces doubles, floats, ints and strings.
-			if (thatValue is double) {
+			if (thatValue is double)
 				return (float)(double)thatValue;
-			}
-			if (thatValue is float) {
+			if (thatValue is float)
 				return (float)thatValue;
-			}
-			if (thatValue is int) {
+			if (thatValue is int)
 				return (float)(int)thatValue;
-			}
 			return float.NaN;
 		}
 
 		public static double MassageObjectToDouble(object thatValue)
 		{
 			// RPMC only produces doubles, floats, ints and strings.
-			if (thatValue is double) {
+			if (thatValue is double)
 				return (double)thatValue;
-			}
-			if (thatValue is float) {
+			if (thatValue is float)
 				return (double)(float)thatValue;
-			}
-			if (thatValue is int) {
+			if (thatValue is int)
 				return (double)(int)thatValue;
-			}
 			return double.NaN;
 		}
 
