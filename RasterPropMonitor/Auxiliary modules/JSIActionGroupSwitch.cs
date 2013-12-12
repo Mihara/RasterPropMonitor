@@ -67,7 +67,7 @@ namespace JSI
 		{
 			if (!groupList.ContainsKey(actionName)) {
 				if (!customGroupList.ContainsKey(actionName)) {
-					JUtil.LogMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
+					JUtil.LogErrorMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
 				} else {
 					isCustomAction = true;
 				}
@@ -113,7 +113,7 @@ namespace JSI
 				anim[animationName].wrapMode = WrapMode.Once;
 
 			} else {
-				JUtil.LogMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+				JUtil.LogErrorMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
 			}
 
 			if (oldState ^ reverse) {

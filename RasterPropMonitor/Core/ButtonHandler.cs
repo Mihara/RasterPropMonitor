@@ -35,7 +35,7 @@ namespace JSI
 				return thatComponent;
 			} catch {
 				Debug.LogError(string.Format(
-					"ERROR: Could not register a button on transform named '{0}' in prop named '{1}'. Check your configuration.",
+					"Could not register a button on transform named '{0}' in prop named '{1}'. Check your configuration.",
 					buttonName, thatProp.propName));
 			}
 			return null;

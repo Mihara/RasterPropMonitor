@@ -47,7 +47,7 @@ namespace JSI
 		{
 			string[] tokens = scale.Split(',');
 			if (tokens.Length != 2)
-				JUtil.LogMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
+				JUtil.LogErrorMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
 			else {
 
 				comp = RasterPropMonitorComputer.Instantiate(internalProp);

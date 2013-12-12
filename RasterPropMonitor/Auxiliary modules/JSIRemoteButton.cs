@@ -18,25 +18,24 @@ namespace JSI
 		{
 			GameObject localButtonObject = internalProp.FindModelTransform(localButtonTransform).gameObject;
 			if (localButtonObject == (UnityEngine.Object)null) {
-				JUtil.LogMessage(this, "Could not find a local transform named '{0}', aborting.", localButtonTransform);
+				JUtil.LogErrorMessage(this, "Could not find a local transform named '{0}', aborting.", localButtonTransform);
 				return;
 			}
 
 			if (internalModel.props.Count < remoteButtonPropID) {
-				JUtil.LogMessage(this, "There is no prop ID {0}, aborting.", remoteButtonPropID);
+				JUtil.LogErrorMessage(this, "There is no prop ID {0}, aborting.", remoteButtonPropID);
 				return;
 			}
 
 
 			GameObject remoteButtonObject = internalModel.props[remoteButtonPropID].FindModelTransform(remoteButtonTransform).gameObject;
 			if (remoteButtonObject == (UnityEngine.Object)null) {
-				JUtil.LogMessage(this, "Could not find a remote button transform named '{0}' in prop ID {1}, aborting.", remoteButtonTransform, remoteButtonPropID);
+				JUtil.LogErrorMessage(this, "Could not find a remote button transform named '{0}' in prop ID {1}, aborting.", remoteButtonTransform, remoteButtonPropID);
 				return;
 			}
 
-			remoteButtonBehaviour = remoteButtonObject.GetComponent<SmarterButton>();
-			if (remoteButtonBehaviour == null) {
-				JUtil.LogMessage(this, "Transform named '{0}' in prop ID {1} is not an RPM button, aborting.", remoteButtonTransform, remoteButtonPropID);
+			if ((remoteButtonBehaviour = remoteButtonObject.GetComponent<SmarterButton>()) == null) {
+				JUtil.LogErrorMessage(this, "Transform named '{0}' in prop ID {1} is not an RPM button, aborting.", remoteButtonTransform, remoteButtonPropID);
 				return;
 			}
 

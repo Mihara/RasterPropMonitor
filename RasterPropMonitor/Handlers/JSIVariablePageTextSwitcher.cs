@@ -79,7 +79,7 @@ namespace JSI
 				threshold.x = min;
 				threshold.y = max;
 			} else {
-				JUtil.LogMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
+				JUtil.LogErrorMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
 			}
 		}
 	}

@@ -8,7 +8,6 @@ namespace JSI
 {
 	public static class JUtil
 	{
-
 		public static Material DrawLineMaterial()
 		{
 			var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
@@ -34,9 +33,14 @@ namespace JSI
 			return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
 		}
 
-		public static void LogMessage(InternalModule caller, string line, params object[] list)
+		public static void LogMessage(object caller, string line, params object[] list)
 		{
-			Debug.Log(String.Format(caller.ClassName + ": " + line, list));
+			Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+		}
+
+		public static void LogErrorMessage(object caller, string line, params object[] list)
+		{
+			Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
 		}
 
 		public static float MassageObjectToFloat(object thatValue)

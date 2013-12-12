@@ -47,10 +47,10 @@ namespace JSI
 					CameraSetup(1, "Camera 01");
 					CameraSetup(2, "Camera 00");
 					enabled = true;
-					Debug.Log(string.Format("Switched to camera \"{0}\".", cameraTransform.name));
+					JUtil.LogMessage(this,"Switched to camera \"{0}\".", cameraTransform.name);
 					return;
 				} 
-				Debug.Log(string.Format("Tried to switch to camera \"{0}\" but camera was not found.", newCameraName));
+				JUtil.LogMessage(this,"Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
 			}
 		}
 
@@ -63,7 +63,7 @@ namespace JSI
 						cameraObject[i] = null;
 					}
 				enabled = false;
-				Debug.Log("Turning camera off.");
+				JUtil.LogMessage(this,"Turning camera off.");
 			}
 			cameraPart = null;
 			cameraTransform = null;
