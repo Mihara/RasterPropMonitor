@@ -50,7 +50,6 @@ namespace JSI
 		public FlyingCamera CameraStructure;
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
-		private const float defaultFOV = 60f;
 		// Internal stuff.
 		private Texture2D fontTexture;
 		private RenderTexture screenTexture;
