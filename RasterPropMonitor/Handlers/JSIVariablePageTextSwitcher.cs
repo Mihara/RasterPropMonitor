@@ -18,6 +18,7 @@ namespace JSI
 		public int refreshRate = 10;
 		private string textOut, textIn;
 		private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
+		private readonly float[] scaleResults = new float[3];
 		private bool pageActiveState;
 		private bool isInThreshold;
 		private int updateCountdown;
@@ -48,17 +49,12 @@ namespace JSI
 			if (!pageActiveState || !JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			float scaleBottom;
-			if (!scaleEnds[0].Get(out scaleBottom))
-				return;
-			float scaleTop;
-			if (!scaleEnds[1].Get(out scaleTop))
-				return;
-			float varValue;
-			if (!scaleEnds[2].Get(out varValue))
-				return;
+			for (int i = 0; i < 3; i++)
+				if (!scaleEnds[i].Get(out scaleResults[i]))
+					return;
 
-			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
+
+			float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
 
 			isInThreshold = (scaledValue >= threshold.x && scaledValue <= threshold.y);
 		}
@@ -68,18 +64,23 @@ namespace JSI
 
 			string[] tokens = scale.Split(',');
 
-			comp = JUtil.GetComputer(internalProp);
-			scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
-			scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
-			scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
+			if (tokens.Length == 2) {
 
-			textIn = JUtil.LoadPageDefinition(definitionIn);
-			textOut = JUtil.LoadPageDefinition(definitionOut);
+				comp = JUtil.GetComputer(internalProp);
+				scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
+				scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
+				scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
 
-			float min = Mathf.Min(threshold.x, threshold.y);
-			float max = Mathf.Max(threshold.x, threshold.y);
-			threshold.x = min;
-			threshold.y = max;
+				textIn = JUtil.LoadPageDefinition(definitionIn);
+				textOut = JUtil.LoadPageDefinition(definitionOut);
+
+				float min = Mathf.Min(threshold.x, threshold.y);
+				float max = Mathf.Max(threshold.x, threshold.y);
+				threshold.x = min;
+				threshold.y = max;
+			} else {
+				JUtil.LogMessage(this, "Could not parse the 'scale' parameter: {0}", scale);
+			}
 		}
 	}
 }
