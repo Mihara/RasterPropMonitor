@@ -9,7 +9,7 @@ namespace JSI
 		private Action<int> clickHandlerID;
 		private Action<int> releaseHandlerID;
 		private Action<MonitorPage> pageSelectionHandlerFunction;
-		private Action handler, releaseHandler;
+		private Action clickHandler, releaseHandler;
 		private int id;
 		private readonly List<MonitorPage> pageReferences = new List<MonitorPage>();
 		private int listCounter;
@@ -25,8 +25,8 @@ namespace JSI
 			if (clickHandlerID != null) {
 				clickHandlerID(id);
 			}
-			if (handler != null)
-				handler();
+			if (clickHandler != null)
+				clickHandler();
 		}
 
 		public void OnMouseUp()
@@ -91,7 +91,7 @@ namespace JSI
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			buttonBehaviour.handler = handlerFunction;
+			buttonBehaviour.clickHandler = handlerFunction;
 		}
 
 		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction)
@@ -99,7 +99,7 @@ namespace JSI
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			buttonBehaviour.handler = handlerFunction;
+			buttonBehaviour.clickHandler = handlerFunction;
 			buttonBehaviour.releaseHandler = releaseHandlerFunction;
 		}
 	}
