@@ -21,7 +21,11 @@ namespace JSI
 
 		public bool Get(out float destination)
 		{
-			destination = value ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
+			if (value != null) {
+				destination = value.Value;
+				return true;
+			}
+			destination = JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
 			if (float.IsNaN(destination) || float.IsInfinity(destination)) {
 				if (!warningMade) {
 					JUtil.LogMessage(owner, "Warning, {0} can fail to produce a usable number.", variableName);
