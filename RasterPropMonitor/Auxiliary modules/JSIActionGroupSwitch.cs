@@ -166,7 +166,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!JUtil.IsInIVA())
+			if (!JUtil.IsActiveVessel(vessel))
 				return;
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
