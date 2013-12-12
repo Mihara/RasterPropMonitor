@@ -103,7 +103,8 @@ namespace JSI
 			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
 
 			if (heading != null)
-				heading.renderer.material.SetTextureOffset("_MainTex", new Vector2(Mathf.Lerp(0, 1, Mathf.InverseLerp(0, 360, rotationVesselSurface.eulerAngles.y)) - headingSpan / 2, 0));
+				heading.renderer.material.SetTextureOffset("_MainTex",
+					new Vector2(JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y) - headingSpan / 2f, 0));
 
 			Quaternion gymbal = stockNavBall.attitudeGymbal;
 
