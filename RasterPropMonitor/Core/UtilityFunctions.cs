@@ -24,7 +24,7 @@ namespace JSI
 
 		public static Material DrawLineMaterial()
 		{
-			Material lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
+			var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
 			                        "SubShader { Pass {" +
 			                        "   BindChannels { Bind \"Color\",color }" +
 			                        "   Blend SrcAlpha OneMinusSrcAlpha" +
@@ -33,6 +33,17 @@ namespace JSI
 			lineMaterial.hideFlags = HideFlags.HideAndDontSave;
 			lineMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
 			return lineMaterial;
+		}
+
+		public static bool VesselIsInIVA(Vessel thatVessel)
+		{
+			if (!HighLogic.LoadedSceneIsFlight || thatVessel != FlightGlobals.ActiveVessel)
+				return false;
+			return IsInIVA();
+		}
+
+		public static bool IsInIVA(){
+			return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
 		}
 
 		public static void LogMessage(InternalModule caller, string line, params object[] list)
