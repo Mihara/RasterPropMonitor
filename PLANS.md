@@ -1,9 +1,5 @@
 # 0.11 milestone targets
 
-## Minor new features
-
-* Page handler to select between different page definition files based on variable values.
-
 ## Major new features
 
 * MechJeb SmartASS interface menu with an 'execute node' option.
