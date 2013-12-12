@@ -542,14 +542,7 @@ namespace SCANsatRPM
 
 			showLines = persistence.GetBool(persistentVarName + "lines") ?? true;
 
-			trailMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
-			"SubShader { Pass {" +
-			"   BindChannels { Bind \"Color\",color }" +
-			"   Blend SrcAlpha OneMinusSrcAlpha" +
-			"   ZWrite Off Cull Off Fog { Mode Off }" +
-			"} } }");
-			trailMaterial.hideFlags = HideFlags.HideAndDontSave;
-			trailMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
+			trailMaterial = JUtil.DrawLineMaterial();
 
 			LeaveTrail();
 
