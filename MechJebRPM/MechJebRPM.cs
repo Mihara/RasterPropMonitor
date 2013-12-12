@@ -1,4 +1,5 @@
 using MuMech;
+using System;
 
 namespace MechJebRPM
 {
@@ -23,9 +24,15 @@ namespace MechJebRPM
 			pageActiveState = active;
 		}
 
+		/* Note to self:
+		foreach (ThatEnumType item in (ThatEnumType[]) Enum.GetValues(typeof(ThatEnumType)))
+		can save a lot of time here.
+		*/
+
 		private void UpdateJebReferences()
 		{
 			activeJeb = vessel.GetMasterMechJeb();
+			// Node executor is activeJeb.node
 			if (activeJeb != null) {
 				activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
 			} else {
