@@ -9,7 +9,7 @@ namespace JSI
 		private Action<int> clickHandlerID;
 		private Action<int> releaseHandlerID;
 		private Action<MonitorPage> pageSelectionHandlerFunction;
-		private Action handler,releaseHandler;
+		private Action handler, releaseHandler;
 		private int id;
 		private readonly List<MonitorPage> pageReferences = new List<MonitorPage>();
 		private int listCounter;
@@ -40,6 +40,21 @@ namespace JSI
 
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
 		{
+
+			string[] tokens = buttonName.Split(',');
+			if (tokens.Length == 2) {
+				// First token is the button name, second is the prop ID.
+				int propID;
+				if (int.TryParse(tokens[1], out propID)) {
+					if (propID < thatProp.internalModel.props.Count) {
+						thatProp = thatProp.internalModel.props[propID];
+						buttonName = tokens[0].Trim();
+					} else {
+						Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
+					}
+				}
+			} else
+				buttonName = buttonName.Trim();
 			try {
 				GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
 				SmarterButton thatComponent = buttonObject.GetComponent<SmarterButton>() ?? buttonObject.AddComponent<SmarterButton>();
@@ -78,6 +93,7 @@ namespace JSI
 				return;
 			buttonBehaviour.handler = handlerFunction;
 		}
+
 		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction)
 		{
 			SmarterButton buttonBehaviour;
