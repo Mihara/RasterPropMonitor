@@ -23,9 +23,12 @@ namespace JSI
 
 		public static bool VesselIsInIVA(Vessel thatVessel)
 		{
-			if (!HighLogic.LoadedSceneIsFlight || thatVessel != FlightGlobals.ActiveVessel)
-				return false;
-			return IsInIVA();
+			return IsActiveVessel(thatVessel) && IsInIVA();
+		}
+
+		public static bool IsActiveVessel(Vessel thatVessel)
+		{
+			return (HighLogic.LoadedSceneIsFlight && (thatVessel == FlightGlobals.ActiveVessel));
 		}
 
 		public static bool IsInIVA()
