@@ -25,11 +25,11 @@ namespace JSI
 		public static Material DrawLineMaterial()
 		{
 			var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
-			                        "SubShader { Pass {" +
-			                        "   BindChannels { Bind \"Color\",color }" +
-			                        "   Blend SrcAlpha OneMinusSrcAlpha" +
-			                        "   ZWrite Off Cull Off Fog { Mode Off }" +
-			                        "} } }");
+			                   "SubShader { Pass {" +
+			                   "   BindChannels { Bind \"Color\",color }" +
+			                   "   Blend SrcAlpha OneMinusSrcAlpha" +
+			                   "   ZWrite Off Cull Off Fog { Mode Off }" +
+			                   "} } }");
 			lineMaterial.hideFlags = HideFlags.HideAndDontSave;
 			lineMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
 			return lineMaterial;
@@ -42,7 +42,8 @@ namespace JSI
 			return IsInIVA();
 		}
 
-		public static bool IsInIVA(){
+		public static bool IsInIVA()
+		{
 			return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
 		}
 
@@ -74,7 +75,6 @@ namespace JSI
 				return (double)(int)thatValue;
 			return double.NaN;
 		}
-
 		// Working in a generic to make that a generic function for all numbers is too much work
 		// and we only need these two anyway.
 		public static float DualLerp(float from, float to, float from2, float to2, float value)
