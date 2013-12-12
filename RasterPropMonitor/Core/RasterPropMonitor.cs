@@ -77,6 +77,11 @@ namespace JSI
 
 		public void Start()
 		{
+
+			// Install the calculator module.
+			comp = JUtil.GetComputer(internalProp);
+			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
+
 			// Loading the font...
 			JUtil.LogMessage(this, "Trying to locate \"{0}\" in GameDatabase...", fontTransform);
 			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
@@ -148,10 +153,6 @@ namespace JSI
 				}
 			}
 			JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
-
-			// Install the calculator module.
-			comp = JUtil.GetComputer(internalProp);
-			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
 			// Load our state from storage...
 			persistentVarName = "activePage" + internalProp.propID;
