@@ -45,7 +45,7 @@ namespace JSI
 		[KSPField]
 		public Color32 defaultFontTint = Color.white;
 		[KSPField]
-		public string noSignalTextureURL;
+		public string noSignalTextureURL = string.Empty;
 		// This needs to be public so that pages can point it.
 		public FlyingCamera CameraStructure;
 		// Some things in life are constant;
