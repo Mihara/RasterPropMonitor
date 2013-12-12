@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct ("RasterPropMonitor")]
-[assembly: AssemblyCopyright ("Copyright ©2013 by Mihara, released under the terms of GNU GPLv3")]
+[assembly: AssemblyCopyright ("Copyright ©2013 by Mihara and other contributors, released under the terms of GNU GPLv3")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 // The assembly version has the format "{Major}.{Minor}.{Build}.{Revision}".
