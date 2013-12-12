@@ -32,6 +32,7 @@ namespace JSI
 		private bool thresholdMode;
 		private FXGroup audioOutput;
 		private bool alarmActive;
+		private bool[] warningMade = { false, false, false };
 
 		private bool UpdateCheck()
 		{
@@ -102,19 +103,28 @@ namespace JSI
 
 			float scaleBottom = scalePoints[0] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[0]));
 			if (float.IsNaN(scaleBottom)) {
-				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[0]);
+				if (!warningMade[0]) {
+					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", varName[0]);
+					warningMade[0] = true;
+				}
 				return;
 			}
 
 			float scaleTop = scalePoints[1] ?? JUtil.MassageObjectToFloat(comp.ProcessVariable(varName[1]));
 			if (float.IsNaN(scaleTop)) {
-				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", varName[1]);
+				if (!warningMade[1]) {
+					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", varName[1]);
+					warningMade[1] = true;
+				}
 				return;
 			}
 
 			float varValue = JUtil.MassageObjectToFloat(comp.ProcessVariable(variableName));
 			if (float.IsNaN(varValue)) {
-				JUtil.LogMessage(this, "Error, {0} failed to produce a usable number.", variableName);
+				if (!warningMade[2]) {
+					JUtil.LogMessage(this, "Warning, {0} can fail to produce a usable number.", variableName);
+					warningMade[2] = true;
+				}
 				return;
 			}
 
