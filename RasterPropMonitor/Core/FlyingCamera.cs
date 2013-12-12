@@ -106,7 +106,7 @@ namespace JSI
 
 		}
 
-		public bool Render()
+		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
 			if (!enabled)
 				return false;
@@ -116,13 +116,17 @@ namespace JSI
 				return false;
 			}
 
+			Quaternion rotation = cameraTransform.transform.rotation;
+			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
+			rotation = rotation * offset;
+
 			// ScaledSpace camera is special. :(
-			cameraObject[0].transform.rotation = cameraTransform.transform.rotation;
+			cameraObject[0].transform.rotation = rotation;
 			cameraObject[0].fieldOfView = FOV;
 			cameraObject[0].Render();
 			for (int i = 1; i < 3; i++) {
 				cameraObject[i].transform.position = cameraTransform.transform.position;
-				cameraObject[i].transform.rotation = cameraTransform.transform.rotation;
+				cameraObject[i].transform.rotation = rotation;
 				cameraObject[i].fieldOfView = FOV;
 
 

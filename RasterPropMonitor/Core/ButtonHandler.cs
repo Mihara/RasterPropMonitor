@@ -6,7 +6,8 @@ namespace JSI
 {
 	public class SmarterButton: MonoBehaviour
 	{
-		private Action<int> handlerID;
+		private Action<int> clickHandlerID;
+		private Action<int> releaseHandlerID;
 		private Action<MonitorPage> pageSelectionHandlerFunction;
 		private Action handler;
 		private int id;
@@ -21,10 +22,19 @@ namespace JSI
 				if (listCounter >= pageReferences.Count)
 					listCounter = 0;
 			}
-			if (handlerID != null)
-				handlerID(id);
+			if (clickHandlerID != null) {
+				clickHandlerID(id);
+			}
 			if (handler != null)
 				handler();
+		}
+
+		public void OnMouseUp()
+		{
+			if (releaseHandlerID != null)
+			{
+				releaseHandlerID(id);
+			}
 		}
 
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
@@ -50,13 +60,14 @@ namespace JSI
 			buttonBehaviour.pageReferences.Add(thatPage);
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> handlerFunction)
+		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction)
 		{
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
 			buttonBehaviour.id = id;
-			buttonBehaviour.handlerID = handlerFunction;
+			buttonBehaviour.clickHandlerID = clickHandlerFunction;
+			buttonBehaviour.releaseHandlerID = releaseHandlerFunction;
 		}
 
 		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction)

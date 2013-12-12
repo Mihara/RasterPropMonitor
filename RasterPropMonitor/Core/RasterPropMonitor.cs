@@ -167,7 +167,7 @@ namespace JSI
 			if (!string.IsNullOrEmpty(globalButtons)) {
 				string[] tokens = globalButtons.Split(',');
 				for (int i = 0; i < tokens.Length; i++) {
-					SmarterButton.CreateButton(internalProp, tokens[i].Trim(), i, GlobalButtonClick);
+					SmarterButton.CreateButton(internalProp, tokens[i].Trim(), i, GlobalButtonClick, GlobalButtonRelease);
 				}
 			}
 
@@ -188,6 +188,14 @@ namespace JSI
 				return;
 			activePage.GlobalButtonClick(buttonID);
 			PlayClickSound(audioOutput);
+		}
+
+		public void GlobalButtonRelease(int buttonID)
+		{
+			// Or do we allow a button release to have effects?
+			if (needsElectricCharge && electricChargeReserve < 0.01d)
+				return;
+			activePage.GlobalButtonRelease(buttonID);
 		}
 
 		public void PageButtonClick(MonitorPage triggeredPage)

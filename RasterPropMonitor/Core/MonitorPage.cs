@@ -44,6 +44,8 @@ namespace JSI
 		private readonly Action<bool,int> backgroundHandlerActivate;
 		private readonly Action<int> pageHandlerButtonClick;
 		private readonly Action<int> backgroundHandlerButtonClick;
+		private readonly Action<int> pageHandlerButtonRelease;
+		private readonly Action<int> backgroundHandlerButtonRelease;
 		private readonly RasterPropMonitor ourMonitor;
 		private int screenWidth, screenHeight;
 		private readonly float cameraAspect;
@@ -75,7 +77,7 @@ namespace JSI
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out pageHandlerActivate, out pageHandlerButtonClick, out pageHandlerButtonRelease);
 				if (handlerMethod != null && handlerModule != null) {
 					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -92,7 +94,7 @@ namespace JSI
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick);
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out backgroundHandlerActivate, out backgroundHandlerButtonClick, out backgroundHandlerButtonRelease);
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					isMutable = true;
@@ -139,11 +141,12 @@ namespace JSI
 			}
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out Action<bool,int> activationMethod, out Action<int> buttonClickMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out Action<bool, int> activationMethod, out Action<int> buttonClickMethod, out Action<int> buttonReleaseMethod)
 		{
 			moduleInstance = null;
 			activationMethod = null;
 			buttonClickMethod = null;
+			buttonReleaseMethod = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
@@ -181,6 +184,14 @@ namespace JSI
 					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 						if (m.Name == node.GetValue("buttonClickMethod")) {
 							buttonClickMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+						}
+					}
+				}
+
+				if (node.HasValue("buttonReleaseMethod")) {
+					foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+						if (m.Name == node.GetValue("buttonReleaseMethod")) {
+							buttonReleaseMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
 						}
 					}
 				}
@@ -232,6 +243,14 @@ namespace JSI
 					currentZoom = zoomSteps;
 				cameraObject.FOV = ComputeFOV();
 			}
+		}
+
+		public void GlobalButtonRelease(int buttonID)
+		{
+			if (pageHandlerButtonRelease != null)
+				pageHandlerButtonRelease(buttonID);
+			if (backgroundHandlerButtonRelease != null && backgroundHandlerButtonRelease != pageHandlerButtonRelease)
+				backgroundHandlerButtonRelease(buttonID);
 		}
 
 		public void RenderBackground(RenderTexture screen)
