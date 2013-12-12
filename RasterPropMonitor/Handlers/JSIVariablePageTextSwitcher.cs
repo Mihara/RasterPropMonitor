@@ -24,17 +24,17 @@ namespace JSI
 		private bool isInThreshold;
 		private int updateCountdown;
 		private RasterPropMonitorComputer comp;
-		// Analysis disable once UnusedParameter
+		// Analysis disable UnusedParameter
 		public string ShowPage(int width, int height)
 		{
 			return isInThreshold ? textIn : textOut; 
 		}
-		// Analysis disable once UnusedParameter
+
 		public void PageActive(bool active, int pageNumber)
 		{
 			pageActiveState = active;
 		}
-
+		// Analysis restore UnusedParameter
 		private bool UpdateCheck()
 		{
 			if (updateCountdown <= 0) {
@@ -51,7 +51,7 @@ namespace JSI
 				return;
 
 			// Well, that looks a little like code reuse now.
-			// But maybe I should abstract this away as a proper object later.
+			// TODO: abstract this away as a proper object.
 			float scaleBottom;
 			if (!JSIVariableAnimator.MassageScalePoint(out scaleBottom, scalePoints[0], varName[0], ref warningMade[0], comp, this))
 				return;
