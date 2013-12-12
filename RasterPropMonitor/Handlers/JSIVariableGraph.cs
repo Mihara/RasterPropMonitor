@@ -44,9 +44,8 @@ namespace JSI
 			graphSpace.yMax = graphRect.w;
 			xGraphSpan = xSpan;
 			interval = secondsBetweenSamples;
-			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes())) {
+			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes()))
 				backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
-			}
 
 			var bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
 			var bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
@@ -88,9 +87,8 @@ namespace JSI
 			// This way 0,0 is in bottom left corner, which is what we want this time.
 			GL.LoadPixelMatrix(0, screen.width, 0, screen.height);
 			double time = Planetarium.GetUniversalTime();
-			foreach (GraphLine graph in graphs) {
+			foreach (GraphLine graph in graphs)
 				graph.Draw(graphSpace, time);
-			}
 			if (borders > 0)
 				GraphLine.DrawVector(borderVertices, borderColor);
 
@@ -102,9 +100,8 @@ namespace JSI
 		{
 			double time = Planetarium.GetUniversalTime();
 			if (lastDataPoint + (double)secondsBetweenSamples < time) {
-				foreach (GraphLine graph in graphs) {
+				foreach (GraphLine graph in graphs)
 					graph.Update(time);
-				}
 				lastDataPoint = time;
 			}
 		}
@@ -128,9 +125,9 @@ namespace JSI
 				verticalSpan = ySpan;
 				if (!node.HasData)
 					throw new ArgumentException("Graph block with no data?");
-				if (node.HasValue("variableName")) {
+				if (node.HasValue("variableName"))
 					variableName = node.GetValue("variableName").Trim();
-				} else
+				else
 					throw new ArgumentException("Draw a graph of what?");
 
 				lineColor = Color.white;
@@ -143,13 +140,11 @@ namespace JSI
 				double mintime = time - horizontalSpan;
 				var actualXY = new List<Vector2>();
 				foreach (Vector2d dataPoint in points) {
-					if (dataPoint.x > mintime) {
-						var actual = new Vector2(
-							             (float)JUtil.DualLerp(screenRect.xMin, screenRect.xMax, mintime, time, dataPoint.x),
-							             (float)JUtil.DualLerp(screenRect.yMin, screenRect.yMax, verticalSpan.x, verticalSpan.y, dataPoint.y)
-						             );
-						actualXY.Add(actual);
-					}
+					if (dataPoint.x > mintime)
+						actualXY.Add(new Vector2(
+							(float)JUtil.DualLerp(screenRect.xMin, screenRect.xMax, mintime, time, dataPoint.x),
+							(float)JUtil.DualLerp(screenRect.yMin, screenRect.yMax, verticalSpan.x, verticalSpan.y, dataPoint.y)
+						));
 				}
 				DrawVector(actualXY, lineColor);
 			}
