@@ -22,6 +22,19 @@ namespace JSI
 			return null;
 		}
 
+		public static Material DrawLineMaterial()
+		{
+			Material lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
+			                        "SubShader { Pass {" +
+			                        "   BindChannels { Bind \"Color\",color }" +
+			                        "   Blend SrcAlpha OneMinusSrcAlpha" +
+			                        "   ZWrite Off Cull Off Fog { Mode Off }" +
+			                        "} } }");
+			lineMaterial.hideFlags = HideFlags.HideAndDontSave;
+			lineMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
+			return lineMaterial;
+		}
+
 		public static void LogMessage(InternalModule caller, string line, params object[] list)
 		{
 			Debug.Log(String.Format(caller.ClassName + ": " + line, list));
@@ -56,6 +69,7 @@ namespace JSI
 			}
 			return double.NaN;
 		}
+
 		public static string LoadPageDefinition(string pageDefinition)
 		{
 			try {
