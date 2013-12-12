@@ -24,15 +24,13 @@ namespace JSI
 		public bool reverse;
 		[KSPField]
 		public string alarmShutdownButton;
-		private readonly float?[] scalePoints = { null, null };
-		private readonly string[] varName = { null, null };
+		private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
 		private RasterPropMonitorComputer comp;
 		private int updateCountdown;
 		private Animation anim;
 		private bool thresholdMode;
 		private FXGroup audioOutput;
 		private bool alarmActive;
-		private readonly bool[] warningMade = { false, false, false };
 
 		private bool UpdateCheck()
 		{
@@ -48,15 +46,10 @@ namespace JSI
 		{
 			string[] tokens = scale.Split(',');
 
-			for (int i = 0; i < tokens.Length; i++) {
-				float realValue;
-				if (float.TryParse(tokens[i], out realValue)) {
-					scalePoints[i] = realValue;
-				} else {
-					varName[i] = tokens[i].Trim();
-				}
-
-			}
+			comp = JUtil.GetComputer(internalProp);
+			scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
+			scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
+			scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
 
 			if (threshold != Vector2.zero) {
 				thresholdMode = true;
@@ -72,8 +65,6 @@ namespace JSI
 				}
 			}
 
-			comp = JUtil.GetComputer(internalProp);
-
 			anim = internalProp.FindModelAnimators(animationName)[0];
 			anim.enabled = true;
 			anim[animationName].speed = 0;
@@ -86,20 +77,6 @@ namespace JSI
 				audioOutput.audio.Stop();
 			}
 		}
-		// It's messy but it's static and it abstracts some of the mess away.
-		public static bool MassageScalePoint(out float destination, float? source, string variableName, ref bool warningFlag, RasterPropMonitorComputer compReference, InternalModule caller)
-		{
-			destination = source ?? JUtil.MassageObjectToFloat(compReference.ProcessVariable(variableName));
-			if (float.IsNaN(destination) || float.IsInfinity(destination)) {
-				if (!warningFlag) {
-					JUtil.LogMessage(caller, "Warning, {0} can fail to produce a usable number.", variableName);
-					warningFlag = true;
-					return false;
-				}
-
-			}
-			return true;
-		}
 
 		public override void OnUpdate()
 		{
@@ -107,15 +84,13 @@ namespace JSI
 				return;
 
 			float scaleBottom;
-			if (!MassageScalePoint(out scaleBottom, scalePoints[0], varName[0], ref warningMade[0], comp, this))
+			if (!scaleEnds[0].Get(out scaleBottom))
 				return;
-
 			float scaleTop;
-			if (!MassageScalePoint(out scaleTop, scalePoints[1], varName[1], ref warningMade[1], comp, this))
+			if (!scaleEnds[1].Get(out scaleTop))
 				return;
-
 			float varValue;
-			if (!MassageScalePoint(out varValue, null, variableName, ref warningMade[2], comp, this))
+			if (!scaleEnds[2].Get(out varValue))
 				return;
 
 			if (thresholdMode) {
