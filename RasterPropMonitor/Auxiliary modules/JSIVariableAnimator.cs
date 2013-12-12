@@ -128,9 +128,8 @@ namespace JSI
 				return;
 			}
 
-			float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
-
 			if (thresholdMode) {
+				float scaledValue = Mathf.InverseLerp(scaleBottom, scaleTop, varValue);
 				if (scaledValue >= threshold.x && scaledValue <= threshold.y) {
 					if (audioOutput != null && !alarmActive) {
 						audioOutput.audio.Play();
@@ -146,7 +145,7 @@ namespace JSI
 				}
 
 			} else {
-				anim[animationName].normalizedTime = Mathf.Lerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaledValue);
+				anim[animationName].normalizedTime = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleBottom, scaleTop, varValue);
 			}
 
 		}
