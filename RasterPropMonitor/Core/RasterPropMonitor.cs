@@ -73,6 +73,7 @@ namespace JSI
 		private FXGroup audioOutput;
 		private double electricChargeReserve;
 		public Texture2D noSignalTexture;
+		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
 
 		public void Start()
 		{
@@ -225,8 +226,10 @@ namespace JSI
 
 			charCode -= firstCharacter;
 
-			if (charCode < 0 || charCode >= fontCharacters.Length) {
-				JUtil.LogErrorMessage(this, "Attempted to print a character \"{0}\" not present in the font, raw value {1} ", letter.ToString(), Convert.ToUInt16(letter));
+			if ((charCode < 0 || charCode >= fontCharacters.Length) && !characterWarnings[charCode]) {
+				JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font, raw value \"{1}\"",
+					letter.ToString(), Convert.ToUInt16(letter));
+				characterWarnings[charCode] = true;
 				return;
 			}
 
