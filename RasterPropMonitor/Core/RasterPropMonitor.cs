@@ -193,8 +193,11 @@ namespace JSI
 		public void GlobalButtonRelease(int buttonID)
 		{
 			// Or do we allow a button release to have effects?
+			/* Mihara: Yes, I think we should. Otherwise if the charge
+			 * manages to run out in the middle of a pressed button, it will never stop.
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
+			*/
 			activePage.GlobalButtonRelease(buttonID);
 		}
 
