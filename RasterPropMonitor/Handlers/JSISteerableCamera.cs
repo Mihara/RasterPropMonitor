@@ -46,17 +46,17 @@ namespace JSI
 	public class JSISteerableCamera:InternalModule
 	{
 		[KSPField]
-		public int zoomIn   = 99;
+		public int zoomIn = -1;
 		[KSPField]
-		public int zoomOut  = 99;
+		public int zoomOut = -1;
 		[KSPField]
-		public int yawLeft  = 99;
+		public int yawLeft = -1;
 		[KSPField]
-		public int yawRight = 99;
+		public int yawRight = -1;
 		[KSPField]
-		public int pitchUp  = 99;
+		public int pitchUp = -1;
 		[KSPField]
-		public int pitchDown= 99;
+		public int pitchDown = -1;
 		[KSPField]
 		public Vector2 fovLimits = new Vector2(60.0f, 60.0f);
 		[KSPField]
@@ -64,22 +64,21 @@ namespace JSI
 		[KSPField]
 		public Vector2 pitchLimits = new Vector2(0.0f, 0.0f);
 		[KSPField]
-		public float zoomRate = 0.0f;
+		public float zoomRate;
 		[KSPField]
-		public float yawRate = 0.0f;
+		public float yawRate;
 		[KSPField]
-		public float pitchRate = 0.0f;
+		public float pitchRate;
 		[KSPField]
 		public string cameraTransform;
-
 		private FlyingCamera cameraObject;
-		private float currentFoV = 0.0f;
-		private float currentYaw = 0.0f;
-		private float currentPitch = 0.0f;
-		private float zoomDirection = 0.0f;
-		private float yawDirection = 0.0f;
-		private float pitchDirection = 0.0f;
-		private double lastUpdateTime = 0.0;
+		private float currentFoV;
+		private float currentYaw;
+		private float currentPitch;
+		private float zoomDirection;
+		private float yawDirection;
+		private float pitchDirection;
+		private double lastUpdateTime;
 
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)
 		{
@@ -92,7 +91,7 @@ namespace JSI
 				return false;
 			}
 
-			if(cameraObject == null) {
+			if (cameraObject == null) {
 				// canonicalize the limits
 				if (fovLimits.x > fovLimits.y) {
 					//std::swap(fovLimits.x, fovLimits.y);
@@ -122,7 +121,7 @@ namespace JSI
 				pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
 				pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
 
-				cameraObject = new JSI.FlyingCamera(part, screen, cameraAspect);
+				cameraObject = new FlyingCamera(part, screen, cameraAspect);
 				currentFoV = fovLimits.y;
 				cameraObject.PointCamera(cameraTransform, currentFoV);
 			}
@@ -153,36 +152,31 @@ namespace JSI
 
 		public void ClickProcessor(int buttonID)
 		{
-			if(cameraObject == null) {
+			if (cameraObject == null) {
 				return;
 			}
 
-			if(buttonID == zoomIn) {
+			if (buttonID == zoomIn) {
 				zoomDirection = -1.0f;
 				yawDirection = 0.0f;
 				pitchDirection = 0.0f;
-			}
-			else if (buttonID == zoomOut) {
+			} else if (buttonID == zoomOut) {
 				zoomDirection = 1.0f;
 				yawDirection = 0.0f;
 				pitchDirection = 0.0f;
-			}
-			else if (buttonID == yawLeft) {
+			} else if (buttonID == yawLeft) {
 				zoomDirection = 0.0f;
 				yawDirection = -1.0f;
 				pitchDirection = 0.0f;
-			}
-			else if (buttonID == yawRight) {
+			} else if (buttonID == yawRight) {
 				zoomDirection = 0.0f;
 				yawDirection = 1.0f;
 				pitchDirection = 0.0f;
-			}
-			else if (buttonID == pitchUp) {
+			} else if (buttonID == pitchUp) {
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = 1.0f;
-			}
-			else if (buttonID == pitchDown) {
+			} else if (buttonID == pitchDown) {
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = -1.0f;
@@ -192,7 +186,7 @@ namespace JSI
 			// has been a while since the last click.
 			lastUpdateTime = Planetarium.GetUniversalTime();
 		}
-
+		// Analysis disable once UnusedParameter
 		public void ReleaseProcessor(int buttonID)
 		{
 			// Always clear all movements here.  We don't support multi-click :)
