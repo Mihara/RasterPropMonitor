@@ -54,22 +54,18 @@ namespace JSI
 		{
 			foreach (PageTriggerSet monitor in pageTriggers)
 				monitor.ShowNext();
-			foreach (HandlerID consumer in clickHandlersID) {
+			foreach (HandlerID consumer in clickHandlersID)
 				consumer.function(consumer.idValue);
-			}
-			foreach (Action clickHandler in clickHandlers) {
+			foreach (Action clickHandler in clickHandlers)
 				clickHandler();
-			}
 		}
 
 		public void OnMouseUp()
 		{
-			foreach (HandlerID consumer in releaseHandlersID) {
+			foreach (HandlerID consumer in releaseHandlersID)
 				consumer.function(consumer.idValue);
-			}
-			foreach (Action releaseHandler in releaseHandlers) {
+			foreach (Action releaseHandler in releaseHandlers)
 				releaseHandler();
-			}
 		}
 
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
@@ -82,11 +78,11 @@ namespace JSI
 				int propID;
 				if (int.TryParse(tokens[1], out propID)) {
 					if (propID < thatProp.internalModel.props.Count) {
-						if (propID < 0) {
+						if (propID < 0)
 							thatModel = thatProp.internalModel;
-						} else {
+						else
 							thatProp = thatProp.internalModel.props[propID];
-						}
+
 						buttonName = tokens[0].Trim();
 					} else
 						Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
@@ -114,10 +110,10 @@ namespace JSI
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			foreach (PageTriggerSet pageset in buttonBehaviour.pageTriggers) {
+			foreach (PageTriggerSet pageset in buttonBehaviour.pageTriggers)
 				if (pageset.Add(handlerFunction, thatPage))
 					return;
-			}
+			
 			buttonBehaviour.pageTriggers.Add(new PageTriggerSet(handlerFunction, thatPage));
 		}
 
