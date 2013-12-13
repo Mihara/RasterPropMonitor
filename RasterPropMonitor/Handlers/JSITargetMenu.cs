@@ -44,6 +44,7 @@ namespace JSI
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
+			"Reference part",
 			"Filters",
 			"Clear target",
 		};
@@ -66,6 +67,7 @@ namespace JSI
 			Root,
 			Celestials,
 			Vessels,
+			Reference,
 			Ports,
 			Filters,
 		};
@@ -83,6 +85,8 @@ namespace JSI
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
+		private readonly List<PartModule> referencePoints = new List<PartModule>();
+		private int partCount;
 		private SortMode sortMode;
 		private bool pageActiveState;
 		private PersistenceAccessor persistence;
@@ -129,6 +133,11 @@ namespace JSI
 								currentMenuItem = selectedVessel != null ? vesselsList.FindIndex(x => x.vessel == selectedVessel) : 0;
 								UpdateLists();
 								break;
+							case "Reference part":
+								currentMenu = MenuList.Reference;
+								currentMenuItem = referencePoints.FindIndex(x => x.part == vessel.GetReferenceTransformPart());
+								UpdateLists();
+								break;
 							case "Filters":
 								currentMenu = MenuList.Filters;
 								currentMenuCount = vesselFilter.Count;
@@ -164,6 +173,18 @@ namespace JSI
 							FlightGlobals.fetch.SetVesselTarget(portsList[currentMenuItem]);
 						}
 						break;
+					case MenuList.Reference:
+						// This is going to get complicated...
+						if (referencePoints[currentMenuItem].part != vessel.GetReferenceTransformPart()) {
+							var thatNode = referencePoints[currentMenuItem] as ModuleDockingNode;
+							var thatPod = referencePoints[currentMenuItem] as ModuleCommand;
+							if (thatNode != null) {
+								thatNode.MakeReferenceTransform();
+							} else if (thatPod != null) {
+								thatPod.MakeReference();
+							}
+						}
+						break;
 					case MenuList.Filters:
 						vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key] = !vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key];
 						persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
@@ -182,8 +203,13 @@ namespace JSI
 						currentMenu = MenuList.Root;
 						currentMenuCount = rootMenu.Count;
 						break;
-					case MenuList.Filters:
+					case MenuList.Reference:
 						currentMenuItem = 2;
+						currentMenu = MenuList.Root;
+						currentMenuCount = rootMenu.Count;
+						break;
+					case MenuList.Filters:
+						currentMenuItem = 3;
 						currentMenu = MenuList.Root;
 						currentMenuCount = rootMenu.Count;
 						break;
@@ -225,6 +251,18 @@ namespace JSI
 						menuTitle = MakeMenuTitle("Root menu", width);
 					for (int i = 0; i < rootMenu.Count; i++) {
 						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, (rootMenu[i] == "Clear target" && currentTarget == null)));
+					}
+					break;
+				case MenuList.Reference:
+					menuTitle = string.Format(fp, menuTitleFormatString, "Select reference");
+					Part currentReference = vessel.GetReferenceTransformPart();
+					for (int i = 0; i < referencePoints.Count; i++) {
+						menu.Add(FormatItem(
+							string.Format("{0}. {1}", i + 1, referencePoints[i].part.name), 0,
+							(currentMenuItem == i),
+							(currentReference == referencePoints[i].part),
+							false
+						));
 					}
 					break;
 				case MenuList.Filters:
@@ -334,11 +372,12 @@ namespace JSI
 			else
 				result.Append(nameColorTag);
 
-			result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
 			if (distance > 0) {
+				result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
 				result.Append(distanceColorTag);
 				result.AppendFormat(fp, distanceFormatString, distance);
-			}
+			} else
+				result.Append(itemText);
 			return result.ToString();
 		}
 
@@ -364,7 +403,8 @@ namespace JSI
 			selectedPort = currentTarget as ModuleDockingNode;
 			if (selectedPort != null)
 				selectedVessel = selectedPort.vessel;
-
+			if (vessel.parts.Count != partCount)
+				FindReferencePoints();
 			if (!UpdateCheck())
 				return;
 			UpdateLists();
@@ -389,6 +429,10 @@ namespace JSI
 					}
 					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
 					currentMenuCount = celestialsList.Count;
+					break;
+				case MenuList.Reference:
+					FindReferencePoints();
+					currentMenuCount = referencePoints.Count;
 					break;
 				case MenuList.Vessels:
 					Vessel currentVessel = null;
@@ -444,6 +488,22 @@ namespace JSI
 			return portsList.Count;
 		}
 
+		private void FindReferencePoints()
+		{
+			referencePoints.Clear();
+			foreach (Part thatPart in vessel.Parts) {
+				foreach (PartModule thatModule in thatPart.Modules) {
+					var thatNode = thatModule as ModuleDockingNode;
+					var thatCommand = thatModule as ModuleCommand;
+					if (thatNode != null || thatCommand != null)
+						referencePoints.Add(thatModule);
+				}
+			}
+			partCount = vessel.parts.Count;
+			if (currentMenu == MenuList.Reference)
+				currentMenuCount = referencePoints.Count;
+		}
+
 		public void Start()
 		{
 			if (!HighLogic.LoadedSceneIsFlight)
@@ -467,6 +527,7 @@ namespace JSI
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
+			FindReferencePoints();
 			currentMenuCount = rootMenu.Count;
 		}
 
