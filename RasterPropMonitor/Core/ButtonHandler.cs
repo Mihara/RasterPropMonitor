@@ -75,13 +75,18 @@ namespace JSI
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
 		{
 
+			InternalModel thatModel = null;
 			string[] tokens = buttonName.Split('|');
 			if (tokens.Length == 2) {
 				// First token is the button name, second is the prop ID.
 				int propID;
 				if (int.TryParse(tokens[1], out propID)) {
 					if (propID < thatProp.internalModel.props.Count) {
-						thatProp = thatProp.internalModel.props[propID];
+						if (propID < 0) {
+							thatModel = thatProp.internalModel;
+						} else {
+							thatProp = thatProp.internalModel.props[propID];
+						}
 						buttonName = tokens[0].Trim();
 					} else
 						Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
@@ -89,7 +94,11 @@ namespace JSI
 			} else
 				buttonName = buttonName.Trim();
 			try {
-				GameObject buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
+				GameObject buttonObject;
+				if (thatModel == null)
+					buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
+				else
+					buttonObject = thatModel.FindModelTransform(buttonName).gameObject;
 				SmarterButton thatComponent = buttonObject.GetComponent<SmarterButton>() ?? buttonObject.AddComponent<SmarterButton>();
 				return thatComponent;
 			} catch {
