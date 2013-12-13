@@ -2,10 +2,6 @@
 
 * This probably comes out right after the KSP 0.23 release as soon as I can ensure nothing was broken.
 
-## Minor new features
-
-* It should be possible to SetReferenceTransform to a specific docking port while in IVA, (ModuleDockingNode.MakeReferenceTransform() *should* work.) but experiments suggest results can be bizarre, and multiple screens can be problematic. *(Which setter takes precedence? What if we are watching multiple port cameras?)* If this can be done, this should be part of the targeting menu...
-
 ## Major new features
 
 * MechJeb SmartASS interface menu with an 'execute node' option. *(Due to the rumoured fix of module-loading-order problem in KSP 0.23, pushing this down to 0.11 means 0.11 can't come out earlier than 0.23 comes out, since it introduces yet another floating assembly regardless.)*

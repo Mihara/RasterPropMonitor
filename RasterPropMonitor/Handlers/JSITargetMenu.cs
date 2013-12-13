@@ -259,8 +259,7 @@ namespace JSI
 					for (int i = 0; i < referencePoints.Count; i++) {
 						menu.Add(FormatItem(
 							string.Format("{0}. {1}", i + 1, referencePoints[i].part.name), 0,
-							(currentMenuItem == i),
-							(currentReference == referencePoints[i].part),
+							(currentMenuItem == i), (currentReference == referencePoints[i].part),
 							false
 						));
 					}
