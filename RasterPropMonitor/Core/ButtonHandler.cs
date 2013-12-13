@@ -6,36 +6,49 @@ namespace JSI
 {
 	public class SmarterButton: MonoBehaviour
 	{
-		private Action<int> clickHandlerID;
-		private Action<int> releaseHandlerID;
-		private Action<MonitorPage> pageSelectionHandlerFunction;
-		private Action clickHandler, releaseHandler;
-		private int id;
-		private readonly List<MonitorPage> pageReferences = new List<MonitorPage>();
+		private readonly List<handlerID> clickHandlersID = new List<handlerID>();
+		private readonly List<handlerID> releaseHandlersID = new List<handlerID>();
+		private readonly List<Action> clickHandlers = new List<Action>();
+		private readonly List<Action> releaseHandlers = new List<Action>();
+		private readonly List<pageTrigger> pageReferences = new List<pageTrigger>();
 		private int listCounter;
+
+		private struct handlerID
+		{
+			public Action<int> function;
+			public int idValue;
+		}
+
+		private struct pageTrigger
+		{
+			public Action<MonitorPage> selector;
+			public MonitorPage page;
+		}
 
 		public void OnMouseDown()
 		{
 			if (pageReferences.Count > 0) {
-				pageSelectionHandlerFunction(pageReferences[listCounter]);
+				pageReferences[listCounter].selector(pageReferences[listCounter].page);
 				listCounter++;
 				if (listCounter >= pageReferences.Count)
 					listCounter = 0;
 			}
-			if (clickHandlerID != null) {
-				clickHandlerID(id);
+			foreach (handlerID consumer in clickHandlersID) {
+				consumer.function(consumer.idValue);
 			}
-			if (clickHandler != null)
+			foreach (Action clickHandler in clickHandlers) {
 				clickHandler();
+			}
 		}
 
 		public void OnMouseUp()
 		{
-			if (releaseHandlerID != null) {
-				releaseHandlerID(id);
+			foreach (handlerID consumer in releaseHandlersID) {
+				consumer.function(consumer.idValue);
 			}
-			if (releaseHandler != null)
+			foreach (Action releaseHandler in releaseHandlers) {
 				releaseHandler();
+			}
 		}
 
 		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
@@ -49,9 +62,8 @@ namespace JSI
 					if (propID < thatProp.internalModel.props.Count) {
 						thatProp = thatProp.internalModel.props[propID];
 						buttonName = tokens[0].Trim();
-					} else {
+					} else
 						Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
-					}
 				}
 			} else
 				buttonName = buttonName.Trim();
@@ -72,35 +84,36 @@ namespace JSI
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			buttonBehaviour.pageSelectionHandlerFunction = handlerFunction;
-			buttonBehaviour.pageReferences.Add(thatPage);
+			buttonBehaviour.pageReferences.Add(new pageTrigger {
+				selector = handlerFunction,
+				page = thatPage
+			});
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, int id, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction)
+		public static void CreateButton(InternalProp thatProp, string buttonName, int numericID, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction)
 		{
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			buttonBehaviour.id = id;
-			buttonBehaviour.clickHandlerID = clickHandlerFunction;
-			buttonBehaviour.releaseHandlerID = releaseHandlerFunction;
+
+			buttonBehaviour.clickHandlersID.Add(new handlerID {
+				function = clickHandlerFunction,
+				idValue = numericID
+			});
+			buttonBehaviour.releaseHandlersID.Add(new handlerID {
+				function = releaseHandlerFunction,
+				idValue = numericID
+			});
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction)
+		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction = null)
 		{
 			SmarterButton buttonBehaviour;
 			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
 				return;
-			buttonBehaviour.clickHandler = handlerFunction;
-		}
-
-		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction)
-		{
-			SmarterButton buttonBehaviour;
-			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
-				return;
-			buttonBehaviour.clickHandler = handlerFunction;
-			buttonBehaviour.releaseHandler = releaseHandlerFunction;
+			buttonBehaviour.clickHandlers.Add(handlerFunction);
+			if (releaseHandlerFunction != null)
+				buttonBehaviour.releaseHandlers.Add(releaseHandlerFunction);
 		}
 	}
 }
