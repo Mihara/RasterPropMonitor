@@ -108,8 +108,13 @@ namespace JSI
 					}
 				}
 
-			} else
-				anim[animationName].normalizedTime = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
+			} else {
+				float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
+				if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
+					lerp = reverse ? 1f : 0f;
+				}
+				anim[animationName].normalizedTime = lerp;
+			}
 
 		}
 	}
