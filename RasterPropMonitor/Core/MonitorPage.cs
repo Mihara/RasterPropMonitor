@@ -40,12 +40,7 @@ namespace JSI
 		private readonly Texture2D backgroundTexture;
 		private readonly Func<int,int,string> pageHandler;
 		private readonly Func<RenderTexture,float,bool> backgroundHandler;
-		private readonly Action<bool,int> pageHandlerActivate;
-		private readonly Action<bool,int> backgroundHandlerActivate;
-		private readonly Action<int> pageHandlerButtonClick;
-		private readonly Action<int> backgroundHandlerButtonClick;
-		private readonly Action<int> pageHandlerButtonRelease;
-		private readonly Action<int> backgroundHandlerButtonRelease;
+		private readonly HandlerSupportMethods pageHandlerS, backgroundHandlerS;
 		private readonly RasterPropMonitor ourMonitor;
 		private readonly int screenWidth, screenHeight;
 		private readonly float cameraAspect;
@@ -55,6 +50,13 @@ namespace JSI
 		private readonly float zoomSkip;
 		private int currentZoom;
 		private readonly bool showNoSignal;
+
+		private struct HandlerSupportMethods
+		{
+			public Action <bool,int> activate;
+			public Action <int> buttonClick;
+			public Action <int> buttonRelease;
+		}
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
@@ -76,10 +78,16 @@ namespace JSI
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, 
-					                           out pageHandlerActivate, out pageHandlerButtonClick, out pageHandlerButtonRelease);
+				HandlerSupportMethods supportMethods;
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
-					pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
+					try {
+						pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
+					} catch {
+						JUtil.LogErrorMessage("Incorrect signature for the page handler method {0}", handlerModule.name);
+						break;
+					}
+					pageHandlerS = supportMethods;
 					isMutable = true;
 					break;
 				}
@@ -93,10 +101,16 @@ namespace JSI
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
 				InternalModule handlerModule;
-				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, 
-					                           out backgroundHandlerActivate, out backgroundHandlerButtonClick, out backgroundHandlerButtonRelease);
+				HandlerSupportMethods supportMethods;
+				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
-					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
+					try {
+						backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
+					} catch {
+						JUtil.LogErrorMessage("Incorrect signature for the background handler method {0}", handlerModule.name);
+						break;
+					}
+					backgroundHandlerS = supportMethods;
 					isMutable = true;
 					showNoSignal = node.HasValue("showNoSignal");
 					background = BackgroundType.Handler;
@@ -141,13 +155,12 @@ namespace JSI
 			}
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, 
-		                                             out Action<bool, int> activationMethod, out Action<int> buttonClickMethod, out Action<int> buttonReleaseMethod)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out HandlerSupportMethods support)
 		{
 			moduleInstance = null;
-			activationMethod = null;
-			buttonClickMethod = null;
-			buttonReleaseMethod = null;
+			support.activate = null;
+			support.buttonClick = null;
+			support.buttonRelease = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
@@ -167,29 +180,42 @@ namespace JSI
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
 				if (thatModule == null) {
-					JUtil.LogMessage(ourMonitor, "Warning, handler module \"{0}\" did not load. This could be perfectly normal.", moduleName);
+					JUtil.LogMessage(ourMonitor, "Warning, handler module \"{0}\" could not be loaded. This could be perfectly normal.", moduleName);
 					return null;
 				}
-					
 
+				const string sigError = "Incorrect signature of the {0} method in {1}, ignoring option. If it doesn't work later, that's why.";
+					
 				if (node.HasValue("pageActiveMethod"))
 					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("pageActiveMethod")) {
-							activationMethod = (Action<bool,int>)Delegate.CreateDelegate(typeof(Action<bool,int>), thatModule, m);
+							try {
+								support.activate = (Action<bool,int>)Delegate.CreateDelegate(typeof(Action<bool,int>), thatModule, m);
+							} catch {
+								JUtil.LogMessage(ourMonitor, sigError, "page activation", moduleName);
+							}
 							break;
 						}
 
 				if (node.HasValue("buttonClickMethod"))
 					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("buttonClickMethod")) {
-							buttonClickMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							try {
+								support.buttonClick = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							} catch {
+								JUtil.LogMessage(ourMonitor, sigError, "button click", moduleName);
+							}
 							break;
 						}
 
 				if (node.HasValue("buttonReleaseMethod"))
 					foreach (MethodInfo m in thatModule.GetType().GetMethods())
 						if (m.Name == node.GetValue("buttonReleaseMethod")) {
-							buttonReleaseMethod = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							try {
+								support.buttonRelease = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
+							} catch {
+								JUtil.LogMessage(ourMonitor, sigError, "button release", moduleName);
+							}
 							break;
 						}
 
@@ -213,18 +239,18 @@ namespace JSI
 		{
 			if (state)
 				cameraObject.PointCamera(camera, ComputeFOV());
-			if (pageHandlerActivate != null)
-				pageHandlerActivate(state, pageNumber);
-			if (backgroundHandlerActivate != null && backgroundHandlerActivate != pageHandlerActivate)
-				backgroundHandlerActivate(state, pageNumber);
+			if (pageHandlerS.activate != null)
+				pageHandlerS.activate(state, pageNumber);
+			if (backgroundHandlerS.activate != null && backgroundHandlerS.activate != pageHandlerS.activate)
+				backgroundHandlerS.activate(state, pageNumber);
 		}
 
 		public void GlobalButtonClick(int buttonID)
 		{
-			if (pageHandlerButtonClick != null)
-				pageHandlerButtonClick(buttonID);
-			if (backgroundHandlerButtonClick != null && backgroundHandlerButtonClick != pageHandlerButtonClick)
-				backgroundHandlerButtonClick(buttonID);
+			if (pageHandlerS.buttonClick != null)
+				pageHandlerS.buttonClick(buttonID);
+			if (backgroundHandlerS.buttonClick != null && pageHandlerS.buttonClick != backgroundHandlerS.buttonClick)
+				backgroundHandlerS.buttonClick(buttonID);
 			else if (zoomSteps > 0) {
 				if (buttonID == zoomUpButton)
 					currentZoom--;
@@ -240,10 +266,10 @@ namespace JSI
 
 		public void GlobalButtonRelease(int buttonID)
 		{
-			if (pageHandlerButtonRelease != null)
-				pageHandlerButtonRelease(buttonID);
-			if (backgroundHandlerButtonRelease != null && backgroundHandlerButtonRelease != pageHandlerButtonRelease)
-				backgroundHandlerButtonRelease(buttonID);
+			if (pageHandlerS.buttonRelease != null)
+				pageHandlerS.buttonRelease(buttonID);
+			if (backgroundHandlerS.buttonRelease != null && backgroundHandlerS.buttonRelease != pageHandlerS.buttonRelease)
+				backgroundHandlerS.buttonRelease(buttonID);
 		}
 
 		public void RenderBackground(RenderTexture screen)
