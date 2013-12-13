@@ -22,6 +22,7 @@
 ## Minor new features
 
 * Work out an API setting to direct handler loader to look at another prop?
+* Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
 * It might be possible to create a variable orientation pod that can switch control direction depending on whether you want to use it for a spaceship or a rover.
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
