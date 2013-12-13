@@ -47,13 +47,14 @@ namespace JSI
 		private readonly Action<int> pageHandlerButtonRelease;
 		private readonly Action<int> backgroundHandlerButtonRelease;
 		private readonly RasterPropMonitor ourMonitor;
-		private int screenWidth, screenHeight;
+		private readonly int screenWidth, screenHeight;
 		private readonly float cameraAspect;
 		private readonly int zoomUpButton, zoomDownButton;
 		private readonly float maxFOV, minFOV;
 		private readonly int zoomSteps;
 		private readonly float zoomSkip;
 		private int currentZoom;
+		private readonly bool showNoSignal;
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
 		{
@@ -97,6 +98,7 @@ namespace JSI
 				if (handlerMethod != null && handlerModule != null) {
 					backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					isMutable = true;
+					showNoSignal = node.HasValue("showNoSignal");
 					background = BackgroundType.Handler;
 					break;
 				}
@@ -262,8 +264,12 @@ namespace JSI
 					Graphics.Blit(backgroundTexture, screen);
 					break;
 				case BackgroundType.Handler:
-					if (!backgroundHandler(screen, cameraAspect))
-						GL.Clear(true, true, ourMonitor.emptyColor);
+					if (!backgroundHandler(screen, cameraAspect)) {
+						if (ourMonitor.noSignalTexture != null && showNoSignal)
+							Graphics.Blit(ourMonitor.noSignalTexture, screen);
+						else
+							GL.Clear(true, true, ourMonitor.emptyColor);
+					}
 					break;
 			}
 		}
