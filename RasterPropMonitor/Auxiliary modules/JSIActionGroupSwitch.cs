@@ -7,9 +7,9 @@ namespace JSI
 	public class JSIActionGroupSwitch: InternalModule
 	{
 		[KSPField]
-		public string animationName = "";
+		public string animationName = string.Empty;
 		[KSPField]
-		public string switchTransform = "";
+		public string switchTransform = string.Empty;
 		[KSPField]
 		public string actionName = "lights";
 		[KSPField]
@@ -107,26 +107,29 @@ namespace JSI
 					break;
 			}
 
-			// Set up the animation
-			anim = internalProp.FindModelAnimators(animationName)[0];
-			if (anim != null) {
-				anim[animationName].wrapMode = WrapMode.Once;
+			if (!string.IsNullOrEmpty(animationName)) {
+				// Set up the animation
+				anim = internalProp.FindModelAnimators(animationName)[0];
+				if (anim != null) {
+					anim[animationName].wrapMode = WrapMode.Once;
 
-			} else {
-				JUtil.LogErrorMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
-			}
+				} else {
+					JUtil.LogErrorMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+				}
 
-			if (oldState ^ reverse) {
-				anim[animationName].speed = float.MaxValue;
-				anim[animationName].normalizedTime = 0;
+				if (oldState ^ reverse) {
+					anim[animationName].speed = float.MaxValue;
+					anim[animationName].normalizedTime = 0;
 
-			} else {
+				} else {
 
-				anim[animationName].speed = float.MinValue;
-				anim[animationName].normalizedTime = 1;
+					anim[animationName].speed = float.MinValue;
+					anim[animationName].normalizedTime = 1;
 
-			}
-			anim.Play(animationName);
+				}
+				anim.Play(animationName);
+			} else
+				JUtil.LogMessage(this, "Warning, animation not defined.");
 
 			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 
@@ -180,14 +183,16 @@ namespace JSI
 				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
 					audioOutput.audio.Play();
 				}
-				if (state ^ reverse) {
-					anim[animationName].normalizedTime = 0;
-					anim[animationName].speed = 1f * customSpeed;
-					anim.Play(animationName);
-				} else {
-					anim[animationName].normalizedTime = 1;
-					anim[animationName].speed = -1f * customSpeed;
-					anim.Play(animationName);
+				if (anim != null) {
+					if (state ^ reverse) {
+						anim[animationName].normalizedTime = 0;
+						anim[animationName].speed = 1f * customSpeed;
+						anim.Play(animationName);
+					} else {
+						anim[animationName].normalizedTime = 1;
+						anim[animationName].speed = -1f * customSpeed;
+						anim.Play(animationName);
+					}
 				}
 				oldState = state;
 			}
