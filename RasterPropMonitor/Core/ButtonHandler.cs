@@ -103,8 +103,8 @@ namespace JSI
 				return thatComponent;
 			} catch {
 				Debug.LogError(string.Format(
-					"Could not register a button on transform named '{0}' in prop named '{1}'. Check your configuration.",
-					buttonName, thatProp.propName));
+					"Could not register a button on transform named '{0}' in {2} named '{1}'. Check your configuration.",
+					buttonName, thatModel == null ? thatProp.propName : thatModel.name, thatModel == null ? "prop" : "internal model"));
 			}
 			return null;
 		}
