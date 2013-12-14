@@ -77,6 +77,7 @@ namespace JSI
 
 		public void Start()
 		{
+			InstallationPathWarning.Warn();
 
 			// Install the calculator module.
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);

@@ -3,6 +3,7 @@ using System.Text;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 namespace JSI
 {
@@ -283,6 +284,28 @@ namespace JSI
 			if (val.CompareTo(min) < 0)
 				return min;
 			return val.CompareTo(max) > 0 ? max : val;
+		}
+	}
+
+	public static class InstallationPathWarning
+	{
+		private static readonly List<string> warnedList = new List<string>();
+		private const string gameData = "GameData";
+		private static readonly string[] pathSep = { gameData };
+
+		public static void Warn(string path = "JSI/RasterPropMonitor/Plugins")
+		{
+			string assemblyPath = Assembly.GetCallingAssembly().Location;
+			string fileName = Path.GetFileNameWithoutExtension(assemblyPath);
+			if (!warnedList.Contains(fileName)) {
+				string installedLocation = Path.GetDirectoryName(assemblyPath).Split(pathSep, StringSplitOptions.None)[1].TrimStart('/').TrimStart('\\').EnforceSlashes();
+				if (installedLocation != path) {
+					ScreenMessages.PostScreenMessage(string.Format("ERROR: {0} must be in GameData/{1} but it's in GameData/{2}", fileName, path, installedLocation),
+						120, ScreenMessageStyle.UPPER_CENTER);
+					Debug.Log("RasterPropMonitor components are incorrectly installed. I should stop working and make you fix it, but KSP won't let me.");
+				}
+				warnedList.Add(fileName);
+			}
 		}
 	}
 
