@@ -67,23 +67,24 @@ namespace JSI
 				activeScreenHeight--;
 			}
 			lastCount = FlightLogger.eventLog.Count;
-			string fullLog = JUtil.WordWrap(string.Join(Environment.NewLine, FlightLogger.eventLog.ToArray()), screenWidth);
-			var tempBuffer = fullLog.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-			var screenBuffer = new string[activeScreenHeight];
-			if (tempBuffer.Length <= activeScreenHeight) {
-				screenBuffer = tempBuffer;
-			} else {
-				for (int i = 0; i < screenBuffer.Length; i++) {
-					screenBuffer[i] = tempBuffer[tempBuffer.Length - activeScreenHeight + i];
+			if (lastCount > 0) {
+				string fullLog = JUtil.WordWrap(string.Join(Environment.NewLine, FlightLogger.eventLog.ToArray()), screenWidth);
+				var tempBuffer = fullLog.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+				var screenBuffer = new string[activeScreenHeight];
+				if (tempBuffer.Length <= activeScreenHeight) {
+					screenBuffer = tempBuffer;
+				} else {
+					for (int i = 0; i < screenBuffer.Length; i++) {
+						screenBuffer[i] = tempBuffer[tempBuffer.Length - activeScreenHeight + i];
 
+					}
 				}
-			}
-			response = string.Join(Environment.NewLine, screenBuffer);
+				response = string.Join(Environment.NewLine, screenBuffer);
+			} else
+				response = "No records in log.";
 			if (!string.IsNullOrEmpty(pageTitle)) {
 				response = pageTitle + Environment.NewLine + response;
 			}
-
-
 		}
 	}
 }
