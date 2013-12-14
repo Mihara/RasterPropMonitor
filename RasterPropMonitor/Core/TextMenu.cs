@@ -135,5 +135,15 @@ namespace JSI
 		public bool isDisabled;
 		public bool isSelected;
 		public Action<int, TextMenuItem> action;
+		// Mihara: This can be much more terse to use if there is a constructor with optional parameters.
+		// Even if it's finicky about "" rather than string.Empty.
+		public TextMenuItem(string labelText = "", Action<int,TextMenuItem> action = null, bool isSelected = false, string rightText = "", bool isDisabled = false)
+		{
+			this.labelText = labelText;
+			this.rightText = rightText;
+			this.action = action;
+			this.isDisabled = isDisabled;
+			this.isSelected = isSelected;
+		}
 	}
 }
