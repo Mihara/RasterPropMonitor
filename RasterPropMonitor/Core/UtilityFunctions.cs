@@ -302,7 +302,7 @@ namespace JSI
 				if (installedLocation != path) {
 					ScreenMessages.PostScreenMessage(string.Format("ERROR: {0} must be in GameData/{1} but it's in GameData/{2}", fileName, path, installedLocation),
 						120, ScreenMessageStyle.UPPER_CENTER);
-					Debug.Log("RasterPropMonitor components are incorrectly installed. I should stop working and make you fix it, but KSP won't let me.");
+					Debug.LogError("RasterPropMonitor components are incorrectly installed. I should stop working and make you fix it, but KSP won't let me.");
 				}
 				warnedList.Add(fileName);
 			}
