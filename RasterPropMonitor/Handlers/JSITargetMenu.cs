@@ -36,9 +36,18 @@ namespace JSI
 		public string distanceFormatString = " <=0:SIP_6=>m";
 		[KSPField]
 		public string menuTitleFormatString = "== {0}";
+
+		// MOARdV: Really, there is no reason to instantiate the topMenu and
+		// keep it around.  If anything, it is less expensive to construct than
+		// the other menus.  Although leaving it here means the "current item"
+		// in the main menu will always be correct when navigating up from a
+		// submenu.
+		private TextMenu topMenu = new TextMenu();
+		private TextMenu activeMenu = null;
+		private TextMenuItem clearTarget = null;
+
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
-		private int currentMenuItem;
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private readonly List<string> rootMenu = new List<string> {
@@ -60,7 +69,6 @@ namespace JSI
 			{ VesselType.Debris,false },
 			{ VesselType.Unknown,false },
 		};
-		private int currentMenuCount;
 
 		private enum MenuList
 		{
@@ -99,7 +107,43 @@ namespace JSI
 
 		public string ShowMenu(int width, int height)
 		{
-			return FormatMenu(width, height, currentMenu);
+			switch (currentMenu) {
+				case MenuList.Root:
+					activeMenu.menuTitle = MakeMenuTitle("Root menu", width);
+					break;
+				case MenuList.Filters:
+					activeMenu.menuTitle = string.Format(fp, menuTitleFormatString, "Vessel filtering");
+					break;
+				case MenuList.Celestials:
+					activeMenu.menuTitle = MakeMenuTitle("Celestial bodies", width);
+					break;
+				case MenuList.Vessels:
+					activeMenu.menuTitle = MakeMenuTitle("Vessels", width);
+					break;
+				case MenuList.Reference:
+					activeMenu.menuTitle = string.Format(fp, menuTitleFormatString, "Select reference");
+					break;
+				case MenuList.Ports:
+					// sanity check:
+					if (selectedVessel == null || !selectedVessel.loaded || portsList.Count == 0) {
+						ShowVesselMenu(0, null);
+						return string.Empty;
+					}
+					activeMenu.menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
+					break;
+			}
+
+			clearTarget.isDisabled = (currentTarget == null);
+
+			if (string.IsNullOrEmpty(pageTitle)) {
+				return activeMenu.ShowMenu(width, height);
+			}
+			else {
+				StringBuilder sb = new StringBuilder();
+				sb.AppendLine(pageTitle);
+				sb.Append(activeMenu.ShowMenu(width, height - 1));
+				return sb.ToString();
+			}
 		}
 		// Analysis disable once UnusedParameter
 		public void PageActive(bool active, int pageNumber)
@@ -110,116 +154,22 @@ namespace JSI
 		public void ButtonProcessor(int buttonID)
 		{
 			if (buttonID == buttonUp) {
-				currentMenuItem--;
-				if (currentMenuItem < 0)
-					currentMenuItem = 0;
+				activeMenu.PreviousItem();
 			}
 			if (buttonID == buttonDown) {
-				currentMenuItem++;
-				if (currentMenuItem >= currentMenuCount - 1)
-					currentMenuItem = currentMenuCount - 1;
+				activeMenu.NextItem();
 			}
 			if (buttonID == buttonEnter) {
-				switch (currentMenu) {
-					case MenuList.Root:
-						switch (rootMenu[currentMenuItem]) {
-							case "Celestials":
-								currentMenu = MenuList.Celestials;
-								currentMenuItem = selectedCelestial != null ? celestialsList.FindIndex(x => x.body == selectedCelestial) : 0;
-								UpdateLists();
-								break;
-							case "Vessels":
-								currentMenu = MenuList.Vessels;
-								currentMenuItem = selectedVessel != null ? vesselsList.FindIndex(x => x.vessel == selectedVessel) : 0;
-								UpdateLists();
-								break;
-							case "Reference part":
-								currentMenu = MenuList.Reference;
-								currentMenuItem = referencePoints.FindIndex(x => x.part == vessel.GetReferenceTransformPart());
-								UpdateLists();
-								break;
-							case "Filters":
-								currentMenu = MenuList.Filters;
-								currentMenuCount = vesselFilter.Count;
-								currentMenuItem = 0;
-								break;
-							case "Clear target":
-								FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
-								break;
-						}
-						break;
-					case MenuList.Celestials:
-						celestialsList[currentMenuItem].SetTarget();
-						selectedVessel = null;
-						selectedPort = null;
-						break;
-					case MenuList.Vessels:
-						if (selectedVessel == vesselsList[currentMenuItem].vessel && selectedVessel.loaded) {
-							// Vessel already selected and loaded, so we can switch to docking port menu...
-							if (UpdatePortsList() > 0) {
-								currentMenu = MenuList.Ports;
-								currentMenuItem = 0;
-								UpdateLists();
-							} else
-								return;
-						} else {
-							vesselsList[currentMenuItem].SetTarget();
-							selectedVessel = vesselsList[currentMenuItem].vessel;
-							selectedPort = null;
-						}
-						break;
-					case MenuList.Ports:
-						if (selectedVessel != null && selectedVessel.loaded && portsList[currentMenuItem] != null) {
-							FlightGlobals.fetch.SetVesselTarget(portsList[currentMenuItem]);
-						}
-						break;
-					case MenuList.Reference:
-						// This is going to get complicated...
-						if (referencePoints[currentMenuItem].part != vessel.GetReferenceTransformPart()) {
-							var thatNode = referencePoints[currentMenuItem] as ModuleDockingNode;
-							var thatPod = referencePoints[currentMenuItem] as ModuleCommand;
-							if (thatNode != null) {
-								thatNode.MakeReferenceTransform();
-							} else if (thatPod != null) {
-								thatPod.MakeReference();
-							}
-						}
-						break;
-					case MenuList.Filters:
-						vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key] = !vesselFilter[vesselFilter.ElementAt(currentMenuItem).Key];
-						persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
-						break;
-				}
+				activeMenu.SelectItem();
 			}
 			if (buttonID == buttonEsc) {
-				switch (currentMenu) {
-					case MenuList.Celestials:
-						currentMenuItem = 0;
-						currentMenu = MenuList.Root;
-						currentMenuCount = rootMenu.Count;
-						break;
-					case MenuList.Vessels:
-						currentMenuItem = 1;
-						currentMenu = MenuList.Root;
-						currentMenuCount = rootMenu.Count;
-						break;
-					case MenuList.Reference:
-						currentMenuItem = 2;
-						currentMenu = MenuList.Root;
-						currentMenuCount = rootMenu.Count;
-						break;
-					case MenuList.Filters:
-						currentMenuItem = 3;
-						currentMenu = MenuList.Root;
-						currentMenuCount = rootMenu.Count;
-						break;
-					case MenuList.Ports:
-						currentMenu = MenuList.Vessels;
-						if (selectedVessel != null) {
-							currentMenuItem = vesselsList.FindIndex(x => x.vessel == selectedVessel);
-						}
-						UpdateLists();
-						break;
+				if (currentMenu == MenuList.Ports) {
+					// Take advantage of the fact that ShowVesselMenu does not
+					// care about the parameters.
+					ShowVesselMenu(0, null);
+				} else {
+					activeMenu = topMenu;
+					currentMenu = MenuList.Root;
 				}
 			}
 			if (buttonID == buttonHome) {
@@ -236,103 +186,6 @@ namespace JSI
 			if (selectedVessel != null)
 				targetName = selectedVessel.GetName();
 			return currentTarget != null ? string.Format(fp, menuTitleFormatString, "Current: " + targetName) : string.Format(fp, menuTitleFormatString, titleString);
-		}
-
-		private string FormatMenu(int width, int height, MenuList current)
-		{
-
-			var menu = new List<string>();
-
-			string menuTitle = string.Empty;
-
-			switch (current) {
-				case MenuList.Root:
-					if (currentTarget != null)
-						menuTitle = MakeMenuTitle("Root menu", width);
-					for (int i = 0; i < rootMenu.Count; i++) {
-						menu.Add(FormatItem(rootMenu[i], 0, (currentMenuItem == i), false, (rootMenu[i] == "Clear target" && currentTarget == null)));
-					}
-					break;
-				case MenuList.Reference:
-					menuTitle = string.Format(fp, menuTitleFormatString, "Select reference");
-					Part currentReference = vessel.GetReferenceTransformPart();
-					for (int i = 0; i < referencePoints.Count; i++) {
-						menu.Add(FormatItem(
-							string.Format("{0}. {1}", i + 1, referencePoints[i].part.name), 0,
-							(currentMenuItem == i), (currentReference == referencePoints[i].part),
-							false
-						));
-					}
-					break;
-				case MenuList.Filters:
-					menuTitle = string.Format(fp, menuTitleFormatString, "Vessel filtering");
-					for (int i = 0; i < vesselFilter.Count; i++) {
-						var filter = vesselFilter.ElementAt(i);
-						menu.Add(FormatItem(
-							filter.Key.ToString().PadRight(9) + (filter.Value ? "- On" : "- Off"), 0,
-							(currentMenuItem == i), filter.Value, false));
-					}
-					break;
-				case MenuList.Celestials: 
-					menuTitle = MakeMenuTitle("Celestial bodies", width);
-					for (int i = 0; i < celestialsList.Count; i++) {
-						menu.Add(FormatItem(celestialsList[i].name, celestialsList[i].distance,
-							(currentMenuItem == i), (selectedCelestial == celestialsList[i].body),
-							(vessel.mainBody == celestialsList[i].body)));
-
-					}
-					break;
-				case MenuList.Vessels:
-					menuTitle = MakeMenuTitle("Vessels", width);
-					for (int i = 0; i < vesselsList.Count; i++) {
-						menu.Add(FormatItem(vesselsList[i].name, vesselsList[i].distance,
-							(currentMenuItem == i), (vesselsList[i].vessel == selectedVessel),
-							(vesselsList[i].vessel.mainBody != vessel.mainBody)));
-
-					}
-					break;
-				case MenuList.Ports:
-					if (selectedVessel == null || !selectedVessel.loaded || portsList.Count == 0) {
-						currentMenu = MenuList.Vessels;
-						currentMenuItem = 0;
-						UpdateLists();
-						return string.Empty;
-					}
-					menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
-					for (int i = 0; i < portsList.Count; i++) {
-						float distance = Vector3.Distance(vessel.GetTransform().position, portsList[i].GetTransform().position);
-						menu.Add(FormatItem(string.Format("{0}. {1}", i + 1, portsList[i].part.name),
-							distance, (currentMenuItem == i), (portsList[i] == selectedPort),
-							(distance > targetablePortDistance)));
-					}
-					break;
-			}
-			if (!string.IsNullOrEmpty(pageTitle))
-				height--;
-			if (!string.IsNullOrEmpty(menuTitle))
-				height--;
-
-			if (menu.Count > height) {
-				int midpoint = (int)Math.Ceiling(height / 2d);
-				if (currentMenuItem < midpoint) {
-					menu = menu.GetRange(0, height);
-				} else if (midpoint + currentMenuItem > menu.Count) {
-					menu = menu.GetRange(menu.Count - height, height);
-				} else {
-					menu = menu.GetRange(currentMenuItem - midpoint, height);
-				}
-			}
-			var result = new StringBuilder();
-
-			if (!string.IsNullOrEmpty(pageTitle))
-				result.AppendLine(pageTitle);
-
-			if (!string.IsNullOrEmpty(menuTitle))
-				result.AppendLine(menuTitle);
-
-			foreach (string item in menu)
-				result.AppendLine(item);
-			return result.ToString();
 		}
 
 		private static List<ModuleDockingNode> ListAvailablePorts(Vessel thatVessel)
@@ -417,7 +270,7 @@ namespace JSI
 					foreach (Celestial body in celestialsList)
 						body.UpdateDistance(vessel.transform.position);
 
-					CelestialBody currentBody = celestialsList[currentMenuItem].body;
+					CelestialBody currentBody = celestialsList[activeMenu.GetCurrentIndex()].body;
 					switch (sortMode) {
 						case SortMode.Alphabetic:
 							celestialsList.Sort(Celestial.AlphabeticSort);
@@ -426,23 +279,36 @@ namespace JSI
 							celestialsList.Sort(Celestial.DistanceSort);
 							break;
 					}
-					currentMenuItem = celestialsList.FindIndex(x => x.body == currentBody);
-					currentMenuCount = celestialsList.Count;
+
+					activeMenu.Clear();
+
+					foreach(Celestial celestial in celestialsList)
+					{
+						TextMenuItem tmi = new TextMenuItem();
+						tmi.action = TargetCelestial;
+						tmi.labelText = celestial.name;
+						tmi.rightText = String.Format(fp, JStringExtensions.UnMangleConfigText(distanceFormatString), celestial.distance);
+						tmi.isSelected = (selectedCelestial == celestial.body);
+						tmi.isDisabled = (vessel.mainBody == celestial.body);
+						activeMenu.Add(tmi);
+					}
+
 					break;
 				case MenuList.Reference:
 					FindReferencePoints();
-					currentMenuCount = referencePoints.Count;
+					activeMenu.Clear();
+
+					Part currentReference = vessel.GetReferenceTransformPart();
+					foreach(PartModule referencePoint in referencePoints)
+					{
+						TextMenuItem tmi = new TextMenuItem();
+						tmi.action = SetReferencePoint;
+						tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
+						tmi.isSelected = (currentReference == referencePoint.part);
+						activeMenu.Add(tmi);
+					}
 					break;
 				case MenuList.Vessels:
-					Vessel currentVessel = null;
-					if (vesselsList.Count > 0 && currentMenuItem < vesselsList.Count) {
-						if (vesselsList[currentMenuItem].vessel == null)
-							currentMenuItem = 0;
-						else
-							currentVessel = vesselsList[currentMenuItem].vessel;
-					} else
-						currentMenuItem = 0;
-
 					vesselsList.Clear();
 					foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
 						if (vessel != thatVessel) {
@@ -454,7 +320,6 @@ namespace JSI
 							}
 						}
 					}
-					currentMenuCount = vesselsList.Count;
 
 					switch (sortMode) {
 						case SortMode.Alphabetic:
@@ -464,13 +329,31 @@ namespace JSI
 							vesselsList.Sort(TargetableVessel.DistanceSort);
 							break;
 					}
-					if (currentVessel != null)
-						currentMenuItem = vesselsList.FindIndex(x => x.vessel == currentVessel);
-					if (currentMenuItem < 0)
-						currentMenuItem = 0;
+					activeMenu.Clear();
+
+					foreach(TargetableVessel targetableVessel in vesselsList)
+					{
+						TextMenuItem tmi = new TextMenuItem();
+						tmi.action = TargetVessel;
+						tmi.labelText = targetableVessel.name;
+						tmi.rightText = String.Format(fp, JStringExtensions.UnMangleConfigText(distanceFormatString), targetableVessel.distance);
+						tmi.isSelected = (selectedVessel == targetableVessel.vessel);
+						activeMenu.Add(tmi);
+					}
 					break;
 				case MenuList.Ports:
-					UpdatePortsList();
+					UpdatePortsList(); 
+
+					activeMenu.Clear();
+					foreach(ModuleDockingNode port in portsList)
+					{
+						TextMenuItem tmi = new TextMenuItem();
+						tmi.action = TargetVessel;
+						tmi.labelText = port.name;
+						tmi.isSelected = (selectedPort == port);
+						tmi.action = TargetPort;
+						activeMenu.Add(tmi);
+					}
 					break;
 			}
 
@@ -479,11 +362,6 @@ namespace JSI
 		private int UpdatePortsList()
 		{
 			portsList = ListAvailablePorts(selectedVessel);
-			if (currentMenu == MenuList.Ports) {
-				currentMenuCount = portsList.Count;
-				if (currentMenuItem > currentMenuCount)
-					currentMenuItem = 0;
-			}
 			return portsList.Count;
 		}
 
@@ -499,8 +377,6 @@ namespace JSI
 				}
 			}
 			partCount = vessel.parts.Count;
-			if (currentMenu == MenuList.Reference)
-				currentMenuCount = referencePoints.Count;
 		}
 
 		public void Start()
@@ -520,14 +396,36 @@ namespace JSI
 			distanceFormatString = distanceFormatString.UnMangleConfigText();
 			menuTitleFormatString = menuTitleFormatString.UnMangleConfigText();
 
+			topMenu.labelColor = nameColorTag;
+			topMenu.selectedColor = selectedColorTag;
+			topMenu.disabledColor = unavailableColorTag;
+
 			if (!string.IsNullOrEmpty(pageTitle))
 				pageTitle = pageTitle.UnMangleConfigText();
 
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
+
 			FindReferencePoints();
-			currentMenuCount = rootMenu.Count;
+
+			List<Action<int, TextMenuItem>> menuActions = new List<Action<int, TextMenuItem>>();
+			menuActions.Add(ShowCelestialMenu);
+			menuActions.Add(ShowVesselMenu);
+			menuActions.Add(ShowReferenceMenu);
+			menuActions.Add(ShowFiltersMenu);
+			menuActions.Add(ClearTarget);
+
+			for (int i = 0; i < rootMenu.Count; ++i) {
+				var menuitem = new TextMenuItem();
+				menuitem.labelText = rootMenu[i];
+				menuitem.action = menuActions[i];
+				topMenu.Add(menuitem);
+			}
+			// As long as ClearTarget is the last menu entry, this works:
+			clearTarget = topMenu[topMenu.Count-1];
+
+			activeMenu = topMenu;
 		}
 
 		private static int VesselFilterToBitmask(Dictionary<VesselType,bool> filterList)
@@ -569,6 +467,175 @@ namespace JSI
 			vesselFilter[VesselType.Base] = (mask & (1 << 7)) > 0;
 			vesselFilter[VesselType.Debris] = (mask & (1 << 8)) > 0;
 			vesselFilter[VesselType.Unknown] = (mask & (1 << 9)) > 0;
+		}
+
+		//--- Menu item callbacks
+
+		// Root menu:
+		private void ShowCelestialMenu(int index, TextMenuItem ti)
+		{
+			currentMenu = MenuList.Celestials;
+
+			// MOARdV: Bug warning: rightColumnWidth for ShowCelestialMenu and
+			// ShowVesselMenu is hard-coded to 8, which fits the default format
+			// string.  It really needs to be sized appropriately, which isn't
+			// easy if the format string is configured with non-fixed size.
+			// Maybe the format string should be non-configurable?
+			activeMenu = new TextMenu();
+			activeMenu.rightColumnWidth = 8;
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+
+			UpdateLists();
+
+			if (selectedCelestial != null) {
+				int idx = celestialsList.FindIndex(x => x.body == selectedCelestial);
+				activeMenu.currentSelection = idx;
+			}
+		}
+
+		private void ShowVesselMenu(int index, TextMenuItem ti)
+		{
+			currentMenu = MenuList.Vessels;
+
+			activeMenu = new TextMenu();
+			activeMenu.rightColumnWidth = 8;
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+
+			UpdateLists();
+
+			if (selectedVessel != null) {
+				int idx = vesselsList.FindIndex(x => x.vessel == selectedVessel);
+				activeMenu.currentSelection = idx;
+			}
+		}
+
+		private void ShowReferenceMenu(int index, TextMenuItem ti)
+		{
+			currentMenu = MenuList.Reference;
+
+			activeMenu = new TextMenu();
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+
+			UpdateLists();
+
+			activeMenu.currentSelection = referencePoints.FindIndex(x => x.part == vessel.GetReferenceTransformPart());
+		}
+
+		private void ShowFiltersMenu(int index, TextMenuItem ti)
+		{
+			currentMenu = MenuList.Filters;
+
+			activeMenu = new TextMenu();
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+			for (int i = 0; i < vesselFilter.Count; i++) {
+				var filter = vesselFilter.ElementAt(i);
+				var tmi = new TextMenuItem();
+				tmi.labelText = filter.Key.ToString().PadRight(9) + (filter.Value ? "- On" : "- Off");
+				tmi.isSelected = filter.Value;
+				tmi.action = ToggleFilter;
+				activeMenu.Add(tmi);
+			}
+		}
+
+		private void ClearTarget(int index, TextMenuItem ti)
+		{
+			FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
+		}
+
+		// Celestial Menu
+		private void TargetCelestial(int index, TextMenuItem ti)
+		{
+			celestialsList[index].SetTarget();
+			selectedVessel = null;
+			selectedPort = null;
+
+			activeMenu.SetSelected(index, true);
+		}
+
+		// Vessel Menu
+		private void TargetVessel(int index, TextMenuItem ti)
+		{
+			if (selectedVessel == vesselsList[index].vessel) {
+				// Already selected.  Are there ports?
+				if (UpdatePortsList() > 0) {
+					currentMenu = MenuList.Ports;
+
+					activeMenu = new TextMenu();
+					activeMenu.rightColumnWidth = 7;
+
+					activeMenu.labelColor = nameColorTag;
+					activeMenu.selectedColor = selectedColorTag;
+					activeMenu.disabledColor = unavailableColorTag;
+					activeMenu.rightTextColor = distanceColorTag;
+
+					UpdateLists();
+
+					if (selectedPort != null) {
+						int idx = portsList.FindIndex(x => x == selectedPort);
+						activeMenu.currentSelection = idx;
+					}
+				}
+			}
+			else {
+				vesselsList[index].SetTarget();
+				selectedCelestial = null;
+				selectedPort = null;
+
+				activeMenu.SetSelected(index, true);
+			}
+		}
+
+		// Reference Menu
+		private void SetReferencePoint(int index, TextMenuItem ti)
+		{
+			// This is going to get complicated...
+			if (referencePoints[index].part != vessel.GetReferenceTransformPart()) {
+				var thatNode = referencePoints[index] as ModuleDockingNode;
+				var thatPod = referencePoints[index] as ModuleCommand;
+				if (thatNode != null) {
+					thatNode.MakeReferenceTransform();
+				} else if (thatPod != null) {
+					thatPod.MakeReference();
+				}
+			}
+			activeMenu.SetSelected(index, true);
+
+		}
+
+		// Port Menu
+		private void TargetPort(int index, TextMenuItem ti)
+		{
+			if (selectedVessel != null && selectedVessel.loaded && portsList[index] != null) {
+				FlightGlobals.fetch.SetVesselTarget(portsList[index]);
+			}
+			selectedCelestial = null;
+
+			activeMenu.SetSelected(index, true);
+		}
+
+		// Filters Menu
+		private void ToggleFilter(int index, TextMenuItem ti)
+		{
+			vesselFilter[vesselFilter.ElementAt(index).Key] = !vesselFilter[vesselFilter.ElementAt(index).Key];
+			persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
+			ti.isSelected = !ti.isSelected;
+			ti.labelText = vesselFilter.ElementAt(index).Key.ToString().PadRight(9) + (ti.isSelected ? "- On" : "- Off");
 		}
 
 		private class Celestial
