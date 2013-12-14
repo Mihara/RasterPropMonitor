@@ -76,7 +76,9 @@ namespace JSI
 
 					// Only allow a 'right text' to be added if we already have text.
 					if (!string.IsNullOrEmpty(this[index].rightText) && rightColumnWidth > 0) {
-						textItem.Append(rightTextColor);
+						if (!this[index].isDisabled && !this[index].isSelected) {
+							textItem.Append(rightTextColor);
+						}
 
 						textItem.Append(this[index].rightText.PadLeft(rightColumnWidth).Substring(0, rightColumnWidth));
 					}
