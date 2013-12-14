@@ -35,6 +35,8 @@ namespace JSI
 		[KSPField]
 		public string distanceFormatString = " <=0:SIP_6=>m";
 		[KSPField]
+		public int distanceColumnWidth = 8;
+		[KSPField]
 		public string menuTitleFormatString = "== {0}";
 		// MOARdV: Really, there is no reason to instantiate the topMenu and
 		// keep it around.  If anything, it is less expensive to construct than
@@ -472,8 +474,11 @@ namespace JSI
 			// string.  It really needs to be sized appropriately, which isn't
 			// easy if the format string is configured with non-fixed size.
 			// Maybe the format string should be non-configurable?
+			//
+			// Mihara: Well, why not make it another module parameter then and
+			// let the modder who uses it worry about that? Most won't change it.
 			activeMenu = new TextMenu();
-			activeMenu.rightColumnWidth = 8;
+			activeMenu.rightColumnWidth = distanceColumnWidth;
 
 			activeMenu.labelColor = nameColorTag;
 			activeMenu.selectedColor = selectedColorTag;
@@ -493,7 +498,7 @@ namespace JSI
 			currentMenu = MenuList.Vessels;
 
 			activeMenu = new TextMenu();
-			activeMenu.rightColumnWidth = 8;
+			activeMenu.rightColumnWidth = distanceColumnWidth;
 
 			activeMenu.labelColor = nameColorTag;
 			activeMenu.selectedColor = selectedColorTag;
