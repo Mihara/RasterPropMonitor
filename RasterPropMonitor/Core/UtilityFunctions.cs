@@ -296,7 +296,7 @@ namespace JSI
 		public static void Warn(string path = "JSI/RasterPropMonitor/Plugins")
 		{
 			string assemblyPath = Assembly.GetCallingAssembly().Location;
-			string fileName = Path.GetFileNameWithoutExtension(assemblyPath);
+			string fileName = Path.GetFileName(assemblyPath);
 			if (!warnedList.Contains(fileName)) {
 				string installedLocation = Path.GetDirectoryName(assemblyPath).Split(pathSep, StringSplitOptions.None)[1].TrimStart('/').TrimStart('\\').EnforceSlashes();
 				if (installedLocation != path) {
