@@ -36,16 +36,14 @@ namespace JSI
 		public string distanceFormatString = " <=0:SIP_6=>m";
 		[KSPField]
 		public string menuTitleFormatString = "== {0}";
-
 		// MOARdV: Really, there is no reason to instantiate the topMenu and
 		// keep it around.  If anything, it is less expensive to construct than
 		// the other menus.  Although leaving it here means the "current item"
 		// in the main menu will always be correct when navigating up from a
 		// submenu.
-		private TextMenu topMenu = new TextMenu();
-		private TextMenu activeMenu = null;
-		private TextMenuItem clearTarget = null;
-
+		private readonly TextMenu topMenu = new TextMenu();
+		private TextMenu activeMenu;
+		private TextMenuItem clearTarget;
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
@@ -137,9 +135,8 @@ namespace JSI
 
 			if (string.IsNullOrEmpty(pageTitle)) {
 				return activeMenu.ShowMenu(width, height);
-			}
-			else {
-				StringBuilder sb = new StringBuilder();
+			} else {
+				var sb = new StringBuilder();
 				sb.AppendLine(pageTitle);
 				sb.Append(activeMenu.ShowMenu(width, height - 1));
 				return sb.ToString();
@@ -282,12 +279,11 @@ namespace JSI
 
 					activeMenu.Clear();
 
-					foreach(Celestial celestial in celestialsList)
-					{
-						TextMenuItem tmi = new TextMenuItem();
+					foreach (Celestial celestial in celestialsList) {
+						var tmi = new TextMenuItem();
 						tmi.action = TargetCelestial;
 						tmi.labelText = celestial.name;
-						tmi.rightText = String.Format(fp, JStringExtensions.UnMangleConfigText(distanceFormatString), celestial.distance);
+						tmi.rightText = String.Format(fp, distanceFormatString.UnMangleConfigText(), celestial.distance);
 						tmi.isSelected = (selectedCelestial == celestial.body);
 						tmi.isDisabled = (vessel.mainBody == celestial.body);
 						activeMenu.Add(tmi);
@@ -299,9 +295,8 @@ namespace JSI
 					activeMenu.Clear();
 
 					Part currentReference = vessel.GetReferenceTransformPart();
-					foreach(PartModule referencePoint in referencePoints)
-					{
-						TextMenuItem tmi = new TextMenuItem();
+					foreach (PartModule referencePoint in referencePoints) {
+						var tmi = new TextMenuItem();
 						tmi.action = SetReferencePoint;
 						tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
 						tmi.isSelected = (currentReference == referencePoint.part);
@@ -331,12 +326,11 @@ namespace JSI
 					}
 					activeMenu.Clear();
 
-					foreach(TargetableVessel targetableVessel in vesselsList)
-					{
-						TextMenuItem tmi = new TextMenuItem();
+					foreach (TargetableVessel targetableVessel in vesselsList) {
+						var tmi = new TextMenuItem();
 						tmi.action = TargetVessel;
 						tmi.labelText = targetableVessel.name;
-						tmi.rightText = String.Format(fp, JStringExtensions.UnMangleConfigText(distanceFormatString), targetableVessel.distance);
+						tmi.rightText = String.Format(fp, distanceFormatString.UnMangleConfigText(), targetableVessel.distance);
 						tmi.isSelected = (selectedVessel == targetableVessel.vessel);
 						activeMenu.Add(tmi);
 					}
@@ -345,9 +339,8 @@ namespace JSI
 					UpdatePortsList(); 
 
 					activeMenu.Clear();
-					foreach(ModuleDockingNode port in portsList)
-					{
-						TextMenuItem tmi = new TextMenuItem();
+					foreach (ModuleDockingNode port in portsList) {
+						var tmi = new TextMenuItem();
 						tmi.action = TargetVessel;
 						tmi.labelText = port.name;
 						tmi.isSelected = (selectedPort == port);
@@ -409,7 +402,7 @@ namespace JSI
 
 			FindReferencePoints();
 
-			List<Action<int, TextMenuItem>> menuActions = new List<Action<int, TextMenuItem>>();
+			var menuActions = new List<Action<int, TextMenuItem>>();
 			menuActions.Add(ShowCelestialMenu);
 			menuActions.Add(ShowVesselMenu);
 			menuActions.Add(ShowReferenceMenu);
@@ -423,7 +416,7 @@ namespace JSI
 				topMenu.Add(menuitem);
 			}
 			// As long as ClearTarget is the last menu entry, this works:
-			clearTarget = topMenu[topMenu.Count-1];
+			clearTarget = topMenu[topMenu.Count - 1];
 
 			activeMenu = topMenu;
 		}
@@ -468,9 +461,7 @@ namespace JSI
 			vesselFilter[VesselType.Debris] = (mask & (1 << 8)) > 0;
 			vesselFilter[VesselType.Unknown] = (mask & (1 << 9)) > 0;
 		}
-
 		//--- Menu item callbacks
-
 		// Root menu:
 		private void ShowCelestialMenu(int index, TextMenuItem ti)
 		{
@@ -553,11 +544,10 @@ namespace JSI
 			}
 		}
 
-		private void ClearTarget(int index, TextMenuItem ti)
+		private static void ClearTarget(int index, TextMenuItem ti)
 		{
 			FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
 		}
-
 		// Celestial Menu
 		private void TargetCelestial(int index, TextMenuItem ti)
 		{
@@ -567,7 +557,6 @@ namespace JSI
 
 			activeMenu.SetSelected(index, true);
 		}
-
 		// Vessel Menu
 		private void TargetVessel(int index, TextMenuItem ti)
 		{
@@ -591,8 +580,7 @@ namespace JSI
 						activeMenu.currentSelection = idx;
 					}
 				}
-			}
-			else {
+			} else {
 				vesselsList[index].SetTarget();
 				selectedCelestial = null;
 				selectedPort = null;
@@ -600,7 +588,6 @@ namespace JSI
 				activeMenu.SetSelected(index, true);
 			}
 		}
-
 		// Reference Menu
 		private void SetReferencePoint(int index, TextMenuItem ti)
 		{
@@ -617,7 +604,6 @@ namespace JSI
 			activeMenu.SetSelected(index, true);
 
 		}
-
 		// Port Menu
 		private void TargetPort(int index, TextMenuItem ti)
 		{
@@ -628,7 +614,6 @@ namespace JSI
 
 			activeMenu.SetSelected(index, true);
 		}
-
 		// Filters Menu
 		private void ToggleFilter(int index, TextMenuItem ti)
 		{

@@ -5,28 +5,26 @@ using UnityEngine;
 
 namespace JSI
 {
-
 	class TextMenu:List<TextMenuItem>
 	{
-		public int currentSelection = 0;
+		public int currentSelection;
 		public string labelColor = JUtil.ColorToColorTag(Color.white);
 		public string rightTextColor = JUtil.ColorToColorTag(Color.cyan);
 		public string selectedColor = JUtil.ColorToColorTag(Color.green);
 		public string disabledColor = JUtil.ColorToColorTag(Color.gray);
 		public string menuTitle = string.Empty;
-		public int rightColumnWidth = 0;
+		public int rightColumnWidth;
 
 		public string ShowMenu(int width, int height)
 		{
 			var strings = new List<string>(height);
-			if(!string.IsNullOrEmpty(menuTitle))
-			{
+			if (!string.IsNullOrEmpty(menuTitle)) {
 				strings.Add(menuTitle);
 				--height;
 			}
 
 			// figure out which entries are visible.
-			int numEntries = this.Count;
+			int numEntries = Count;
 			// Sanity check: clamp the current selection
 			currentSelection = Math.Min(currentSelection, numEntries - 1);
 
@@ -34,19 +32,14 @@ namespace JSI
 			int midPoint = height >> 1;
 
 			int firstPoint;
-			if(midPoint > currentSelection)
-			{
+			if (midPoint > currentSelection) {
 				// Menu entry is near the top of the list
 				firstPoint = 0;
-			}
-			else if((currentSelection + height - midPoint) >= numEntries)
-			{
+			} else if ((currentSelection + height - midPoint) >= numEntries) {
 				// Menu entry is near the end of the list.  Account for short
 				// lists by clamping to zero.
 				firstPoint = Math.Max(0, numEntries - height);
-			}
-			else
-			{
+			} else {
 				// Long list, current selection is not near the middle
 				firstPoint = currentSelection - midPoint;
 			}
@@ -54,8 +47,7 @@ namespace JSI
 			// -2 to account for the first column '  ' or '> ' characters
 			int textWidth = width - rightColumnWidth - 2;
 
-			for(int index = firstPoint; index < endPoint; ++index)
-			{
+			for (int index = firstPoint; index < endPoint; ++index) {
 				var textItem = new StringBuilder();
 
 				// Add color strings
@@ -88,8 +80,7 @@ namespace JSI
 			}
 
 			var menuString = new StringBuilder();
-			foreach(string item in strings)
-			{
+			foreach (string item in strings) {
 				menuString.AppendLine(item);
 			}
 			return menuString.ToString();
@@ -97,7 +88,7 @@ namespace JSI
 
 		public void NextItem()
 		{
-			currentSelection = Math.Min(currentSelection+1, this.Count-1);
+			currentSelection = Math.Min(currentSelection + 1, Count - 1);
 		}
 
 		public void PreviousItem()
@@ -122,7 +113,6 @@ namespace JSI
 		{
 			return currentSelection;
 		}
-
 		// Set the isSelected flag for the index menu item.  If "exclusive"
 		// is set, all other isSelected flags are cleared.
 		public void SetSelected(int index, bool exclusive)
@@ -133,20 +123,17 @@ namespace JSI
 				}
 			}
 
-			if (index >= 0 && index < this.Count) {
-				this[index].isSelected = true;
-			}
+			this[index].isSelected |= index >= 0 && index < Count;
 
 		}
 	}
 
 	class TextMenuItem
 	{
-		public string labelText= string.Empty;
+		public string labelText = string.Empty;
 		public string rightText = string.Empty;
-		public bool isDisabled = false;
-		public bool isSelected = false;
-		public Action<int, TextMenuItem> action = null;
+		public bool isDisabled;
+		public bool isSelected;
+		public Action<int, TextMenuItem> action;
 	}
-
 }
