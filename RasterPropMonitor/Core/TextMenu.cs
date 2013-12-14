@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace JSI
 {
-	class TextMenu:List<TextMenuItem>
+	public class TextMenu:List<TextMenuItem>
 	{
 		public int currentSelection;
 		public string labelColor = JUtil.ColorToColorTag(Color.white);
@@ -128,7 +128,7 @@ namespace JSI
 		}
 	}
 
-	class TextMenuItem
+	public class TextMenuItem
 	{
 		public string labelText = string.Empty;
 		public string rightText = string.Empty;
