@@ -142,7 +142,6 @@ namespace JSI
 			}
 			return null;
 		}
-
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
@@ -870,7 +869,16 @@ namespace JSI
 					return part.temperature;
 				case "SLOPEANGLE":
 					return slopeAngle;
-
+				case "SPEEDDISPLAYMODE":
+					switch (FlightUIController.speedDisplayMode) {
+						case FlightUIController.SpeedDisplayModes.Orbit:
+							return 1d;
+						case FlightUIController.SpeedDisplayModes.Surface:
+							return 0d;
+						case FlightUIController.SpeedDisplayModes.Target:
+							return -1d;
+					}
+					return double.NaN;
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;
