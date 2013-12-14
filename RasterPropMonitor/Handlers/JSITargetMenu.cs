@@ -39,8 +39,9 @@ namespace JSI
 
 		// MOARdV: Really, there is no reason to instantiate the topMenu and
 		// keep it around.  If anything, it is less expensive to construct than
-		// the other menus.  But, for the sake of demonstration, I'll leave it
-		// here.  Feel free to remove.
+		// the other menus.  Although leaving it here means the "current item"
+		// in the main menu will always be correct when navigating up from a
+		// submenu.
 		private TextMenu topMenu = new TextMenu();
 		private TextMenu activeMenu = null;
 		private TextMenuItem clearTarget = null;
@@ -52,6 +53,7 @@ namespace JSI
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
+			"Reference part",
 			"Filters",
 			"Clear target",
 		};
@@ -73,6 +75,7 @@ namespace JSI
 			Root,
 			Celestials,
 			Vessels,
+			Reference,
 			Ports,
 			Filters,
 		};
@@ -90,6 +93,8 @@ namespace JSI
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
+		private readonly List<PartModule> referencePoints = new List<PartModule>();
+		private int partCount;
 		private SortMode sortMode;
 		private bool pageActiveState;
 		private PersistenceAccessor persistence;
@@ -115,6 +120,9 @@ namespace JSI
 				case MenuList.Vessels:
 					activeMenu.menuTitle = MakeMenuTitle("Vessels", width);
 					break;
+				case MenuList.Reference:
+					activeMenu.menuTitle = string.Format(fp, menuTitleFormatString, "Select reference");
+					break;
 				case MenuList.Ports:
 					// sanity check:
 					if (selectedVessel == null || !selectedVessel.loaded || portsList.Count == 0) {
@@ -127,10 +135,15 @@ namespace JSI
 
 			clearTarget.isDisabled = (currentTarget == null);
 
-			StringBuilder sb = new StringBuilder();
-			sb.AppendLine(pageTitle);
-			sb.Append(activeMenu.ShowMenu(width, height-1));
-			return sb.ToString();
+			if (string.IsNullOrEmpty(pageTitle)) {
+				return activeMenu.ShowMenu(width, height);
+			}
+			else {
+				StringBuilder sb = new StringBuilder();
+				sb.AppendLine(pageTitle);
+				sb.Append(activeMenu.ShowMenu(width, height - 1));
+				return sb.ToString();
+			}
 		}
 		// Analysis disable once UnusedParameter
 		public void PageActive(bool active, int pageNumber)
@@ -154,8 +167,7 @@ namespace JSI
 					// Take advantage of the fact that ShowVesselMenu does not
 					// care about the parameters.
 					ShowVesselMenu(0, null);
-				}
-				else {
+				} else {
 					activeMenu = topMenu;
 					currentMenu = MenuList.Root;
 				}
@@ -212,11 +224,12 @@ namespace JSI
 			else
 				result.Append(nameColorTag);
 
-			result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
 			if (distance > 0) {
+				result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
 				result.Append(distanceColorTag);
 				result.AppendFormat(fp, distanceFormatString, distance);
-			}
+			} else
+				result.Append(itemText);
 			return result.ToString();
 		}
 
@@ -242,7 +255,8 @@ namespace JSI
 			selectedPort = currentTarget as ModuleDockingNode;
 			if (selectedPort != null)
 				selectedVessel = selectedPort.vessel;
-
+			if (vessel.parts.Count != partCount)
+				FindReferencePoints();
 			if (!UpdateCheck())
 				return;
 			UpdateLists();
@@ -279,6 +293,20 @@ namespace JSI
 						activeMenu.Add(tmi);
 					}
 
+					break;
+				case MenuList.Reference:
+					FindReferencePoints();
+					activeMenu.Clear();
+
+					Part currentReference = vessel.GetReferenceTransformPart();
+					foreach(PartModule referencePoint in referencePoints)
+					{
+						TextMenuItem tmi = new TextMenuItem();
+						tmi.action = SetReferencePoint;
+						tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
+						tmi.isSelected = (currentReference == referencePoint.part);
+						activeMenu.Add(tmi);
+					}
 					break;
 				case MenuList.Vessels:
 					vesselsList.Clear();
@@ -337,6 +365,20 @@ namespace JSI
 			return portsList.Count;
 		}
 
+		private void FindReferencePoints()
+		{
+			referencePoints.Clear();
+			foreach (Part thatPart in vessel.Parts) {
+				foreach (PartModule thatModule in thatPart.Modules) {
+					var thatNode = thatModule as ModuleDockingNode;
+					var thatCommand = thatModule as ModuleCommand;
+					if (thatNode != null || thatCommand != null)
+						referencePoints.Add(thatModule);
+				}
+			}
+			partCount = vessel.parts.Count;
+		}
+
 		public void Start()
 		{
 			if (!HighLogic.LoadedSceneIsFlight)
@@ -359,35 +401,29 @@ namespace JSI
 			topMenu.disabledColor = unavailableColorTag;
 
 			if (!string.IsNullOrEmpty(pageTitle))
-			{
 				pageTitle = pageTitle.UnMangleConfigText();
-				topMenu.menuTitle = pageTitle;
-			}
 
 			foreach (CelestialBody body in FlightGlobals.Bodies) { 
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 
-			var menuitem = new TextMenuItem();
-			menuitem.labelText = rootMenu[0];
-			menuitem.action = ShowCelestialMenu;
-			topMenu.Add(menuitem);
+			FindReferencePoints();
 
-			menuitem = new TextMenuItem();
-			menuitem.labelText = rootMenu[1];
-			menuitem.action = ShowVesselMenu;
-			topMenu.Add(menuitem);
+			List<Action<int, TextMenuItem>> menuActions = new List<Action<int, TextMenuItem>>();
+			menuActions.Add(ShowCelestialMenu);
+			menuActions.Add(ShowVesselMenu);
+			menuActions.Add(ShowReferenceMenu);
+			menuActions.Add(ShowFiltersMenu);
+			menuActions.Add(ClearTarget);
 
-			menuitem = new TextMenuItem();
-			menuitem.labelText = rootMenu[2];
-			menuitem.action = ShowFiltersMenu;
-			topMenu.Add(menuitem);
-
-			menuitem = new TextMenuItem();
-			menuitem.labelText = rootMenu[3];
-			menuitem.action = ClearTarget;
-			clearTarget = menuitem;
-			topMenu.Add(menuitem);
+			for (int i = 0; i < rootMenu.Count; ++i) {
+				var menuitem = new TextMenuItem();
+				menuitem.labelText = rootMenu[i];
+				menuitem.action = menuActions[i];
+				topMenu.Add(menuitem);
+			}
+			// As long as ClearTarget is the last menu entry, this works:
+			clearTarget = topMenu[topMenu.Count-1];
 
 			activeMenu = topMenu;
 		}
@@ -440,8 +476,13 @@ namespace JSI
 		{
 			currentMenu = MenuList.Celestials;
 
+			// MOARdV: Bug warning: rightColumnWidth for ShowCelestialMenu and
+			// ShowVesselMenu is hard-coded to 8, which fits the default format
+			// string.  It really needs to be sized appropriately, which isn't
+			// easy if the format string is configured with non-fixed size.
+			// Maybe the format string should be non-configurable?
 			activeMenu = new TextMenu();
-			activeMenu.rightColumnWidth = 7;
+			activeMenu.rightColumnWidth = 8;
 
 			activeMenu.labelColor = nameColorTag;
 			activeMenu.selectedColor = selectedColorTag;
@@ -461,7 +502,7 @@ namespace JSI
 			currentMenu = MenuList.Vessels;
 
 			activeMenu = new TextMenu();
-			activeMenu.rightColumnWidth = 7;
+			activeMenu.rightColumnWidth = 8;
 
 			activeMenu.labelColor = nameColorTag;
 			activeMenu.selectedColor = selectedColorTag;
@@ -474,6 +515,22 @@ namespace JSI
 				int idx = vesselsList.FindIndex(x => x.vessel == selectedVessel);
 				activeMenu.currentSelection = idx;
 			}
+		}
+
+		private void ShowReferenceMenu(int index, TextMenuItem ti)
+		{
+			currentMenu = MenuList.Reference;
+
+			activeMenu = new TextMenu();
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+
+			UpdateLists();
+
+			activeMenu.currentSelection = referencePoints.FindIndex(x => x.part == vessel.GetReferenceTransformPart());
 		}
 
 		private void ShowFiltersMenu(int index, TextMenuItem ti)
@@ -516,7 +573,6 @@ namespace JSI
 		{
 			if (selectedVessel == vesselsList[index].vessel) {
 				// Already selected.  Are there ports?
-				// MOARdV: THIS IS UNTESTED!
 				if (UpdatePortsList() > 0) {
 					currentMenu = MenuList.Ports;
 
@@ -543,6 +599,23 @@ namespace JSI
 
 				activeMenu.SetSelected(index, true);
 			}
+		}
+
+		// Reference Menu
+		private void SetReferencePoint(int index, TextMenuItem ti)
+		{
+			// This is going to get complicated...
+			if (referencePoints[index].part != vessel.GetReferenceTransformPart()) {
+				var thatNode = referencePoints[index] as ModuleDockingNode;
+				var thatPod = referencePoints[index] as ModuleCommand;
+				if (thatNode != null) {
+					thatNode.MakeReferenceTransform();
+				} else if (thatPod != null) {
+					thatPod.MakeReference();
+				}
+			}
+			activeMenu.SetSelected(index, true);
+
 		}
 
 		// Port Menu

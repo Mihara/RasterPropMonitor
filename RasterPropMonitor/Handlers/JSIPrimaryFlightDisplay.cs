@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 namespace JSI
 {
@@ -46,6 +47,8 @@ namespace JSI
 		public float cameraSpan = 1f;
 		[KSPField]
 		public Vector2 cameraShift = Vector2.zero;
+		[KSPField]
+		public int speedModeButton = 4;
 		private Texture2D horizonTex;
 		private Material overlayMaterial;
 		private Material headingMaterial;
@@ -90,27 +93,39 @@ namespace JSI
 
 			Vector3d coM = vessel.findWorldCenterOfMass();
 			Vector3d up = (coM - vessel.mainBody.position).normalized;
-			Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
-			Quaternion rotationSurface = Quaternion.LookRotation(north, up);
-			Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 			Vector3d velocityVesselOrbit = vessel.orbit.GetVel();
 			Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
 			Vector3d velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 			Vector3d velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
 			Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbit, up).normalized;
 			Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
+			Vector3d targetDirection = -FlightGlobals.fetch.vesselTargetDirection;
 
 			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
 
-			if (heading != null)
+			if (heading != null) {
+				Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
+				Quaternion rotationSurface = Quaternion.LookRotation(north, up);
+				Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 				heading.renderer.material.SetTextureOffset("_MainTex",
 					new Vector2(JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y) - headingSpan / 2f, 0));
+			}
 
 			Quaternion gymbal = stockNavBall.attitudeGymbal;
-
-			MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColor, gymbal);
-			MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColor, gymbal);
-
+			switch (FlightUIController.speedDisplayMode) {
+				case FlightUIController.SpeedDisplayModes.Surface:
+					MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColor, gymbal);
+					MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColor, gymbal);
+					break;
+				case FlightUIController.SpeedDisplayModes.Target:
+					MoveMarker(markerPrograde, targetDirection, progradeColor, gymbal);
+					MoveMarker(markerRetrograde, -targetDirection, progradeColor, gymbal);
+					break;
+				case FlightUIController.SpeedDisplayModes.Orbit:
+					MoveMarker(markerPrograde, velocityVesselOrbitUnit, progradeColor, gymbal);
+					MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, progradeColor, gymbal);
+					break;
+			}
 			MoveMarker(markerNormal, normalPlus, normalColor, gymbal);
 			MoveMarker(markerNormalMinus, -normalPlus, normalColor, gymbal);
 
@@ -164,6 +179,12 @@ namespace JSI
 				markerNormal, markerNormalMinus, markerRadial, markerRadialMinus, markerDockingAlignment);
 
 			return true;
+		}
+
+		public void ButtonProcessor(int buttonID)
+		{
+			if (buttonID == speedModeButton)
+				FlightUIController.fetch.cycleSpdModes();
 		}
 
 		private static void MoveMarker(GameObject marker, Vector3 position, Color nativeColor, Quaternion voodooGymbal)

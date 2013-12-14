@@ -142,7 +142,6 @@ namespace JSI
 			}
 			return null;
 		}
-
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
@@ -533,6 +532,16 @@ namespace JSI
 					return (velocityVesselSurface - (speedVertical * up)).magnitude;
 				case "EASPEED":
 					return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
+				case "SELECTEDSPEED":
+					switch (FlightUIController.speedDisplayMode) {
+						case FlightUIController.SpeedDisplayModes.Orbit:
+							return velocityVesselOrbit.magnitude;
+						case FlightUIController.SpeedDisplayModes.Surface:
+							return velocityVesselSurface.magnitude;
+						case FlightUIController.SpeedDisplayModes.Target:
+							return velocityRelativeTarget.magnitude;
+					}
+					return double.NaN;
 
 			// The way Engineer does it...
 				case "TGTRELX":
@@ -870,7 +879,16 @@ namespace JSI
 					return part.temperature;
 				case "SLOPEANGLE":
 					return slopeAngle;
-
+				case "SPEEDDISPLAYMODE":
+					switch (FlightUIController.speedDisplayMode) {
+						case FlightUIController.SpeedDisplayModes.Orbit:
+							return 1d;
+						case FlightUIController.SpeedDisplayModes.Surface:
+							return 0d;
+						case FlightUIController.SpeedDisplayModes.Target:
+							return -1d;
+					}
+					return double.NaN;
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;
