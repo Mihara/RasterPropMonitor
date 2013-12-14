@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace JSI
 {
-	class TextMenu:List<TextMenuItem>
+	public class TextMenu:List<TextMenu.Item>
 	{
 		public int currentSelection;
 		public string labelColor = JUtil.ColorToColorTag(Color.white);
@@ -104,7 +104,7 @@ namespace JSI
 			}
 		}
 
-		public TextMenuItem GetCurrentItem()
+		public Item GetCurrentItem()
 		{
 			return this[currentSelection];
 		}
@@ -118,7 +118,7 @@ namespace JSI
 		public void SetSelected(int index, bool exclusive)
 		{
 			if (exclusive) {
-				foreach (TextMenuItem item in this) {
+				foreach (Item item in this) {
 					item.isSelected = false;
 				}
 			}
@@ -126,24 +126,24 @@ namespace JSI
 			this[index].isSelected |= index >= 0 && index < Count;
 
 		}
-	}
 
-	class TextMenuItem
-	{
-		public string labelText = string.Empty;
-		public string rightText = string.Empty;
-		public bool isDisabled;
-		public bool isSelected;
-		public Action<int, TextMenuItem> action;
-		// Mihara: This can be much more terse to use if there is a constructor with optional parameters.
-		// Even if it's finicky about "" rather than string.Empty.
-		public TextMenuItem(string labelText = "", Action<int,TextMenuItem> action = null, bool isSelected = false, string rightText = "", bool isDisabled = false)
+		public class Item
 		{
-			this.labelText = labelText;
-			this.rightText = rightText;
-			this.action = action;
-			this.isDisabled = isDisabled;
-			this.isSelected = isSelected;
+			public string labelText = string.Empty;
+			public string rightText = string.Empty;
+			public bool isDisabled;
+			public bool isSelected;
+			public Action<int, Item> action;
+			// Mihara: This can be much more terse to use if there is a constructor with optional parameters.
+			// Even if it's finicky about "" rather than string.Empty.
+			public Item(string labelText = "", Action<int,Item> action = null, bool isSelected = false, string rightText = "", bool isDisabled = false)
+			{
+				this.labelText = labelText;
+				this.rightText = rightText;
+				this.action = action;
+				this.isDisabled = isDisabled;
+				this.isSelected = isSelected;
+			}
 		}
 	}
 }
