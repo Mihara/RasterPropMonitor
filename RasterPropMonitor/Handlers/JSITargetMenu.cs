@@ -37,6 +37,10 @@ namespace JSI
 		[KSPField]
 		public string menuTitleFormatString = "== {0}";
 
+		// MOARdV: Really, there is no reason to instantiate the topMenu and
+		// keep it around.  If anything, it is less expensive to construct than
+		// the other menus.  But, for the sake of demonstration, I'll leave it
+		// here.  Feel free to remove.
 		private TextMenu topMenu = new TextMenu();
 		private TextMenu activeMenu = null;
 		private TextMenuItem clearTarget = null;
@@ -319,6 +323,7 @@ namespace JSI
 						tmi.action = TargetVessel;
 						tmi.labelText = port.name;
 						tmi.isSelected = (selectedPort == port);
+						tmi.action = TargetPort;
 						activeMenu.Add(tmi);
 					}
 					break;
@@ -363,7 +368,6 @@ namespace JSI
 				celestialsList.Add(new Celestial(body, vessel.transform.position));
 			}
 
-			// For now:
 			var menuitem = new TextMenuItem();
 			menuitem.labelText = rootMenu[0];
 			menuitem.action = ShowCelestialMenu;
@@ -539,6 +543,17 @@ namespace JSI
 
 				activeMenu.SetSelected(index, true);
 			}
+		}
+
+		// Port Menu
+		private void TargetPort(int index, TextMenuItem ti)
+		{
+			if (selectedVessel != null && selectedVessel.loaded && portsList[index] != null) {
+				FlightGlobals.fetch.SetVesselTarget(portsList[index]);
+			}
+			selectedCelestial = null;
+
+			activeMenu.SetSelected(index, true);
 		}
 
 		// Filters Menu
