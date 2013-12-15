@@ -336,6 +336,8 @@ namespace JSI
 										break;
 								} else if (nextBracket == 2 && screenBuffer[lineIndex][charIndex + 1] == '[') {
 									// We got a "[[]" which means an escaped opening bracket.
+									// TODO: Trying to escape many bracket pairs in a row will confuse it.
+									// I doubt most people would want to do that, but I'm not sure how to deal with that correctly.
 									escapedBracket = true;
 									charIndex += nextBracket;
 								} else
