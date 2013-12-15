@@ -239,7 +239,7 @@ namespace JSI
 			// The source rectangle has coordinates in floats (!) from bottom left corner of the texture!
 			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture(
-				new Rect(x * fontLetterWidth, y * fontLetterHeight, fontLetterWidth, fontLetterHeight),
+				new Rect(x, y, fontLetterWidth, fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
 				0, 0, 0, 0,
@@ -294,22 +294,22 @@ namespace JSI
 
 				if (!string.IsNullOrEmpty(activePage.Text)) {
 					// Draw the text.
-					for (int y = 0; y < screenHeight && y < screenBuffer.Length; y++) {
-						if (!string.IsNullOrEmpty(screenBuffer[y])) {
+					for (int yCursor = 0, lineIndex = 0; yCursor < screenPixelHeight && lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
+						if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
 							Color32 fontColor = defaultFontTint;
-							char[] line = screenBuffer[y].ToCharArray();
+							char[] line = screenBuffer[lineIndex].ToCharArray();
 
-							for (int charIndex = 0, cursor = 0; cursor < screenWidth && charIndex < line.Length; charIndex++, cursor++) {
+							for (int charIndex = 0, xCursor = 0; xCursor < screenPixelWidth && charIndex < line.Length; charIndex++, xCursor += fontLetterWidth) {
 								// Parsing [#rrggbbaa], so...
 								while (line[charIndex] == '[') {
 									if (charIndex < line.Length - 11 && line[charIndex + 1] == '#' && line[charIndex + 10] == ']') {
-										fontColor = JUtil.HexRGBAToColor(screenBuffer[y].Substring(charIndex + 2, 8));
+										fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, 8));
 										charIndex += 11;
 									} else
 										break;
 								}
 								if (charIndex < line.Length)
-									DrawChar(line[charIndex], cursor, y, fontColor);
+									DrawChar(line[charIndex], xCursor, yCursor, fontColor);
 							}
 						}
 					}
