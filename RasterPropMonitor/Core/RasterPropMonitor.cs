@@ -301,10 +301,9 @@ namespace JSI
 						int xOffset = 0;
 						int yOffset = 0;
 						for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
-
+							bool escapedBracket = false;
 							// We will continue parsing bracket pairs until we're out of bracket pairs.
 							while (screenBuffer[lineIndex][charIndex] == '[') {
-								// TODO: Now I definitely need some way to escape opening square brackets.
 								// If there's no closing bracket, we stop parsing and go on to printing.
 								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
 								if (nextBracket < 0)
@@ -335,6 +334,10 @@ namespace JSI
 										charIndex += nextBracket + 1;
 									} else //If it didn't parse, skip over it.
 										break;
+								} else if (nextBracket == 2 && screenBuffer[lineIndex][charIndex + 1] == '[') {
+									// We got a "[[]" which means an escaped opening bracket.
+									escapedBracket = true;
+									charIndex += nextBracket;
 								} else
 									break;
 							}
@@ -345,7 +348,8 @@ namespace JSI
 							    xPos > -fontLetterWidth &&
 							    yPos < screenPixelHeight &&
 							    yPos > -fontLetterHeight)
-								DrawChar(screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
+								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
+
 						}
 					}
 				}
