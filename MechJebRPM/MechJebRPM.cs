@@ -7,9 +7,6 @@ using UnityEngine;
 
 namespace MechJebRPM
 {
-	// MOARdV BUG: This works great for NODE, Force Roll, KILL ROT, the OBT
-	// functions, and the TGT functions ... when the MJ SmartASS window is
-	// open.  It does nothing if it isn't.  Still need to investigate that.
 	public class MechJebRPM: InternalModule
 	{
 		[KSPField]
@@ -359,6 +356,7 @@ namespace MechJebRPM
 
 			if (activeSmartass != null && activeTargets != null) {
 				activeSmartass.target = activeTargets[index];
+				activeSmartass.Engage();
 			}
 		}
 	}
