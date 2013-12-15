@@ -333,7 +333,8 @@ namespace JSI
 										}
 										// We only consume the symbols if they did parse correctly.
 										charIndex += nextBracket + 1;
-									}
+									} else //If it didn't parse, skip over it.
+										break;
 								} else
 									break;
 							}
