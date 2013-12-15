@@ -68,6 +68,7 @@ namespace MechJebRPM
 		private TextMenu.Item nodeMenuItem;
 		private TextMenu.Item targetMenuItem;
 		private TextMenu.Item forceRollMenuItem;
+		private TextMenu.Item executeNodeItem;
 
 		private MechJebCore activeJeb;
 		private MechJebModuleSmartASS activeSmartass;
@@ -194,10 +195,12 @@ namespace MechJebRPM
 			topMenu.Add(targetMenuItem);
 			forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
 			topMenu.Add(forceRollMenuItem);
-			// These two are listed for completeness, but they're disabled
-			// until they're implemented.
-			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
-			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED], null, false, "", true));
+			executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
+			topMenu.Add(executeNodeItem);
+			// MOARdV: The following two menu items are not implemented.  I removed
+			// them to avoid confusion.
+			//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
+			//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED], null, false, "", true));
 
 			activeMenu = topMenu;
 		}
@@ -210,6 +213,16 @@ namespace MechJebRPM
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
 			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", (double)activeSmartass.rol);
+
+			MechJebModuleManeuverPlanner mp = null;
+			if (activeJeb != null) {
+				mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
+				executeNodeItem.labelText = (activeJeb.node.enabled) ? "Abort Node Execution" : "Execute Next Node";
+			}
+			else {
+				executeNodeItem.labelText = "Execute Next Node";
+			}
+			executeNodeItem.isDisabled = (mp == null || vessel.patchedConicSolver.maneuverNodes.Count == 0);
 
 			// MOARdV:
 			// This is a little messy, since SmartASS can be updated
@@ -240,11 +253,12 @@ namespace MechJebRPM
 			}
 			// 5 is Force Roll.  State is controlled below, and is independent
 			// of the rest of these
+			// 6 is Execute Next Node.
 			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.SURFACE) {
-				activeMenu.SetSelected(6, true);
+				activeMenu.SetSelected(7, true);
 			}
 			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ADVANCED) {
-				activeMenu.SetSelected(7, true);
+				activeMenu.SetSelected(8, true);
 			}
 
 			forceRollMenuItem.isSelected = activeSmartass.forceRol;
@@ -256,6 +270,7 @@ namespace MechJebRPM
 
 			if (activeSmartass != null) {
 				activeSmartass.target = MechJebModuleSmartASS.Target.OFF;
+				activeSmartass.Engage();
 			}
 		}
 
@@ -265,6 +280,7 @@ namespace MechJebRPM
 
 			if (activeSmartass != null) {
 				activeSmartass.target = MechJebModuleSmartASS.Target.KILLROT;
+				activeSmartass.Engage();
 			}
 		}
 
@@ -274,6 +290,7 @@ namespace MechJebRPM
 
 			if (activeSmartass != null) {
 				activeSmartass.target = MechJebModuleSmartASS.Target.NODE;
+				activeSmartass.Engage();
 			}
 		}
 
@@ -305,12 +322,30 @@ namespace MechJebRPM
 			}
 		}
 
+		private void ExecuteNode(int index, TextMenu.Item tmi)
+		{
+			UpdateJebReferences();
+			if (activeJeb != null) {
+				MechJebModuleManeuverPlanner mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
+				if (mp != null) {
+					// We have a valid maneuver planner, which means we can
+					// tell MJ to execute a node.  Or abort a node.
+					if (activeJeb.node.enabled) {
+						activeJeb.node.Abort();
+					} else {
+						activeJeb.node.ExecuteOneNode(mp);
+					}
+				}
+			}
+		}
+
 		private void ToggleForceRoll(int index, TextMenu.Item tmi)
 		{
 			UpdateJebReferences();
 			if (activeSmartass != null) {
 				activeSmartass.forceRol = !activeSmartass.forceRol;
 				forceRollMenuItem.isSelected = activeSmartass.forceRol;
+				activeSmartass.Engage();
 			}
 		}
 
