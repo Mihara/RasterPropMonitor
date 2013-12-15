@@ -810,6 +810,11 @@ namespace JSI
 						return 0d;
 					}
 					return 0d;
+				case "TARGETANGLEDEV":
+					if (target != null) {
+						return Vector3d.Angle(vessel.ReferenceTransform.up, FlightGlobals.fetch.vesselTargetDirection);
+					}
+					return 180d;
 			
 				case "TARGETAPOAPSIS":
 					if (target != null && targetOrbitSensibility)
