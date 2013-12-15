@@ -535,6 +535,12 @@ namespace SCANsatRPM
 
 		private void Start()
 		{
+			// It is rumored that in 0.23 there is no longer a requirement to keep things
+			// in alphabetical order, so all the DLLs will move to one location,
+			// so this is only temporary.
+			InstallationPathWarning.Warn("SCANsatRPM");
+			//InstallationPathWarning.Warn();
+
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
