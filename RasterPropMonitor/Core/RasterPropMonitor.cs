@@ -294,11 +294,12 @@ namespace JSI
 
 				if (!string.IsNullOrEmpty(activePage.Text)) {
 					// Draw the text.
-					for (int yCursor = 0, lineIndex = 0; yCursor < screenPixelHeight && lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
+					for (int yCursor = 0, lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 						if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
 							Color32 fontColor = defaultFontTint;
-
-							for (int charIndex = 0, xCursor = 0; xCursor < screenPixelWidth && charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
+							int xOffset = 0;
+							int yOffset = 0;
+							for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
 								// Parsing [#rrggbbaa], so...
 								while (screenBuffer[lineIndex][charIndex] == '[') {
 									if (charIndex < screenBuffer[lineIndex].Length - 11 &&
@@ -306,11 +307,34 @@ namespace JSI
 									    screenBuffer[lineIndex][charIndex + 10] == ']') {
 										fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, 8));
 										charIndex += 11;
+									} else if (charIndex < screenBuffer[lineIndex].Length - 8 &&
+									           screenBuffer[lineIndex][charIndex + 1] == '@' &&
+									           screenBuffer[lineIndex][charIndex + 7] == ']') {
+										int coord;
+										if (Int32.TryParse(screenBuffer[lineIndex].Substring(charIndex + 3, 4), out coord)) {
+											switch (screenBuffer[lineIndex][charIndex + 2]) {
+												case 'X':
+												case 'x':
+													xOffset = coord;
+													break;
+												case 'Y':
+												case 'y':
+													yOffset = coord;
+													break;
+											}
+										}
+										charIndex += 8;
 									} else
 										break;
 								}
-								if (charIndex < screenBuffer[lineIndex].Length)
-									DrawChar(screenBuffer[lineIndex][charIndex], xCursor, yCursor, fontColor);
+								int xPos = xCursor + xOffset;
+								int yPos = yCursor + yOffset;
+								if (charIndex < screenBuffer[lineIndex].Length &&
+								    xPos < screenPixelWidth &&
+								    xPos > -fontLetterWidth &&
+								    yPos < screenPixelHeight &&
+								    yPos > -fontLetterHeight)
+									DrawChar(screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
 							}
 						}
 					}
