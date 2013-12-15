@@ -297,19 +297,20 @@ namespace JSI
 					for (int yCursor = 0, lineIndex = 0; yCursor < screenPixelHeight && lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 						if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
 							Color32 fontColor = defaultFontTint;
-							char[] line = screenBuffer[lineIndex].ToCharArray();
 
-							for (int charIndex = 0, xCursor = 0; xCursor < screenPixelWidth && charIndex < line.Length; charIndex++, xCursor += fontLetterWidth) {
+							for (int charIndex = 0, xCursor = 0; xCursor < screenPixelWidth && charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
 								// Parsing [#rrggbbaa], so...
-								while (line[charIndex] == '[') {
-									if (charIndex < line.Length - 11 && line[charIndex + 1] == '#' && line[charIndex + 10] == ']') {
+								while (screenBuffer[lineIndex][charIndex] == '[') {
+									if (charIndex < screenBuffer[lineIndex].Length - 11 &&
+									    screenBuffer[lineIndex][charIndex + 1] == '#' &&
+									    screenBuffer[lineIndex][charIndex + 10] == ']') {
 										fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, 8));
 										charIndex += 11;
 									} else
 										break;
 								}
-								if (charIndex < line.Length)
-									DrawChar(line[charIndex], xCursor, yCursor, fontColor);
+								if (charIndex < screenBuffer[lineIndex].Length)
+									DrawChar(screenBuffer[lineIndex][charIndex], xCursor, yCursor, fontColor);
 							}
 						}
 					}
