@@ -74,6 +74,7 @@ namespace JSI
 		private double electricChargeReserve;
 		public Texture2D noSignalTexture;
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
+		private float fontLetterHalf;
 
 		public void Start()
 		{
@@ -109,6 +110,9 @@ namespace JSI
 
 				fontCharacters[i] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
 			}
+
+			// And a little optimisation for superscript/subscript:
+			fontLetterHalf = fontLetterHeight / 2f;
 
 			// Now that is done, proceed to setting up the screen.
 
@@ -218,7 +222,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, int x, int y, Color32 letterColor)
+		private void DrawChar(char letter, int x, int y, Color32 letterColor, int scaledscript)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -236,10 +240,10 @@ namespace JSI
 
 			// This is complicated.
 			// The destination rectangle has coordinates given in pixels, from top left corner of the texture.
-			// The source rectangle has coordinates in floats (!) from bottom left corner of the texture!
+			// The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
 			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture(
-				new Rect(x, y, fontLetterWidth, fontLetterHeight),
+				new Rect(x, (scaledscript < 0) ? y + fontLetterHalf : y, fontLetterWidth, (scaledscript != 0) ? fontLetterHalf : fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
 				0, 0, 0, 0,
@@ -300,27 +304,29 @@ namespace JSI
 						Color32 fontColor = defaultFontTint;
 						int xOffset = 0;
 						int yOffset = 0;
+						int scaledscript = 0;
 						for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
 							bool escapedBracket = false;
-							// We will continue parsing bracket pairs until we're out of bracket pairs.
-							while (screenBuffer[lineIndex][charIndex] == '[') {
+							// We will continue parsing bracket pairs until we're out of bracket pairs,
+							// since all of them -- except the escaped bracket tag --
+							// consume characters and change state without actually generating any output.
+							while (charIndex < screenBuffer[lineIndex].Length && screenBuffer[lineIndex][charIndex] == '[') {
 								// If there's no closing bracket, we stop parsing and go on to printing.
 								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
 								if (nextBracket < 0)
 									break;
-
-								if (screenBuffer[lineIndex].IndexOf('#', charIndex) - charIndex == 1 && (nextBracket == 10 || nextBracket == 8)) {
+								// Much easier to parse it this way, although I suppose more expensive.
+								string tagText = screenBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
+								if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#') {
 									// Valid color tags are [#rrggbbaa] or [#rrggbb].
-									// So the conditions for them is that the next character is # and the next bracket 
-									// is either 8 or 10 symbols away.
-									fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, nextBracket - 2));
+									fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
 									charIndex += nextBracket + 1;
-								} else if (screenBuffer[lineIndex].IndexOf('@', charIndex) - charIndex == 1 && nextBracket > 3) {
+								} else if (tagText.Length > 2 && tagText[0] == '@') {
 									// Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
-									// the next symbol is @ and there is at least one symbol before it.
+									// the next symbol is @ and there are at least three, one designating the axis.
 									int coord;
-									if (Int32.TryParse(screenBuffer[lineIndex].Substring(charIndex + 3, nextBracket - 3), out coord)) {
-										switch (screenBuffer[lineIndex][charIndex + 2]) {
+									if (Int32.TryParse(tagText.Substring(2), out coord)) {
+										switch (tagText[1]) {
 											case 'X':
 											case 'x':
 												xOffset = coord;
@@ -334,13 +340,24 @@ namespace JSI
 										charIndex += nextBracket + 1;
 									} else //If it didn't parse, skip over it.
 										break;
-								} else if (nextBracket == 2 && screenBuffer[lineIndex][charIndex + 1] == '[') {
+								} else if (tagText == "sup") {
+									// Superscript!
+									scaledscript = 1;
+									charIndex += nextBracket + 1;
+								} else if (tagText == "sub") {
+									// Subscript!
+									scaledscript = -1;
+									charIndex += nextBracket + 1;
+								} else if (tagText == "/sup" || tagText == "/sub") {
+									// And back...
+									scaledscript = 0;
+									charIndex += nextBracket + 1;
+								} else if (tagText == "[") {
 									// We got a "[[]" which means an escaped opening bracket.
-									// TODO: Trying to escape many bracket pairs in a row will confuse it.
-									// I doubt most people would want to do that, but I'm not sure how to deal with that correctly.
 									escapedBracket = true;
 									charIndex += nextBracket;
-								} else
+									break;
+								} else // Else we didn't recognise anything so it's not a tag.
 									break;
 							}
 							int xPos = xCursor + xOffset;
@@ -350,8 +367,7 @@ namespace JSI
 							    xPos > -fontLetterWidth &&
 							    yPos < screenPixelHeight &&
 							    yPos > -fontLetterHeight)
-								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
-
+								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scaledscript);
 						}
 					}
 				}
