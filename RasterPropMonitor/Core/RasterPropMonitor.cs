@@ -282,67 +282,76 @@ namespace JSI
 			if (needsElectricCharge && electricChargeReserve < 0.01d) {
 				// If we're out of electric charge, we're drawing a blank screen.
 				GL.Clear(true, true, emptyColor);
-			} else {
+				RenderTexture.active = backupRenderTexture;
+				return;
+			}
 
-				// Actual rendering of the background is delegated to the page object.
-				activePage.RenderBackground(screenTexture);
+			// Actual rendering of the background is delegated to the page object.
+			activePage.RenderBackground(screenTexture);
 
-				// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
-				// Cameras don't care because they have their own matrices, but DrawTexture does.
-				GL.PushMatrix();
-				GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
+			// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
+			// Cameras don't care because they have their own matrices, but DrawTexture does.
+			GL.PushMatrix();
+			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
-				if (!string.IsNullOrEmpty(activePage.Text)) {
-					// Draw the text.
-					for (int yCursor = 0, lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
-						if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
-							Color32 fontColor = defaultFontTint;
-							int xOffset = 0;
-							int yOffset = 0;
-							for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
-								// Parsing [#rrggbbaa], so...
-								while (screenBuffer[lineIndex][charIndex] == '[') {
-									if (charIndex < screenBuffer[lineIndex].Length - 11 &&
-									    screenBuffer[lineIndex][charIndex + 1] == '#' &&
-									    screenBuffer[lineIndex][charIndex + 10] == ']') {
-										fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, 8));
-										charIndex += 11;
-									} else if (charIndex < screenBuffer[lineIndex].Length - 8 &&
-									           screenBuffer[lineIndex][charIndex + 1] == '@' &&
-									           screenBuffer[lineIndex][charIndex + 7] == ']') {
-										int coord;
-										if (Int32.TryParse(screenBuffer[lineIndex].Substring(charIndex + 3, 4), out coord)) {
-											switch (screenBuffer[lineIndex][charIndex + 2]) {
-												case 'X':
-												case 'x':
-													xOffset = coord;
-													break;
-												case 'Y':
-												case 'y':
-													yOffset = coord;
-													break;
-											}
+			if (!string.IsNullOrEmpty(activePage.Text)) {
+				for (int yCursor = 0, lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
+					if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
+						Color32 fontColor = defaultFontTint;
+						int xOffset = 0;
+						int yOffset = 0;
+						for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
+
+							// We will continue parsing bracket pairs until we're out of bracket pairs.
+							while (screenBuffer[lineIndex][charIndex] == '[') {
+								// TODO: Now I definitely need some way to escape opening square brackets.
+								// If there's no closing bracket, we stop parsing and go on to printing.
+								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
+								if (nextBracket < 0)
+									break;
+
+								if (screenBuffer[lineIndex].IndexOf('#', charIndex) - charIndex == 1 && (nextBracket == 10 || nextBracket == 8)) {
+									// Valid color tags are [#rrggbbaa] or [#rrggbb].
+									// So the conditions for them is that the next character is # and the next bracket 
+									// is either 8 or 10 symbols away.
+									fontColor = JUtil.HexRGBAToColor(screenBuffer[lineIndex].Substring(charIndex + 2, nextBracket - 2));
+									charIndex += nextBracket + 1;
+								} else if (screenBuffer[lineIndex].IndexOf('@', charIndex) - charIndex == 1 && nextBracket > 3) {
+									// Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
+									// the next symbol is @ and there is at least one symbol before it.
+									int coord;
+									if (Int32.TryParse(screenBuffer[lineIndex].Substring(charIndex + 3, nextBracket - 3), out coord)) {
+										switch (screenBuffer[lineIndex][charIndex + 2]) {
+											case 'X':
+											case 'x':
+												xOffset = coord;
+												break;
+											case 'Y':
+											case 'y':
+												yOffset = coord;
+												break;
 										}
-										charIndex += 8;
-									} else
-										break;
-								}
-								int xPos = xCursor + xOffset;
-								int yPos = yCursor + yOffset;
-								if (charIndex < screenBuffer[lineIndex].Length &&
-								    xPos < screenPixelWidth &&
-								    xPos > -fontLetterWidth &&
-								    yPos < screenPixelHeight &&
-								    yPos > -fontLetterHeight)
-									DrawChar(screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
+										// We only consume the symbols if they did parse correctly.
+										charIndex += nextBracket + 1;
+									}
+								} else
+									break;
 							}
+							int xPos = xCursor + xOffset;
+							int yPos = yCursor + yOffset;
+							if (charIndex < screenBuffer[lineIndex].Length &&
+							    xPos < screenPixelWidth &&
+							    xPos > -fontLetterWidth &&
+							    yPos < screenPixelHeight &&
+							    yPos > -fontLetterHeight)
+								DrawChar(screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor);
 						}
 					}
 				}
-
-				GL.PopMatrix();
-
 			}
+
+			GL.PopMatrix();
+
 			RenderTexture.active = backupRenderTexture;
 		}
 
