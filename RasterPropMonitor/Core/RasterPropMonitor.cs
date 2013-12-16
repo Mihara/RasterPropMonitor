@@ -13,7 +13,8 @@ namespace JSI
 		[KSPField]
 		public string textureLayerID = "_MainTex";
 		[KSPField]
-		public Color32 emptyColor = Color.clear;
+		public string emptyColor = string.Empty;
+		public Color emptyColorValue = Color.clear;
 		[KSPField]
 		public int screenWidth = 32;
 		[KSPField]
@@ -43,7 +44,8 @@ namespace JSI
 		[KSPField]
 		public bool needsElectricCharge = true;
 		[KSPField]
-		public Color32 defaultFontTint = Color.white;
+		public string defaultFontTint = string.Empty;
+		private Color defaultFontTintValue = Color.white;
 		[KSPField]
 		public string noSignalTextureURL = string.Empty;
 		// This needs to be public so that pages can point it.
@@ -101,6 +103,11 @@ namespace JSI
 				JUtil.LogMessage(this, "Loading font texture from a transform named, \"{0}\"", fontTransform);
 			}
 
+			// Damn KSP's config parser!!!
+			if (!string.IsNullOrEmpty(emptyColor))
+				emptyColorValue = ConfigNode.ParseColor(emptyColor);
+			if (!string.IsNullOrEmpty(defaultFontTint))
+				defaultFontTintValue = ConfigNode.ParseColor(defaultFontTint);
 
 			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
 			// although I'm not sure I'm not seeing things by this point.
@@ -229,7 +236,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, float x, float y, Color32 letterColor, Script scriptType)
+		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -293,7 +300,7 @@ namespace JSI
 
 			if (needsElectricCharge && electricChargeReserve < 0.01d) {
 				// If we're out of electric charge, we're drawing a blank screen.
-				GL.Clear(true, true, emptyColor);
+				GL.Clear(true, true, emptyColorValue);
 				RenderTexture.active = backupRenderTexture;
 				return;
 			}
@@ -310,7 +317,7 @@ namespace JSI
 				float yCursor = 0;
 				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 					if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
-						Color32 fontColor = defaultFontTint;
+						Color fontColor = defaultFontTintValue;
 						float xOffset = 0;
 						float yOffset = 0;
 						Script scriptType = Script.Normal;

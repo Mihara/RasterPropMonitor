@@ -39,15 +39,23 @@ namespace SCANsatRPM
 		[KSPField]
 		public float redrawEdge = 0.8f;
 		[KSPField]
-		public Color32 iconColorSelf = Color.white;
+		public string iconColorSelf = string.Empty;
+		private Color iconColorSelfValue = Color.white;
 		[KSPField]
-		public Color32 iconColorTarget = Color.yellow;
+		public string iconColorTarget = string.Empty;
+		private Color iconColorTargetValue = Color.yellow;
 		[KSPField]
-		public Color32 iconColorUnvisitedAnomaly = Color.red;
+		public string iconColorUnvisitedAnomaly = string.Empty;
+		private Color iconColorUnvisitedAnomalyValue = Color.red;
 		[KSPField]
-		public Color32 iconColorVisitedAnomaly = Color.green;
+		public string iconColorVisitedAnomaly = string.Empty;
+		private Color iconColorVisitedAnomalyValue = Color.green;
 		[KSPField]
-		public Color32 iconColorShadow = Color.black;
+		public string iconColorShadow = string.Empty;
+		private Color iconColorShadowValue = Color.black;
+		[KSPField]
+		public string trailColor = string.Empty;
+		private Color trailColorValue = Color.blue;
 		[KSPField]
 		public float zoomModifier = 1.5f;
 		[KSPField]
@@ -62,8 +70,6 @@ namespace SCANsatRPM
 		public float scaleBarSizeLimit = 512 / 2 - 16;
 		[KSPField]
 		public int trailLimit = 100;
-		[KSPField]
-		public Color32 trailColor = Color.blue;
 		[KSPField]
 		public double trailPointEvery = 30;
 		[KSPField]
@@ -114,6 +120,20 @@ namespace SCANsatRPM
 
 				screenSpace = new Rect(0, 0, screenWidth, screenHeight);
 
+				// Arrrgh.
+				if (!string.IsNullOrEmpty(iconColorSelf))
+					iconColorSelfValue = ConfigNode.ParseColor(iconColorSelf);
+				if (!string.IsNullOrEmpty(iconColorTarget))
+					iconColorTargetValue = ConfigNode.ParseColor(iconColorTarget);
+				if (!string.IsNullOrEmpty(iconColorUnvisitedAnomaly))
+					iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor(iconColorUnvisitedAnomaly);
+				if (!string.IsNullOrEmpty(iconColorVisitedAnomaly))
+					iconColorVisitedAnomalyValue = ConfigNode.ParseColor(iconColorVisitedAnomaly);
+				if (!string.IsNullOrEmpty(iconColorShadow))
+					iconColorShadowValue = ConfigNode.ParseColor(iconColorShadow);
+				if (!string.IsNullOrEmpty(trailColor))
+					trailColorValue = ConfigNode.ParseColor(trailColor);
+
 				RedrawMap();
 				return false;
 			}
@@ -132,26 +152,26 @@ namespace SCANsatRPM
 
 			// Trails go above markup lines
 			if (showLines && trailLimit > 0 && trail.Count > 0)
-				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
+				DrawTrail(trail, trailColorValue, new Vector2d(vessel.longitude, vessel.latitude), true);
 		
 			// Anomalies go above trails
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
 						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
-						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
+						anomaly.detail ? iconColorVisitedAnomalyValue : iconColorUnvisitedAnomalyValue);
 			}
 			// Target orbit and targets go above anomalies
 			if (targetVessel != null && targetVessel.mainBody == orbitingBody) {
 				if (showLines && JUtil.OrbitMakesSense(targetVessel))
-					DrawOrbit(targetVessel, iconColorTarget);
-				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
+					DrawOrbit(targetVessel, iconColorTargetValue);
+				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTargetValue);
 			}
 			// Own orbit goes above that.
 			if (showLines && JUtil.OrbitMakesSense(vessel))
-				DrawOrbit(vessel, iconColorSelf);
+				DrawOrbit(vessel, iconColorSelfValue);
 			// Own icon goes above that
-			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
+			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelfValue);
 			// And scale goes above everything.
 			DrawScale();
 			GL.PopMatrix();
@@ -287,7 +307,7 @@ namespace SCANsatRPM
 			shadow.x += iconShadowShift.x;
 			shadow.y += iconShadowShift.y;
 
-			iconMaterial.color = iconColorShadow;
+			iconMaterial.color = iconColorShadowValue;
 			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
 
 			iconMaterial.color = iconColor;
