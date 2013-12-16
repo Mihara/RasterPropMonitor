@@ -40,22 +40,22 @@ namespace SCANsatRPM
 		public float redrawEdge = 0.8f;
 		[KSPField]
 		public string iconColorSelf = string.Empty;
-		private Color iconColorSelfValue = Color.white;
+		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.5f);
 		[KSPField]
 		public string iconColorTarget = string.Empty;
-		private Color iconColorTargetValue = Color.yellow;
+		private Color iconColorTargetValue = new Color32(255, 235, 4, 128);
 		[KSPField]
 		public string iconColorUnvisitedAnomaly = string.Empty;
-		private Color iconColorUnvisitedAnomalyValue = Color.red;
+		private Color iconColorUnvisitedAnomalyValue = new Color(1f, 0f, 0f, 0.5f);
 		[KSPField]
 		public string iconColorVisitedAnomaly = string.Empty;
-		private Color iconColorVisitedAnomalyValue = Color.green;
+		private Color iconColorVisitedAnomalyValue = new Color(0f, 1f, 0f, 0.5f);
 		[KSPField]
 		public string iconColorShadow = string.Empty;
-		private Color iconColorShadowValue = Color.black;
+		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
 		[KSPField]
 		public string trailColor = string.Empty;
-		private Color trailColorValue = Color.blue;
+		private Color trailColorValue = new Color(0f, 0f, 1f, 0.5f);
 		[KSPField]
 		public float zoomModifier = 1.5f;
 		[KSPField]
@@ -71,7 +71,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public int trailLimit = 100;
 		[KSPField]
-		public double trailPointEvery = 30;
+		public float trailPointEvery = 30;
 		[KSPField]
 		public int orbitPoints = 120;
 		// That ends our glut of configurable values.
@@ -100,6 +100,7 @@ namespace SCANsatRPM
 		private Rect screenSpace;
 		private bool pageActiveState;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
+		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f); // Neutral tint.
 		// Analysis disable once UnusedParameter
 		public bool MapRenderer(RenderTexture screen, float cameraAspect)
 		{
@@ -119,20 +120,6 @@ namespace SCANsatRPM
 				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
 
 				screenSpace = new Rect(0, 0, screenWidth, screenHeight);
-
-				// Arrrgh.
-				if (!string.IsNullOrEmpty(iconColorSelf))
-					iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
-				if (!string.IsNullOrEmpty(iconColorTarget))
-					iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
-				if (!string.IsNullOrEmpty(iconColorUnvisitedAnomaly))
-					iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor32(iconColorUnvisitedAnomaly);
-				if (!string.IsNullOrEmpty(iconColorVisitedAnomaly))
-					iconColorVisitedAnomalyValue = ConfigNode.ParseColor32(iconColorVisitedAnomaly);
-				if (!string.IsNullOrEmpty(iconColorShadow))
-					iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
-				if (!string.IsNullOrEmpty(trailColor))
-					trailColorValue = ConfigNode.ParseColor32(trailColor);
 
 				RedrawMap();
 				return false;
@@ -290,11 +277,11 @@ namespace SCANsatRPM
 					break;
 				}
 			}
-			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4);
+			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4,scaleTint);
 
 			scaleBarRect.x += scaleBarRect.width;
 			scaleBarRect.width = scaleLabelTexture.width;
-			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0);
+			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0, scaleTint);
 		}
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
@@ -560,6 +547,20 @@ namespace SCANsatRPM
 			// so this is only temporary.
 			InstallationPathWarning.Warn("SCANsatRPM");
 			//InstallationPathWarning.Warn();
+
+			// Arrrgh.
+			if (!string.IsNullOrEmpty(iconColorSelf))
+				iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
+			if (!string.IsNullOrEmpty(iconColorTarget))
+				iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
+			if (!string.IsNullOrEmpty(iconColorUnvisitedAnomaly))
+				iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor32(iconColorUnvisitedAnomaly);
+			if (!string.IsNullOrEmpty(iconColorVisitedAnomaly))
+				iconColorVisitedAnomalyValue = ConfigNode.ParseColor32(iconColorVisitedAnomaly);
+			if (!string.IsNullOrEmpty(iconColorShadow))
+				iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
+			if (!string.IsNullOrEmpty(trailColor))
+				trailColorValue = ConfigNode.ParseColor32(trailColor);
 
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
