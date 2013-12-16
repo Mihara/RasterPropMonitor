@@ -30,7 +30,6 @@ namespace MechJebRPM
 		[KSPField]
 		public float forceRollStep = 90.0f;
 		// KSPFields end here.
-
 		private enum MJMenu
 		{
 			RootMenu,
@@ -48,7 +47,6 @@ namespace MechJebRPM
 			MechJebModuleSmartASS.Target.RADIAL_PLUS,
 			MechJebModuleSmartASS.Target.RADIAL_MINUS,
 		};
-
 		private readonly List<MechJebModuleSmartASS.Target> targetTargets = new List<MechJebModuleSmartASS.Target> {
 			MechJebModuleSmartASS.Target.TARGET_PLUS,
 			MechJebModuleSmartASS.Target.TARGET_MINUS,
@@ -57,19 +55,15 @@ namespace MechJebRPM
 			MechJebModuleSmartASS.Target.PARALLEL_PLUS,
 			MechJebModuleSmartASS.Target.PARALLEL_MINUS,
 		};
-
 		private MJMenu currentMenu = MJMenu.RootMenu;
-
-		private TextMenu topMenu = new TextMenu();
-		private TextMenu activeMenu = null;
-
+		private readonly TextMenu topMenu = new TextMenu();
+		private TextMenu activeMenu;
 		// Actively track some menu items, since their validity can be
 		// updated asynchronously.
 		private TextMenu.Item nodeMenuItem;
 		private TextMenu.Item targetMenuItem;
 		private TextMenu.Item forceRollMenuItem;
 		private TextMenu.Item executeNodeItem;
-
 		private MechJebCore activeJeb;
 		private MechJebModuleSmartASS activeSmartass;
 		private bool pageActiveState;
@@ -84,9 +78,7 @@ namespace MechJebRPM
 			if (activeJeb.attitude.enabled && !activeJeb.attitude.users.Contains(activeSmartass)) {
 				return MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.AUTO].Replace('\n', ' ');
 			}
-			else {
-				return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target]] + " " + MechJebModuleSmartASS.TargetTexts[(int)activeSmartass.target].Replace('\n', ' ');
-			}
+			return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target]] + " " + MechJebModuleSmartASS.TargetTexts[(int)activeSmartass.target].Replace('\n', ' ');
 		}
 
 		public string ShowMenu(int width, int height)
@@ -119,8 +111,7 @@ namespace MechJebRPM
 				}
 
 				result.Append(activeMenu.ShowMenu(width, height));
-			}
-			else {
+			} else {
 				if (activeJeb == null)
 					result.AppendLine("Autopilot not installed.");
 				else
@@ -157,20 +148,17 @@ namespace MechJebRPM
 					double currentRoll = (double)activeSmartass.rol + forceRollStep;
 					if (currentRoll > 180.0) {
 						currentRoll -= 360.0;
-					}
-					else if (currentRoll < -180.0) {
+					} else if (currentRoll < -180.0) {
 						currentRoll += 360.0;
 					}
 					activeSmartass.rol = currentRoll;
 				}
 			}
 		}
-
 		/* Note to self:
 		foreach (ThatEnumType item in (ThatEnumType[]) Enum.GetValues(typeof(ThatEnumType)))
 		can save a lot of time here.
 		*/
-
 		private void UpdateJebReferences()
 		{
 			activeJeb = vessel.GetMasterMechJeb();
@@ -193,7 +181,7 @@ namespace MechJebRPM
 			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ORBITAL], OrbitalMenu));
 			targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
 			topMenu.Add(targetMenuItem);
-			forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
+			forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", activeSmartass.rol), ToggleForceRoll);
 			topMenu.Add(forceRollMenuItem);
 			executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
 			topMenu.Add(executeNodeItem);
@@ -204,7 +192,6 @@ namespace MechJebRPM
 
 			activeMenu = topMenu;
 		}
-
 		//--- ROOT MENU methods
 		private void UpdateRootMenu()
 		{
@@ -212,14 +199,13 @@ namespace MechJebRPM
 
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
-			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", (double)activeSmartass.rol);
+			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", activeSmartass.rol);
 
 			MechJebModuleManeuverPlanner mp = null;
 			if (activeJeb != null) {
 				mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
 				executeNodeItem.labelText = (activeJeb.node.enabled) ? "Abort Node Execution" : "Execute Next Node";
-			}
-			else {
+			} else {
 				executeNodeItem.labelText = "Execute Next Node";
 			}
 			executeNodeItem.isDisabled = (mp == null || vessel.patchedConicSolver.maneuverNodes.Count == 0);
@@ -238,17 +224,13 @@ namespace MechJebRPM
 			// will be addressed in a future iteration of the code.
 			if (activeSmartass.target == MechJebModuleSmartASS.Target.OFF) {
 				activeMenu.SetSelected(0, true);
-			}
-			else if (activeSmartass.target == MechJebModuleSmartASS.Target.KILLROT) {
+			} else if (activeSmartass.target == MechJebModuleSmartASS.Target.KILLROT) {
 				activeMenu.SetSelected(1, true);
-			}
-			else if (activeSmartass.target == MechJebModuleSmartASS.Target.NODE) {
+			} else if (activeSmartass.target == MechJebModuleSmartASS.Target.NODE) {
 				activeMenu.SetSelected(2, true);
-			}
-			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ORBITAL) {
+			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ORBITAL) {
 				activeMenu.SetSelected(3, true);
-			}
-			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.TARGET) {
+			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.TARGET) {
 				activeMenu.SetSelected(4, true);
 			}
 			// 5 is Force Roll.  State is controlled below, and is independent
@@ -256,8 +238,7 @@ namespace MechJebRPM
 			// 6 is Execute Next Node.
 			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.SURFACE) {
 				activeMenu.SetSelected(7, true);
-			}
-			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ADVANCED) {
+			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ADVANCED) {
 				activeMenu.SetSelected(8, true);
 			}
 
@@ -348,7 +329,6 @@ namespace MechJebRPM
 				activeSmartass.Engage();
 			}
 		}
-
 		//--- Orbital Menu
 		private void UpdateOrbitalMenu()
 		{
@@ -359,7 +339,6 @@ namespace MechJebRPM
 				activeMenu.SetSelected(idx, true);
 			}
 		}
-
 		//--- Target Menu
 		private void UpdateTargetMenu()
 		{
