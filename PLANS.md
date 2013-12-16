@@ -9,6 +9,12 @@
 
 # 0.12 milestone targets
 
+## Minor new features
+
+* Bar formatter, that gets a value, minimum/maximum boundaries, and produces a bar of given width filled with given characters.
+* A "follow reference" mode for cameras: A special option for PAGE that, instead of looking for a specific camera transform, finds the reference part, determines if it's a docking node, and if it is, places the camera on it's reference transform, otherwise shows no camera -- so that particular page always shows the view from the currently active docking port.
+* Halfwidth/doublewidth fonts.
+
 ## Major new features
 
 * Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
@@ -30,7 +36,6 @@
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
 * Multiple fonts? It's easy enough to do tag-based font switching now, so something like FONTS{ name = value } would be trivial provided all the fonts have the same pixel size.
 * Textline-based font contents definition?
-* Bar formatter, that gets a value, minimum/maximum boundaries, and produces a bar of given width filled with given characters.
 
 ## Major new features
 
