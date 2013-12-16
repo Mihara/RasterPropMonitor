@@ -222,7 +222,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, int x, int y, Color32 letterColor, int scaledscript)
+		private void DrawChar(char letter, float x, float y, Color32 letterColor, int scaledscript)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -299,13 +299,15 @@ namespace JSI
 			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
 			if (!string.IsNullOrEmpty(activePage.Text)) {
-				for (int yCursor = 0, lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
+				float yCursor = 0;
+				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 					if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
 						Color32 fontColor = defaultFontTint;
-						int xOffset = 0;
-						int yOffset = 0;
+						float xOffset = 0;
+						float yOffset = 0;
 						int scaledscript = 0;
-						for (int charIndex = 0, xCursor = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
+						float xCursor = 0;
+						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
 							bool escapedBracket = false;
 							// We will continue parsing bracket pairs until we're out of bracket pairs,
 							// since all of them -- except the escaped bracket tag --
@@ -324,8 +326,8 @@ namespace JSI
 								} else if (tagText.Length > 2 && tagText[0] == '@') {
 									// Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
 									// the next symbol is @ and there are at least three, one designating the axis.
-									int coord;
-									if (Int32.TryParse(tagText.Substring(2), out coord)) {
+									float coord;
+									if (float.TryParse(tagText.Substring(2), out coord)) {
 										switch (tagText[1]) {
 											case 'X':
 											case 'x':
@@ -360,8 +362,8 @@ namespace JSI
 								} else // Else we didn't recognise anything so it's not a tag.
 									break;
 							}
-							int xPos = xCursor + xOffset;
-							int yPos = yCursor + yOffset;
+							float xPos = xCursor + xOffset;
+							float yPos = yCursor + yOffset;
 							if (charIndex < screenBuffer[lineIndex].Length &&
 							    xPos < screenPixelWidth &&
 							    xPos > -fontLetterWidth &&
