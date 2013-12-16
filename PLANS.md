@@ -1,5 +1,6 @@
 # 0.11 milestone targets
 
+* Test all the new features. Because some haven't been tested at all.
 * This probably comes out right after the KSP 0.23 release as soon as I can ensure nothing was broken.
 
 ## Major new features
@@ -27,7 +28,10 @@
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
 * It might be possible to create a variable orientation pod that can switch control direction depending on whether you want to use it for a spaceship or a rover.
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
+* Multiple fonts? It's easy enough to do tag-based font switching now, so something like FONTS{ name = value } would be trivial provided all the fonts have the same pixel size.
+* Textline-based font contents definition?
 
 ## Major new features
 
+* API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
