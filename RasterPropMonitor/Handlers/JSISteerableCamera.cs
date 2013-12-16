@@ -58,19 +58,28 @@ namespace JSI
 		[KSPField]
 		public int pitchDown = -1;
 		[KSPField]
+		public int toggleTargetIcon = -1;
+		[KSPField]
 		public Vector2 fovLimits = new Vector2(60.0f, 60.0f);
 		[KSPField]
 		public Vector2 yawLimits = new Vector2(0.0f, 0.0f);
 		[KSPField]
 		public Vector2 pitchLimits = new Vector2(0.0f, 0.0f);
 		[KSPField]
-		public float zoomRate;
+		public float zoomRate = 0.0f;
 		[KSPField]
-		public float yawRate;
+		public float yawRate = 0.0f;
 		[KSPField]
-		public float pitchRate;
+		public float pitchRate = 0.0f;
 		[KSPField]
-		public string cameraTransform;
+		public string cameraTransform = "";
+		[KSPField]
+		public string targetIconColor = "255, 0, 255, 255"; // magenta, to match KSP stock
+		[KSPField]
+		public float iconPixelSize = 8f;
+		[KSPField]
+		public bool showTargetIcon = false;
+
 		private FlyingCamera cameraObject;
 		private float currentFoV;
 		private float currentYaw;
@@ -79,6 +88,24 @@ namespace JSI
 		private float yawDirection;
 		private float pitchDirection;
 		private double lastUpdateTime;
+		// Target tracking icon
+		private Texture2D gizmoTexture = null;
+		private Material iconMaterial;
+
+		private Vector2 ClampToEdge(Vector2 position)
+		{
+			float scalar;
+			if (Math.Abs(position.x) > Math.Abs(position.y)) {
+				scalar = Math.Abs(position.x);
+			} else {
+				scalar = Math.Abs(position.y);
+			}
+
+			position.x /= scalar;
+			position.y /= scalar;
+
+			return position;
+		}
 
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)
 		{
@@ -92,35 +119,6 @@ namespace JSI
 			}
 
 			if (cameraObject == null) {
-				// canonicalize the limits
-				if (fovLimits.x > fovLimits.y) {
-					//std::swap(fovLimits.x, fovLimits.y);
-					float f = fovLimits.x;
-					fovLimits.x = fovLimits.y;
-					fovLimits.y = f;
-				}
-
-				if (yawLimits.x > yawLimits.y) {
-					//std::swap(yawLimits.x, yawLimits.y);
-					float f = yawLimits.x;
-					yawLimits.x = yawLimits.y;
-					yawLimits.y = f;
-				}
-
-				if (pitchLimits.x > pitchLimits.y) {
-					//std::swap(pitchLimits.x, pitchLimits.y);
-					float f = pitchLimits.x;
-					pitchLimits.x = pitchLimits.y;
-					pitchLimits.y = f;
-				}
-
-				// Always requiure 0.0 to be within the legal range of yuaw
-				// and pitch.
-				yawLimits.x = Math.Min(0.0f, yawLimits.x);
-				yawLimits.y = Math.Max(0.0f, yawLimits.y);
-				pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
-				pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
-
 				cameraObject = new FlyingCamera(part, screen, cameraAspect);
 				currentFoV = fovLimits.y;
 				cameraObject.PointCamera(cameraTransform, currentFoV);
@@ -129,7 +127,68 @@ namespace JSI
 			cameraObject.FOV = currentFoV;
 
 			// Negate pitch - the camera object treats a negative pitch as "up"
-			return cameraObject.Render(currentYaw, -currentPitch);
+			if (cameraObject.Render(currentYaw, -currentPitch)) {
+				ITargetable target = FlightGlobals.fetch.VesselTarget;
+
+				if (gizmoTexture != null && target!=null && showTargetIcon)
+				{
+					// Figure out which direction the target is.
+					Vector3 targetDisplacement = target.GetTransform().position - vessel.GetTransform().position;
+					targetDisplacement.Normalize();
+
+					// Transform it using the active camera's rotation.
+					Vector3 targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * targetDisplacement;
+
+					// (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
+					Vector2 targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
+
+					// I want to scale the displacement such that 1.0
+					// represents the edge of the viewport. And my math is too
+					// rusty to remember the right way to get that scalar.
+					// Both of these are off by just a bit at wider zooms
+					// (tan scales a little too much, sin a little too
+					// little).  It may simply be an artifact of the camera
+					// perspective divide.
+					Vector2 fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
+					//Vector2 fovScale = new Vector2(cameraAspect * Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f));
+
+					// MOARdV: Are there no overloaded operators for vector math?
+					// Normalize to a [-1,+1] range on both axes
+					targetDisp.x = targetDisp.x / fovScale.x;
+					targetDisp.y = targetDisp.y / fovScale.y;
+
+					// If the target is behind the camera, or outside the
+					// bounds of the viewport, the icon needs to be clamped
+					// to the edge.
+					if (targetTransformed.z < 0.0f || Math.Max(Math.Abs(targetDisp.x), Math.Abs(targetDisp.y)) > 1.0f) {
+						targetDisp = ClampToEdge(targetDisp);
+					}
+
+					targetDisp.x = targetDisp.x * 0.5f + 0.5f;
+					targetDisp.y = targetDisp.y * 0.5f + 0.5f;
+
+					Vector2 iconCenter = new Vector2(screen.width * targetDisp.x, screen.height * targetDisp.y);
+
+					// Apply some clamping values to force the icon to stay on screen
+					iconCenter.x = Math.Max(iconPixelSize * 0.5f, iconCenter.x);
+					iconCenter.x = Math.Min(screen.width - iconPixelSize * 0.5f, iconCenter.x);
+					iconCenter.y = Math.Max(iconPixelSize * 0.5f, iconCenter.y);
+					iconCenter.y = Math.Min(screen.height - iconPixelSize * 0.5f, iconCenter.y);
+
+					Rect position = new Rect(iconCenter.x - iconPixelSize * 0.5f, iconCenter.y - iconPixelSize * 0.5f, iconPixelSize, iconPixelSize);
+					// TGT+ is at (2/3, 2/3).
+					Rect srcRect = new Rect(2.0f / 3.0f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f);
+
+					GL.PushMatrix();
+					GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
+					Graphics.DrawTexture(position, gizmoTexture, srcRect, 0, 0, 0, 0, iconMaterial);
+					GL.PopMatrix();
+				}
+
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 		public override void OnUpdate()
@@ -180,6 +239,8 @@ namespace JSI
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = -1.0f;
+			} else if(buttonID == toggleTargetIcon) {
+				showTargetIcon = !showTargetIcon;
 			}
 
 			// Always reset the lastUpdateTime on a button click, in case it
@@ -193,6 +254,55 @@ namespace JSI
 			zoomDirection = 0.0f;
 			pitchDirection = 0.0f;
 			yawDirection = 0.0f;
+		}
+
+		public void Start()
+		{
+			// canonicalize the limits
+			if (fovLimits.x > fovLimits.y) {
+				//std::swap(fovLimits.x, fovLimits.y);
+				float f = fovLimits.x;
+				fovLimits.x = fovLimits.y;
+				fovLimits.y = f;
+			}
+
+			if (yawLimits.x > yawLimits.y) {
+				//std::swap(yawLimits.x, yawLimits.y);
+				float f = yawLimits.x;
+				yawLimits.x = yawLimits.y;
+				yawLimits.y = f;
+			}
+
+			if (pitchLimits.x > pitchLimits.y) {
+				//std::swap(pitchLimits.x, pitchLimits.y);
+				float f = pitchLimits.x;
+				pitchLimits.x = pitchLimits.y;
+				pitchLimits.y = f;
+			}
+
+			// Always requiure 0.0 to be within the legal range of yuaw
+			// and pitch.
+			yawLimits.x = Math.Min(0.0f, yawLimits.x);
+			yawLimits.y = Math.Max(0.0f, yawLimits.y);
+			pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
+			pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
+
+			// Stripped-down initialization code from JSIPrimaryFlightDisplay.
+			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
+			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
+			Transform gizmoTransform = maneuverGizmoHandle.flag;
+			Renderer gizmoRenderer = gizmoTransform.renderer;
+			gizmoTexture = (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+
+			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+
+			// MOARdV: The maneuver gizmo texture is white. Unity's DrawTexture
+			// expects a (0.5, 0.5, 0.5, 0.5) texture to be neutral for coloring
+			// purposes.  Multiplying the desired alpha by 1/2 gets around the
+			// gizmo texture's color, and gets correct alpha effects.
+			Color32 iconColor = ConfigNode.ParseColor32(targetIconColor);
+			iconColor.a /= 2;
+			iconMaterial.color = iconColor;
 		}
 	}
 }
