@@ -76,7 +76,6 @@ namespace JSI
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
 		private float fontLetterHalfHeight;
 
-		[Flags]
 		private enum Script
 		{
 			Normal,
