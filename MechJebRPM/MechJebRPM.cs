@@ -170,7 +170,7 @@ namespace MechJebRPM
 		{
 
 			// With the release of 0.23 this should hopefully change to InstallationPathWarning.Warn();
-			InstallationPathWarning.Warn("MechJebRPM");
+			InstallationPathWarning.Warn("MechJeb2RPM");
 
 			UpdateJebReferences();
 
