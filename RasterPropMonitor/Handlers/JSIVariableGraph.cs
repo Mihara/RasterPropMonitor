@@ -15,13 +15,15 @@ namespace JSI
 		[KSPField]
 		public Vector2 ySpan;
 		[KSPField]
-		public Color32 borderColor = Color.white;
+		public string borderColor = string.Empty;
+		private Color borderColorValue = Color.white;
 		[KSPField]
 		public int borders = 2;
 		[KSPField]
 		public float secondsBetweenSamples = 0.5f;
 		[KSPField]
-		public Color32 backgroundColor = Color.black;
+		public string backgroundColor = string.Empty;
+		private Color backgroundColorValue = Color.black;
 		[KSPField]
 		public string backgroundTextureURL = string.Empty;
 		private readonly List<GraphLine> graphs = new List<GraphLine>();
@@ -36,6 +38,12 @@ namespace JSI
 
 		public void Start()
 		{
+
+			if (!string.IsNullOrEmpty(borderColor))
+				borderColorValue = ConfigNode.ParseColor32(borderColor);
+			if (!string.IsNullOrEmpty(backgroundColor))
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			graphSpace = new Rect();
 			graphSpace.xMin = graphRect.x;
@@ -81,7 +89,7 @@ namespace JSI
 			if (backgroundTexture != null)
 				Graphics.Blit(backgroundTexture, screen);
 			else
-				GL.Clear(true, true, backgroundColor);
+				GL.Clear(true, true, backgroundColorValue);
 
 			GL.PushMatrix();
 			// This way 0,0 is in bottom left corner, which is what we want this time.
@@ -90,7 +98,7 @@ namespace JSI
 			foreach (GraphLine graph in graphs)
 				graph.Draw(graphSpace, time);
 			if (borders > 0)
-				GraphLine.DrawVector(borderVertices, borderColor);
+				GraphLine.DrawVector(borderVertices, borderColorValue);
 
 			GL.PopMatrix();
 			return true;
@@ -132,7 +140,7 @@ namespace JSI
 
 				lineColor = Color.white;
 				if (node.HasValue("color"))
-					lineColor = ConfigNode.ParseColor(node.GetValue("color"));
+					lineColor = ConfigNode.ParseColor32(node.GetValue("color"));
 			}
 
 			public void Draw(Rect screenRect, double time)

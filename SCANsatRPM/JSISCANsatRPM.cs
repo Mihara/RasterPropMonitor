@@ -39,15 +39,23 @@ namespace SCANsatRPM
 		[KSPField]
 		public float redrawEdge = 0.8f;
 		[KSPField]
-		public Color32 iconColorSelf = Color.white;
+		public string iconColorSelf = string.Empty;
+		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.5f);
 		[KSPField]
-		public Color32 iconColorTarget = Color.yellow;
+		public string iconColorTarget = string.Empty;
+		private Color iconColorTargetValue = new Color32(255, 235, 4, 128);
 		[KSPField]
-		public Color32 iconColorUnvisitedAnomaly = Color.red;
+		public string iconColorUnvisitedAnomaly = string.Empty;
+		private Color iconColorUnvisitedAnomalyValue = new Color(1f, 0f, 0f, 0.5f);
 		[KSPField]
-		public Color32 iconColorVisitedAnomaly = Color.green;
+		public string iconColorVisitedAnomaly = string.Empty;
+		private Color iconColorVisitedAnomalyValue = new Color(0f, 1f, 0f, 0.5f);
 		[KSPField]
-		public Color32 iconColorShadow = Color.black;
+		public string iconColorShadow = string.Empty;
+		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
+		[KSPField]
+		public string trailColor = string.Empty;
+		private Color trailColorValue = new Color(0f, 0f, 1f, 0.5f);
 		[KSPField]
 		public float zoomModifier = 1.5f;
 		[KSPField]
@@ -63,9 +71,7 @@ namespace SCANsatRPM
 		[KSPField]
 		public int trailLimit = 100;
 		[KSPField]
-		public Color32 trailColor = Color.blue;
-		[KSPField]
-		public double trailPointEvery = 30;
+		public float trailPointEvery = 30;
 		[KSPField]
 		public int orbitPoints = 120;
 		// That ends our glut of configurable values.
@@ -94,6 +100,7 @@ namespace SCANsatRPM
 		private Rect screenSpace;
 		private bool pageActiveState;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
+		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f); // Neutral tint.
 		// Analysis disable once UnusedParameter
 		public bool MapRenderer(RenderTexture screen, float cameraAspect)
 		{
@@ -132,26 +139,26 @@ namespace SCANsatRPM
 
 			// Trails go above markup lines
 			if (showLines && trailLimit > 0 && trail.Count > 0)
-				DrawTrail(trail, trailColor, new Vector2d(vessel.longitude, vessel.latitude), true);
+				DrawTrail(trail, trailColorValue, new Vector2d(vessel.longitude, vessel.latitude), true);
 		
 			// Anomalies go above trails
 			foreach (SCANdata.SCANanomaly anomaly in localAnomalies) {
 				if (anomaly.known)
 					DrawIcon(anomaly.longitude, anomaly.latitude,
 						anomaly.detail ? (VesselType)int.MaxValue : VesselType.Unknown,
-						anomaly.detail ? iconColorVisitedAnomaly : iconColorUnvisitedAnomaly);
+						anomaly.detail ? iconColorVisitedAnomalyValue : iconColorUnvisitedAnomalyValue);
 			}
 			// Target orbit and targets go above anomalies
 			if (targetVessel != null && targetVessel.mainBody == orbitingBody) {
 				if (showLines && JUtil.OrbitMakesSense(targetVessel))
-					DrawOrbit(targetVessel, iconColorTarget);
-				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTarget);
+					DrawOrbit(targetVessel, iconColorTargetValue);
+				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTargetValue);
 			}
 			// Own orbit goes above that.
 			if (showLines && JUtil.OrbitMakesSense(vessel))
-				DrawOrbit(vessel, iconColorSelf);
+				DrawOrbit(vessel, iconColorSelfValue);
 			// Own icon goes above that
-			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelf);
+			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelfValue);
 			// And scale goes above everything.
 			DrawScale();
 			GL.PopMatrix();
@@ -270,11 +277,11 @@ namespace SCANsatRPM
 					break;
 				}
 			}
-			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4);
+			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4,scaleTint);
 
 			scaleBarRect.x += scaleBarRect.width;
 			scaleBarRect.width = scaleLabelTexture.width;
-			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0);
+			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0, scaleTint);
 		}
 
 		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
@@ -287,7 +294,7 @@ namespace SCANsatRPM
 			shadow.x += iconShadowShift.x;
 			shadow.y += iconShadowShift.y;
 
-			iconMaterial.color = iconColorShadow;
+			iconMaterial.color = iconColorShadowValue;
 			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
 
 			iconMaterial.color = iconColor;
@@ -541,6 +548,20 @@ namespace SCANsatRPM
 			InstallationPathWarning.Warn("SCANsatRPM");
 			//InstallationPathWarning.Warn();
 
+			// Arrrgh.
+			if (!string.IsNullOrEmpty(iconColorSelf))
+				iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
+			if (!string.IsNullOrEmpty(iconColorTarget))
+				iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
+			if (!string.IsNullOrEmpty(iconColorUnvisitedAnomaly))
+				iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor32(iconColorUnvisitedAnomaly);
+			if (!string.IsNullOrEmpty(iconColorVisitedAnomaly))
+				iconColorVisitedAnomalyValue = ConfigNode.ParseColor32(iconColorVisitedAnomaly);
+			if (!string.IsNullOrEmpty(iconColorShadow))
+				iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
+			if (!string.IsNullOrEmpty(trailColor))
+				trailColorValue = ConfigNode.ParseColor32(trailColor);
+
 			// Referencing the parent project should work, shouldn't it.
 			persistentVarName = "scansat" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
@@ -601,7 +622,7 @@ namespace SCANsatRPM
 
 				color = Color.white;
 				if (node.HasValue("color"))
-					color = ConfigNode.ParseColor(node.GetValue("color"));
+					color = ConfigNode.ParseColor32(node.GetValue("color"));
 				// Now to actually load in the points...
 
 				foreach (string pointData in node.GetValues("vertex")) {

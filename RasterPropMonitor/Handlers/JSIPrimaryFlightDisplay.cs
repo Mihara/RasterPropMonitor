@@ -18,11 +18,13 @@ namespace JSI
 		[KSPField]
 		public bool ballIsEmissive;
 		[KSPField]
-		public Color32 backgroundColor = Color.black;
+		public string backgroundColor = string.Empty;
+		private Color backgroundColorValue = Color.black;
 		[KSPField]
 		public float ballOpacity = 0.8f;
 		[KSPField]
-		public Color32 ballColor = Color.white;
+		public string ballColor = string.Empty;
+		private Color ballColorValue = Color.white;
 		[KSPField]
 		public float markerScale = 0.1f;
 		[KSPField] // x,y, width, height
@@ -32,17 +34,23 @@ namespace JSI
 		[KSPField]
 		public bool headingAboveOverlay;
 		[KSPField]
-		public Color progradeColor = new Color(0.84f, 0.98f, 0);
+		public string progradeColor = string.Empty;
+		private Color progradeColorValue = new Color(0.84f, 0.98f, 0);
 		[KSPField]
-		public Color maneuverColor = new Color(0, 0.1137f, 1);
+		public string maneuverColor = string.Empty;
+		private Color maneuverColorValue = new Color(0, 0.1137f, 1);
 		[KSPField]
-		public Color targetColor = Color.magenta;
+		public string targetColor = string.Empty;
+		private Color targetColorValue = Color.magenta;
 		[KSPField]
-		public Color normalColor = new Color(0.930f, 0, 1);
+		public string normalColor = string.Empty;
+		private Color normalColorValue = new Color(0.930f, 0, 1);
 		[KSPField]
-		public Color radialColor = new Color(0, 1, 0.958f);
+		public string radialColor = string.Empty;
+		private Color radialColorValue = new Color(0, 1, 0.958f);
 		[KSPField]
-		public Color dockingColor = Color.red;
+		public string dockingColor = string.Empty;
+		private Color dockingColorValue = Color.red;
 		[KSPField]
 		public float cameraSpan = 1f;
 		[KSPField]
@@ -86,7 +94,7 @@ namespace JSI
 				cameraAspect = aspect;
 				ballCamera.aspect = cameraAspect;
 			}
-			GL.Clear(true, true, backgroundColor);
+			GL.Clear(true, true, backgroundColorValue);
 
 			ballCamera.targetTexture = screen;
 
@@ -114,36 +122,36 @@ namespace JSI
 			Quaternion gymbal = stockNavBall.attitudeGymbal;
 			switch (FlightUIController.speedDisplayMode) {
 				case FlightUIController.SpeedDisplayModes.Surface:
-					MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColor, gymbal);
-					MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColor, gymbal);
+					MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColorValue, gymbal);
+					MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColorValue, gymbal);
 					break;
 				case FlightUIController.SpeedDisplayModes.Target:
-					MoveMarker(markerPrograde, targetDirection, progradeColor, gymbal);
-					MoveMarker(markerRetrograde, -targetDirection, progradeColor, gymbal);
+					MoveMarker(markerPrograde, targetDirection, progradeColorValue, gymbal);
+					MoveMarker(markerRetrograde, -targetDirection, progradeColorValue, gymbal);
 					break;
 				case FlightUIController.SpeedDisplayModes.Orbit:
-					MoveMarker(markerPrograde, velocityVesselOrbitUnit, progradeColor, gymbal);
-					MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, progradeColor, gymbal);
+					MoveMarker(markerPrograde, velocityVesselOrbitUnit, progradeColorValue, gymbal);
+					MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, progradeColorValue, gymbal);
 					break;
 			}
-			MoveMarker(markerNormal, normalPlus, normalColor, gymbal);
-			MoveMarker(markerNormalMinus, -normalPlus, normalColor, gymbal);
+			MoveMarker(markerNormal, normalPlus, normalColorValue, gymbal);
+			MoveMarker(markerNormalMinus, -normalPlus, normalColorValue, gymbal);
 
-			MoveMarker(markerRadial, radialPlus, radialColor, gymbal);
-			MoveMarker(markerRadialMinus, -radialPlus, radialColor, gymbal);
+			MoveMarker(markerRadial, radialPlus, radialColorValue, gymbal);
+			MoveMarker(markerRadialMinus, -radialPlus, radialColorValue, gymbal);
 
 			if (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
 				Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
-				MoveMarker(markerManeuver, burnVector.normalized, maneuverColor, gymbal);
-				MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColor, gymbal);
+				MoveMarker(markerManeuver, burnVector.normalized, maneuverColorValue, gymbal);
+				MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColorValue, gymbal);
 				ShowHide(true, markerManeuver, markerManeuverMinus);
 			}
 
 			ITargetable target = FlightGlobals.fetch.VesselTarget;
 			if (target != null) {
 				Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
-				MoveMarker(markerTarget, targetSeparation, targetColor, gymbal);
-				MoveMarker(markerTargetMinus, -targetSeparation, targetColor, gymbal);
+				MoveMarker(markerTarget, targetSeparation, targetColorValue, gymbal);
+				MoveMarker(markerTargetMinus, -targetSeparation, targetColorValue, gymbal);
 				ModuleDockingNode targetPort = target as ModuleDockingNode;
 				if (targetPort != null) {
 					// Thanks to Michael Enßlin 
@@ -156,7 +164,7 @@ namespace JSI
 					float angle = Vector3.Angle(v1, v2);
 					if (Vector3.Dot(selfTransform.up, Vector3.Cross(v1, v2)) < 0)
 						angle = -angle;
-					MoveMarker(markerDockingAlignment, targetOrientationVector, dockingColor, gymbal);
+					MoveMarker(markerDockingAlignment, targetOrientationVector, dockingColorValue, gymbal);
 					markerDockingAlignment.transform.Rotate(Vector3.up, -angle);
 					ShowHide(true, markerDockingAlignment);
 				}
@@ -226,6 +234,25 @@ namespace JSI
 
 		public void Start()
 		{
+
+			// Parse bloody KSPField colors.
+			if (!string.IsNullOrEmpty(backgroundColor))
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+			if (!string.IsNullOrEmpty(ballColor))
+				ballColorValue = ConfigNode.ParseColor32(ballColor);
+			if (!string.IsNullOrEmpty(progradeColor))
+				progradeColorValue = ConfigNode.ParseColor32(progradeColor);
+			if (!string.IsNullOrEmpty(maneuverColor))
+				maneuverColorValue = ConfigNode.ParseColor32(maneuverColor);
+			if (!string.IsNullOrEmpty(targetColor))
+				targetColorValue = ConfigNode.ParseColor32(targetColor);
+			if (!string.IsNullOrEmpty(normalColor))
+				normalColorValue = ConfigNode.ParseColor32(normalColor);
+			if (!string.IsNullOrEmpty(radialColor))
+				radialColorValue = ConfigNode.ParseColor32(radialColor);
+			if (!string.IsNullOrEmpty(dockingColor))
+				dockingColorValue = ConfigNode.ParseColor32(dockingColor);
+
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			overlayMaterial = new Material(unlit);
 			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
@@ -262,26 +289,26 @@ namespace JSI
 				navBall.renderer.material.SetTexture("_MainTex", horizonTex);
 				navBall.renderer.material.SetTextureOffset("_Emissive", navBall.renderer.material.GetTextureOffset("_MainTex"));
 				navBall.renderer.material.SetTexture("_Emissive", horizonTex);
-				navBall.renderer.material.SetColor("_EmissiveColor", ballColor);
+				navBall.renderer.material.SetColor("_EmissiveColor", ballColorValue);
 			} else {
 				navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
 				navBall.renderer.material.mainTexture = horizonTex;
-				navBall.renderer.material.color = ballColor;
+				navBall.renderer.material.color = ballColorValue;
 			}
 			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
-			markerPrograde = BuildMarker(0, 2, progradeColor);
-			markerRetrograde = BuildMarker(1, 2, progradeColor);
-			markerManeuver = BuildMarker(2, 0, maneuverColor);
-			markerManeuverMinus = BuildMarker(1, 2, maneuverColor);
-			markerTarget = BuildMarker(2, 1, targetColor);
-			markerTargetMinus = BuildMarker(2, 2, targetColor);
-			markerNormal = BuildMarker(0, 0, normalColor);
-			markerNormalMinus = BuildMarker(1, 0, normalColor);
-			markerRadial = BuildMarker(0, 1, radialColor);
-			markerRadialMinus = BuildMarker(1, 1, radialColor);
+			markerPrograde = BuildMarker(0, 2, progradeColorValue);
+			markerRetrograde = BuildMarker(1, 2, progradeColorValue);
+			markerManeuver = BuildMarker(2, 0, maneuverColorValue);
+			markerManeuverMinus = BuildMarker(1, 2, maneuverColorValue);
+			markerTarget = BuildMarker(2, 1, targetColorValue);
+			markerTargetMinus = BuildMarker(2, 2, targetColorValue);
+			markerNormal = BuildMarker(0, 0, normalColorValue);
+			markerNormalMinus = BuildMarker(1, 0, normalColorValue);
+			markerRadial = BuildMarker(0, 1, radialColorValue);
+			markerRadialMinus = BuildMarker(1, 1, radialColorValue);
 
-			markerDockingAlignment = BuildMarker(0, 2, dockingColor);
+			markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
 
 			// Non-moving parts...
 			cameraBody = new GameObject();

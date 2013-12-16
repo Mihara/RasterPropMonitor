@@ -22,11 +22,14 @@ namespace MechJebRPM
 		[KSPField]
 		public int buttonHome = 4;
 		[KSPField]
-		public Color32 itemColor = Color.white;
+		public string itemColor = string.Empty;
+		private Color itemColorValue = Color.white;
 		[KSPField]
-		public Color32 selectedColor = Color.green;
+		public string selectedColor = string.Empty;
+		private Color selectedColorValue = Color.green;
 		[KSPField]
-		public Color32 unavailableColor = Color.gray;
+		public string unavailableColor = string.Empty;
+		private Color unavailableColorValue = Color.gray;
 		[KSPField]
 		public float forceRollStep = 90.0f;
 		// KSPFields end here.
@@ -172,11 +175,19 @@ namespace MechJebRPM
 			// With the release of 0.23 this should hopefully change to InstallationPathWarning.Warn();
 			InstallationPathWarning.Warn("MechJeb2RPM");
 
+			if (!string.IsNullOrEmpty(itemColor))
+				itemColorValue = ConfigNode.ParseColor32(itemColor);
+			if (!string.IsNullOrEmpty(selectedColor))
+				selectedColorValue = ConfigNode.ParseColor32(selectedColor);
+			if (!string.IsNullOrEmpty(unavailableColor))
+				unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
+
+
 			UpdateJebReferences();
 
-			topMenu.labelColor = JUtil.ColorToColorTag(itemColor);
-			topMenu.selectedColor = JUtil.ColorToColorTag(selectedColor);
-			topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColor);
+			topMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
+			topMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
+			topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 
 			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.OFF], SmartASS_Off));
 			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.KILLROT].Replace('\n', ' '), SmartASS_KillRot));
@@ -284,9 +295,9 @@ namespace MechJebRPM
 			currentMenu = MJMenu.OrbitMenu;
 
 			activeMenu = new TextMenu();
-			activeMenu.labelColor = JUtil.ColorToColorTag(itemColor);
-			activeMenu.selectedColor = JUtil.ColorToColorTag(selectedColor);
-			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColor);
+			activeMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
+			activeMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
+			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 
 			foreach (MechJebModuleSmartASS.Target target in orbitalTargets) {
 				activeMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)target].Replace('\n', ' '), SelectTarget));
@@ -298,9 +309,9 @@ namespace MechJebRPM
 			currentMenu = MJMenu.TargetMenu;
 
 			activeMenu = new TextMenu();
-			activeMenu.labelColor = JUtil.ColorToColorTag(itemColor);
-			activeMenu.selectedColor = JUtil.ColorToColorTag(selectedColor);
-			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColor);
+			activeMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
+			activeMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
+			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 
 			foreach (MechJebModuleSmartASS.Target target in targetTargets) {
 				activeMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)target].Replace('\n', ' '), SelectTarget));

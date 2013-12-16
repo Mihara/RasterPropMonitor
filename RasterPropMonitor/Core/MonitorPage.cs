@@ -276,14 +276,14 @@ namespace JSI
 		{
 			switch (background) {
 				case BackgroundType.None:
-					GL.Clear(true, true, ourMonitor.emptyColor);
+					GL.Clear(true, true, ourMonitor.emptyColorValue);
 					break;
 				case BackgroundType.Camera:
 					if (!cameraObject.Render()) {
 						if (ourMonitor.noSignalTexture != null)
 							Graphics.Blit(ourMonitor.noSignalTexture, screen);
 						else
-							GL.Clear(true, true, ourMonitor.emptyColor);
+							GL.Clear(true, true, ourMonitor.emptyColorValue);
 					}
 					break;
 				case BackgroundType.Texture:
@@ -294,7 +294,7 @@ namespace JSI
 						if (ourMonitor.noSignalTexture != null && showNoSignal)
 							Graphics.Blit(ourMonitor.noSignalTexture, screen);
 						else
-							GL.Clear(true, true, ourMonitor.emptyColor);
+							GL.Clear(true, true, ourMonitor.emptyColorValue);
 					}
 					break;
 			}

@@ -23,13 +23,17 @@ namespace JSI
 		[KSPField]
 		public int buttonHome = 4;
 		[KSPField]
-		public Color32 nameColor = Color.white;
+		public string nameColor = string.Empty;
+		private Color nameColorValue = Color.white;
 		[KSPField]
-		public Color32 distanceColor = Color.cyan;
+		public string distanceColor = string.Empty;
+		private Color distanceColorValue = Color.cyan;
 		[KSPField]
-		public Color32 selectedColor = Color.green;
+		public string selectedColor = string.Empty;
+		private Color selectedColorValue = Color.green;
 		[KSPField]
-		public Color32 unavailableColor = Color.gray;
+		public string unavailableColor = string.Empty;
+		private Color unavailableColorValue = Color.gray;
 		[KSPField]
 		public int distanceColumn = 30;
 		[KSPField]
@@ -379,15 +383,25 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsFlight)
 				return;
 
+			// Grrrrrr.
+			if (!string.IsNullOrEmpty(nameColor))
+				nameColorValue = ConfigNode.ParseColor32(nameColor);
+			if (!string.IsNullOrEmpty(distanceColor))
+				distanceColorValue = ConfigNode.ParseColor32(distanceColor);
+			if (!string.IsNullOrEmpty(selectedColor))
+				selectedColorValue = ConfigNode.ParseColor32(selectedColor);
+			if (!string.IsNullOrEmpty(unavailableColor))
+				unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
+
 			persistentVarName = "targetfilter" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
 			// 7 is the bitmask for ship-station-probe;
 			VesselFilterFromBitmask(persistence.GetVar(persistentVarName) ?? 7);
 
-			nameColorTag = JUtil.ColorToColorTag(nameColor);
-			distanceColorTag = JUtil.ColorToColorTag(distanceColor);
-			selectedColorTag = JUtil.ColorToColorTag(selectedColor);
-			unavailableColorTag = JUtil.ColorToColorTag(unavailableColor);
+			nameColorTag = JUtil.ColorToColorTag(nameColorValue);
+			distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
+			selectedColorTag = JUtil.ColorToColorTag(selectedColorValue);
+			unavailableColorTag = JUtil.ColorToColorTag(unavailableColorValue);
 			distanceFormatString = distanceFormatString.UnMangleConfigText();
 			menuTitleFormatString = menuTitleFormatString.UnMangleConfigText();
 
