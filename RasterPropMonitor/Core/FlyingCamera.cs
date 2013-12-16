@@ -105,6 +105,13 @@ namespace JSI
 
 		}
 
+		public Quaternion CameraRotation(float yawOffset = 0.0f, float pitchOffset = 0.0f)
+		{
+			Quaternion rotation = cameraTransform.transform.rotation;
+			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
+			return rotation * offset;
+		}
+
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
 			if (!enabled)
