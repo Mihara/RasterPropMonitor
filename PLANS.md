@@ -3,10 +3,6 @@
 * Test all the new features. Because some haven't been tested at all.
 * This probably comes out right after the KSP 0.23 release as soon as I can ensure nothing was broken.
 
-## Major new features
-
-* MechJeb SmartASS interface menu with an 'execute node' option. *(Due to the rumoured fix of module-loading-order problem in KSP 0.23, pushing this down to 0.11 means 0.11 can't come out earlier than 0.23 comes out, since it introduces yet another floating assembly regardless. In the release version of 0.11, all the DLLs will be in the same directory to prevent scattering all over GameData, since module loading order will no longer be a concern.)*
-
 # 0.12 milestone targets
 
 ## Minor new features
