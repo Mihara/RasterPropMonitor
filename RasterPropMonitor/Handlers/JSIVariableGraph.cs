@@ -151,7 +151,7 @@ namespace JSI
 
 			public void Update(double time)
 			{
-				double value = JUtil.MassageObjectToDouble(comp.ProcessVariable(variableName));
+				double value = comp.ProcessVariable(variableName).MassageToDouble();
 				if (double.IsNaN(value) || double.IsInfinity(value))
 					return;
 				points.Add(new Vector2d(time, value));

@@ -47,29 +47,6 @@ namespace JSI
 			Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
 		}
 
-		public static float MassageObjectToFloat(object thatValue)
-		{
-			// RPMC only produces doubles, floats, ints and strings.
-			if (thatValue is double)
-				return (float)(double)thatValue;
-			if (thatValue is float)
-				return (float)thatValue;
-			if (thatValue is int)
-				return (float)(int)thatValue;
-			return float.NaN;
-		}
-
-		public static double MassageObjectToDouble(object thatValue)
-		{
-			// RPMC only produces doubles, floats, ints and strings.
-			if (thatValue is double)
-				return (double)thatValue;
-			if (thatValue is float)
-				return (double)(float)thatValue;
-			if (thatValue is int)
-				return (double)(int)thatValue;
-			return double.NaN;
-		}
 		// Working in a generic to make that a generic function for all numbers is too much work
 		// and we only need these two anyway.
 		public static float DualLerp(float from, float to, float from2, float to2, float value)
@@ -262,10 +239,10 @@ namespace JSI
 					}
 			return defaultAttribute;
 		}
-	}
 
-	public static class JStringExtensions
-	{
+		// Piling all the extension methods into the same utility class to reduce the number of classes.
+		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
+
 		public static string EnforceSlashes(this string input)
 		{
 			return input.Replace('\\', '/');
@@ -275,18 +252,41 @@ namespace JSI
 		{
 			return input.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
 		}
-	}
 
-	public static class JMathExtensions
-	{
 		public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
 		{
 			if (val.CompareTo(min) < 0)
 				return min;
 			return val.CompareTo(max) > 0 ? max : val;
 		}
+
+		public static float MassageToFloat(this object thatValue)
+		{
+			// RPMC only produces doubles, floats, ints and strings.
+			if (thatValue is double)
+				return (float)(double)thatValue;
+			if (thatValue is float)
+				return (float)thatValue;
+			if (thatValue is int)
+				return (float)(int)thatValue;
+			return float.NaN;
+		}
+
+		public static double MassageToDouble(this object thatValue)
+		{
+			// RPMC only produces doubles, floats, ints and strings.
+			if (thatValue is double)
+				return (double)thatValue;
+			if (thatValue is float)
+				return (double)(float)thatValue;
+			if (thatValue is int)
+				return (double)(int)thatValue;
+			return double.NaN;
+		}
+
 	}
 
+	// This, instead, is a static class on it's own because it needs it's private static variables.
 	public static class InstallationPathWarning
 	{
 		private static readonly List<string> warnedList = new List<string>();
