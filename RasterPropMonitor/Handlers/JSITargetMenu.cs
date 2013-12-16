@@ -385,13 +385,13 @@ namespace JSI
 
 			// Grrrrrr.
 			if (!string.IsNullOrEmpty(nameColor))
-				nameColorValue = ConfigNode.ParseColor(nameColor);
+				nameColorValue = ConfigNode.ParseColor32(nameColor);
 			if (!string.IsNullOrEmpty(distanceColor))
-				distanceColorValue = ConfigNode.ParseColor(distanceColor);
+				distanceColorValue = ConfigNode.ParseColor32(distanceColor);
 			if (!string.IsNullOrEmpty(selectedColor))
-				selectedColorValue = ConfigNode.ParseColor(selectedColor);
+				selectedColorValue = ConfigNode.ParseColor32(selectedColor);
 			if (!string.IsNullOrEmpty(unavailableColor))
-				unavailableColorValue = ConfigNode.ParseColor(unavailableColor);
+				unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
 
 			persistentVarName = "targetfilter" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);

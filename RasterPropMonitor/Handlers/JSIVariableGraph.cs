@@ -40,9 +40,9 @@ namespace JSI
 		{
 
 			if (!string.IsNullOrEmpty(borderColor))
-				borderColorValue = ConfigNode.ParseColor(borderColor);
+				borderColorValue = ConfigNode.ParseColor32(borderColor);
 			if (!string.IsNullOrEmpty(backgroundColor))
-				backgroundColorValue = ConfigNode.ParseColor(backgroundColor);
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			graphSpace = new Rect();
@@ -140,7 +140,7 @@ namespace JSI
 
 				lineColor = Color.white;
 				if (node.HasValue("color"))
-					lineColor = ConfigNode.ParseColor(node.GetValue("color"));
+					lineColor = ConfigNode.ParseColor32(node.GetValue("color"));
 			}
 
 			public void Draw(Rect screenRect, double time)

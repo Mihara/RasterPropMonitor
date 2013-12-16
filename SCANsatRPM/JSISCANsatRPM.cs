@@ -122,17 +122,17 @@ namespace SCANsatRPM
 
 				// Arrrgh.
 				if (!string.IsNullOrEmpty(iconColorSelf))
-					iconColorSelfValue = ConfigNode.ParseColor(iconColorSelf);
+					iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
 				if (!string.IsNullOrEmpty(iconColorTarget))
-					iconColorTargetValue = ConfigNode.ParseColor(iconColorTarget);
+					iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
 				if (!string.IsNullOrEmpty(iconColorUnvisitedAnomaly))
-					iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor(iconColorUnvisitedAnomaly);
+					iconColorUnvisitedAnomalyValue = ConfigNode.ParseColor32(iconColorUnvisitedAnomaly);
 				if (!string.IsNullOrEmpty(iconColorVisitedAnomaly))
-					iconColorVisitedAnomalyValue = ConfigNode.ParseColor(iconColorVisitedAnomaly);
+					iconColorVisitedAnomalyValue = ConfigNode.ParseColor32(iconColorVisitedAnomaly);
 				if (!string.IsNullOrEmpty(iconColorShadow))
-					iconColorShadowValue = ConfigNode.ParseColor(iconColorShadow);
+					iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
 				if (!string.IsNullOrEmpty(trailColor))
-					trailColorValue = ConfigNode.ParseColor(trailColor);
+					trailColorValue = ConfigNode.ParseColor32(trailColor);
 
 				RedrawMap();
 				return false;
@@ -621,7 +621,7 @@ namespace SCANsatRPM
 
 				color = Color.white;
 				if (node.HasValue("color"))
-					color = ConfigNode.ParseColor(node.GetValue("color"));
+					color = ConfigNode.ParseColor32(node.GetValue("color"));
 				// Now to actually load in the points...
 
 				foreach (string pointData in node.GetValues("vertex")) {

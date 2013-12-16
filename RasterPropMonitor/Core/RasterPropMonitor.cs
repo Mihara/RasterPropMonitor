@@ -105,9 +105,9 @@ namespace JSI
 
 			// Damn KSP's config parser!!!
 			if (!string.IsNullOrEmpty(emptyColor))
-				emptyColorValue = ConfigNode.ParseColor(emptyColor);
+				emptyColorValue = ConfigNode.ParseColor32(emptyColor);
 			if (!string.IsNullOrEmpty(defaultFontTint))
-				defaultFontTintValue = ConfigNode.ParseColor(defaultFontTint);
+				defaultFontTintValue = ConfigNode.ParseColor32(defaultFontTint);
 
 			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
 			// although I'm not sure I'm not seeing things by this point.

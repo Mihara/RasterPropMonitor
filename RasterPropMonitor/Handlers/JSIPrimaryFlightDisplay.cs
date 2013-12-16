@@ -237,21 +237,21 @@ namespace JSI
 
 			// Parse bloody KSPField colors.
 			if (!string.IsNullOrEmpty(backgroundColor))
-				backgroundColorValue = ConfigNode.ParseColor(backgroundColor);
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 			if (!string.IsNullOrEmpty(ballColor))
-				ballColorValue = ConfigNode.ParseColor(ballColor);
+				ballColorValue = ConfigNode.ParseColor32(ballColor);
 			if (!string.IsNullOrEmpty(progradeColor))
-				progradeColorValue = ConfigNode.ParseColor(progradeColor);
+				progradeColorValue = ConfigNode.ParseColor32(progradeColor);
 			if (!string.IsNullOrEmpty(maneuverColor))
-				maneuverColorValue = ConfigNode.ParseColor(maneuverColor);
+				maneuverColorValue = ConfigNode.ParseColor32(maneuverColor);
 			if (!string.IsNullOrEmpty(targetColor))
-				targetColorValue = ConfigNode.ParseColor(targetColor);
+				targetColorValue = ConfigNode.ParseColor32(targetColor);
 			if (!string.IsNullOrEmpty(normalColor))
-				normalColorValue = ConfigNode.ParseColor(normalColor);
+				normalColorValue = ConfigNode.ParseColor32(normalColor);
 			if (!string.IsNullOrEmpty(radialColor))
-				radialColorValue = ConfigNode.ParseColor(radialColor);
+				radialColorValue = ConfigNode.ParseColor32(radialColor);
 			if (!string.IsNullOrEmpty(dockingColor))
-				dockingColorValue = ConfigNode.ParseColor(dockingColor);
+				dockingColorValue = ConfigNode.ParseColor32(dockingColor);
 
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			overlayMaterial = new Material(unlit);
