@@ -30,6 +30,7 @@
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
 * Multiple fonts? It's easy enough to do tag-based font switching now, so something like FONTS{ name = value } would be trivial provided all the fonts have the same pixel size.
 * Textline-based font contents definition?
+* Bar formatter, that gets a value, minimum/maximum boundaries, and produces a bar of given width filled with given characters.
 
 ## Major new features
 
