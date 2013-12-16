@@ -76,7 +76,13 @@ namespace JSI
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
 		private float fontLetterHalfHeight;
 
-
+		[Flags]
+		private enum Script
+		{
+			Normal,
+			Subscript,
+			Superscript,
+		}
 
 		public void Start()
 		{
@@ -224,7 +230,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, float x, float y, Color32 letterColor, int scaledscript)
+		private void DrawChar(char letter, float x, float y, Color32 letterColor, Script scriptType)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -245,7 +251,8 @@ namespace JSI
 			// The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
 			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture(
-				new Rect(x, (scaledscript < 0) ? y + fontLetterHalfHeight : y, fontLetterWidth, (scaledscript != 0) ? fontLetterHalfHeight : fontLetterHeight),
+				new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y, 
+					fontLetterWidth, (scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
 				0, 0, 0, 0,
@@ -307,7 +314,7 @@ namespace JSI
 						Color32 fontColor = defaultFontTint;
 						float xOffset = 0;
 						float yOffset = 0;
-						int scaledscript = 0;
+						Script scriptType = Script.Normal;
 						float xCursor = 0;
 						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
 							bool escapedBracket = false;
@@ -346,15 +353,15 @@ namespace JSI
 										break;
 								} else if (tagText == "sup") {
 									// Superscript!
-									scaledscript = 1;
+									scriptType = Script.Superscript;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "sub") {
 									// Subscript!
-									scaledscript = -1;
+									scriptType = Script.Subscript;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "/sup" || tagText == "/sub") {
 									// And back...
-									scaledscript = 0;
+									scriptType = Script.Normal;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "[") {
 									// We got a "[[]" which means an escaped opening bracket.
@@ -371,7 +378,7 @@ namespace JSI
 							    xPos > -fontLetterWidth &&
 							    yPos < screenPixelHeight &&
 							    yPos > -fontLetterHeight)
-								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scaledscript);
+								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType);
 						}
 					}
 				}
