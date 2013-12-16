@@ -168,6 +168,10 @@ namespace MechJebRPM
 
 		public void Start()
 		{
+
+			// With the release of 0.23 this should hopefully change to InstallationPathWarning.Warn();
+			InstallationPathWarning.Warn("MechJebRPM");
+
 			UpdateJebReferences();
 
 			topMenu.labelColor = JUtil.ColorToColorTag(itemColor);
