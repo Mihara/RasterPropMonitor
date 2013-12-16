@@ -74,7 +74,9 @@ namespace JSI
 		private double electricChargeReserve;
 		public Texture2D noSignalTexture;
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
-		private float fontLetterHalf;
+		private float fontLetterHalfHeight;
+
+
 
 		public void Start()
 		{
@@ -112,7 +114,7 @@ namespace JSI
 			}
 
 			// And a little optimisation for superscript/subscript:
-			fontLetterHalf = fontLetterHeight / 2f;
+			fontLetterHalfHeight = fontLetterHeight / 2f;
 
 			// Now that is done, proceed to setting up the screen.
 
@@ -243,7 +245,7 @@ namespace JSI
 			// The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
 			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture(
-				new Rect(x, (scaledscript < 0) ? y + fontLetterHalf : y, fontLetterWidth, (scaledscript != 0) ? fontLetterHalf : fontLetterHeight),
+				new Rect(x, (scaledscript < 0) ? y + fontLetterHalfHeight : y, fontLetterWidth, (scaledscript != 0) ? fontLetterHalfHeight : fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
 				0, 0, 0, 0,
