@@ -17,17 +17,19 @@ namespace JSI
 		[KSPField(isPersistant = true)]
 		public int current = 1;
 		// Fields to handle right-click GUI.
-		[KSPField(guiActive = true, guiName = "Camera ID: ")]
+		[KSPField(guiActive = true, guiActiveEditor = true, guiName = "Camera ID: ")]
 		public string visibleCameraName;
 		private GameObject lightCone;
 		private LineRenderer lightConeRenderer;
 		private static readonly Material lightConeMaterial = new Material(Shader.Find("Particles/Additive"));
-		private static ScreenMessage cameraMessage;
 		private Transform actualCamera;
 		private const float endSpan = 15f;
 		private const float fovAngle = 60f;
+		[UI_Toggle(disabledText = "off", enabledText = "on")]
+		[KSPField(guiActiveEditor = true, guiName = "FOV marker ")]
+		public bool showCones = true;
 
-		[KSPEvent(guiActive = true, guiName = "ID +")]
+		[KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "ID +")]
 		public void IdPlus()
 		{
 			current++;
@@ -36,7 +38,7 @@ namespace JSI
 			UpdateName();
 		}
 
-		[KSPEvent(guiActive = true, guiName = "ID -")]
+		[KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "ID -")]
 		public void IdMinus()
 		{
 			current--;
@@ -66,15 +68,8 @@ namespace JSI
 				actualCamera.transform.Rotate(rotateCamera);
 
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
-			if (HighLogic.LoadedSceneIsEditor) {
-				if (cameraMessage != null) {
-					ScreenMessages.RemoveMessage(cameraMessage);
-					cameraMessage = null;
-				}
-				cameraMessage = ScreenMessages.PostScreenMessage("Camera ID: " + visibleCameraName, 3, ScreenMessageStyle.UPPER_RIGHT);
-				if (lightConeRenderer != null)
-					ColorizeLightCone();
-			}
+			if (HighLogic.LoadedSceneIsEditor)
+				ColorizeLightCone();
 		}
 
 		public override void OnStart(PartModule.StartState state)
@@ -95,16 +90,14 @@ namespace JSI
 				part.OnEditorAttach += new Callback(DestroyLightCone);
 				part.OnEditorDetach += new Callback(PickupCamera);
 				part.OnEditorDestroy += new Callback(DestroyLightCone);
-			} else {
+			} else
 				DestroyLightCone();
-			}
 			UpdateName();
 		}
 
 		private void PickupCamera()
 		{
-			UpdateName();
-			CreateLightCone();
+			showCones = true;
 		}
 
 		private void CreateLightCone()
@@ -127,8 +120,10 @@ namespace JSI
 
 		private void ColorizeLightCone()
 		{
-			var newStart = Color32.Lerp(new Color32(0, 0, 255, 178), new Color32(255, 0, 0, 178), 1f / (maximum) * (current - 1));
-			lightConeRenderer.SetColors(newStart, new Color32(newStart.r, newStart.g, newStart.b, 0));
+			if (lightConeRenderer != null) {
+				var newStart = Color32.Lerp(new Color32(0, 0, 255, 178), new Color32(255, 0, 0, 178), 1f / (maximum) * (current - 1));
+				lightConeRenderer.SetColors(newStart, new Color32(newStart.r, newStart.g, newStart.b, 0));
+			}
 		}
 
 		private void DestroyLightCone()
@@ -140,6 +135,7 @@ namespace JSI
 				Destroy(lightCone);
 				lightCone = null;
 			}
+			showCones = false;
 		}
 
 		public void Update()
@@ -147,20 +143,15 @@ namespace JSI
 			if (!HighLogic.LoadedSceneIsEditor)
 				return;
 
-			if (Input.GetKeyDown(KeyCode.Space)) { 
-				RaycastHit whereAmI;
-				Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out whereAmI);
-				if (Part.FromGO(whereAmI.transform.gameObject) == part) {
-					IdPlus();
-				}
-			}
-
-			if (GameSettings.HEADLIGHT_TOGGLE.GetKeyDown()) {
+			showCones |= GameSettings.HEADLIGHT_TOGGLE.GetKeyDown();
+			showCones &= !GameSettings.HEADLIGHT_TOGGLE.GetKeyUp();
+							
+			if (showCones)
 				CreateLightCone();
-			}
-			if (GameSettings.HEADLIGHT_TOGGLE.GetKeyUp()) {
+			else
 				DestroyLightCone();
-			}
+
+			DrawLightCone();
 		}
 
 		public void DrawLightCone()
@@ -179,9 +170,7 @@ namespace JSI
 
 		public override string GetInfo()
 		{
-			return "Look for the ID of the camera in the top right corner of the screen.\n" +
-			"Press SPACE while holding the mouse over the part to select the camera's ID number.\n" +
-			"Hold down 'U' to display all the camera fields of view.";
+			return 	"Hold down 'U' to display all the camera fields of view at once.";
 		}
 	}
 }
