@@ -263,13 +263,7 @@ namespace JSI
 			}
 			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
 
-
-			// Cute!
-			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
-			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
-			Transform gizmoTransform = maneuverGizmoHandle.flag;
-			Renderer gizmoRenderer = gizmoTransform.renderer;
-			gizmoTexture = (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+			gizmoTexture = JUtil.GetGizmoTexture();
 
 			// Ahaha, that's clever, does it work?
 			stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();

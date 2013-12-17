@@ -22,6 +22,16 @@ namespace JSI
 			return lineMaterial;
 		}
 
+		public static Texture2D GetGizmoTexture()
+		{
+			// This clever method at getting at the stock texture asset originates in Enhanced Navball.
+			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
+			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
+			Transform gizmoTransform = maneuverGizmoHandle.flag;
+			Renderer gizmoRenderer = gizmoTransform.renderer;
+			return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+		}
+
 		public static bool VesselIsInIVA(Vessel thatVessel)
 		{
 			return IsActiveVessel(thatVessel) && IsInIVA();
@@ -46,7 +56,6 @@ namespace JSI
 		{
 			Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
 		}
-
 		// Working in a generic to make that a generic function for all numbers is too much work
 		// and we only need these two anyway.
 		public static float DualLerp(float from, float to, float from2, float to2, float value)
@@ -239,10 +248,8 @@ namespace JSI
 					}
 			return defaultAttribute;
 		}
-
 		// Piling all the extension methods into the same utility class to reduce the number of classes.
 		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
-
 		public static string EnforceSlashes(this string input)
 		{
 			return input.Replace('\\', '/');
@@ -283,9 +290,7 @@ namespace JSI
 				return (double)(int)thatValue;
 			return double.NaN;
 		}
-
 	}
-
 	// This, instead, is a static class on it's own because it needs it's private static variables.
 	public static class InstallationPathWarning
 	{

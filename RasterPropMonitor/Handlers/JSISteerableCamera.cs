@@ -281,12 +281,7 @@ namespace JSI
 			pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
 			pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
 
-			// Stripped-down initialization code from JSIPrimaryFlightDisplay.
-			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
-			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
-			Transform gizmoTransform = maneuverGizmoHandle.flag;
-			Renderer gizmoRenderer = gizmoTransform.renderer;
-			gizmoTexture = (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+			gizmoTexture = JUtil.GetGizmoTexture();
 
 			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
 
