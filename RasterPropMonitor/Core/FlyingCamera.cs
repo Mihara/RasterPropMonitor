@@ -112,6 +112,11 @@ namespace JSI
 			return rotation * offset;
 		}
 
+		public Transform GetTransform()
+		{
+			return cameraTransform.transform;
+		}
+
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
 			if (!enabled)

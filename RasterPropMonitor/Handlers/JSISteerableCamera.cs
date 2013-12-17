@@ -133,7 +133,7 @@ namespace JSI
 				if (gizmoTexture != null && target!=null && showTargetIcon)
 				{
 					// Figure out which direction the target is.
-					Vector3 targetDisplacement = target.GetTransform().position - vessel.GetTransform().position;
+					Vector3 targetDisplacement = target.GetTransform().position - cameraObject.GetTransform().position;
 					targetDisplacement.Normalize();
 
 					// Transform it using the active camera's rotation.
