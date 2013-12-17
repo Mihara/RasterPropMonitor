@@ -100,12 +100,30 @@ namespace SCANsatRPM
 		private Rect screenSpace;
 		private bool pageActiveState;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
-		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f); // Neutral tint.
+		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+		// Neutral tint.
+		private bool satFound;
+
+		private bool TestForActiveSCANsat()
+		{
+			if (satFound)
+				return true;
+			foreach (ScenarioModule thatScenario in ScenarioRunner.GetLoadedModules()) {
+				if (thatScenario.ClassName == "SCANcontroller") {
+					satFound = true;
+					return true;
+				}
+			}
+			return false;
+		}
 		// Analysis disable once UnusedParameter
 		public bool MapRenderer(RenderTexture screen, float cameraAspect)
 		{
 			// Just in case.
 			if (!HighLogic.LoadedSceneIsFlight)
+				return false;
+
+			if (!TestForActiveSCANsat())
 				return false;
 
 			if (screenWidth == 0 || screenHeight == 0) {
@@ -122,6 +140,7 @@ namespace SCANsatRPM
 				screenSpace = new Rect(0, 0, screenWidth, screenHeight);
 
 				RedrawMap();
+
 				return false;
 			}
 
@@ -282,7 +301,7 @@ namespace SCANsatRPM
 					break;
 				}
 			}
-			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4,scaleTint);
+			Graphics.DrawTexture(scaleBarRect, scaleBarTexture, new Rect(0, 0, 1f, 1f), 4, 4, 4, 4, scaleTint);
 
 			scaleBarRect.x += scaleBarRect.width;
 			scaleBarRect.width = scaleLabelTexture.width;
@@ -464,10 +483,7 @@ namespace SCANsatRPM
 
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
-				return;
-
-			if (map == null)
+			if (!JUtil.IsActiveVessel(vessel) || !satFound)
 				return;
 
 			if ((Planetarium.GetUniversalTime() - trailPointEvery) > trailCounter) {
@@ -493,12 +509,8 @@ namespace SCANsatRPM
 
 		private void RedrawMap()
 		{
-			if (map == null) {
-				map = new SCANmap();
-				if (map == null)
-					return;
-				map.setProjection(SCANmap.MapProjection.Rectangular);
-			}
+			map = new SCANmap();
+			map.setProjection(SCANmap.MapProjection.Rectangular);
 			orbitingBody = vessel.mainBody;
 			map.setBody(vessel.mainBody);
 			map.setSize(screenWidth, screenHeight);
@@ -525,7 +537,6 @@ namespace SCANsatRPM
 			double kmPerDegreeLon = (2 * Math.PI * (orbitingBody.Radius / 1000d)) / 360d;
 			double pixelsPerDegree = Math.Abs(longitudeToPixels(mapCenterLong + (((mapCenterLong + 1) > 360) ? -1 : 1), mapCenterLat) - longitudeToPixels(mapCenterLong, mapCenterLat));
 			pixelsPerKm = pixelsPerDegree / kmPerDegreeLon;
-
 		}
 
 		private bool UpdateCheck()
