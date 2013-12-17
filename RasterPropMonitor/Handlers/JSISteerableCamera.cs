@@ -94,13 +94,7 @@ namespace JSI
 
 		private static Vector2 ClampToEdge(Vector2 position)
 		{
-			float scalar;
-			scalar = Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y);
-
-			position.x /= scalar;
-			position.y /= scalar;
-
-			return position;
+			return position / (Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y));
 		}
 
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)
