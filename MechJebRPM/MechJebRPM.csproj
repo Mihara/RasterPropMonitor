@@ -9,7 +9,6 @@
     <OutputType>Library</OutputType>
     <RootNamespace>MechJebRPM</RootNamespace>
     <AssemblyName>MechJebRPM</AssemblyName>
-    <UseMSBuildEngine>True</UseMSBuildEngine>
     <ReleaseVersion>0.11</ReleaseVersion>
     <CodePage>65001</CodePage>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
@@ -44,7 +43,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="MechJeb2">
-      <HintPath>E:\KSP v22 Test Installation\GameData\MechJeb2\Plugins\MechJeb2.dll</HintPath>
+      <HintPath>E:\KSP v23 Test Installation\GameData\MechJeb2\Plugins\MechJeb2.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

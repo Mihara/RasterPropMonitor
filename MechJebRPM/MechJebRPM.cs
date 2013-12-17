@@ -172,7 +172,8 @@ namespace MechJebRPM
 		public void Start()
 		{
 
-			// With the release of 0.23 this should hopefully change to InstallationPathWarning.Warn();
+			// I guess I shouldn't have expected Squad to actually do something nice for a modder like that.
+			// In 0.23, loading in non-alphabetical order is still broken.
 			InstallationPathWarning.Warn("MechJeb2RPM");
 
 			if (!string.IsNullOrEmpty(itemColor))
@@ -189,23 +190,25 @@ namespace MechJebRPM
 			topMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
 			topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 
-			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.OFF], SmartASS_Off));
-			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.KILLROT].Replace('\n', ' '), SmartASS_KillRot));
-			nodeMenuItem = new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.NODE], SmartASS_Node);
-			topMenu.Add(nodeMenuItem);
-			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ORBITAL], OrbitalMenu));
-			targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
-			topMenu.Add(targetMenuItem);
-			// Analysis disable once RedundantCast
-			forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
-			topMenu.Add(forceRollMenuItem);
-			executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
-			topMenu.Add(executeNodeItem);
-			// MOARdV: The following two menu items are not implemented.  I removed
-			// them to avoid confusion.
-			//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
-			//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED], null, false, "", true));
-
+			// If MechJeb is installed, but not found on the craft, menu options can't be populated correctly.
+			if (activeJeb != null) {
+				topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.OFF], SmartASS_Off));
+				topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.KILLROT].Replace('\n', ' '), SmartASS_KillRot));
+				nodeMenuItem = new TextMenu.Item(MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.NODE], SmartASS_Node);
+				topMenu.Add(nodeMenuItem);
+				topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ORBITAL], OrbitalMenu));
+				targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
+				topMenu.Add(targetMenuItem);
+				// Analysis disable once RedundantCast
+				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
+				topMenu.Add(forceRollMenuItem);
+				executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
+				topMenu.Add(executeNodeItem);
+				// MOARdV: The following two menu items are not implemented.  I removed
+				// them to avoid confusion.
+				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
+				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED], null, false, "", true));
+			}
 			activeMenu = topMenu;
 		}
 		//--- ROOT MENU methods
