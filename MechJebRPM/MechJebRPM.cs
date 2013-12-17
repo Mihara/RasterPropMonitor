@@ -196,6 +196,7 @@ namespace MechJebRPM
 			topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ORBITAL], OrbitalMenu));
 			targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
 			topMenu.Add(targetMenuItem);
+			// Analysis disable once RedundantCast
 			forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
 			topMenu.Add(forceRollMenuItem);
 			executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
@@ -214,6 +215,7 @@ namespace MechJebRPM
 
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+			// Analysis disable once RedundantCast
 			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", (double)activeSmartass.rol);
 
 			MechJebModuleManeuverPlanner mp = null;

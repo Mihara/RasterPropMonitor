@@ -66,20 +66,20 @@ namespace JSI
 		[KSPField]
 		public Vector2 pitchLimits = new Vector2(0.0f, 0.0f);
 		[KSPField]
-		public float zoomRate = 0.0f;
+		public float zoomRate;
 		[KSPField]
-		public float yawRate = 0.0f;
+		public float yawRate;
 		[KSPField]
-		public float pitchRate = 0.0f;
+		public float pitchRate;
 		[KSPField]
-		public string cameraTransform = "";
+		public string cameraTransform = string.Empty;
 		[KSPField]
-		public string targetIconColor = "255, 0, 255, 255"; // magenta, to match KSP stock
+		public string targetIconColor = "255, 0, 255, 255";
+		// magenta, to match KSP stock
 		[KSPField]
 		public float iconPixelSize = 8f;
 		[KSPField]
-		public bool showTargetIcon = false;
-
+		public bool showTargetIcon;
 		private FlyingCamera cameraObject;
 		private float currentFoV;
 		private float currentYaw;
@@ -89,17 +89,13 @@ namespace JSI
 		private float pitchDirection;
 		private double lastUpdateTime;
 		// Target tracking icon
-		private Texture2D gizmoTexture = null;
+		private Texture2D gizmoTexture;
 		private Material iconMaterial;
 
-		private Vector2 ClampToEdge(Vector2 position)
+		private static Vector2 ClampToEdge(Vector2 position)
 		{
 			float scalar;
-			if (Math.Abs(position.x) > Math.Abs(position.y)) {
-				scalar = Math.Abs(position.x);
-			} else {
-				scalar = Math.Abs(position.y);
-			}
+			scalar = Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y);
 
 			position.x /= scalar;
 			position.y /= scalar;
@@ -130,8 +126,7 @@ namespace JSI
 			if (cameraObject.Render(currentYaw, -currentPitch)) {
 				ITargetable target = FlightGlobals.fetch.VesselTarget;
 
-				if (gizmoTexture != null && target!=null && showTargetIcon)
-				{
+				if (gizmoTexture != null && target != null && showTargetIcon) {
 					// Figure out which direction the target is.
 					Vector3 targetDisplacement = target.GetTransform().position - cameraObject.GetTransform().position;
 					targetDisplacement.Normalize();
@@ -140,7 +135,7 @@ namespace JSI
 					Vector3 targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * targetDisplacement;
 
 					// (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
-					Vector2 targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
+					var targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
 
 					// I want to scale the displacement such that 1.0
 					// represents the edge of the viewport. And my math is too
@@ -149,7 +144,7 @@ namespace JSI
 					// (tan scales a little too much, sin a little too
 					// little).  It may simply be an artifact of the camera
 					// perspective divide.
-					Vector2 fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
+					var fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
 					//Vector2 fovScale = new Vector2(cameraAspect * Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f));
 
 					// MOARdV: Are there no overloaded operators for vector math?
@@ -167,7 +162,7 @@ namespace JSI
 					targetDisp.x = targetDisp.x * 0.5f + 0.5f;
 					targetDisp.y = targetDisp.y * 0.5f + 0.5f;
 
-					Vector2 iconCenter = new Vector2(screen.width * targetDisp.x, screen.height * targetDisp.y);
+					var iconCenter = new Vector2(screen.width * targetDisp.x, screen.height * targetDisp.y);
 
 					// Apply some clamping values to force the icon to stay on screen
 					iconCenter.x = Math.Max(iconPixelSize * 0.5f, iconCenter.x);
@@ -175,9 +170,9 @@ namespace JSI
 					iconCenter.y = Math.Max(iconPixelSize * 0.5f, iconCenter.y);
 					iconCenter.y = Math.Min(screen.height - iconPixelSize * 0.5f, iconCenter.y);
 
-					Rect position = new Rect(iconCenter.x - iconPixelSize * 0.5f, iconCenter.y - iconPixelSize * 0.5f, iconPixelSize, iconPixelSize);
+					var position = new Rect(iconCenter.x - iconPixelSize * 0.5f, iconCenter.y - iconPixelSize * 0.5f, iconPixelSize, iconPixelSize);
 					// TGT+ is at (2/3, 2/3).
-					Rect srcRect = new Rect(2.0f / 3.0f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f);
+					var srcRect = new Rect(2.0f / 3.0f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f);
 
 					GL.PushMatrix();
 					GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
@@ -186,9 +181,8 @@ namespace JSI
 				}
 
 				return true;
-			} else {
-				return false;
 			}
+			return false;
 		}
 
 		public override void OnUpdate()
@@ -239,7 +233,7 @@ namespace JSI
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = -1.0f;
-			} else if(buttonID == toggleTargetIcon) {
+			} else if (buttonID == toggleTargetIcon) {
 				showTargetIcon = !showTargetIcon;
 			}
 
