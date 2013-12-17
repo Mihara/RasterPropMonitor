@@ -24,7 +24,7 @@
 
 ## Minor new features
 
-* Should I introduce TGT+/TGT- markers into PFD instead of mode switching?
+* Should I introduce TGT+/TGT- markers into PFD instead of mode switching? Come to think of it, can I do REL+/REL- markers too?
 * Work out an API setting to direct handler loader to look at another prop?
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * Try to make JSISCANsatRPM correctly handle multiple calling props. Might require an API change...
