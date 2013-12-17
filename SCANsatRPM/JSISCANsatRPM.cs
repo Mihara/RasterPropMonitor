@@ -125,6 +125,11 @@ namespace SCANsatRPM
 				return false;
 			}
 
+			// In case SCANsat is present but not working, we can't run any of our code. :(
+			if (map == null) {
+				return false;
+			}
+
 			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
@@ -462,6 +467,9 @@ namespace SCANsatRPM
 			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
 				return;
 
+			if (map == null)
+				return;
+
 			if ((Planetarium.GetUniversalTime() - trailPointEvery) > trailCounter) {
 				trailCounter = Planetarium.GetUniversalTime();
 				LeaveTrail();
@@ -487,6 +495,8 @@ namespace SCANsatRPM
 		{
 			if (map == null) {
 				map = new SCANmap();
+				if (map == null)
+					return;
 				map.setProjection(SCANmap.MapProjection.Rectangular);
 			}
 			orbitingBody = vessel.mainBody;
