@@ -26,7 +26,7 @@ namespace JSI
 		private const float endSpan = 15f;
 		private const float fovAngle = 60f;
 		[UI_Toggle(disabledText = "off", enabledText = "on")]
-		[KSPField(guiActiveEditor = true, guiName = "FOV marker ")]
+		[KSPField(guiActiveEditor = true, guiName = "FOV marker ", isPersistant = true)]
 		public bool showCones = true;
 
 		[KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "ID +")]
