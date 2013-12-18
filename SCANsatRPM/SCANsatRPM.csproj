@@ -10,7 +10,7 @@
     <RootNamespace>SCANsatRPM</RootNamespace>
     <AssemblyName>SCANsatRPM</AssemblyName>
     <UseMSBuildEngine>True</UseMSBuildEngine>
-    <ReleaseVersion>0.11</ReleaseVersion>
+    <ReleaseVersion>0.12</ReleaseVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

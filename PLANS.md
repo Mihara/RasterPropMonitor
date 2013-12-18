@@ -1,8 +1,3 @@
-# 0.11 milestone targets
-
-* Test all the new features. Because some haven't been tested at all.
-* This probably comes out right after the KSP 0.23 release as soon as I can ensure nothing was broken.
-
 # 0.12 milestone targets
 
 ## Minor new features
