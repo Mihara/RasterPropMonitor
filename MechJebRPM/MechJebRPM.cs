@@ -155,6 +155,9 @@ namespace MechJebRPM
 						currentRoll += 360.0;
 					}
 					activeSmartass.rol = currentRoll;
+					if (forceRollMenuItem.isSelected) {
+						activeSmartass.Engage();
+					}
 				}
 			}
 		}
