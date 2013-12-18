@@ -38,7 +38,6 @@ namespace JSI
 
 		public void Start()
 		{
-
 			if (!string.IsNullOrEmpty(borderColor))
 				borderColorValue = ConfigNode.ParseColor32(borderColor);
 			if (!string.IsNullOrEmpty(backgroundColor))
@@ -88,8 +87,7 @@ namespace JSI
 		{
 			if (backgroundTexture != null)
 				Graphics.Blit(backgroundTexture, screen);
-			else
-				GL.Clear(true, true, backgroundColorValue);
+			GL.Clear(true, (backgroundTexture == null), backgroundColorValue);
 
 			GL.PushMatrix();
 			// This way 0,0 is in bottom left corner, which is what we want this time.
@@ -141,6 +139,8 @@ namespace JSI
 				lineColor = Color.white;
 				if (node.HasValue("color"))
 					lineColor = ConfigNode.ParseColor32(node.GetValue("color"));
+
+				JUtil.LogMessage(this, "Graphing {0} in color {1}", variableName, lineColor);
 			}
 
 			public void Draw(Rect screenRect, double time)
