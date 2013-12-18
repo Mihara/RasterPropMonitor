@@ -9,9 +9,9 @@
     <OutputType>Library</OutputType>
     <RootNamespace>SCANsatRPM</RootNamespace>
     <AssemblyName>SCANsatRPM</AssemblyName>
-    <UseMSBuildEngine>True</UseMSBuildEngine>
     <ReleaseVersion>0.12</ReleaseVersion>
     <CodePage>65001</CodePage>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
