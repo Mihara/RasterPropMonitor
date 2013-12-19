@@ -245,10 +245,12 @@ namespace JSI
 
 			charCode -= firstCharacter;
 
-			if ((charCode < 0 || charCode >= fontCharacters.Length) && !characterWarnings[charCode]) {
-				JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font, raw value \"{1}\"",
-					letter.ToString(), Convert.ToUInt16(letter));
-				characterWarnings[charCode] = true;
+			if ((charCode < 0 || charCode >= fontCharacters.Length)) {
+				if (!characterWarnings[charCode]) {
+					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font, raw value \"{1}\"",
+						letter.ToString(), Convert.ToUInt16(letter));
+					characterWarnings[charCode] = true;
+				}
 				return;
 			}
 
