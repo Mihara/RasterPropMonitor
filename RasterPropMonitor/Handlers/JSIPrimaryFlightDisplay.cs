@@ -81,6 +81,7 @@ namespace JSI
 		private GameObject markerDockingAlignment;
 		// Misc...
 		private float cameraAspect;
+		private bool startupComplete;
 		// This is honestly very badly written code, probably the worst of what I have in this project.
 		// Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
 		// the rest is because the problem is all built out of special cases.
@@ -89,6 +90,10 @@ namespace JSI
 		{
 			if (screen == null)
 				return false;
+
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
+
 			// Analysis disable once CompareOfFloatsByEqualityOperator
 			if (aspect != cameraAspect) {
 				cameraAspect = aspect;
@@ -343,6 +348,7 @@ namespace JSI
 			}
 
 			ShowHide(false, navBall, cameraBody, overlay, heading);
+			startupComplete = true;
 		}
 
 		private static void FaceCamera(GameObject thatObject)

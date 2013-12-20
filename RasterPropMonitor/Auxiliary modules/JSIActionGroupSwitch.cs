@@ -62,6 +62,7 @@ namespace JSI
 		private const int lightCheckRate = 60;
 		private int lightCheckCountdown;
 		private RasterPropMonitorComputer comp;
+		private bool startupComplete;
 
 		public void Start()
 		{
@@ -133,7 +134,7 @@ namespace JSI
 
 			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 
-
+			startupComplete = true;
 		}
 
 		private void SetInternalLights(bool value)
@@ -171,6 +172,9 @@ namespace JSI
 		{
 			if (!JUtil.IsActiveVessel(vessel))
 				return;
+
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
 			// So there's no check for internal cameras.

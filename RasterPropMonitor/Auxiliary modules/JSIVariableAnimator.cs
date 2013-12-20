@@ -32,6 +32,7 @@ namespace JSI
 		private bool thresholdMode;
 		private FXGroup audioOutput;
 		private bool alarmActive;
+		private bool startupComplete;
 
 		private bool UpdateCheck()
 		{
@@ -73,6 +74,7 @@ namespace JSI
 				anim[animationName].speed = 0;
 				anim[animationName].normalizedTime = reverse ? 1f : 0f;
 				anim.Play();
+				startupComplete = true;
 			}
 		}
 
@@ -86,6 +88,9 @@ namespace JSI
 		{
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
+
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
 
 			for (int i = 0; i < 3; i++)
 				if (!scaleEnds[i].Get(out scaleResults[i]))

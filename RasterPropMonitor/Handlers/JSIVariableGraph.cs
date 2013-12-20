@@ -35,6 +35,7 @@ namespace JSI
 		// Because KSPField can't handle double. :E
 		private double xGraphSpan, interval;
 		private readonly List<Vector2> borderVertices = new List<Vector2>();
+		private bool startupComplete;
 
 		public void Start()
 		{
@@ -81,6 +82,7 @@ namespace JSI
 						graphs.Add(new GraphLine(graphNode, xGraphSpan, ySpan, interval, comp));
 			}
 			JUtil.LogMessage(this, "Graphing {0} values.", graphs.Count);
+			startupComplete = true;
 		}
 		// Analysis disable once UnusedParameter
 		public bool RenderGraphs(RenderTexture screen, float cameraAspect)
@@ -88,6 +90,9 @@ namespace JSI
 			if (backgroundTexture != null)
 				Graphics.Blit(backgroundTexture, screen);
 			GL.Clear(true, (backgroundTexture == null), backgroundColorValue);
+
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
 
 			GL.PushMatrix();
 			// This way 0,0 is in bottom left corner, which is what we want this time.

@@ -103,6 +103,7 @@ namespace SCANsatRPM
 		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f);
 		// Neutral tint.
 		private bool satFound;
+		private bool startupComplete;
 
 		private bool TestForActiveSCANsat()
 		{
@@ -125,6 +126,9 @@ namespace SCANsatRPM
 
 			if (!TestForActiveSCANsat())
 				return false;
+
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
 
 			if (screenWidth == 0 || screenHeight == 0) {
 				int? loadedMode = persistence.GetVar(persistentVarName + "mode");
@@ -610,7 +614,7 @@ namespace SCANsatRPM
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSISCANSATVECTORMARK")) {
 				mapMarkup.Add(new MapMarkupLine(node));
 			}
-
+			startupComplete = true;
 		}
 
 		private class MapMarkupLine
