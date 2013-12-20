@@ -10,6 +10,11 @@
 * Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. I'm pretty sure it's possible now, mostly waiting on the model to test it with and KSP 0.23 release before starting.
 
+# 1.0 milestone targets
+
+* Debugging, debugging, debugging. It needs to be as idiot proof as it can possibly be.
+* If there are any breaking API changes that are still needed, they should be settled by then.
+
 # Future targets
 
 ## Issues.
@@ -28,5 +33,6 @@
 
 ## Major new features
 
+* Rework JSIVariableAnimator to run on blocks so it can handle multiple of everything in a single prop. Maybe a new module and deprecate the old VariableAnimator? Actually, I can probably get away with handling both config formats... Make sure to add a feature to toggle color instead of an animation.
 * API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
