@@ -77,7 +77,8 @@ namespace JSI
 		public Texture2D noSignalTexture;
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
 		private float fontLetterHalfHeight;
-
+		private float fontLetterHalfWidth;
+		private float fontLetterDoubleWidth;
 		private bool startupCompleted;
 
 		private enum Script
@@ -85,6 +86,13 @@ namespace JSI
 			Normal,
 			Subscript,
 			Superscript,
+		}
+
+		private enum Width
+		{
+			Normal,
+			Half,
+			Double,
 		}
 
 		public void Start()
@@ -129,6 +137,8 @@ namespace JSI
 
 			// And a little optimisation for superscript/subscript:
 			fontLetterHalfHeight = fontLetterHeight / 2f;
+			fontLetterHalfWidth = fontLetterWidth / 2f;
+			fontLetterDoubleWidth = fontLetterWidth * 2f;
 
 			// Now that is done, proceed to setting up the screen.
 
@@ -238,7 +248,7 @@ namespace JSI
 			PlayClickSound(audioOutput);
 		}
 
-		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType)
+		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
 		{
 			int charCode = (ushort)letter;
 			// Clever bit.
@@ -262,7 +272,8 @@ namespace JSI
 			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
 			Graphics.DrawTexture(
 				new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y, 
-					fontLetterWidth, (scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
+					(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
+					(scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
 				fontTexture,
 				fontCharacters[charCode],
 				0, 0, 0, 0,
@@ -325,8 +336,9 @@ namespace JSI
 						float xOffset = 0;
 						float yOffset = 0;
 						Script scriptType = Script.Normal;
+						Width fontWidth = Width.Normal;
 						float xCursor = 0;
-						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++, xCursor += fontLetterWidth) {
+						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++) {
 							bool escapedBracket = false;
 							// We will continue parsing bracket pairs until we're out of bracket pairs,
 							// since all of them -- except the escaped bracket tag --
@@ -373,6 +385,18 @@ namespace JSI
 									// And back...
 									scriptType = Script.Normal;
 									charIndex += nextBracket + 1;
+								} else if (tagText == "hw") {
+									// Superscript!
+									fontWidth = Width.Half;
+									charIndex += nextBracket + 1;
+								} else if (tagText == "dw") {
+									// Subscript!
+									fontWidth = Width.Double;
+									charIndex += nextBracket + 1;
+								} else if (tagText == "/hw" || tagText == "/dw") {
+									// And back...
+									fontWidth = Width.Normal;
+									charIndex += nextBracket + 1;
 								} else if (tagText == "[") {
 									// We got a "[[]" which means an escaped opening bracket.
 									escapedBracket = true;
@@ -385,10 +409,22 @@ namespace JSI
 							float yPos = yCursor + yOffset;
 							if (charIndex < screenBuffer[lineIndex].Length &&
 							    xPos < screenPixelWidth &&
-							    xPos > -fontLetterWidth &&
+							    xPos > -(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)) &&
 							    yPos < screenPixelHeight &&
 							    yPos > -fontLetterHeight)
-								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType);
+								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth);
+							switch (fontWidth) {
+								case Width.Normal:
+									xCursor += fontLetterWidth;
+									break;
+								case Width.Half:
+									xCursor += fontLetterHalfWidth;
+									break;
+								case Width.Double:
+									xCursor += fontLetterDoubleWidth;
+									break;
+
+							}
 						}
 					}
 				}

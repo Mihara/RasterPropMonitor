@@ -3,12 +3,12 @@
 ## Minor new features
 
 * A "follow reference" mode for cameras: A special option for PAGE that, instead of looking for a specific camera transform, finds the reference part, determines if it's a docking node, and if it is, places the camera on it's reference transform, otherwise shows no camera -- so that particular page always shows the view from the currently active docking port.
-* Halfwidth/doublewidth fonts.
 
 ## Major new features
 
+* Aviation-style PFD for transparent HUD use.
 * Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
-* kOSTER ("Campfire") -- A full keyboard kOS terminal. I'm pretty sure it's possible now, mostly waiting on the model to test it with and KSP 0.23 release before starting.
+* kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 
 # 1.0 milestone targets
 
