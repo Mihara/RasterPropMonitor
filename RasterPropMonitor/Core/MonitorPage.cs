@@ -8,6 +8,9 @@ namespace JSI
 	{
 		// We still need a numeric ID cause it makes persistence easier.
 		public int pageNumber;
+
+		public bool Locking;
+		public bool Unlocker;
 		private string text;
 
 		public string Text {
@@ -75,6 +78,9 @@ namespace JSI
 
 			if (node.HasValue("button"))
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
+
+			Locking |= node.HasValue("lockingPage");
+			Unlocker |= node.HasValue("unlockerPage");
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				InternalModule handlerModule;

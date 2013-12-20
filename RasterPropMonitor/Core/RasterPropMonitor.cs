@@ -253,7 +253,7 @@ namespace JSI
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			if (triggeredPage != activePage) {
+			if (triggeredPage != activePage && (!activePage.Locking || triggeredPage.Unlocker)) {
 				activePage.Active(false);
 				activePage = triggeredPage;
 				activePage.Active(true);
@@ -261,8 +261,8 @@ namespace JSI
 				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
 				firstRenderComplete = false;
+				PlayClickSound(audioOutput);
 			}
-			PlayClickSound(audioOutput);
 		}
 
 		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
