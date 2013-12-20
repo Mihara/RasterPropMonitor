@@ -28,7 +28,6 @@
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * Try to make JSISCANsatRPM correctly handle multiple calling props if the screen sizes match. Might require an API change...
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
-* Multiple fonts? It's easy enough to do tag-based font switching now, so something like FONTS{ name = value } would be trivial provided all the fonts have the same pixel size.
 * Textline-based font contents definition?
 
 ## Major new features
