@@ -32,6 +32,11 @@ namespace JSI
 			return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
 		}
 
+		public static void AnnoyUser(object caller)
+		{
+			ScreenMessages.PostScreenMessage(string.Format("{0}: CONFIGURATION ERROR.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
+		}
+
 		public static bool VesselIsInIVA(Vessel thatVessel)
 		{
 			return IsActiveVessel(thatVessel) && IsInIVA();

@@ -78,6 +78,8 @@ namespace JSI
 		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
 		private float fontLetterHalfHeight;
 
+		private bool startupCompleted;
+
 		private enum Script
 		{
 			Normal,
@@ -191,7 +193,7 @@ namespace JSI
 			}
 
 			audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
-
+			startupCompleted = true;
 		}
 
 		private static void PlayClickSound(FXGroup audioOutput)
@@ -417,6 +419,9 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
+			if (!startupCompleted)
+				JUtil.AnnoyUser(this);
+
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
