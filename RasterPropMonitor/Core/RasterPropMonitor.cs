@@ -479,11 +479,12 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!startupCompleted)
-				JUtil.AnnoyUser(this);
 
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
+
+			if (!startupCompleted)
+				JUtil.AnnoyUser(this);
 
 			if (!activePage.isMutable) { 
 				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
