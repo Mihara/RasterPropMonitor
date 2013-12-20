@@ -53,7 +53,7 @@ namespace JSI
 		// Some things in life are constant;
 		private const int firstCharacter = 32;
 		// Internal stuff.
-		private Texture2D fontTexture;
+		private readonly List<Texture2D> fontTexture = new List<Texture2D>();
 		private RenderTexture screenTexture;
 		// Page definition syntax.
 		private readonly string[] lineSeparator = { Environment.NewLine };
@@ -64,6 +64,7 @@ namespace JSI
 		private bool firstRenderComplete;
 		private bool textRefreshRequired;
 		private readonly List<MonitorPage> pages = new List<MonitorPage>();
+		private int fontTextureIndex;
 		private MonitorPage activePage;
 		// All computations are split into a separate class, because it was getting a mite too big.
 		private RasterPropMonitorComputer comp;
@@ -95,6 +96,22 @@ namespace JSI
 			Double,
 		}
 
+		private static Texture2D LoadFont(object caller, InternalProp thisProp, string location, bool extra)
+		{
+			Texture2D font = null;
+			if (!string.IsNullOrEmpty(location)) {
+				JUtil.LogMessage(caller, "Trying to locate \"{0}\" in GameDatabase...", location);
+				if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes())) {
+					font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
+					JUtil.LogMessage(caller, "Loading{1} font texture from URL, \"{0}\"", location, extra ? " extra" : string.Empty);
+				} else {
+					font = (Texture2D)thisProp.FindModelTransform(location).renderer.material.mainTexture;
+					JUtil.LogMessage(caller, "Loading{1} font texture from a transform named, \"{0}\"", location, extra ? " extra" : string.Empty);
+				}
+			}
+			return font;
+		}
+
 		public void Start()
 		{
 			InstallationPathWarning.Warn();
@@ -104,14 +121,7 @@ namespace JSI
 			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
 			// Loading the font...
-			JUtil.LogMessage(this, "Trying to locate \"{0}\" in GameDatabase...", fontTransform);
-			if (GameDatabase.Instance.ExistsTexture(fontTransform.EnforceSlashes())) {
-				fontTexture = GameDatabase.Instance.GetTexture(fontTransform.EnforceSlashes(), false);
-				JUtil.LogMessage(this, "Loading font texture from URL, \"{0}\"", fontTransform);
-			} else {
-				fontTexture = (Texture2D)internalProp.FindModelTransform(fontTransform).renderer.material.mainTexture;
-				JUtil.LogMessage(this, "Loading font texture from a transform named, \"{0}\"", fontTransform);
-			}
+			fontTexture.Add(LoadFont(this, internalProp, fontTransform, false));
 
 			// Damn KSP's config parser!!!
 			if (!string.IsNullOrEmpty(emptyColor))
@@ -121,8 +131,8 @@ namespace JSI
 
 			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
 			// although I'm not sure I'm not seeing things by this point.
-			int fontLettersX = (fontTexture.width / fontLetterWidth);
-			int fontLettersY = (fontTexture.height / fontLetterHeight);
+			int fontLettersX = (fontTexture[0].width / fontLetterWidth);
+			int fontLettersY = (fontTexture[0].height / fontLetterHeight);
 			float letterSpanX = 1f / fontLettersX;
 			float letterSpanY = 1f / fontLettersY;
 			int lastCharacter = fontLettersX * fontLettersY;
@@ -164,7 +174,8 @@ namespace JSI
 					// And we know our moduleID, which is the number in order of being listed in the prop.
 					// Therefore the module by that number is our module's own config node.
 
-					ConfigNode[] pageNodes = node.GetNodes("MODULE")[moduleID].GetNodes("PAGE");
+					ConfigNode moduleConfig = node.GetNodes("MODULE")[moduleID];
+					ConfigNode[] pageNodes = moduleConfig.GetNodes("PAGE");
 
 					// Which we can now parse for page definitions.
 					for (int i = 0; i < pageNodes.Length; i++) {
@@ -180,6 +191,12 @@ namespace JSI
 						}
 							
 					}
+
+					// Now that all pages are loaded, we can use the moment in the loop to suck in all the extra fonts.
+					foreach (string value in moduleConfig.GetValues("extraFont")) {
+						fontTexture.Add(LoadFont(this, internalProp, value, true));
+					}
+
 					break;
 				}
 			}
@@ -274,7 +291,7 @@ namespace JSI
 				new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y, 
 					(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
 					(scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
-				fontTexture,
+				fontTexture[fontTextureIndex],
 				fontCharacters[charCode],
 				0, 0, 0, 0,
 				letterColor
@@ -337,6 +354,7 @@ namespace JSI
 						float yOffset = 0;
 						Script scriptType = Script.Normal;
 						Width fontWidth = Width.Normal;
+						fontTextureIndex = 0;
 						float xCursor = 0;
 						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++) {
 							bool escapedBracket = false;
@@ -396,6 +414,12 @@ namespace JSI
 								} else if (tagText == "/hw" || tagText == "/dw") {
 									// And back...
 									fontWidth = Width.Normal;
+									charIndex += nextBracket + 1;
+								} else if (tagText.StartsWith("font", StringComparison.Ordinal)) {
+									uint newFontID;
+									if (uint.TryParse(tagText.Substring(4), out newFontID) && newFontID < fontTexture.Count) {
+										fontTextureIndex = (int)newFontID;
+									}
 									charIndex += nextBracket + 1;
 								} else if (tagText == "[") {
 									// We got a "[[]" which means an escaped opening bracket.
