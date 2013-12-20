@@ -234,8 +234,8 @@ namespace JSI
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			activePage.GlobalButtonClick(buttonID);
-			PlayClickSound(audioOutput);
+			if (activePage.GlobalButtonClick(buttonID))
+				PlayClickSound(audioOutput);
 		}
 
 		public void GlobalButtonRelease(int buttonID)

@@ -8,7 +8,6 @@ namespace JSI
 	{
 		// We still need a numeric ID cause it makes persistence easier.
 		public int pageNumber;
-
 		public bool Locking;
 		public bool Unlocker;
 		private string text;
@@ -251,13 +250,18 @@ namespace JSI
 				backgroundHandlerS.activate(state, pageNumber);
 		}
 
-		public void GlobalButtonClick(int buttonID)
+		public bool GlobalButtonClick(int buttonID)
 		{
-			if (pageHandlerS.buttonClick != null)
+			bool actionTaken = false;
+			if (pageHandlerS.buttonClick != null) {
 				pageHandlerS.buttonClick(buttonID);
-			if (backgroundHandlerS.buttonClick != null && pageHandlerS.buttonClick != backgroundHandlerS.buttonClick)
+				actionTaken = true;
+			}
+			if (backgroundHandlerS.buttonClick != null && pageHandlerS.buttonClick != backgroundHandlerS.buttonClick) {
 				backgroundHandlerS.buttonClick(buttonID);
-			else if (zoomSteps > 0) {
+				actionTaken = true;
+			} else if (zoomSteps > 0) {
+				actionTaken = true;
 				if (buttonID == zoomUpButton)
 					currentZoom--;
 				if (buttonID == zoomDownButton)
@@ -268,14 +272,21 @@ namespace JSI
 					currentZoom = zoomSteps;
 				cameraObject.FOV = ComputeFOV();
 			}
+			return actionTaken;
 		}
 
-		public void GlobalButtonRelease(int buttonID)
+		public bool GlobalButtonRelease(int buttonID)
 		{
-			if (pageHandlerS.buttonRelease != null)
+			bool actionTaken = false;
+			if (pageHandlerS.buttonRelease != null) {
 				pageHandlerS.buttonRelease(buttonID);
-			if (backgroundHandlerS.buttonRelease != null && backgroundHandlerS.buttonRelease != pageHandlerS.buttonRelease)
+				actionTaken = true;
+			}
+			if (backgroundHandlerS.buttonRelease != null && backgroundHandlerS.buttonRelease != pageHandlerS.buttonRelease) {
+				actionTaken = true;
 				backgroundHandlerS.buttonRelease(buttonID);
+			}
+			return actionTaken;
 		}
 
 		public void RenderBackground(RenderTexture screen)
