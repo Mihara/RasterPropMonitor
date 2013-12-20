@@ -13,6 +13,7 @@ namespace JSI
 		private const string formatPrefixSIP = "SIP";
 		private const string formatPrefixDMS = "DMS";
 		private const string formatPrefixKDT = "KDT";
+		private const string formatPrefixBAR = "BAR";
 
 		public string Format(string format, object arg, IFormatProvider formatProvider)
 		{    
@@ -40,9 +41,49 @@ namespace JSI
 				return DMSFormat(format, inputValue);
 			if (format.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
 				return KDTFormat(format, inputValue);
-
+			if (format.StartsWith(formatPrefixBAR, StringComparison.Ordinal))
+				return BARFormat(format, inputValue);
 
 			return DefaultFormat(format, arg, formatProvider);
+		}
+		// BAR -- Bar pseudo-formatter that produces a horizontal bar
+		// Nice for creating pseudo-bar charts.
+		// BAR[<bar character>[<empty character>]],<total length>[,<minimum>[,<maximum>]]
+		// Examples:
+		// BAR,10,10000,200000
+		// BAR= ,10,0,200
+		// BAR~,10,0,200
+		// BAR,10
+		private static string BARFormat(string format, double value)
+		{
+			char filled = '=';
+			char empty = ' ';
+			double maximum = 1;
+			double minimum = 0;
+			string[] tokens = format.Split(',');
+			if (tokens.Length < 2)
+				return value.ToString(format);
+			if (tokens[0].Length == formatPrefixBAR.Length + 2)
+				empty = tokens[0][formatPrefixBAR.Length + 1];
+			if (tokens[0].Length >= formatPrefixBAR.Length + 1)
+				filled = tokens[0][formatPrefixBAR.Length];
+			int outputLength = 0;
+			try {
+				if (tokens.Length > 1)
+					outputLength = int.Parse(tokens[1]);
+				if (tokens.Length > 2)
+					minimum = double.Parse(tokens[2]);
+				if (tokens.Length > 3)
+					maximum = double.Parse(tokens[3]);
+			} catch {
+				return value.ToString(format);
+			}
+			if (double.IsNaN(value))
+				value = 0;
+			if (double.IsInfinity(value))
+				value = maximum;
+
+			return string.Empty.PadRight((int)JUtil.DualLerp(0, outputLength, minimum, maximum, value), filled).PadRight(outputLength, empty);
 		}
 		// KDT -- Kerbal Date/Time format.
 		// y - years

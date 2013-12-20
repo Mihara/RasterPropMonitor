@@ -13,6 +13,34 @@ namespace FormatterTests
 		// Analysis disable once UnusedParameter
 		public static void Main(string[] args)
 		{
+
+			double[] bars = {
+				1d,
+				-0.0123,
+				4923,
+				58794.2435,
+				0,
+				99999.9999999999,
+				double.NaN,
+				double.PositiveInfinity,
+				double.NegativeInfinity,
+				100019.9999,
+				0.2,
+			};
+
+			foreach (double value in bars) {
+				Console.WriteLine(string.Format(fp, "BAR,10,100,10000   :>{0:BAR,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR~,10,100,10000  :>{0:BAR~,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR ~,10,100,10000 :>{0:BAR ~,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= ,10,0,1       :>{0:BAR= ,10,0,1}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= ,10           :>{0:BAR= ,10}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR,10             :>{0:BAR,10}<| {0}", value));
+			}
+			Console.WriteLine("BAR tests done, press any key to start SIP tests");
+			Console.ReadKey();
+			Console.WriteLine();
+
+
 			double[] values = {
 				1d,
 				1000000d,
