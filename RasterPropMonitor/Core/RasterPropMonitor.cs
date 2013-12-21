@@ -370,7 +370,7 @@ namespace JSI
 							while (charIndex < screenBuffer[lineIndex].Length && screenBuffer[lineIndex][charIndex] == '[') {
 								// If there's no closing bracket, we stop parsing and go on to printing.
 								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
-								if (nextBracket < 0)
+								if (nextBracket < 1)
 									break;
 								// Much easier to parse it this way, although I suppose more expensive.
 								string tagText = screenBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
@@ -410,11 +410,9 @@ namespace JSI
 									scriptType = Script.Normal;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "hw") {
-									// Superscript!
 									fontWidth = Width.Half;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "dw") {
-									// Subscript!
 									fontWidth = Width.Double;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "/hw" || tagText == "/dw") {
