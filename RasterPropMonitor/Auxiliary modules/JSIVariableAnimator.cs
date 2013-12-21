@@ -46,6 +46,7 @@ namespace JSI
 			if (variableSets.Count < 1 && moduleConfig != null)
 				variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
 
+			JUtil.LogMessage(this, "Configuration complete, supporting {0} variable indicators.", variableSets.Count);
 			startupComplete = true;
 		}
 
@@ -70,11 +71,18 @@ namespace JSI
 		private readonly Animation anim;
 		private readonly bool thresholdMode;
 		private readonly FXGroup audioOutput;
-		private bool alarmActive;
 		private readonly Vector2 threshold = Vector2.zero;
 		private readonly bool reverse;
 		private readonly string animationName;
 		private readonly bool alarmSoundLooping;
+		private readonly Color passiveColor, activeColor;
+		private readonly bool colorShiftMode = false;
+		private readonly Renderer colorShiftRenderer;
+		private readonly double flashingDelay;
+		// runtime values:
+		private bool alarmActive;
+		private bool currentState;
+		private double lastStateChange;
 
 		public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
 		{
@@ -97,8 +105,23 @@ namespace JSI
 			else
 				throw new ArgumentException("Missing variable name.");
 
-			if (node.HasValue("animationName"))
+			scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
+			scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
+			scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
+
+			// That takes care of the scale, now what to do about that scale:
+
+			if (node.HasValue("animationName")) {
 				animationName = node.GetValue("animationName");
+				JUtil.LogMessage(this, "Using animation mode with animation {0}.", animationName);
+			} else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject")) {
+				colorShiftMode = true;
+				passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
+				activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+				colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
+				JUtil.LogMessage(this, "Using color shift mode with object {0}.", node.GetValue("coloredObject"));
+			} else
+				throw new ArgumentException("Cannot initiate neither animation nor color shift mode.");
 
 			if (node.HasValue("threshold"))
 				threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
@@ -108,17 +131,20 @@ namespace JSI
 					throw new ArgumentException("So is 'reverse' true or false?");
 			}
 
-			scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
-			scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
-			scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
-
 			if (threshold != Vector2.zero) {
 				thresholdMode = true;
+				currentState = false;
+
+				lastStateChange = Planetarium.GetUniversalTime();
 
 				float min = Mathf.Min(threshold.x, threshold.y);
 				float max = Mathf.Max(threshold.x, threshold.y);
 				threshold.x = min;
 				threshold.y = max;
+
+				if (node.HasValue("flashingDelay")) {
+					flashingDelay = double.Parse(node.GetValue("flashingDelay"));
+				}
 
 				if (node.HasValue("alarmSound")) {
 					float alarmSoundVolume = 0.5f;
@@ -134,12 +160,37 @@ namespace JSI
 				}
 			}
 
-			anim = thisProp.FindModelAnimators(animationName)[0];
-			anim.enabled = true;
-			anim[animationName].speed = 0;
-			anim[animationName].normalizedTime = reverse ? 1f : 0f;
-			anim.Play();
+			if (colorShiftMode) {
+				colorShiftRenderer.material.color = reverse ? activeColor : passiveColor;
+			} else {
+				anim = thisProp.FindModelAnimators(animationName)[0];
+				anim.enabled = true;
+				anim[animationName].speed = 0;
+				anim[animationName].normalizedTime = reverse ? 1f : 0f;
+				anim.Play();
+			}
+		}
 
+		private void TurnOn()
+		{
+			if (colorShiftMode) {
+				colorShiftRenderer.material.color = reverse ? passiveColor : activeColor;
+			} else {
+				anim[animationName].normalizedTime = reverse ? 0f : 1f;
+			}
+			currentState = true;
+			lastStateChange = Planetarium.GetUniversalTime();
+		}
+
+		private void TurnOff()
+		{
+			if (colorShiftMode) {
+				colorShiftRenderer.material.color = reverse ? activeColor : passiveColor;
+			} else {
+				anim[animationName].normalizedTime = reverse ? 1f : 0f;
+			}
+			currentState = false;
+			lastStateChange = Planetarium.GetUniversalTime();
 		}
 
 		public void Update()
@@ -152,13 +203,21 @@ namespace JSI
 			if (thresholdMode) {
 				float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
 				if (scaledValue >= threshold.x && scaledValue <= threshold.y) {
+					if (flashingDelay > 0) {
+						if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay) {
+							if (currentState)
+								TurnOff();
+							else
+								TurnOn();
+						}
+					} else
+						TurnOn();
 					if (audioOutput != null && !alarmActive) {
 						audioOutput.audio.Play();
 						alarmActive = true;
 					}
-					anim[animationName].normalizedTime = reverse ? 0f : 1f;
 				} else {
-					anim[animationName].normalizedTime = reverse ? 1f : 0f;
+					TurnOff();
 					if (audioOutput != null) {
 						audioOutput.audio.Stop();
 						alarmActive = false;
@@ -166,11 +225,16 @@ namespace JSI
 				}
 
 			} else {
-				float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
-				if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
-					lerp = reverse ? 1f : 0f;
+				if (colorShiftMode) {
+					colorShiftRenderer.material.color = Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor,
+						Mathf.Lerp(scaleResults[0], scaleResults[1], scaleResults[2]));
+				} else {
+					float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
+					if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
+						lerp = reverse ? 1f : 0f;
+					}
+					anim[animationName].normalizedTime = lerp;
 				}
-				anim[animationName].normalizedTime = lerp;
 			}
 
 		}

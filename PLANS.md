@@ -29,10 +29,10 @@
 * Try to make JSISCANsatRPM correctly handle multiple calling props if the screen sizes match. Might require an API change...
 * Multiple and-ed conditions in VariableAnimator? Not sure if it's practical, would need a significant rewrite and I don't want a Turing tarpit... On the other hand, that might call for actually figuring out a DSL in Boo.
 * Textline-based font contents definition?
+* BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
 
 ## Major new features
 
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
-* Rework JSIVariableAnimator to run on blocks so it can handle multiple of everything in a single prop. Maybe a new module and deprecate the old VariableAnimator? Actually, I can probably get away with handling both config formats... Make sure to add a feature to toggle color instead of an animation.
 * API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
