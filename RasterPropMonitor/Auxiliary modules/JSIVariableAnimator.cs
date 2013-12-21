@@ -66,7 +66,6 @@ namespace JSI
 	public class VariableAnimationSet
 	{
 		private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
-		private readonly float[] scaleResults = new float[3];
 		private readonly RasterPropMonitorComputer comp;
 		private readonly Animation anim;
 		private readonly bool thresholdMode;
@@ -92,7 +91,7 @@ namespace JSI
 			if (tokens.Length != 2)
 				throw new ArgumentException("Could not parse 'scale' parameter.");
 
-			string variableName = string.Empty;
+			string variableName;
 			if (node.HasValue("variableName"))
 				variableName = node.GetValue("variableName").Trim();
 			else
@@ -104,23 +103,10 @@ namespace JSI
 			if (node.HasValue("threshold"))
 				threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
 
-			string alarmShutdownButton = string.Empty;
-			string alarmSound = string.Empty;
-			float alarmSoundVolume = 0.5f;
-			if (node.HasValue("alarmShutdownButton"))
-				alarmShutdownButton = node.GetValue("alarmShutdownButton");
-			if (node.HasValue("alarmSound"))
-				alarmShutdownButton = node.GetValue("alarmSound");
-			if (node.HasValue("alarmSoundVolume"))
-				alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
-
-			if (node.HasValue("reverse"))
+			if (node.HasValue("reverse")) {
 				if (!bool.TryParse(node.GetValue("reverse"), out reverse))
-					throw new ArgumentException("So is that true or false?");
-
-			if (node.HasValue("alarmSoundLooping"))
-				if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
-					throw new ArgumentException("So is that true or false?");
+					throw new ArgumentException("So is 'reverse' true or false?");
+			}
 
 			scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
 			scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
@@ -134,9 +120,18 @@ namespace JSI
 				threshold.x = min;
 				threshold.y = max;
 
-				audioOutput = JUtil.SetupIVASound(thisProp, alarmSound, alarmSoundVolume, false);
-				if (!string.IsNullOrEmpty(alarmShutdownButton))
-					SmarterButton.CreateButton(thisProp, alarmShutdownButton, AlarmShutdown);
+				if (node.HasValue("alarmSound")) {
+					float alarmSoundVolume = 0.5f;
+					if (node.HasValue("alarmSoundVolume"))
+						alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
+					audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
+					if (node.HasValue("alarmShutdownButton"))
+						SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
+					if (node.HasValue("alarmSoundLooping")) {
+						if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
+							throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+					}
+				}
 			}
 
 			anim = thisProp.FindModelAnimators(animationName)[0];
@@ -149,10 +144,10 @@ namespace JSI
 
 		public void Update()
 		{
+			var scaleResults = new float[3];
 			for (int i = 0; i < 3; i++)
 				if (!scaleEnds[i].Get(out scaleResults[i]))
 					return;
-
 
 			if (thresholdMode) {
 				float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
