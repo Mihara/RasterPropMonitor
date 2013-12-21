@@ -79,6 +79,7 @@ namespace JSI
 		private readonly bool colorShiftMode = false;
 		private readonly Renderer colorShiftRenderer;
 		private readonly double flashingDelay;
+		private readonly string colorName = "_EmissiveColor";
 		// runtime values:
 		private bool alarmActive;
 		private bool currentState;
@@ -110,15 +111,28 @@ namespace JSI
 			scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
 
 			// That takes care of the scale, now what to do about that scale:
+				
+			if (node.HasValue("reverse")) {
+				if (!bool.TryParse(node.GetValue("reverse"), out reverse))
+					throw new ArgumentException("So is 'reverse' true or false?");
+			}
 
 			if (node.HasValue("animationName")) {
 				animationName = node.GetValue("animationName");
+				anim = thisProp.FindModelAnimators(animationName)[0];
+				anim.enabled = true;
+				anim[animationName].speed = 0;
+				anim[animationName].normalizedTime = reverse ? 1f : 0f;
+				anim.Play();
 				JUtil.LogMessage(this, "Using animation mode with animation {0}.", animationName);
 			} else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject")) {
 				colorShiftMode = true;
+				if (node.HasValue("colorName"))
+					colorName = node.GetValue("colorName");
 				passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
 				activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
 				colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
+				colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
 				JUtil.LogMessage(this, "Using color shift mode with object {0}.", node.GetValue("coloredObject"));
 			} else
 				throw new ArgumentException("Cannot initiate neither animation nor color shift mode.");
@@ -126,16 +140,8 @@ namespace JSI
 			if (node.HasValue("threshold"))
 				threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
 
-			if (node.HasValue("reverse")) {
-				if (!bool.TryParse(node.GetValue("reverse"), out reverse))
-					throw new ArgumentException("So is 'reverse' true or false?");
-			}
-
 			if (threshold != Vector2.zero) {
 				thresholdMode = true;
-				currentState = false;
-
-				lastStateChange = Planetarium.GetUniversalTime();
 
 				float min = Mathf.Min(threshold.x, threshold.y);
 				float max = Mathf.Max(threshold.x, threshold.y);
@@ -158,25 +164,19 @@ namespace JSI
 							throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
 					}
 				}
+				TurnOff();
 			}
 
-			if (colorShiftMode) {
-				colorShiftRenderer.material.color = reverse ? activeColor : passiveColor;
-			} else {
-				anim = thisProp.FindModelAnimators(animationName)[0];
-				anim.enabled = true;
-				anim[animationName].speed = 0;
-				anim[animationName].normalizedTime = reverse ? 1f : 0f;
-				anim.Play();
-			}
 		}
 
 		private void TurnOn()
 		{
-			if (colorShiftMode) {
-				colorShiftRenderer.material.color = reverse ? passiveColor : activeColor;
-			} else {
-				anim[animationName].normalizedTime = reverse ? 0f : 1f;
+			if (!currentState) {
+				if (colorShiftMode) {
+					colorShiftRenderer.material.SetColor(colorName, (reverse ? passiveColor : activeColor));
+				} else {
+					anim[animationName].normalizedTime = reverse ? 0f : 1f;
+				}
 			}
 			currentState = true;
 			lastStateChange = Planetarium.GetUniversalTime();
@@ -184,10 +184,12 @@ namespace JSI
 
 		private void TurnOff()
 		{
-			if (colorShiftMode) {
-				colorShiftRenderer.material.color = reverse ? activeColor : passiveColor;
-			} else {
-				anim[animationName].normalizedTime = reverse ? 1f : 0f;
+			if (currentState) {
+				if (colorShiftMode) {
+					colorShiftRenderer.material.SetColor(colorName, (reverse ? activeColor : passiveColor));
+				} else {
+					anim[animationName].normalizedTime = reverse ? 1f : 0f;
+				}
 			}
 			currentState = false;
 			lastStateChange = Planetarium.GetUniversalTime();
