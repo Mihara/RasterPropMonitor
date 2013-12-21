@@ -112,12 +112,14 @@ namespace JSI
 			Vector3d velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
 			Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbit, up).normalized;
 			Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
-			Vector3d targetDirection = -FlightGlobals.fetch.vesselTargetDirection;
+
+			//Vector3d targetDirection = -FlightGlobals.fetch.vesselTargetDirection.normalized;
+			Vector3d targetDirection = FlightGlobals.ship_tgtVelocity.normalized;
 
 			navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
 
 			if (heading != null) {
-				Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
+				Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM).normalized;
 				Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 				Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 				heading.renderer.material.SetTextureOffset("_MainTex",
@@ -157,7 +159,7 @@ namespace JSI
 				Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
 				MoveMarker(markerTarget, targetSeparation, targetColorValue, gymbal);
 				MoveMarker(markerTargetMinus, -targetSeparation, targetColorValue, gymbal);
-				ModuleDockingNode targetPort = target as ModuleDockingNode;
+				var targetPort = target as ModuleDockingNode;
 				if (targetPort != null) {
 					// Thanks to Michael Enßlin 
 					Transform targetTransform = targetPort.transform;
@@ -354,7 +356,7 @@ namespace JSI
 		private static void FaceCamera(GameObject thatObject)
 		{
 			if (thatObject == null)
-				throw new System.ArgumentNullException("thatObject");
+				throw new ArgumentNullException("thatObject");
 			// This is known to rotate correctly, so I'll keep it around.
 			/*
 			Vector3 originalPosition = thatObject.transform.position;
