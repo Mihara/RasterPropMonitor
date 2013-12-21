@@ -345,6 +345,12 @@ namespace JSI
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
+			// Interlay texture is drawn here because I don't want to have another pushmatrix/popmatrix cycle unnecessarily --
+			// no idea how much of an overhead that operation really is -- and Graphics.Blit will overwrite the background.
+			if (activePage.interlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.interlayTexture);
+			}
+
 			if (!string.IsNullOrEmpty(activePage.Text)) {
 				float yCursor = 0;
 				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {

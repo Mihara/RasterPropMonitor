@@ -40,7 +40,7 @@ namespace JSI
 		private readonly FlyingCamera cameraObject;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
-		public readonly Texture2D overlayTexture;
+		public readonly Texture2D overlayTexture, interlayTexture;
 		private readonly Func<int,int,string> pageHandler;
 		private readonly Func<RenderTexture,float,bool> backgroundHandler;
 		private readonly HandlerSupportMethods pageHandlerS, backgroundHandlerS;
@@ -159,7 +159,13 @@ namespace JSI
 					}
 				}
 			}
-
+			if (node.HasValue("textureInterlayURL")) {
+				string textureURL = node.GetValue("textureInterlayURL").EnforceSlashes();
+				if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+					interlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+				} else
+					JUtil.LogErrorMessage(ourMonitor, "Interlay texture could not be loaded.");
+			}
 			if (node.HasValue("textureOverlayURL")) {
 				string textureURL = node.GetValue("textureOverlayURL").EnforceSlashes();
 				if (GameDatabase.Instance.ExistsTexture(textureURL)) {
