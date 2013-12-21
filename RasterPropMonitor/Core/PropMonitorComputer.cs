@@ -876,6 +876,8 @@ namespace JSI
 			// Staging and other stuff
 				case "STAGE":
 					return Staging.CurrentStage;
+				case "STAGEREADY":
+					return Staging.separate_ready.GetHashCode();
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
