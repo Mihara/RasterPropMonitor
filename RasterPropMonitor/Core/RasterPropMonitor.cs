@@ -454,6 +454,10 @@ namespace JSI
 				}
 			}
 
+			if (activePage.overlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.overlayTexture);
+			}
+
 			GL.PopMatrix();
 
 			RenderTexture.active = backupRenderTexture;
