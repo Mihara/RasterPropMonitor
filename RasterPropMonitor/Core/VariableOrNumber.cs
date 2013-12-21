@@ -5,10 +5,10 @@ namespace JSI
 		private bool warningMade;
 		private readonly float? value;
 		private readonly string variableName;
-		private readonly InternalModule owner;
+		private readonly object owner;
 		private readonly RasterPropMonitorComputer comp;
 
-		public VariableOrNumber(string input, RasterPropMonitorComputer compInstance, InternalModule caller)
+		public VariableOrNumber(string input, RasterPropMonitorComputer compInstance, object caller)
 		{
 			owner = caller;
 			comp = compInstance;
