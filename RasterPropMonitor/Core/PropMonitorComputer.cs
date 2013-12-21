@@ -628,15 +628,15 @@ namespace JSI
 					return vessel.orbit.referenceBody.name;
 				case "PERIAPSIS":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.PeA;
+						return vessel.orbit.PeA;
 					return double.NaN;
 				case "APOAPSIS":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.ApA;
+						return vessel.orbit.ApA;
 					return double.NaN;
 				case "INCLINATION":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.inclination;
+						return vessel.orbit.inclination;
 					return double.NaN;
 				case "ECCENTRICITY":
 					if (orbitSensibility)
