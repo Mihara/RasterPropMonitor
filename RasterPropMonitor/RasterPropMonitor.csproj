@@ -78,6 +78,7 @@
     <Compile Include="Core\VariableOrNumber.cs" />
     <Compile Include="Handlers\JSISteerableCamera.cs" />
     <Compile Include="Core\TextMenu.cs" />
+    <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

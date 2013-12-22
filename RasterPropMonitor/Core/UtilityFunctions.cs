@@ -34,7 +34,7 @@ namespace JSI
 
 		public static void AnnoyUser(object caller)
 		{
-			ScreenMessages.PostScreenMessage(string.Format("{0}: CONFIGURATION ERROR.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
+			ScreenMessages.PostScreenMessage(string.Format("{0}: INITIALIZATION ERROR, CHECK CONFIGURATION.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
 		}
 
 		public static bool VesselIsInIVA(Vessel thatVessel)

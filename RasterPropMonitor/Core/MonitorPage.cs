@@ -8,6 +8,8 @@ namespace JSI
 	{
 		// We still need a numeric ID cause it makes persistence easier.
 		public int pageNumber;
+		public bool Locking;
+		public bool Unlocker;
 		private string text;
 
 		public string Text {
@@ -38,6 +40,7 @@ namespace JSI
 		private readonly FlyingCamera cameraObject;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
+		public readonly Texture2D overlayTexture, interlayTexture;
 		private readonly Func<int,int,string> pageHandler;
 		private readonly Func<RenderTexture,float,bool> backgroundHandler;
 		private readonly HandlerSupportMethods pageHandlerS, backgroundHandlerS;
@@ -76,8 +79,11 @@ namespace JSI
 			if (node.HasValue("button"))
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
 
+			Locking |= node.HasValue("lockingPage");
+			Unlocker |= node.HasValue("unlockerPage");
+
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
-				InternalModule handlerModule;
+				MonoBehaviour handlerModule;
 				HandlerSupportMethods supportMethods;
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
@@ -100,7 +106,7 @@ namespace JSI
 			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
-				InternalModule handlerModule;
+				MonoBehaviour handlerModule;
 				HandlerSupportMethods supportMethods;
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
@@ -153,9 +159,24 @@ namespace JSI
 					}
 				}
 			}
+			if (node.HasValue("textureInterlayURL")) {
+				string textureURL = node.GetValue("textureInterlayURL").EnforceSlashes();
+				if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+					interlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+				} else
+					JUtil.LogErrorMessage(ourMonitor, "Interlay texture could not be loaded.");
+			}
+			if (node.HasValue("textureOverlayURL")) {
+				string textureURL = node.GetValue("textureOverlayURL").EnforceSlashes();
+				if (GameDatabase.Instance.ExistsTexture(textureURL)) {
+					overlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
+				} else
+					JUtil.LogErrorMessage(ourMonitor, "Overlay texture could not be loaded.");
+			}
+
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out HandlerSupportMethods support)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out MonoBehaviour moduleInstance, out HandlerSupportMethods support)
 		{
 			moduleInstance = null;
 			support.activate = null;
@@ -168,15 +189,28 @@ namespace JSI
 				var handlerConfiguration = new ConfigNode("MODULE");
 				node.CopyTo(handlerConfiguration);
 
-				InternalModule thatModule = null;
-				if (node.HasValue("multiHandler"))
+				MonoBehaviour thatModule = null;
+				// Part modules are different in that they remain instantiated when you switch vessels, while the IVA doesn't.
+				// Because of this RPM can't instantiate partmodule-based handlers itself -- there's no way to tell if this was done already or not.
+				// Which means there can only be one instance of such a handler per pod, and it can't receive configuration values from RPM.
+				if (node.HasValue("isPartModule")) {
+					foreach (PartModule potentialModule in ourMonitor.part.Modules) {
+						if (potentialModule.ClassName == moduleName) {
+							thatModule = potentialModule;
+							break;
+						}
+					}
+				} else if (node.HasValue("multiHandler")) {
+
 					foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules)
 						if (potentialModule.ClassName == moduleName) {
 							thatModule = potentialModule;
 							break;
 						}
 
-				if (thatModule == null)
+				}
+
+				if (thatModule == null && !node.HasValue("isPartModule"))
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
 				if (thatModule == null) {
@@ -245,13 +279,18 @@ namespace JSI
 				backgroundHandlerS.activate(state, pageNumber);
 		}
 
-		public void GlobalButtonClick(int buttonID)
+		public bool GlobalButtonClick(int buttonID)
 		{
-			if (pageHandlerS.buttonClick != null)
+			bool actionTaken = false;
+			if (pageHandlerS.buttonClick != null) {
 				pageHandlerS.buttonClick(buttonID);
-			if (backgroundHandlerS.buttonClick != null && pageHandlerS.buttonClick != backgroundHandlerS.buttonClick)
+				actionTaken = true;
+			}
+			if (backgroundHandlerS.buttonClick != null && pageHandlerS.buttonClick != backgroundHandlerS.buttonClick) {
 				backgroundHandlerS.buttonClick(buttonID);
-			else if (zoomSteps > 0) {
+				actionTaken = true;
+			} else if (zoomSteps > 0) {
+				actionTaken = true;
 				if (buttonID == zoomUpButton)
 					currentZoom--;
 				if (buttonID == zoomDownButton)
@@ -262,14 +301,21 @@ namespace JSI
 					currentZoom = zoomSteps;
 				cameraObject.FOV = ComputeFOV();
 			}
+			return actionTaken;
 		}
 
-		public void GlobalButtonRelease(int buttonID)
+		public bool GlobalButtonRelease(int buttonID)
 		{
-			if (pageHandlerS.buttonRelease != null)
+			bool actionTaken = false;
+			if (pageHandlerS.buttonRelease != null) {
 				pageHandlerS.buttonRelease(buttonID);
-			if (backgroundHandlerS.buttonRelease != null && backgroundHandlerS.buttonRelease != pageHandlerS.buttonRelease)
+				actionTaken = true;
+			}
+			if (backgroundHandlerS.buttonRelease != null && backgroundHandlerS.buttonRelease != pageHandlerS.buttonRelease) {
+				actionTaken = true;
 				backgroundHandlerS.buttonRelease(buttonID);
+			}
+			return actionTaken;
 		}
 
 		public void RenderBackground(RenderTexture screen)

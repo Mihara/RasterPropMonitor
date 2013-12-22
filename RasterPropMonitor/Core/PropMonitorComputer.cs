@@ -134,6 +134,8 @@ namespace JSI
 			{ "NFURANIUM","EnrichedUranium" },
 			{ "NFDEPLETEDURANIUM","DepletedUranium" },
 		};
+		// Processing cache!
+		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 
 		public static RasterPropMonitorComputer Instantiate(InternalProp thatProp)
 		{
@@ -193,6 +195,9 @@ namespace JSI
 
 			if (!UpdateCheck())
 				return;
+
+			// We clear the cache every frame.
+			resultCache.Clear();
 
 			FetchCommonData();
 			UpdateTransferAngles();
@@ -532,25 +537,55 @@ namespace JSI
 		}
 
 		// Sigh. MechJeb math.
-		private static double GetCurrentThrust(ModuleEngines engine)
+		private static double GetCurrentThrust(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.finalThrust;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.finalThrust;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.finalThrust;
+			}
+			return 0;
 		}
 
-		private static double GetMaximumThrust(ModuleEngines engine)
+		private static double GetMaximumThrust(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.maxThrust;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.maxThrust;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.maxThrust;
+			}
+			return 0;
 		}
 
-		private static double GetRealIsp(ModuleEngines engine)
+		private static double GetRealIsp(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.realIsp;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.realIsp;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.realIsp;
+			}
+			return 0;
 		}
 
 		private void FetchCommonData()
@@ -679,12 +714,13 @@ namespace JSI
 					if (!pm.isEnabled)
 						continue;
 					var thatEngineModule = pm as ModuleEngines;
-					if (thatEngineModule != null) {
-						totalCurrentThrust += GetCurrentThrust(thatEngineModule);
-						totalMaximumThrust += GetMaximumThrust(thatEngineModule);
-						double realIsp = GetRealIsp(thatEngineModule);
+					var thatEngineModuleFX = pm as ModuleEnginesFX;
+					if (thatEngineModule != null || thatEngineModuleFX != null) {
+						totalCurrentThrust += GetCurrentThrust(pm);
+						totalMaximumThrust += GetMaximumThrust(pm);
+						double realIsp = GetRealIsp(pm);
 						if (realIsp > 0)
-							averageIspContribution += GetMaximumThrust(thatEngineModule) / realIsp;
+							averageIspContribution += GetMaximumThrust(pm) / realIsp;
 					} 
 				}
 
@@ -733,13 +769,15 @@ namespace JSI
 				altitudeTrue = vessel.mainBody.GetAltitude(coM);
 			altitudeBottom = altitudeTrue;
 			if (altitudeTrue < 500d) {
+				double lowestPoint = altitudeASL;
 				foreach (Part p in vessel.parts) {
 					if (p.collider != null) {
 						Vector3d bottomPoint = p.collider.ClosestPointOnBounds(vessel.mainBody.position);
-						double partBottomAlt = vessel.mainBody.GetAltitude(bottomPoint) - altitudeASL;
-						altitudeBottom = Math.Max(0, Math.Min(altitudeBottom, partBottomAlt));
+						double partBottomAlt = vessel.mainBody.GetAltitude(bottomPoint);
+						lowestPoint = Math.Min(lowestPoint, partBottomAlt);
 					}
 				}
+				altitudeBottom = (altitudeTrue - altitudeASL) + lowestPoint;
 			}
 		}
 		// According to C# specification, switch-case is compiled to a constant hash table.
@@ -794,9 +832,34 @@ namespace JSI
 					return "Space high over " + vessel.mainBody.theName;
 			}
 		}
-
+		// This intermediary will cache the results so that multiple variable requests within the frame would not result in duplicated code.
+		// If I actually break down and decide to do expressions, however primitive, this will also be the function responsible.
 		public object ProcessVariable(string input)
 		{
+			if (resultCache[input] != null)
+				return resultCache[input];
+			bool cacheable;
+			object returnValue;
+			try {
+				returnValue = VariableToObject(input, out cacheable);
+			} catch (Exception e) {
+				JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+				// Most of the variables are doubles...
+				return double.NaN;
+			}
+			if (cacheable) {
+				resultCache.Add(input, returnValue);
+				return resultCache[input];
+			}
+			return returnValue;
+		}
+
+		private object VariableToObject(string input, out bool cacheable)
+		{
+
+			// Some variables may not cacheable, because they're meant to be different every time like RANDOM,
+			// or immediate. they will set this flag to false.
+			cacheable = true;
 
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
@@ -968,15 +1031,15 @@ namespace JSI
 					return vessel.orbit.referenceBody.name;
 				case "PERIAPSIS":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.PeA;
+						return vessel.orbit.PeA;
 					return double.NaN;
 				case "APOAPSIS":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.ApA;
+						return vessel.orbit.ApA;
 					return double.NaN;
 				case "INCLINATION":
 					if (orbitSensibility)
-						return FlightGlobals.ship_orbit.inclination;
+						return vessel.orbit.inclination;
 					return double.NaN;
 				case "ECCENTRICITY":
 					if (orbitSensibility)
@@ -1227,9 +1290,12 @@ namespace JSI
 			// Staging and other stuff
 				case "STAGE":
 					return Staging.CurrentStage;
+				case "STAGEREADY":
+					return Staging.separate_ready.GetHashCode();
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
+					cacheable = false;
 					return UnityEngine.Random.value;
 				case "PODTEMPERATURE":
 					return part.temperature;
@@ -1245,6 +1311,11 @@ namespace JSI
 							return -1d;
 					}
 					return double.NaN;
+
+			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
+				case "GEARALARM":
+					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
+					return (speedVertical < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;

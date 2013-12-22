@@ -234,8 +234,8 @@ namespace JSI
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			activePage.GlobalButtonClick(buttonID);
-			PlayClickSound(audioOutput);
+			if (activePage.GlobalButtonClick(buttonID))
+				PlayClickSound(audioOutput);
 		}
 
 		public void GlobalButtonRelease(int buttonID)
@@ -253,7 +253,7 @@ namespace JSI
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			if (triggeredPage != activePage) {
+			if (triggeredPage != activePage && (!activePage.Locking || triggeredPage.Unlocker)) {
 				activePage.Active(false);
 				activePage = triggeredPage;
 				activePage.Active(true);
@@ -261,8 +261,8 @@ namespace JSI
 				refreshDrawCountdown = refreshTextCountdown = 0;
 				comp.updateForced = true;
 				firstRenderComplete = false;
+				PlayClickSound(audioOutput);
 			}
-			PlayClickSound(audioOutput);
 		}
 
 		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
@@ -345,6 +345,12 @@ namespace JSI
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
+			// Interlay texture is drawn here because I don't want to have another pushmatrix/popmatrix cycle unnecessarily --
+			// no idea how much of an overhead that operation really is -- and Graphics.Blit will overwrite the background.
+			if (activePage.interlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.interlayTexture);
+			}
+
 			if (!string.IsNullOrEmpty(activePage.Text)) {
 				float yCursor = 0;
 				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
@@ -364,7 +370,7 @@ namespace JSI
 							while (charIndex < screenBuffer[lineIndex].Length && screenBuffer[lineIndex][charIndex] == '[') {
 								// If there's no closing bracket, we stop parsing and go on to printing.
 								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
-								if (nextBracket < 0)
+								if (nextBracket < 1)
 									break;
 								// Much easier to parse it this way, although I suppose more expensive.
 								string tagText = screenBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
@@ -404,11 +410,9 @@ namespace JSI
 									scriptType = Script.Normal;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "hw") {
-									// Superscript!
 									fontWidth = Width.Half;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "dw") {
-									// Subscript!
 									fontWidth = Width.Double;
 									charIndex += nextBracket + 1;
 								} else if (tagText == "/hw" || tagText == "/dw") {
@@ -454,6 +458,10 @@ namespace JSI
 				}
 			}
 
+			if (activePage.overlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.overlayTexture);
+			}
+
 			GL.PopMatrix();
 
 			RenderTexture.active = backupRenderTexture;
@@ -479,11 +487,12 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!startupCompleted)
-				JUtil.AnnoyUser(this);
 
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
+
+			if (!startupCompleted)
+				JUtil.AnnoyUser(this);
 
 			if (!activePage.isMutable) { 
 				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.

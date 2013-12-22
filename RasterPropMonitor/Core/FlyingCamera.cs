@@ -10,11 +10,10 @@ namespace JSI
 		private readonly Part ourPart;
 		private GameObject cameraTransform;
 		private Part cameraPart;
-		private readonly Camera[] cameraObject = { null, null, null };
+		private readonly Camera[] cameraObject = { null, null, null, null, null };
 		private readonly float cameraAspect;
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
-		private readonly bool hasVisualEnhancements;
 
 		public float FOV { get; set; }
 
@@ -24,8 +23,6 @@ namespace JSI
 			ourPart = thatPart;
 			screenTexture = screen;
 			cameraAspect = aspect;
-
-			hasVisualEnhancements = GameDatabase.Instance.ExistsTexture("BoulderCo/Clouds/Textures/particle");
 		}
 
 		public void PointCamera(string newCameraName, float initialFOV)
@@ -43,8 +40,12 @@ namespace JSI
 
 				if (cameraTransform != null) {
 					CameraSetup(0, "Camera ScaledSpace");
-					CameraSetup(1, "Camera 01");
-					CameraSetup(2, "Camera 00");
+					// These two cameras are created by Visual Enhancements mod.
+					// I'm still not completely satisfied with the look, but it's definitely an improvement.
+					CameraSetup(1, "Camera VE Underlay");
+					CameraSetup(2, "Camera VE Overlay");
+					CameraSetup(3, "Camera 01");
+					CameraSetup(4, "Camera 00");
 					enabled = true;
 					JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
 					return;
@@ -56,11 +57,16 @@ namespace JSI
 		private void CleanupCameraObjects()
 		{
 			if (enabled) {
-				for (int i = 0; i < 3; i++)
-					if (cameraObject[i].gameObject != null) {
-						UnityEngine.Object.Destroy(cameraObject[i].gameObject);
+				for (int i = 0; i < cameraObject.Length; i++) {
+					try {
+						UnityEngine.Object.Destroy(cameraObject[i]);
+						// Analysis disable once EmptyGeneralCatchClause
+					} catch {
+						// Yes, that's really what it's supposed to be doing.
+					} finally {
 						cameraObject[i] = null;
 					}
+				}
 				enabled = false;
 				JUtil.LogMessage(this, "Turning camera off.");
 			}
@@ -81,10 +87,6 @@ namespace JSI
 
 		private void CameraSetup(int index, string sourceName)
 		{
-			var cameraBody = new GameObject();
-			cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
-			cameraObject[index] = cameraBody.AddComponent<Camera>();
-
 			Camera sourceCam = null;
 			foreach (Camera cam in Camera.allCameras) {
 				if (cam.name == sourceName) {
@@ -93,16 +95,16 @@ namespace JSI
 				}
 			}
 
-			cameraObject[index].CopyFrom(sourceCam);
-			cameraObject[index].enabled = false;
-			cameraObject[index].targetTexture = screenTexture;
-			cameraObject[index].aspect = cameraAspect;
+			if (sourceCam != null) {
+				var cameraBody = new GameObject();
+				cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
+				cameraObject[index] = cameraBody.AddComponent<Camera>();
 
-			// Special handling for Visual Enhancements mod.
-			if (hasVisualEnhancements && index == 0) {
-				cameraObject[index].cullingMask |= (1 << 3) | (1 << 2);
+				cameraObject[index].CopyFrom(sourceCam);
+				cameraObject[index].enabled = false;
+				cameraObject[index].targetTexture = screenTexture;
+				cameraObject[index].aspect = cameraAspect;
 			}
-
 		}
 
 		public Quaternion CameraRotation(float yawOffset = 0.0f, float pitchOffset = 0.0f)
@@ -131,17 +133,16 @@ namespace JSI
 			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
 			rotation = rotation * offset;
 
-			// ScaledSpace camera is special. :(
-			cameraObject[0].transform.rotation = rotation;
-			cameraObject[0].fieldOfView = FOV;
-			cameraObject[0].Render();
-			for (int i = 1; i < 3; i++) {
-				cameraObject[i].transform.position = cameraTransform.transform.position;
-				cameraObject[i].transform.rotation = rotation;
-				cameraObject[i].fieldOfView = FOV;
 
-
-				cameraObject[i].Render();
+			for (int i = 0; i < cameraObject.Length; i++) {
+				if (cameraObject[i] != null) {
+					// ScaledSpace camera and it's derived cameras from Visual Enhancements mod are special - they don't move.
+					if (i >= 3)
+						cameraObject[i].transform.position = cameraTransform.transform.position;
+					cameraObject[i].transform.rotation = rotation;
+					cameraObject[i].fieldOfView = FOV;
+					cameraObject[i].Render();
+				}
 			}
 			return true;
 		}

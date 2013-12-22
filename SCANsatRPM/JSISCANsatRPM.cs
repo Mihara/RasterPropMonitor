@@ -40,10 +40,10 @@ namespace SCANsatRPM
 		public float redrawEdge = 0.8f;
 		[KSPField]
 		public string iconColorSelf = string.Empty;
-		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.5f);
+		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public string iconColorTarget = string.Empty;
-		private Color iconColorTargetValue = new Color32(255, 235, 4, 128);
+		private Color iconColorTargetValue = new Color32(255, 235, 4, 153);
 		[KSPField]
 		public string iconColorUnvisitedAnomaly = string.Empty;
 		private Color iconColorUnvisitedAnomalyValue = new Color(1f, 0f, 0f, 0.5f);
@@ -55,7 +55,7 @@ namespace SCANsatRPM
 		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
 		[KSPField]
 		public string trailColor = string.Empty;
-		private Color trailColorValue = new Color(0f, 0f, 1f, 0.5f);
+		private Color trailColorValue = new Color(0f, 0f, 1f, 0.6f);
 		[KSPField]
 		public float zoomModifier = 1.5f;
 		[KSPField]
