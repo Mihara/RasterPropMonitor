@@ -9,6 +9,10 @@
 * Aviation-style PFD for transparent HUD use.
 * Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
 
+# 0.13 milestone targets
+
+* Yes, I think there will be a 0.13 rather than 1.0 after 0.12.
+
 # 1.0 milestone targets
 
 * Debugging, debugging, debugging. It needs to be as idiot proof as it can possibly be.
