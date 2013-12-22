@@ -52,8 +52,13 @@ namespace JSI
 		private double atmPressure;
 		private double dynamicPressure;
 		private readonly double upperAtmosphereLimit = Math.Log(100000);
-		// the 'Q' value
 		private CelestialBody targetBody;
+		private double phaseAngle;
+		private double timeToPhaseAngle;
+		private double ejectionAngle;
+		private double timeToEjectionAngle;
+		private double targetClosestApproach;
+
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -190,7 +195,342 @@ namespace JSI
 				return;
 
 			FetchCommonData();
+			UpdateTransferAngles();
 		}
+
+		// Update phase angle, ejection angle, and closest approach values.
+		// Code derived from the Protractor plug-in.
+		// Overview of TransferAngles feature:
+		// This functionality is based on the Protractor plug-in.  However,
+		// where the Protractor computes transfer angles for all planets plus
+		// any moons in the current planetary system, the RPM transfer angle
+		// computations are focused on the current target.  RPM generalizes
+		// this functionality to provide transfer angles to ships (if in the
+		// same SoI) and moons or ships orbiting other planets (by using the
+		// parent planet as a proxy).
+		private void UpdateTransferAngles()
+		{
+			// MOARdV warning: This method is much more convoluted than it
+			// strictly needs to be.  It's set up for developing the algorithms
+			// and understanding how they work together.  Clean up and
+			// optimization is still TODO.
+			if (targetOrbit != null) {
+				// Get some basic metrics on our orbital situation.
+				// "orbit depth" for the sake of this discussion counts how
+				// far removed from orbiting the sun the target is.
+				int vesselOrbitDepth;
+				CelestialBody vesselOrbitSystem;
+				if (vessel.mainBody == Planetarium.fetch.Sun) {
+					// We are orbiting Kerbol
+					vesselOrbitDepth = 0;
+					vesselOrbitSystem = vessel.mainBody;
+				} else if (vessel.mainBody.referenceBody == Planetarium.fetch.Sun) {
+					// We are orbiting a planet.
+					vesselOrbitDepth = 1;
+					vesselOrbitSystem = vessel.mainBody;
+				} else {
+					// We are orbiting a moon.  At present, we don't have to
+					// worry about any deeper nesting.
+					vesselOrbitDepth = 2;
+					vesselOrbitSystem = vessel.mainBody.referenceBody;
+				}
+
+				int targetOrbitDepth;
+				CelestialBody targetOrbitSystem;
+				Orbit targetPlanetOrbit;
+				if (targetOrbit.referenceBody == Planetarium.fetch.Sun) {
+					// Target is orbiting Kerbol
+					targetOrbitDepth = 0;
+					targetOrbitSystem = targetOrbit.referenceBody;
+					targetPlanetOrbit = target.GetOrbit();
+				} else if (targetOrbit.referenceBody.referenceBody == Planetarium.fetch.Sun) {
+					// Target is orbiting a planet.
+					targetOrbitDepth = 1;
+					targetOrbitSystem = targetOrbit.referenceBody;
+					targetPlanetOrbit = targetOrbit.referenceBody.orbit;
+				} else {
+					// Target is orbiting a moon.
+					targetOrbitDepth = 2;
+					targetOrbitSystem = targetOrbit.referenceBody.referenceBody;
+					targetPlanetOrbit = targetOrbit.referenceBody.referenceBody.orbit;
+				}
+
+				if (vesselOrbitDepth == 0) {
+					// We are orbiting Kerbol and ...
+
+					// ... actually, it doesn't matter what the target is
+					// orbiting.  We must target its planet.
+
+					phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, targetPlanetOrbit);
+
+					timeToPhaseAngle = -1.0;
+					ejectionAngle = -1.0;
+					timeToEjectionAngle = -1.0;
+					targetClosestApproach = -1.0;
+				} else if (vesselOrbitDepth == 1) {
+					// We are orbiting a planet and ...
+
+					if (targetOrbitDepth == 0) {
+						// ... our target is orbiting Kerbol
+
+						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, targetPlanetOrbit);
+
+						timeToPhaseAngle = -1.0;
+						ejectionAngle = -1.0;
+						timeToEjectionAngle = -1.0;
+						targetClosestApproach = -1.0;
+					} else if (vesselOrbitSystem == targetOrbitSystem) {
+						// ... our target orbits the same planet we do
+
+						// If targetOrbitDepth is also 1, we can use the
+						// target's orbit directly.  If it's 2, we need
+						// to get the orbit info of the moon it orbits.
+						phaseAngle = UpdatePhaseAngleSimple(vessel.orbit,
+							(targetOrbitDepth == 1) ? target.GetOrbit() : target.GetOrbit().referenceBody.orbit);
+
+						timeToPhaseAngle = -1.0;
+						ejectionAngle = -1.0;
+						timeToEjectionAngle = -1.0;
+						targetClosestApproach = -1.0;
+					} else {
+						// ... our target orbits a different planet.
+
+						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, targetPlanetOrbit);
+
+						timeToPhaseAngle = -1.0;
+						ejectionAngle = -1.0;
+						timeToEjectionAngle = -1.0;
+						targetClosestApproach = -1.0;
+					}
+				} else {
+					// We are orbiting a moon and ...
+
+					if (vesselOrbitSystem != targetOrbitSystem) {
+						// ... our target is or orbits a different planet.
+
+						phaseAngle = UpdatePhaseAngleOberth(vesselOrbitSystem.orbit, targetPlanetOrbit);
+
+					} else if (targetOrbitDepth == 0) {
+						// ... we are targeting our parent planet.
+
+						// MOARdV: UNIMPLEMENTED & UNTESTED
+						phaseAngle = -1.0;
+
+					} else if (targetOrbitDepth == 1) {
+						// ... we are targeting something orbiting our parent planet.
+
+						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, target.GetOrbit());
+
+					} else if (vessel.mainBody == target.GetOrbit().referenceBody) {
+						// ... we are targeting something orbiting the same moon we're at.
+
+						phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, target.GetOrbit());
+
+					} else {
+						// ... we are targeting something orbiting another moon of our planet.
+
+						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, target.GetOrbit().referenceBody.orbit);
+					}
+
+					timeToPhaseAngle = -1.0;
+					ejectionAngle = -1.0;
+					timeToEjectionAngle = -1.0;
+					targetClosestApproach = -1.0;
+				}
+			} else {
+				// No valid orbit.  Make sure the angles are cleared out.
+				phaseAngle = -1.0;
+				timeToPhaseAngle = -1.0;
+				ejectionAngle = -1.0;
+				timeToEjectionAngle = -1.0;
+				targetClosestApproach = -1.0;
+			}
+		}
+
+		//--- Protractor utility methods
+
+		// Simple phase angle: transfer from sun -> planet or planet -> moon
+		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
+		{
+			if (destOrbit == null) {
+				Debug.Log(String.Format("!!! UpdatePhaseAngleSimple got a NULL orbit !!!"));
+				return 0.0;
+			}
+
+			// MOARdV TODO: Can this be made more accurate using the orbit
+			// altitude at the point of intercept?
+			double destAlt = CalcMeanAlt(destOrbit);
+
+			double phase = CurrentPhase(srcOrbit, destOrbit) - DesiredPhase(altitudeASL + vessel.mainBody.Radius, destAlt, vessel.mainBody.gravParameter);
+			phase = (phase + 360.0) % 360.0;
+
+			return phase;
+		}
+
+		// Adjacent phase angle: transfer planet -> planet or moon -> moon
+		private double UpdatePhaseAngleAdjacent(Orbit srcOrbit, Orbit destOrbit)
+		{
+			if (destOrbit == null) {
+				Debug.Log(String.Format("!!! UpdatePhaseAngleAdjacent got a NULL orbit !!!"));
+				return 0.0;
+			}
+
+			double srcAlt = CalcMeanAlt(srcOrbit);
+			double destAlt = CalcMeanAlt(destOrbit);
+
+			double phase = CurrentPhase(srcOrbit, destOrbit) - DesiredPhase(srcAlt, destAlt, vessel.mainBody.gravParameter);
+			phase = (phase + 360.0) % 360.0;
+
+			return phase;
+		}
+
+		// Oberth phase angle: transfer moon -> another planet
+		private double UpdatePhaseAngleOberth(Orbit srcOrbit, Orbit destOrbit)
+		{
+			if (destOrbit == null) {
+				Debug.Log(String.Format("!!! UpdatePhaseAngleOberth got a NULL orbit !!!"));
+				return 0.0;
+			}
+
+			double srcAlt = CalcMeanAlt(srcOrbit);
+			double destAlt = CalcMeanAlt(destOrbit);
+
+			double phase = CurrentPhase(srcOrbit, destOrbit) - OberthDesiredPhase(destOrbit);
+			phase = (phase + 360.0) % 360.0;
+
+			return phase;
+		}
+
+		// project two vectors to 2D plane and returns the angle between them
+		private static double Angle2d(Vector3d vector1, Vector3d vector2)
+		{
+			Vector3d v1 = Vector3d.Project(new Vector3d(vector1.x, 0, vector1.z), vector1);
+			Vector3d v2 = Vector3d.Project(new Vector3d(vector2.x, 0, vector2.z), vector2);
+			return Vector3d.Angle(v1, v2);
+		}
+
+		private static double CalcMeanAlt(CelestialBody body)
+		{
+			return body.orbit.semiMajorAxis * (1.0 + body.orbit.eccentricity * body.orbit.eccentricity / 2.0);
+		}
+
+		private static double CalcMeanAlt(Orbit orbit)
+		{
+			return orbit.semiMajorAxis * (1.0 + orbit.eccentricity * orbit.eccentricity / 2.0);
+		}
+
+		// calculates angle between vessel's position and prograde of orbited body
+		// MOARdV: The parameter 'check' is always NULL in protractor.
+		private double CurrentEjectAngle()
+		{
+			Vector3d vesselvec = vessel.orbit.getRelativePositionAtUT(time);
+
+			// get planet's position relative to universe
+			Vector3d bodyvec = vessel.mainBody.orbit.getRelativePositionAtUT(time);
+
+			double eject = Angle2d(vesselvec, Quaternion.AngleAxis(90.0f, Vector3d.forward) * bodyvec);
+
+			if (Angle2d(vesselvec, Quaternion.AngleAxis(180.0f, Vector3d.forward) * bodyvec) > Angle2d(vesselvec, bodyvec)) {
+				eject = 360.0 - eject;//use cross vector to determine up or down
+			}
+
+			return eject;
+		}
+
+		//calculates ejection angle to reach destination body from origin body
+		private double CalculateDesiredEjectionAngle(CelestialBody orig, CelestialBody dest)
+		{
+			double o_alt = CalcMeanAlt(orig);
+			double d_alt = CalcMeanAlt(dest);
+			double o_soi = orig.sphereOfInfluence;
+			double o_radius = orig.Radius;
+			double o_mu = orig.gravParameter;
+			double u = orig.referenceBody.gravParameter;
+			double exitalt = o_alt + o_soi;
+			double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2 * d_alt) / (exitalt + d_alt)) - 1);
+			double r = o_radius + (vessel.mainBody.GetAltitude(vessel.findWorldCenterOfMass()));
+			double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
+			double eta = Math.Abs(v * v / 2 - o_mu / r);
+			double h = r * v;
+			double e = Math.Sqrt(1 + ((2 * eta * h * h) / (o_mu * o_mu)));
+			double eject = (180 - (Math.Acos(1 / e) * (180 / Math.PI))) % 360;
+
+			eject = o_alt > d_alt ? 180 - eject : 360 - eject;
+
+			return vessel.orbit.inclination > 90 && !(vessel.Landed) ? 360 - eject : eject;
+		}
+
+		// Compute the current phase of the target.
+		private double CurrentPhase(Orbit originOrbit, Orbit targetOrbit)
+		{
+			Vector3d vecthis = originOrbit.getRelativePositionAtUT(time);
+			Vector3d vectarget = targetOrbit.getRelativePositionAtUT(time);
+
+			double phase = Angle2d(vecthis, vectarget);
+
+			vecthis = Quaternion.AngleAxis(90.0f, Vector3d.forward) * vecthis;
+
+			if (Angle2d(vecthis, vectarget) > 90.0) phase = 360.0 - phase;
+
+			return (phase + 360.0) % 360.0;
+		}
+
+		// Calculates phase angle for rendezvous between two bodies orbiting same parent
+		private static double DesiredPhase(double vesselAlt, double destAlt, double gravParameter)
+		{
+			double o_alt = vesselAlt;
+
+			double d_alt = destAlt;
+			double u = gravParameter;
+			double th = Math.PI * Math.Sqrt(Math.Pow(o_alt + d_alt, 3.0) / (8.0 * u));
+			double phase = (180.0 - Math.Sqrt(u / d_alt) * (th / d_alt) * (180.0 / Math.PI));
+
+			while (phase < 0.0) phase += 360.0;
+
+			return phase % 360.0;
+		}
+
+		private double GetClosestApproach(CelestialBody target)
+		{
+			/*
+			Orbit closestorbit = new Orbit();
+			closestorbit = getclosestorbit(target);
+			if (closestorbit.referenceBody == target) {
+				closestApproachTime = closestorbit.StartUT + closestorbit.timeToPe;
+				return closestorbit.PeA;
+			}
+			else if (closestorbit.referenceBody == target.referenceBody) {
+				return mindistance(target, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - target.Radius;
+			}
+			else {
+				return mindistance(target, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - target.Radius;
+			}
+			 */
+			return 0.0;
+		}
+
+		// For going from a moon to another planet exploiting oberth effect
+		private double OberthDesiredPhase(Orbit destOrbit)
+		{
+			CelestialBody moon = vessel.mainBody;
+			CelestialBody planet = vessel.mainBody.referenceBody;
+			double planetalt = CalcMeanAlt(planet);
+			double destalt = CalcMeanAlt(destOrbit);
+			double moonalt = CalcMeanAlt(moon);
+			double usun = Planetarium.fetch.Sun.gravParameter;
+			double uplanet = planet.gravParameter;
+			double oberthalt = (planet.Radius + planet.maxAtmosphereAltitude) * 1.05;
+
+			double th1 = Math.PI * Math.Sqrt(Math.Pow(moonalt + oberthalt, 3.0) / (8.0 * uplanet));
+			double th2 = Math.PI * Math.Sqrt(Math.Pow(planetalt + destalt, 3.0) / (8.0 * usun));
+
+			double phase = (180.0 - Math.Sqrt(usun / destalt) * ((th1 + th2) / destalt) * (180.0 / Math.PI));
+
+			while (phase < 0.0) phase += 360.0;
+
+			return phase % 360.0;
+		}
+
 		// Sigh. MechJeb math.
 		private static double GetCurrentThrust(ModuleEngines engine)
 		{
@@ -850,6 +1190,17 @@ namespace JSI
 							targetOrbit.timeToPe : 
 							-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
 					return double.NaN;
+
+				case "TARGETPHASEANGLE":
+					return phaseAngle;
+				case "TARGETPHASEANGLESECS":
+					return timeToPhaseAngle;
+				case "TARGETEJECTIONANGLE":
+					return ejectionAngle;
+				case "TARGETEJECTIONANGLESECS":
+					return timeToEjectionAngle;
+				case "TARGETCLOSESTAPPROACH":
+					return targetClosestApproach;
 
 			// FLight control status
 				case "THROTTLE":
