@@ -83,7 +83,7 @@ namespace JSI
 			Unlocker |= node.HasValue("unlockerPage");
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
-				InternalModule handlerModule;
+				MonoBehaviour handlerModule;
 				HandlerSupportMethods supportMethods;
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
@@ -106,7 +106,7 @@ namespace JSI
 			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
-				InternalModule handlerModule;
+				MonoBehaviour handlerModule;
 				HandlerSupportMethods supportMethods;
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
@@ -176,7 +176,7 @@ namespace JSI
 
 		}
 
-		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out InternalModule moduleInstance, out HandlerSupportMethods support)
+		private static MethodInfo InstantiateHandler(ConfigNode node, RasterPropMonitor ourMonitor, out MonoBehaviour moduleInstance, out HandlerSupportMethods support)
 		{
 			moduleInstance = null;
 			support.activate = null;
@@ -189,15 +189,28 @@ namespace JSI
 				var handlerConfiguration = new ConfigNode("MODULE");
 				node.CopyTo(handlerConfiguration);
 
-				InternalModule thatModule = null;
-				if (node.HasValue("multiHandler"))
+				MonoBehaviour thatModule = null;
+				// Part modules are different in that they remain instantiated when you switch vessels, while the IVA doesn't.
+				// Because of this RPM can't instantiate partmodule-based handlers itself -- there's no way to tell if this was done already or not.
+				// Which means there can only be one instance of such a handler per pod, and it can't receive configuration values from RPM.
+				if (node.HasValue("isPartModule")) {
+					foreach (PartModule potentialModule in ourMonitor.part.Modules) {
+						if (potentialModule.ClassName == moduleName) {
+							thatModule = potentialModule;
+							break;
+						}
+					}
+				} else if (node.HasValue("multiHandler")) {
+
 					foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules)
 						if (potentialModule.ClassName == moduleName) {
 							thatModule = potentialModule;
 							break;
 						}
 
-				if (thatModule == null)
+				}
+
+				if (thatModule == null && !node.HasValue("isPartModule"))
 					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
 
 				if (thatModule == null) {
