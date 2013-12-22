@@ -91,10 +91,7 @@ namespace JSI
 				buttonName = buttonName.Trim();
 			try {
 				GameObject buttonObject;
-				if (thatModel == null)
-					buttonObject = thatProp.FindModelTransform(buttonName).gameObject;
-				else
-					buttonObject = thatModel.FindModelTransform(buttonName).gameObject;
+				buttonObject = thatModel == null ? thatProp.FindModelTransform(buttonName).gameObject : thatModel.FindModelTransform(buttonName).gameObject;
 				SmarterButton thatComponent = buttonObject.GetComponent<SmarterButton>() ?? buttonObject.AddComponent<SmarterButton>();
 				return thatComponent;
 			} catch {
