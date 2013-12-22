@@ -228,8 +228,8 @@ namespace JSI
 
 			} else {
 				if (colorShiftMode) {
-					colorShiftRenderer.material.color = Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor,
-						Mathf.Lerp(scaleResults[0], scaleResults[1], scaleResults[2]));
+					colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor,
+						Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2])));
 				} else {
 					float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
 					if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
