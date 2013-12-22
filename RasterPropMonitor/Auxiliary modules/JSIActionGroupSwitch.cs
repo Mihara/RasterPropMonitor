@@ -145,7 +145,7 @@ namespace JSI
 				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
 				disabledColorValue = ConfigNode.ParseColor32(disabledColor);
 				enabledColorValue = ConfigNode.ParseColor32(enabledColor);
-				colorShiftRenderer.material.SetColor(colorName, (reverse ? enabledColorValue : disabledColorValue));
+				colorShiftRenderer.material.SetColor(colorName, (oldState ^ reverse ? enabledColorValue : disabledColorValue));
 			} else
 				JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
 
