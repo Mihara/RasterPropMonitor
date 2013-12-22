@@ -191,7 +191,7 @@ namespace JSI
 				return;
 
 			if (!startupComplete)
-				JUtil.AnnoyUser(this);
+				return;
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
 			// So there's no check for internal cameras.
@@ -235,6 +235,12 @@ namespace JSI
 				}
 			}
 
+		}
+
+		public void LateUpdate()
+		{
+			if (!startupComplete)
+				JUtil.AnnoyUser(this);
 		}
 	}
 }
