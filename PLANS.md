@@ -24,10 +24,6 @@
 
 # Future targets
 
-## Issues.
-
-* Introduce Visual Enhancements cameras directly into the camera pipeline when (if) they get unique names to find them by.
-
 ## Minor new features
 
 * JSISteerableCamera needs some graphical way of indicating how far did it actually get offset. Some kind of crosshair icon that keeps pointing in the pre-offset direction? Maybe even changes size with zoom?
