@@ -24,6 +24,16 @@ namespace JSI
 		public string switchSound = "Squad/Sounds/sound_click_flick";
 		[KSPField]
 		public float switchSoundVolume = 0.5f;
+		[KSPField]
+		public string coloredObject = string.Empty;
+		[KSPField]
+		public string colorName = "_EmissiveColor";
+		[KSPField]
+		public string disabledColor = string.Empty;
+		private Color disabledColorValue;
+		[KSPField]
+		public string enabledColor = string.Empty;
+		private Color enabledColorValue;
 		// Neater.
 		private readonly Dictionary<string,KSPActionGroup> groupList = new Dictionary<string,KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
@@ -63,6 +73,7 @@ namespace JSI
 		private int lightCheckCountdown;
 		private RasterPropMonitorComputer comp;
 		private bool startupComplete;
+		private Renderer colorShiftRenderer;
 
 		public void Start()
 		{
@@ -129,8 +140,14 @@ namespace JSI
 
 				}
 				anim.Play(animationName);
+			} else if (!string.IsNullOrEmpty(coloredObject)) {
+				// Set up the color shift.
+				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
+				disabledColorValue = ConfigNode.ParseColor32(disabledColor);
+				enabledColorValue = ConfigNode.ParseColor32(enabledColor);
+				colorShiftRenderer.material.SetColor(colorName, (reverse ? enabledColorValue : disabledColorValue));
 			} else
-				JUtil.LogMessage(this, "Warning, animation not defined.");
+				JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
 
 			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 
@@ -197,6 +214,8 @@ namespace JSI
 						anim[animationName].speed = -1f * customSpeed;
 						anim.Play(animationName);
 					}
+				} else if (colorShiftRenderer != null) {
+					colorShiftRenderer.material.SetColor(colorName, (state ^ reverse ? enabledColorValue : disabledColorValue));
 				}
 				oldState = state;
 			}
