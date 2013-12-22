@@ -461,7 +461,6 @@ namespace JSI
 					return "Space high over " + vessel.mainBody.theName;
 			}
 		}
-
 		// This intermediary will cache the results so that multiple variable requests within the frame would not result in duplicated code.
 		// If I actually break down and decide to do expressions, however primitive, this will also be the function responsible.
 		public object ProcessVariable(string input)
@@ -469,7 +468,14 @@ namespace JSI
 			if (resultCache[input] != null)
 				return resultCache[input];
 			bool cacheable;
-			object returnValue = VariableToObject(input, out cacheable);
+			object returnValue;
+			try {
+				returnValue = VariableToObject(input, out cacheable);
+			} catch (Exception e) {
+				JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+				// Most of the variables are doubles...
+				return double.NaN;
+			}
 			if (cacheable) {
 				resultCache.Add(input, returnValue);
 				return resultCache[input];
