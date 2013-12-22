@@ -197,25 +197,55 @@ namespace JSI
 			FetchCommonData();
 		}
 		// Sigh. MechJeb math.
-		private static double GetCurrentThrust(ModuleEngines engine)
+		private static double GetCurrentThrust(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.finalThrust;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.finalThrust;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.finalThrust;
+			}
+			return 0;
 		}
 
-		private static double GetMaximumThrust(ModuleEngines engine)
+		private static double GetMaximumThrust(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.maxThrust;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.maxThrust;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.maxThrust;
+			}
+			return 0;
 		}
 
-		private static double GetRealIsp(ModuleEngines engine)
+		private static double GetRealIsp(PartModule engine)
 		{
-			if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-				return 0;
-			return engine.realIsp;
+			var straightEngine = engine as ModuleEngines;
+			var flippyEngine = engine as ModuleEnginesFX;
+			if (straightEngine != null) {
+				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+					return 0;
+				return straightEngine.realIsp;
+			}
+			if (flippyEngine != null) {
+				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+					return 0;
+				return flippyEngine.realIsp;
+			}
+			return 0;
 		}
 
 		private void FetchCommonData()
@@ -344,12 +374,13 @@ namespace JSI
 					if (!pm.isEnabled)
 						continue;
 					var thatEngineModule = pm as ModuleEngines;
-					if (thatEngineModule != null) {
-						totalCurrentThrust += GetCurrentThrust(thatEngineModule);
-						totalMaximumThrust += GetMaximumThrust(thatEngineModule);
-						double realIsp = GetRealIsp(thatEngineModule);
+					var thatEngineModuleFX = pm as ModuleEnginesFX;
+					if (thatEngineModule != null || thatEngineModuleFX != null) {
+						totalCurrentThrust += GetCurrentThrust(pm);
+						totalMaximumThrust += GetMaximumThrust(pm);
+						double realIsp = GetRealIsp(pm);
 						if (realIsp > 0)
-							averageIspContribution += GetMaximumThrust(thatEngineModule) / realIsp;
+							averageIspContribution += GetMaximumThrust(pm) / realIsp;
 					} 
 				}
 
