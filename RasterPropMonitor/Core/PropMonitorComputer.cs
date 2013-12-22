@@ -129,6 +129,8 @@ namespace JSI
 			{ "NFURANIUM","EnrichedUranium" },
 			{ "NFDEPLETEDURANIUM","DepletedUranium" },
 		};
+		// Processing cache!
+		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 
 		public static RasterPropMonitorComputer Instantiate(InternalProp thatProp)
 		{
@@ -188,6 +190,9 @@ namespace JSI
 
 			if (!UpdateCheck())
 				return;
+
+			// We clear the cache every frame.
+			resultCache.Clear();
 
 			FetchCommonData();
 		}
@@ -457,8 +462,27 @@ namespace JSI
 			}
 		}
 
+		// This intermediary will cache the results so that multiple variable requests within the frame would not result in duplicated code.
+		// If I actually break down and decide to do expressions, however primitive, this will also be the function responsible.
 		public object ProcessVariable(string input)
 		{
+			if (resultCache[input] != null)
+				return resultCache[input];
+			bool cacheable;
+			object returnValue = VariableToObject(input, out cacheable);
+			if (cacheable) {
+				resultCache.Add(input, returnValue);
+				return resultCache[input];
+			}
+			return returnValue;
+		}
+
+		private object VariableToObject(string input, out bool cacheable)
+		{
+
+			// Some variables may not cacheable, because they're meant to be different every time like RANDOM,
+			// or immediate. they will set this flag to false.
+			cacheable = true;
 
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
@@ -883,6 +907,7 @@ namespace JSI
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
+					cacheable = false;
 					return UnityEngine.Random.value;
 				case "PODTEMPERATURE":
 					return part.temperature;
