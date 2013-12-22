@@ -962,7 +962,7 @@ namespace JSI
 					return double.NaN;
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
-				case "GROUNDPROXIMITYALARM":
+				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
 					return (speedVertical < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
 			// SCIENCE!!
