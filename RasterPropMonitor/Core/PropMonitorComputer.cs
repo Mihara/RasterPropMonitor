@@ -46,6 +46,7 @@ namespace JSI
 		private double actualAverageIsp;
 		private double totalDataAmount;
 		private double secondsToImpact;
+		private double bestPossibleSpeedAtImpact;
 		private double localG;
 		private double standardAtmosphere;
 		private double slopeAngle;
@@ -343,9 +344,15 @@ namespace JSI
 					// errors that tend to make secondsToImpact get really big.
 					secondsToImpact = altitude / -speedVertical;
 				}
-			} else
-				secondsToImpact = Double.NaN;
 
+				// This is probably nonsense, but will do for the moment.
+				bestPossibleSpeedAtImpact = speedVertical - Math.Sqrt(2 * (localG - (totalMaximumThrust / totalShipWetMass)) * altitude);
+				if (double.IsNaN(bestPossibleSpeedAtImpact))
+					bestPossibleSpeedAtImpact = 0;
+			} else {
+				secondsToImpact = Double.NaN;
+				bestPossibleSpeedAtImpact = 0;
+			}
 		}
 
 		private void FetchPerPartData()
@@ -965,6 +972,10 @@ namespace JSI
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
 					return (speedVertical < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
+				case "GROUNDPROXIMITYALARM":
+					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
+					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
+
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;
