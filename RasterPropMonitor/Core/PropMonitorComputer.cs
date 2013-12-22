@@ -393,13 +393,15 @@ namespace JSI
 				altitudeTrue = vessel.mainBody.GetAltitude(coM);
 			altitudeBottom = altitudeTrue;
 			if (altitudeTrue < 500d) {
+				double lowestPoint = altitudeASL;
 				foreach (Part p in vessel.parts) {
 					if (p.collider != null) {
 						Vector3d bottomPoint = p.collider.ClosestPointOnBounds(vessel.mainBody.position);
-						double partBottomAlt = vessel.mainBody.GetAltitude(bottomPoint) - altitudeASL;
-						altitudeBottom = Math.Max(0, Math.Min(altitudeBottom, partBottomAlt));
+						double partBottomAlt = vessel.mainBody.GetAltitude(bottomPoint);
+						lowestPoint = Math.Min(lowestPoint, partBottomAlt);
 					}
 				}
+				altitudeBottom = (altitudeTrue - altitudeASL) + lowestPoint;
 			}
 		}
 		// According to C# specification, switch-case is compiled to a constant hash table.
