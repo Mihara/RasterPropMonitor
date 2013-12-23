@@ -145,8 +145,11 @@ namespace JSI
 			float letterSpanY = 1f / fontLettersY;
 			int lastCharacter = fontLettersX * fontLettersY;
 
+			if (lastCharacter != fontDefinitionString.Length) {
+				JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
+			}
 
-			for (int i = 0; i < fontDefinitionString.Length; i++) {
+			for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++) {
 				int xSource = i % fontLettersX;
 				int ySource = (i - xSource) / fontLettersX;
 				if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
