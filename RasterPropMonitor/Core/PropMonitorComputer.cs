@@ -1001,7 +1001,7 @@ namespace JSI
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
+					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 50).GetHashCode();
 				case "GROUNDPROXIMITYALARM":
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
