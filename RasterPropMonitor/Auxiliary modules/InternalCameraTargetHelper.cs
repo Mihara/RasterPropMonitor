@@ -26,8 +26,13 @@ namespace JSI
 			if (wasOutsideOnPreviousFrame && referencePart != null && referencePart.vessel == vessel) {
 				referencePart.MakeReferencePart();
 			}
-			referencePart = vessel.GetReferenceTransformPart();
-			wasOutsideOnPreviousFrame = false;
+			if (!GameSettings.CAMERA_NEXT.GetKey()) {
+				referencePart = vessel.GetReferenceTransformPart();
+				wasOutsideOnPreviousFrame = false;
+			} else {
+				wasOutsideOnPreviousFrame = true;
+			}
+
 		}
 
 		public void LateUpdate()
