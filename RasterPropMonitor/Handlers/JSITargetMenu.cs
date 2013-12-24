@@ -612,13 +612,7 @@ namespace JSI
 		{
 			// This is going to get complicated...
 			if (referencePoints[index].part != vessel.GetReferenceTransformPart()) {
-				var thatNode = referencePoints[index] as ModuleDockingNode;
-				var thatPod = referencePoints[index] as ModuleCommand;
-				if (thatNode != null) {
-					thatNode.MakeReferenceTransform();
-				} else if (thatPod != null) {
-					thatPod.MakeReference();
-				}
+				referencePoints[index].part.MakeReferencePart();
 			}
 			activeMenu.SetSelected(index, true);
 
