@@ -658,6 +658,8 @@ namespace JSI
 					return altitudeTrue;
 				case "ALTITUDEBOTTOM":
 					return altitudeBottom;
+				case "TERRAINHEIGHT":
+					return altitudeASL - altitudeTrue;
 
 			// Atmospheric values
 				case "ATMPRESSURE":
