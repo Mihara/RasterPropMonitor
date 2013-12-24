@@ -29,6 +29,7 @@
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
 * Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
 * Undocking menu.
+* cameraTransform should be a list of prospective transform names to try.
 
 ## Major new features
 
