@@ -316,7 +316,7 @@ namespace JSI
 				if (targetBody == vessel.mainBody)
 					approachSpeed = speedVertical;
 				// In all other cases, that should work. I think.
-				approachSpeed = Vector3d.Cross(velocityVesselOrbit,target.GetOrbit().GetVel()).magnitude;
+				approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
