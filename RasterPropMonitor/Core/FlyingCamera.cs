@@ -14,6 +14,8 @@ namespace JSI
 		private readonly float cameraAspect;
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
+		private bool isReferenceCamera;
+		private const string referenceCamera = "CurrentReferenceDockingPortCamera";
 
 		public float FOV { get; set; }
 
@@ -30,6 +32,37 @@ namespace JSI
 			CleanupCameraObjects();
 			if (!string.IsNullOrEmpty(newCameraName)) {
 				FOV = initialFOV;
+
+				if (newCameraName == referenceCamera) {
+					PointToReferenceCamera();
+					JUtil.LogMessage(this, "Tracking reference point docking port camera.");
+				} else {
+					CreateCameraObjects(newCameraName);
+				}
+			}
+		}
+
+		private void PointToReferenceCamera()
+		{
+			isReferenceCamera = true;
+			ModuleDockingNode thatPort = null;
+			foreach (PartModule thatModule in ourVessel.GetReferenceTransformPart().Modules) {
+				thatPort = thatModule as ModuleDockingNode;
+				if (thatPort != null)
+					break;
+			}
+			if (thatPort != null) {
+				cameraPart = thatPort.part;
+				cameraTransform = ourVessel.ReferenceTransform.gameObject;
+				CreateCameraObjects();
+			}
+		}
+
+		private void CreateCameraObjects(string newCameraName = null)
+		{
+
+			if (!string.IsNullOrEmpty(newCameraName)) {
+				isReferenceCamera = false;
 				// First, we search our own part for this camera transform,
 				// only then we search all other parts of the vessel.
 				if (!LocateCamera(ourPart, newCameraName))
@@ -37,21 +70,21 @@ namespace JSI
 						if (LocateCamera(thatpart, newCameraName))
 							break;
 					}
-
-				if (cameraTransform != null) {
-					CameraSetup(0, "Camera ScaledSpace");
-					// These two cameras are created by Visual Enhancements mod.
-					// I'm still not completely satisfied with the look, but it's definitely an improvement.
-					CameraSetup(1, "Camera VE Underlay");
-					CameraSetup(2, "Camera VE Overlay");
-					CameraSetup(3, "Camera 01");
-					CameraSetup(4, "Camera 00");
-					enabled = true;
-					JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
-					return;
-				} 
-				JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
 			}
+			if (cameraTransform != null) {
+				CameraSetup(0, "Camera ScaledSpace");
+				// These two cameras are created by Visual Enhancements mod.
+				// I'm still not completely satisfied with the look, but it's definitely an improvement.
+				CameraSetup(1, "Camera VE Underlay");
+				CameraSetup(2, "Camera VE Overlay");
+				CameraSetup(3, "Camera 01");
+				CameraSetup(4, "Camera 00");
+				enabled = true;
+				JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
+				return;
+			} 
+			JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
+
 		}
 
 		private void CleanupCameraObjects()
@@ -121,6 +154,14 @@ namespace JSI
 
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
+
+			if (isReferenceCamera) {
+				if (cameraTransform != ourVessel.ReferenceTransform.gameObject) {
+					CleanupCameraObjects();
+					PointToReferenceCamera();
+				}
+			}
+
 			if (!enabled)
 				return false;
 
@@ -131,6 +172,12 @@ namespace JSI
 
 			Quaternion rotation = cameraTransform.transform.rotation;
 			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
+
+			if (isReferenceCamera) {
+				// Reference transforms of docking ports have the wrong orientation, so need an extra rotation applied before that.
+				rotation *= Quaternion.Euler(-90, 0, 0);
+			}
+
 			rotation = rotation * offset;
 
 

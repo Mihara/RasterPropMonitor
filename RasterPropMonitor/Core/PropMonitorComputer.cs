@@ -967,6 +967,8 @@ namespace JSI
 							return -1d;
 					}
 					return double.NaN;
+				case "ISPODREFERENCE":
+					return (vessel.GetReferenceTransformPart() == part).GetHashCode();
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":

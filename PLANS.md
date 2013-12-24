@@ -1,8 +1,6 @@
 # 0.12 milestone targets
 
-## Minor new features
-
-* A "follow reference" mode for cameras: A special option for PAGE that, instead of looking for a specific camera transform, finds the reference part, determines if it's a docking node, and if it is, places the camera on it's reference transform, otherwise shows no camera -- so that particular page always shows the view from the currently active docking port. This is proving to be much messier than I want...
+* Testing for Christmas release!
 
 # 0.13 milestone targets
 
