@@ -54,6 +54,12 @@ namespace SCANsatRPM
 		public string iconColorShadow = string.Empty;
 		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
 		[KSPField]
+		public string iconColorAP = string.Empty;
+		private Color iconColorAPValue = new Color(0f, 1f, 0f, 0.5f);
+		[KSPField]
+		public string iconColorPE = string.Empty;
+		private Color iconColorPEValue = new Color(1f, 0f, 0f, 0.5f);
+		[KSPField]
 		public string trailColor = string.Empty;
 		private Color trailColorValue = new Color(0f, 0f, 1f, 0.6f);
 		[KSPField]
@@ -99,11 +105,22 @@ namespace SCANsatRPM
 		private double trailCounter;
 		private Rect screenSpace;
 		private bool pageActiveState;
+		private double start;
 		private readonly List<MapMarkupLine> mapMarkup = new List<MapMarkupLine>();
 		private readonly Color scaleTint = new Color(0.5f, 0.5f, 0.5f, 0.5f);
 		// Neutral tint.
 		private bool satFound;
 		private bool startupComplete;
+
+		private enum OtherIcon
+		{
+			None,
+			PE,
+			AP,
+			AN,
+			DN,
+			NODE,
+		}
 
 		private bool TestForActiveSCANsat()
 		{
@@ -153,6 +170,8 @@ namespace SCANsatRPM
 				return false;
 			}
 
+			start = Planetarium.GetUniversalTime();
+
 			Graphics.Blit(map.map, screen);
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenWidth, screenHeight, 0);
@@ -181,16 +200,65 @@ namespace SCANsatRPM
 				if (showLines && JUtil.OrbitMakesSense(targetVessel))
 					DrawOrbit(targetVessel, iconColorTargetValue);
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTargetValue);
+				if (showLines) {
+					DrawOrbitIcon(targetVessel, OtherIcon.AP, iconColorAPValue);
+					DrawOrbitIcon(targetVessel, OtherIcon.PE, iconColorPEValue);
+				}
+
 			}
 			// Own orbit goes above that.
-			if (showLines && JUtil.OrbitMakesSense(vessel))
+			if (showLines && JUtil.OrbitMakesSense(vessel)) {
 				DrawOrbit(vessel, iconColorSelfValue);
+				DrawOrbitIcon(vessel, OtherIcon.AP, iconColorAPValue);
+				DrawOrbitIcon(vessel, OtherIcon.PE, iconColorPEValue);
+			}
 			// Own icon goes above that
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelfValue);
 			// And scale goes above everything.
 			DrawScale();
+
 			GL.PopMatrix();
 
+			return true;
+		}
+
+		private void DrawOrbitIcon(Vessel thatVessel, OtherIcon iconType, Color iconColor)
+		{
+			double timePoint = start;
+			switch (iconType) {
+				case OtherIcon.AP:
+					timePoint += thatVessel.orbit.timeToAp;
+					break;
+				case OtherIcon.PE:
+					timePoint += thatVessel.orbit.timeToPe;
+					break;
+			}
+
+			if (JUtil.OrbitMakesSense(thatVessel)) {
+				bool collision;
+				Vector2d coord;
+				if (GetPositionAtT(thatVessel, start, timePoint, out coord, out collision) && !collision) {
+					DrawIcon(coord.x, coord.y, thatVessel.vesselType, iconColor, iconType);
+				}
+			}
+		}
+
+		private static bool GetPositionAtT(Vessel thatVessel, double initial, double timePoint, out Vector2d coordinates, out bool collision)
+		{
+			coordinates = Vector2d.zero;
+			collision = false;
+			if (double.IsNaN(thatVessel.orbit.getObtAtUT(initial + timePoint)))
+				return false;
+			double rotOffset = 0;
+			if (thatVessel.mainBody.rotates) {
+				rotOffset = (360 * ((timePoint - initial) / thatVessel.mainBody.rotationPeriod)) % 360;
+			}
+			Vector3d pos = thatVessel.orbit.getPositionAtUT(timePoint);
+			if (thatVessel.orbit.Radius(timePoint) < thatVessel.mainBody.Radius + thatVessel.mainBody.TerrainAltitude(pos)) {
+				collision = true;
+				return false;
+			}
+			coordinates = new Vector2d(thatVessel.mainBody.GetLongitude(pos) - rotOffset, thatVessel.mainBody.GetLatitude(pos));
 			return true;
 		}
 
@@ -198,19 +266,15 @@ namespace SCANsatRPM
 		{
 			if (orbitPoints == 0)
 				return;
-			double start = Planetarium.GetUniversalTime();
 			double dTstep = Math.Floor(thatVessel.orbit.period / orbitPoints);
 			var points = new List<Vector2d>();
 			for (double timePoint = start; timePoint < (start + thatVessel.orbit.period); timePoint += dTstep) {
-				double rotOffset = 0;
-				if (thatVessel.mainBody.rotates) {
-					rotOffset = (360 * ((timePoint - start) / thatVessel.mainBody.rotationPeriod)) % 360;
-				}
-				Vector3d pos = thatVessel.orbit.getPositionAtUT(timePoint);
-				// So the orbit ends no later than you would hit the ground.
-				if (thatVessel.orbit.Radius(timePoint) < thatVessel.mainBody.Radius + thatVessel.mainBody.TerrainAltitude(pos))
+				bool collision;
+				Vector2d coord;
+				if (GetPositionAtT(thatVessel, start, timePoint, out coord, out collision))
+					points.Add(coord);
+				if (collision)
 					break;
-				points.Add(new Vector2d(thatVessel.mainBody.GetLongitude(pos) - rotOffset, thatVessel.mainBody.GetLatitude(pos)));
 			}
 			DrawTrail(points, thatColor, Vector2d.zero, false);
 		}
@@ -312,7 +376,7 @@ namespace SCANsatRPM
 			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0, scaleTint);
 		}
 
-		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor)
+		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor, OtherIcon icon = OtherIcon.None)
 		{
 			var position = new Rect((float)(longitudeToPixels(longitude, latitude) - iconPixelSize / 2),
 				               (float)(latitudeToPixels(longitude, latitude) - iconPixelSize / 2),
@@ -323,10 +387,10 @@ namespace SCANsatRPM
 			shadow.y += iconShadowShift.y;
 
 			iconMaterial.color = iconColorShadowValue;
-			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 
 			iconMaterial.color = iconColor;
-			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 		}
 
 		private double longitudeToPixels(double longitude, double latitude)
@@ -368,55 +432,81 @@ namespace SCANsatRPM
 			return value;
 		}
 
-		private static Rect VesselTypeIcon(VesselType type)
+		private static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
 		{
-			int x, y;
+			int x = 0;
+			int y = 0;
 			const float symbolSpan = 0.2f;
-			switch (type) {
-				case VesselType.Base:
-					x = 2;
-					y = 0;
-					break;
-				case VesselType.Debris:
-					x = 1;
-					y = 3;
-					break;
-				case VesselType.EVA:
-					x = 2;
-					y = 2;
-					break;
-				case VesselType.Flag:
-					x = 4;
-					y = 0;
-					break;
-				case VesselType.Lander:
-					x = 3;
-					y = 0;
-					break;
-				case VesselType.Probe:
-					x = 1;
-					y = 0;
-					break;
-				case VesselType.Rover:
-					x = 0;
-					y = 0;
-					break;
-				case VesselType.Ship:
-					x = 0;
-					y = 3;
-					break;
-				case VesselType.Station:
-					x = 3;
-					y = 1;
-					break;
-				case VesselType.Unknown:
-					x = 3;
-					y = 3;
-					break;
-				default:
-					x = 3;
-					y = 2;
-					break;
+			if (icon != OtherIcon.None) {
+				switch (icon) {
+					case OtherIcon.AP:
+						x = 1;
+						y = 4;
+						break;
+					case OtherIcon.PE:
+						x = 0;
+						y = 4;
+						break;
+					case OtherIcon.AN:
+						x = 2;
+						y = 4;
+						break;
+					case OtherIcon.DN:
+						x = 3;
+						y = 4;
+						break;
+					case OtherIcon.NODE:
+						x = 2;
+						y = 1;
+						break;
+				}
+			} else {
+				switch (type) {
+					case VesselType.Base:
+						x = 2;
+						y = 0;
+						break;
+					case VesselType.Debris:
+						x = 1;
+						y = 3;
+						break;
+					case VesselType.EVA:
+						x = 2;
+						y = 2;
+						break;
+					case VesselType.Flag:
+						x = 4;
+						y = 0;
+						break;
+					case VesselType.Lander:
+						x = 3;
+						y = 0;
+						break;
+					case VesselType.Probe:
+						x = 1;
+						y = 0;
+						break;
+					case VesselType.Rover:
+						x = 0;
+						y = 0;
+						break;
+					case VesselType.Ship:
+						x = 0;
+						y = 3;
+						break;
+					case VesselType.Station:
+						x = 3;
+						y = 1;
+						break;
+					case VesselType.Unknown:
+						x = 3;
+						y = 3;
+						break;
+					default:
+						x = 3;
+						y = 2;
+						break;
+				}
 			}
 			var result = new Rect();
 			result.x = symbolSpan * x;
@@ -581,6 +671,10 @@ namespace SCANsatRPM
 				iconColorVisitedAnomalyValue = ConfigNode.ParseColor32(iconColorVisitedAnomaly);
 			if (!string.IsNullOrEmpty(iconColorShadow))
 				iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
+			if (!string.IsNullOrEmpty(iconColorAP))
+				iconColorAPValue = ConfigNode.ParseColor32(iconColorAP);
+			if (!string.IsNullOrEmpty(iconColorPE))
+				iconColorPEValue = ConfigNode.ParseColor32(iconColorPE);
 			if (!string.IsNullOrEmpty(trailColor))
 				trailColorValue = ConfigNode.ParseColor32(trailColor);
 

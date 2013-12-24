@@ -25,8 +25,13 @@ namespace JSI
 		private Vector3d velocityVesselOrbit;
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
+		private double speedVerticalRounded;
+		private double horzVelocity;
 		private ITargetable target;
+		private ModuleDockingNode targetDockingNode;
+		private double targetDistance;
 		private Vector3d targetSeparation;
+		private double approachSpeed;
 		private Quaternion targetOrientation;
 		private ManeuverNode node;
 		private double time;
@@ -46,6 +51,7 @@ namespace JSI
 		private double actualAverageIsp;
 		private double totalDataAmount;
 		private double secondsToImpact;
+		private double bestPossibleSpeedAtImpact;
 		private double localG;
 		private double standardAtmosphere;
 		private double slopeAngle;
@@ -603,10 +609,13 @@ namespace JSI
 			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 
 			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
+			speedVerticalRounded = Math.Ceiling(speedVertical * 20) / 20;
 			target = FlightGlobals.fetch.VesselTarget;
 			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
+
+			horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
 
 			atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
 			dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
@@ -618,6 +627,9 @@ namespace JSI
 				var targetVessel = target as Vessel;
 
 				targetBody = target as CelestialBody;	
+				targetDockingNode = target as ModuleDockingNode;
+
+				targetDistance = Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
 
 				// This is kind of messy.
 				targetOrbitSensibility = false;
@@ -626,7 +638,7 @@ namespace JSI
 
 				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
-				if (target is ModuleDockingNode)
+				if (targetDockingNode != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
 
 				if (targetOrbitSensibility)
@@ -640,10 +652,18 @@ namespace JSI
 					velocityRelativeTarget = vessel.orbit.GetVel();
 				}
 
+				// If our target is somehow our own celestial body, approach speed is equal to vertical speed.
+				if (targetBody == vessel.mainBody)
+					approachSpeed = speedVertical;
+				// In all other cases, that should work. I think.
+				approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
+				targetDistance = 0;
+				approachSpeed = 0;
 				targetBody = null;
+				targetDockingNode = null;
 				targetOrientation = vessel.GetTransform().rotation;
 				targetOrbitSensibility = false;
 			}
@@ -683,9 +703,15 @@ namespace JSI
 					// errors that tend to make secondsToImpact get really big.
 					secondsToImpact = altitude / -speedVertical;
 				}
-			} else
-				secondsToImpact = Double.NaN;
 
+				// This is probably nonsense, but will do for the moment.
+				bestPossibleSpeedAtImpact = speedVertical - Math.Sqrt(2 * (localG - (totalMaximumThrust / totalShipWetMass)) * altitude);
+				if (double.IsNaN(bestPossibleSpeedAtImpact))
+					bestPossibleSpeedAtImpact = 0;
+			} else {
+				secondsToImpact = Double.NaN;
+				bestPossibleSpeedAtImpact = 0;
+			}
 		}
 
 		private void FetchPerPartData()
@@ -925,6 +951,8 @@ namespace JSI
 			// Speeds.
 				case "VERTSPEED":
 					return speedVertical;
+				case "VERTSPEEDROUNDED":
+					return speedVerticalRounded;
 				case "SURFSPEED":
 					return velocityVesselSurface.magnitude;
 				case "ORBTSPEED":
@@ -932,9 +960,11 @@ namespace JSI
 				case "TRGTSPEED":
 					return velocityRelativeTarget.magnitude;
 				case "HORZVELOCITY":
-					return (velocityVesselSurface - (speedVertical * up)).magnitude;
+					return horzVelocity;
 				case "EASPEED":
 					return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
+				case "APPROACHSPEED":
+					return approachSpeed;
 				case "SELECTEDSPEED":
 					switch (FlightUIController.speedDisplayMode) {
 						case FlightUIController.SpeedDisplayModes.Orbit:
@@ -1116,7 +1146,7 @@ namespace JSI
 					return target.GetName().Replace('\n', ' ');
 				case "TARGETDISTANCE":
 					if (target != null)
-						return Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
+						return targetDistance;
 					return -1d;
 				case "RELATIVEINCLINATION":
 					// MechJeb's targetables don't have orbits.
@@ -1183,7 +1213,6 @@ namespace JSI
 			// TODO: I probably should return something else for vessels. But not sure what exactly right now.
 				case "TARGETANGLEX":
 					if (target != null) {
-						var targetDockingNode = target as ModuleDockingNode;
 						if (targetDockingNode != null)
 							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
 						if (target is Vessel)
@@ -1193,7 +1222,6 @@ namespace JSI
 					return 0d;
 				case "TARGETANGLEY":
 					if (target != null) {
-						var targetDockingNode = target as ModuleDockingNode;
 						if (targetDockingNode != null)
 							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right);
 						if (target is Vessel) {
@@ -1204,7 +1232,6 @@ namespace JSI
 					return 0d;
 				case "TARGETANGLEZ":
 					if (target != null) {
-						var targetDockingNode = target as ModuleDockingNode;
 						if (targetDockingNode != null)
 							return JUtil.NormalAngle(targetDockingNode.GetTransform().up, up, -forward);
 						if (target is Vessel) {
@@ -1311,11 +1338,38 @@ namespace JSI
 							return -1d;
 					}
 					return double.NaN;
+				case "ISDOCKINGPORTREFERENCE":
+					ModuleDockingNode thatPort = null;
+					foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+						thatPort = thatModule as ModuleDockingNode;
+						if (thatPort != null)
+							break;
+					}
+					if (thatPort != null)
+						return 1d;
+					return 0d;
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVertical < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
+					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 50).GetHashCode();
+				case "GROUNDPROXIMITYALARM":
+					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
+					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
+				case "TUMBLEALARM":
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
+				case "SLOPEALARM":
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 10).GetHashCode();
+				case "DOCKINGANGLEALARM":
+					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
+					(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5 ||
+					JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5)).GetHashCode();
+				case "DOCKINGSPEEDALARM":
+					return (targetDockingNode != null && approachSpeed > 3 && targetDistance < 10).GetHashCode();
+				case "ALTITUDEALARM":
+					return (speedVerticalRounded < 0 && altitudeTrue < 100).GetHashCode();
+					
+
 			// SCIENCE!!
 				case "SCIENCEDATA":
 					return totalDataAmount;

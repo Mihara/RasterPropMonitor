@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace JSI
 {
@@ -48,10 +50,10 @@ namespace JSI
 		private Color defaultFontTintValue = Color.white;
 		[KSPField]
 		public string noSignalTextureURL = string.Empty;
+		[KSPField]
+		public string fontDefinition = string.Empty;
 		// This needs to be public so that pages can point it.
 		public FlyingCamera CameraStructure;
-		// Some things in life are constant;
-		private const int firstCharacter = 32;
 		// Internal stuff.
 		private readonly List<Texture2D> fontTexture = new List<Texture2D>();
 		private RenderTexture screenTexture;
@@ -72,15 +74,16 @@ namespace JSI
 		private PersistenceAccessor persistence;
 		private string persistentVarName;
 		private string[] screenBuffer;
-		private Rect[] fontCharacters;
+		private readonly Dictionary<char,Rect> fontCharacters = new Dictionary<char,Rect>();
 		private FXGroup audioOutput;
 		private double electricChargeReserve;
 		public Texture2D noSignalTexture;
-		private readonly DefaultableDictionary<int,bool> characterWarnings = new DefaultableDictionary<int, bool>(false);
+		private readonly DefaultableDictionary<char,bool> characterWarnings = new DefaultableDictionary<char, bool>(false);
 		private float fontLetterHalfHeight;
 		private float fontLetterHalfWidth;
 		private float fontLetterDoubleWidth;
-		private bool startupCompleted;
+		private bool startupComplete;
+		private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
 
 		private enum Script
 		{
@@ -129,6 +132,11 @@ namespace JSI
 			if (!string.IsNullOrEmpty(defaultFontTint))
 				defaultFontTintValue = ConfigNode.ParseColor32(defaultFontTint);
 
+			if (!string.IsNullOrEmpty(fontDefinition)) {
+				JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
+				fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
+			}
+
 			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
 			// although I'm not sure I'm not seeing things by this point.
 			int fontLettersX = (fontTexture[0].width / fontLetterWidth);
@@ -137,12 +145,15 @@ namespace JSI
 			float letterSpanY = 1f / fontLettersY;
 			int lastCharacter = fontLettersX * fontLettersY;
 
-			fontCharacters = new Rect[lastCharacter + 1];
-			for (int i = 0; i < lastCharacter; i++) {
+			if (lastCharacter != fontDefinitionString.Length) {
+				JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
+			}
+
+			for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++) {
 				int xSource = i % fontLettersX;
 				int ySource = (i - xSource) / fontLettersX;
-
-				fontCharacters[i] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
+				if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
+					fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
 			}
 
 			// And a little optimisation for superscript/subscript:
@@ -220,7 +231,7 @@ namespace JSI
 			}
 
 			audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
-			startupCompleted = true;
+			startupComplete = true;
 		}
 
 		private static void PlayClickSound(FXGroup audioOutput)
@@ -267,36 +278,28 @@ namespace JSI
 
 		private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
 		{
-			int charCode = (ushort)letter;
-			// Clever bit.
-			if (charCode >= 128)
-				charCode -= 32;
 
-			charCode -= firstCharacter;
-
-			if ((charCode < 0 || charCode >= fontCharacters.Length)) {
-				if (!characterWarnings[charCode]) {
-					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font, raw value \"{1}\"",
-						letter.ToString(), Convert.ToUInt16(letter));
-					characterWarnings[charCode] = true;
+			if (fontCharacters.ContainsKey(letter)) {
+				// This is complicated.
+				// The destination rectangle has coordinates given in pixels, from top left corner of the texture.
+				// The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
+				// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
+				Graphics.DrawTexture(
+					new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y, 
+						(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
+						(scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
+					fontTexture[fontTextureIndex],
+					fontCharacters[letter],
+					0, 0, 0, 0,
+					letterColor
+				);
+			} else {
+				if (!characterWarnings[letter]) {
+					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font.",
+						letter.ToString());
+					characterWarnings[letter] = true;
 				}
-				return;
 			}
-
-			// This is complicated.
-			// The destination rectangle has coordinates given in pixels, from top left corner of the texture.
-			// The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
-			// And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
-			Graphics.DrawTexture(
-				new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y, 
-					(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
-					(scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
-				fontTexture[fontTextureIndex],
-				fontCharacters[charCode],
-				0, 0, 0, 0,
-				letterColor
-			);
-
 		}
 		// Update according to the given refresh rate.
 		private bool UpdateCheck()
@@ -491,9 +494,6 @@ namespace JSI
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			if (!startupCompleted)
-				JUtil.AnnoyUser(this);
-
 			if (!activePage.isMutable) { 
 				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 				if (!firstRenderComplete) {
@@ -512,6 +512,12 @@ namespace JSI
 				firstRenderComplete = false;
 			}
 
+		}
+
+		public void LateUpdate()
+		{
+			if (JUtil.VesselIsInIVA(vessel) && !startupComplete)
+				JUtil.AnnoyUser(this);
 		}
 	}
 }
