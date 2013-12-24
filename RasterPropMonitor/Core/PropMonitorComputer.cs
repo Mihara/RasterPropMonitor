@@ -30,6 +30,7 @@ namespace JSI
 		private ModuleDockingNode targetDockingNode;
 		private double targetDistance;
 		private Vector3d targetSeparation;
+		private double approachSpeed;
 		private Quaternion targetOrientation;
 		private ManeuverNode node;
 		private double time;
@@ -309,10 +310,16 @@ namespace JSI
 					velocityRelativeTarget = vessel.orbit.GetVel();
 				}
 
+				// If our target is somehow our own celestial body, approach speed is equal to vertical speed.
+				if (targetBody == vessel.mainBody)
+					approachSpeed = speedVertical;
+				// In all other cases, that should work. I think.
+				approachSpeed = Vector3d.Dot(velocityVesselOrbit,target.GetOrbit().GetVel());
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
 				targetDistance = 0;
+				approachSpeed = 0;
 				targetBody = null;
 				targetDockingNode = null;
 				targetOrientation = vessel.GetTransform().rotation;
@@ -614,6 +621,8 @@ namespace JSI
 					return horzVelocity;
 				case "EASPEED":
 					return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
+				case "APPROACHSPEED":
+					return approachSpeed;
 				case "SELECTEDSPEED":
 					switch (FlightUIController.speedDisplayMode) {
 						case FlightUIController.SpeedDisplayModes.Orbit:
@@ -1002,6 +1011,8 @@ namespace JSI
 					return (targetDockingNode != null && targetDistance < 10 &&
 					(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5 ||
 					JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5)).GetHashCode();
+				case "DOCKINGSPEEDALARM":
+					return (targetDockingNode != null && approachSpeed > 3 && targetDistance < 10).GetHashCode();
 					
 
 			// SCIENCE!!
