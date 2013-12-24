@@ -23,7 +23,7 @@ namespace JSI
 			needsRestoring = false;
 
 			// Restoring reference.
-			if (wasOutsideOnPreviousFrame && referencePart != null && referencePart.vessel == vessel) {
+			if (wasOutsideOnPreviousFrame && referencePart != null && referencePart.vessel == vessel && vessel.GetReferenceTransformPart() == part) {
 				referencePart.MakeReferencePart();
 			}
 			if (!GameSettings.CAMERA_NEXT.GetKey()) {
@@ -37,7 +37,7 @@ namespace JSI
 
 		public void LateUpdate()
 		{
-			if (!JUtil.VesselIsInIVA(vessel))
+			if (!JUtil.VesselIsInIVA(vessel)) 
 				return;
 
 			needsRestoring |= Mouse.Left.GetDoubleClick();
