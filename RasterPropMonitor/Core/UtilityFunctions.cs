@@ -11,16 +11,18 @@ namespace JSI
 	{
 		public static void MakeReferencePart(this Part thatPart)
 		{
-			foreach (PartModule thatModule in thatPart.Modules) {
-				var thatNode = thatModule as ModuleDockingNode;
-				var thatPod = thatModule as ModuleCommand;
-				if (thatNode != null) {
-					thatNode.MakeReferenceTransform();
-					break;
-				}
-				if (thatPod != null) {
-					thatPod.MakeReference();
-					break;
+			if (thatPart != null) {
+				foreach (PartModule thatModule in thatPart.Modules) {
+					var thatNode = thatModule as ModuleDockingNode;
+					var thatPod = thatModule as ModuleCommand;
+					if (thatNode != null) {
+						thatNode.MakeReferenceTransform();
+						break;
+					}
+					if (thatPod != null) {
+						thatPod.MakeReference();
+						break;
+					}
 				}
 			}
 		}
