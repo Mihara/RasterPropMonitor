@@ -25,6 +25,7 @@ namespace JSI
 		private Vector3d velocityVesselOrbit;
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
+		private double speedVerticalRounded;
 		private double horzVelocity;
 		private ITargetable target;
 		private ModuleDockingNode targetDockingNode;
@@ -268,6 +269,7 @@ namespace JSI
 			velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 
 			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
+			speedVerticalRounded = Math.Ceiling(speedVertical * 20) / 20;
 			target = FlightGlobals.fetch.VesselTarget;
 			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
 			time = Planetarium.GetUniversalTime();
@@ -314,7 +316,7 @@ namespace JSI
 				if (targetBody == vessel.mainBody)
 					approachSpeed = speedVertical;
 				// In all other cases, that should work. I think.
-				approachSpeed = Vector3d.Dot(velocityVesselOrbit,target.GetOrbit().GetVel());
+				approachSpeed = Vector3d.Cross(velocityVesselOrbit,target.GetOrbit().GetVel()).magnitude;
 			} else {
 				velocityRelativeTarget = targetSeparation = Vector3d.zero;
 				targetOrbit = null;
@@ -610,7 +612,7 @@ namespace JSI
 				case "VERTSPEED":
 					return speedVertical;
 				case "VERTSPEEDROUNDED":
-					return Math.Ceiling(speedVertical * 20) / 20;
+					return speedVerticalRounded;
 				case "SURFSPEED":
 					return velocityVesselSurface.magnitude;
 				case "ORBTSPEED":
@@ -999,20 +1001,22 @@ namespace JSI
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVertical < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
+					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeTrue < 50).GetHashCode();
 				case "GROUNDPROXIMITYALARM":
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
 				case "TUMBLEALARM":
-					return (speedVertical < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
 				case "SLOPEALARM":
-					return (speedVertical < 0 && altitudeTrue < 100 && slopeAngle > 10).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 10).GetHashCode();
 				case "DOCKINGANGLEALARM":
 					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
 					(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5 ||
 					JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5)).GetHashCode();
 				case "DOCKINGSPEEDALARM":
 					return (targetDockingNode != null && approachSpeed > 3 && targetDistance < 10).GetHashCode();
+				case "ALTITUDEALARM":
+					return (speedVerticalRounded < 0 && altitudeTrue < 100).GetHashCode();
 					
 
 			// SCIENCE!!
