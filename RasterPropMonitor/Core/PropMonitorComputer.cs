@@ -967,8 +967,14 @@ namespace JSI
 							return -1d;
 					}
 					return double.NaN;
-				case "ISPODREFERENCE":
-					return (vessel.GetReferenceTransformPart() == part).GetHashCode();
+				case "ISDOCKINGPORTREFERENCE":
+					ModuleDockingNode thatPort = null;
+					foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+						thatPort = thatModule as ModuleDockingNode;
+						if (thatPort != null)
+							break;
+					}
+					return (thatPort != null).GetHashCode();
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
