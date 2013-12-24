@@ -239,7 +239,7 @@ namespace JSI
 
 		public void LateUpdate()
 		{
-			if (!startupComplete)
+			if (JUtil.IsActiveVessel(vessel) && !startupComplete)
 				JUtil.AnnoyUser(this);
 		}
 	}

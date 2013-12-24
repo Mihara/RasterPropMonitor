@@ -82,7 +82,7 @@ namespace JSI
 		private float fontLetterHalfHeight;
 		private float fontLetterHalfWidth;
 		private float fontLetterDoubleWidth;
-		private bool startupCompleted;
+		private bool startupComplete;
 		private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
 
 		private enum Script
@@ -231,7 +231,7 @@ namespace JSI
 			}
 
 			audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
-			startupCompleted = true;
+			startupComplete = true;
 		}
 
 		private static void PlayClickSound(FXGroup audioOutput)
@@ -494,9 +494,6 @@ namespace JSI
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			if (!startupCompleted)
-				JUtil.AnnoyUser(this);
-
 			if (!activePage.isMutable) { 
 				// In case the page is empty and has no camera, the screen is treated as turned off and blanked once.
 				if (!firstRenderComplete) {
@@ -515,6 +512,12 @@ namespace JSI
 				firstRenderComplete = false;
 			}
 
+		}
+
+		public void LateUpdate()
+		{
+			if (JUtil.VesselIsInIVA(vessel) && !startupComplete)
+				JUtil.AnnoyUser(this);
 		}
 	}
 }

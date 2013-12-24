@@ -55,12 +55,15 @@ namespace JSI
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			if (!startupComplete)
-				JUtil.AnnoyUser(this);
-
 			foreach (VariableAnimationSet unit in variableSets) {
 				unit.Update();
 			}
+		}
+
+		public void LateUpdate()
+		{
+			if (JUtil.VesselIsInIVA(vessel) && !startupComplete)
+				JUtil.AnnoyUser(this);
 		}
 	}
 
