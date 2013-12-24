@@ -27,6 +27,8 @@
 * Should I introduce TGT+/TGT- markers into PFD instead of mode switching? Come to think of it, can I do REL+/REL- markers too?
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
+* Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
+* Undocking menu.
 
 ## Major new features
 
