@@ -213,6 +213,30 @@ namespace JSI
 					}
 				}
 			}
+			/*
+			var availablePorts = new List<ModuleDockingNode>();
+			foreach (Part thatPart in thatVessel.parts) {
+				foreach (PartModule thatModule in thatPart.Modules) {
+					var thatPort = thatModule as ModuleDockingNode;
+					if (thatPort != null) {
+						Debug.Log(String.Format("JSITargetMenu::ListAvailablePorts(): Port {0} is {3} has dockedPartUId {1} and dockingNodeModuleIndex {2}",
+								thatPort.name,
+							thatPort.dockedPartUId,
+							thatPort.dockingNodeModuleIndex,
+							thatPort.state));
+						if (thatPort.state == "Ready") {
+							// Add some sanity tests:
+							if (thatPort.vesselInfo != null) {
+								Debug.Log(String.Format("JSITargetMenu::ListAvailablePorts(): Port {0} is Ready, but says it is docked to {1}",
+									thatPort.name,
+									thatPort.vesselInfo.name));
+							}
+							availablePorts.Add(thatPort);
+						}
+					}
+				}
+			}
+			 */
 			return availablePorts;
 		}
 
