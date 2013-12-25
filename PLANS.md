@@ -1,7 +1,3 @@
-# 0.12 milestone targets
-
-* Testing for Christmas release!
-
 # 0.13 milestone targets
 
 ## Minor new features
