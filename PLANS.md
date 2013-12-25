@@ -27,7 +27,7 @@
 * Undocking menu.
 * cameraTransform should be a list of prospective transform names to try.
 * A crew list filtered by current capsule.
-* On high G, place a green polygon in front of the IVA camera to simulate G blackout.
+* On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :)
 
 ## Major new features
 
