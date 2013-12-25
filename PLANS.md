@@ -26,6 +26,7 @@
 * Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
 * Undocking menu.
 * cameraTransform should be a list of prospective transform names to try.
+* A crew list filtered by current capsule.
 
 ## Major new features
 

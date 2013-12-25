@@ -36,6 +36,7 @@ namespace JSI
 		private ManeuverNode node;
 		private double time;
 		private ProtoCrewMember[] vesselCrew;
+		private kerbalExpressionSystem[] vesselCrewMedical;
 		private double altitudeASL;
 		private double altitudeTrue;
 		private double altitudeBottom;
@@ -435,6 +436,11 @@ namespace JSI
 			Array.Sort(resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
 			vesselCrew = (vessel.GetVesselCrew()).ToArray();
+			// The sneaky bit: This way we can get at their panic and whee values!
+			vesselCrewMedical = new kerbalExpressionSystem[vesselCrew.Length];
+			for (int i = 0; i < vesselCrew.Length; i++) {
+				vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+			}
 		}
 		// Another piece from MechJeb.
 		private void FetchAltitudes()
@@ -597,6 +603,16 @@ namespace JSI
 							return tokenisedname[1];
 						case "FULL":
 							return kerbalname;
+						case "STUPIDITY":
+							return vesselCrew[crewSeatID].stupidity;
+						case "COURAGE":
+							return vesselCrew[crewSeatID].courage;
+						case "BADASS":
+							return vesselCrew[crewSeatID].isBadass.GetHashCode();
+						case "PANIC":
+							return vesselCrewMedical[crewSeatID].panicLevel;
+						case "WHEE":
+							return vesselCrewMedical[crewSeatID].wheeLevel;
 						default:
 							return "???!";
 					}
