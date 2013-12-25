@@ -37,6 +37,8 @@ namespace JSI
 		private double time;
 		private ProtoCrewMember[] vesselCrew;
 		private kerbalExpressionSystem[] vesselCrewMedical;
+		private ProtoCrewMember[] localCrew;
+		private kerbalExpressionSystem[] localCrewMedical;
 		private double altitudeASL;
 		private double altitudeTrue;
 		private double altitudeBottom;
@@ -441,6 +443,18 @@ namespace JSI
 			for (int i = 0; i < vesselCrew.Length; i++) {
 				vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
 			}
+
+			// Part-local list is assembled somewhat differently.
+			if (part.internalModel == null) {
+				JUtil.LogMessage(this, "Running on a part with no IVA, how did that happen?");
+			} else {
+				localCrew = new ProtoCrewMember[part.internalModel.seats.Count];
+				localCrewMedical = new kerbalExpressionSystem[localCrew.Length];
+				for (int i = 0; i < part.internalModel.seats.Count; i++) {
+					localCrew[i] = part.internalModel.seats[i].crew;
+					localCrewMedical[i] = localCrew[i] == null ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+				}
+			}
 		}
 		// Another piece from MechJeb.
 		private void FetchAltitudes()
@@ -546,6 +560,37 @@ namespace JSI
 			return returnValue;
 		}
 
+		private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
+		{
+			bool exists = seatID < crewList.Count;
+			bool valid = exists && crewList[seatID] != null;
+			switch (element) {
+				case "PRESENT":
+					return valid ? 1d : -1d;
+				case "EXISTS":
+					return exists ? 1d : -1d;
+				case "FIRST":
+					return valid ? crewList[seatID].name.Split()[0] : string.Empty;
+				case "LAST":
+					return valid ? crewList[seatID].name.Split()[1] : string.Empty;
+				case "FULL":
+					return valid ? crewList[seatID].name : string.Empty;
+				case "STUPIDITY":
+					return valid ? crewList[seatID].stupidity : -1d;
+				case "COURAGE":
+					return valid ? crewList[seatID].courage : -1d;
+				case "BADASS":
+					return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
+				case "PANIC":
+					return valid ? crewMedical[seatID].panicLevel : -1d;
+				case "WHEE":
+					return valid ? crewMedical[seatID].wheeLevel : -1d;
+				default:
+					return "???!";
+			}
+
+		}
+
 		private object VariableToObject(string input, out bool cacheable)
 		{
 
@@ -587,36 +632,17 @@ namespace JSI
 
 				// We do similar things for crew rosters.
 				// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
-				if (tokens.Length == 3 && tokens[0] == "CREW") { 
+				// Part-local crew list is identical but CREWLOCAL_.
+				if (tokens.Length == 3) { 
 					ushort crewSeatID = Convert.ToUInt16(tokens[1]);
-					if (tokens[2] == "PRESENT") {
-						return crewSeatID >= vesselCrew.Length ? -1 : 1;
-					}
-					if (crewSeatID >= vesselCrew.Length)
-						return string.Empty;
-					string kerbalname = vesselCrew[crewSeatID].name;
-					string[] tokenisedname = kerbalname.Split();
-					switch (tokens[2]) {
-						case "FIRST":
-							return tokenisedname[0];
-						case "LAST":
-							return tokenisedname[1];
-						case "FULL":
-							return kerbalname;
-						case "STUPIDITY":
-							return vesselCrew[crewSeatID].stupidity;
-						case "COURAGE":
-							return vesselCrew[crewSeatID].courage;
-						case "BADASS":
-							return vesselCrew[crewSeatID].isBadass.GetHashCode();
-						case "PANIC":
-							return vesselCrewMedical[crewSeatID].panicLevel;
-						case "WHEE":
-							return vesselCrewMedical[crewSeatID].wheeLevel;
-						default:
-							return "???!";
+					switch (tokens[0]) {
+						case "CREW":
+							return CrewListElement(tokens[2], crewSeatID, vesselCrew, vesselCrewMedical);
+						case "CREWLOCAL":
+							return CrewListElement(tokens[2], crewSeatID, localCrew, localCrewMedical);
 					}
 				}
+
 			}
 
 			switch (input) {
