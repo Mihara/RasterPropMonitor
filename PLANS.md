@@ -27,6 +27,7 @@
 * Undocking menu.
 * cameraTransform should be a list of prospective transform names to try.
 * A crew list filtered by current capsule.
+* On high G, place a green polygon in front of the IVA camera to simulate G blackout.
 
 ## Major new features
 
