@@ -1045,22 +1045,22 @@ namespace JSI
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 50).GetHashCode();
+					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 100).GetHashCode();
 				case "GROUNDPROXIMITYALARM":
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
 				case "TUMBLEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
 				case "SLOPEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 10).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 15).GetHashCode();
 				case "DOCKINGANGLEALARM":
 					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-					(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5 ||
-					JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5)).GetHashCode();
+						((JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5) ||
+						(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5))).GetHashCode();
 				case "DOCKINGSPEEDALARM":
-					return (targetDockingNode != null && approachSpeed > 3 && targetDistance < 10).GetHashCode();
+					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
 					
 
 			// SCIENCE!!
