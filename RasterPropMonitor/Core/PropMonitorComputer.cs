@@ -1065,8 +1065,8 @@ namespace JSI
 					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 15).GetHashCode();
 				case "DOCKINGANGLEALARM":
 					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-						((JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5) ||
-						(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5))).GetHashCode();
+					(Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
+					Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
 				case "DOCKINGSPEEDALARM":
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
