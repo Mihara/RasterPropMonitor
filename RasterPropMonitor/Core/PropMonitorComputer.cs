@@ -7,7 +7,6 @@ namespace JSI
 {
 	public class RasterPropMonitorComputer: PartModule
 	{
-
 		// Persistence for internal modules.
 		[KSPField(isPersistant = true)]
 		public string data = "";
@@ -15,15 +14,11 @@ namespace JSI
 		// because nothing appears to work as documented -- IF it's documented.
 		// This one is sure to work and isn't THAT much of a performance drain, really.
 		// Pull requests welcome
-
-
 		// Vessel description storage and related code.
-		[KSPField(isPersistant=true)]
+		[KSPField(isPersistant = true)]
 		public string vesselDescription = string.Empty;
 		private readonly string editorNewline = ((char)0x0a).ToString();
-
 		// Public interface.
-
 		public bool updateForced;
 		// Data common for various variable calculations
 		private int vesselNumParts;
@@ -87,6 +82,18 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
+		private string[] actionGroupMemo = {
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+			string.Empty,
+		};
 		// This is only here to support the deprecated DMS and KDT variables.
 		// These should be gone as soon as possible along with this class instance.
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
@@ -158,7 +165,6 @@ namespace JSI
 		};
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
-
 		// Public functions:
 		// Request the instance, create it if one doesn't exist:
 		public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
@@ -177,16 +183,13 @@ namespace JSI
 				}
 			return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
 		}
-
 		// Set refresh rates.
 		public void UpdateRefreshRates(int rate, int dataRate)
 		{
 			refreshTextRate = Math.Min(rate, refreshTextRate);
 			refreshDataRate = Math.Min(dataRate, refreshDataRate);
 		}
-
 		// Internal persistence interface:
-			
 		public void SetVar(string varname, int value)
 		{
 			var variables = ParseData(data);
@@ -205,20 +208,19 @@ namespace JSI
 				return variables[varname];
 			return null;
 		}
-
 		// Page handler interface for vessel description page.
 		// Analysis disable UnusedParameter
-		public string VesselDescriptionRaw(int screenWidth, int screenHeight) {
+		public string VesselDescriptionRaw(int screenWidth, int screenHeight)
+		{
 			// Analysis restore UnusedParameter
 			return vesselDescription.UnMangleConfigText();
 		}
-
 		// Analysis disable UnusedParameter
-		public string VesselDescriptionWordwrapped(int screenWidth, int screenHeight) {
+		public string VesselDescriptionWordwrapped(int screenWidth, int screenHeight)
+		{
 			// Analysis restore UnusedParameter
-			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(),screenWidth);
+			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(), screenWidth);
 		}
-
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
@@ -232,6 +234,20 @@ namespace JSI
 			if (HighLogic.LoadedSceneIsFlight) {
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+
+				// Parse vessel description here for special lines:
+					
+				string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.lineSeparator, StringSplitOptions.None);
+				for (int i = 0; i < descriptionStrings.Length; i++) {
+					if (descriptionStrings[i].StartsWith("AG", StringComparison.Ordinal) && descriptionStrings[i][3] == '=') {
+						uint groupID;
+						if (uint.TryParse(descriptionStrings[i][2].ToString(), out groupID)) {
+							actionGroupMemo[groupID] = descriptionStrings[i].Substring(4).Trim();
+							descriptionStrings[i] = string.Empty;
+						}
+					}
+				}
+				vesselDescription = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
 			}
 		}
 
@@ -251,7 +267,6 @@ namespace JSI
 			updateCountdown--;
 			return false;
 		}
-
 
 		private static string UnparseData(Dictionary<string,int> variables)
 		{
@@ -276,12 +291,12 @@ namespace JSI
 			return variables;
 
 		}
-
 		// I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
-		public void Update() {
+		public void Update()
+		{
 			if (HighLogic.LoadedSceneIsEditor)
 				// I think it can't be null. But for some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
-				vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline,"$$$");
+				vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$");
 		}
 
 		public override void OnUpdate()
@@ -735,6 +750,15 @@ namespace JSI
 					}
 				}
 
+			}
+
+			// Action group memo strings from vessel description.
+			if (input.StartsWith("AGMEMO", StringComparison.Ordinal)) {
+				uint groupID;
+				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
+					return actionGroupMemo[groupID];
+				}
+				return string.Empty;
 			}
 
 			switch (input) {
