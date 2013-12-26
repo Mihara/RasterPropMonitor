@@ -9,7 +9,6 @@ namespace JSI
 {
 	public static class JUtil
 	{
-
 		public static readonly string[] variableListSeparator = { "$&$" };
 		public static readonly string[] variableSeparator = { };
 		public static readonly string[] lineSeparator = { Environment.NewLine };
