@@ -208,13 +208,13 @@ namespace JSI
 
 		// Page handler interface for vessel description page.
 		// Analysis disable UnusedParameter
-		public string RawScreen(int screenWidth, int screenHeight) {
+		public string VesselDescriptionRaw(int screenWidth, int screenHeight) {
 			// Analysis restore UnusedParameter
 			return vesselDescription.UnMangleConfigText();
 		}
 
 		// Analysis disable UnusedParameter
-		public string WrappedScreen(int screenWidth, int screenHeight) {
+		public string VesselDescriptionWordwrapped(int screenWidth, int screenHeight) {
 			// Analysis restore UnusedParameter
 			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(),screenWidth);
 		}
