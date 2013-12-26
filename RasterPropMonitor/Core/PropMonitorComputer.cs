@@ -82,17 +82,17 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
-		private string[] actionGroupMemo = {
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
-			string.Empty,
+		private readonly string[] actionGroupMemo = {
+			"AG0",
+			"AG1",
+			"AG2",
+			"AG3",
+			"AG4",
+			"AG5",
+			"AG6",
+			"AG7",
+			"AG8",
+			"AG9",
 		};
 		// This is only here to support the deprecated DMS and KDT variables.
 		// These should be gone as soon as possible along with this class instance.
