@@ -57,8 +57,6 @@ namespace JSI
 		// Internal stuff.
 		private readonly List<Texture2D> fontTexture = new List<Texture2D>();
 		private RenderTexture screenTexture;
-		// Page definition syntax.
-		private readonly string[] lineSeparator = { Environment.NewLine };
 		// Local variables
 		private int refreshDrawCountdown;
 		private int refreshTextCountdown;
@@ -473,7 +471,7 @@ namespace JSI
 		private void FillScreenBuffer()
 		{
 			screenBuffer = new string[screenHeight];
-			string[] linesArray = activePage.Text.Split(lineSeparator, StringSplitOptions.None);
+			string[] linesArray = activePage.Text.Split(JUtil.lineSeparator, StringSplitOptions.None);
 			for (int i = 0; i < screenHeight; i++)
 				screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
 			textRefreshRequired = false;
