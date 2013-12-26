@@ -142,18 +142,23 @@ namespace JSI
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 
-		public static RasterPropMonitorComputer Instantiate(InternalProp thatProp)
+		public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
 		{
-			if (thatProp.part != null) {
-				for (int i = 0; i < thatProp.part.Modules.Count; i++)
-					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
-						var other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
-						return other;
-					}
-				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+			var thatProp = referenceLocation as InternalProp;
+			var thatPart = referenceLocation as Part;
+			if (thatPart == null) {
+				if (thatProp == null)
+					throw new ArgumentException("Cannot instantiate RPMC in this location.");
+				thatPart = thatProp.part;
 			}
-			return null;
+			for (int i = 0; i < thatPart.Modules.Count; i++)
+				if (thatPart.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
+					var other = thatPart.Modules[i] as RasterPropMonitorComputer;
+					return other;
+				}
+			return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
 		}
+
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
