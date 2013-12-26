@@ -4,6 +4,7 @@
 
 * A variable to compute the mass of propellants only. Needs asking the engines which propellants do they want...
 * JSISteerableCamera needs some graphical way of indicating how far did it actually get offset. Some kind of crosshair icon that keeps pointing in the pre-offset direction? Maybe even changes size with zoom?
+* Variable that returns a string of vessel type for self and target
 
 ## Major new features
 
@@ -26,10 +27,10 @@
 * Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
 * Undocking menu.
 * cameraTransform should be a list of prospective transform names to try.
-* A crew list filtered by current capsule.
 * On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :)
 
 ## Major new features
 
+* Analogue of Firespitter's infoitem module -- A page handler that is a part module which presents the user with a text editor. One clever idea is to use the vessel description, which requires getting at it before launch, since it doesn't exist after. EditorLogic.fetch.shipDescriptionField.Text should do it.
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
