@@ -55,7 +55,6 @@
     <Compile Include="Auxiliary modules\InternalCameraTargetHelper.cs" />
     <Compile Include="Auxiliary modules\JSIActionGroupSwitch.cs" />
     <Compile Include="Auxiliary modules\JSIExternalCameraSelector.cs" />
-    <Compile Include="Core\JSIInternalPersistence.cs" />
     <Compile Include="Auxiliary modules\JSIPropTextureShift.cs" />
     <Compile Include="Auxiliary modules\JSIVariableAnimator.cs" />
     <Compile Include="Core\MonitorPage.cs" />
@@ -79,7 +78,7 @@
     <Compile Include="Handlers\JSISteerableCamera.cs" />
     <Compile Include="Core\TextMenu.cs" />
     <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
-    <Compile Include="Handlers\JSIVesselDescriptionPage.cs" />
+    <Compile Include="Core\PersistenceAccessor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

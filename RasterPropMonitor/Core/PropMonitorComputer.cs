@@ -7,6 +7,23 @@ namespace JSI
 {
 	public class RasterPropMonitorComputer: PartModule
 	{
+
+		// Persistence for internal modules.
+		[KSPField(isPersistant = true)]
+		public string data = "";
+		// Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
+		// because nothing appears to work as documented -- IF it's documented.
+		// This one is sure to work and isn't THAT much of a performance drain, really.
+		// Pull requests welcome
+
+
+		// Vessel description storage and related code.
+		[KSPField(isPersistant=true)]
+		public string vesselDescription = string.Empty;
+		private readonly string editorNewline = ((char)0x0a).ToString();
+
+		// Public interface.
+
 		public bool updateForced;
 		// Data common for various variable calculations
 		private int vesselNumParts;
@@ -142,6 +159,8 @@ namespace JSI
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 
+		// Public functions:
+		// Request the instance, create it if one doesn't exist:
 		public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
 		{
 			var thatProp = referenceLocation as InternalProp;
@@ -159,6 +178,47 @@ namespace JSI
 			return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
 		}
 
+		// Set refresh rates.
+		public void UpdateRefreshRates(int rate, int dataRate)
+		{
+			refreshTextRate = Math.Min(rate, refreshTextRate);
+			refreshDataRate = Math.Min(dataRate, refreshDataRate);
+		}
+
+		// Internal persistence interface:
+			
+		public void SetVar(string varname, int value)
+		{
+			var variables = ParseData(data);
+			try {
+				variables.Add(varname, value);
+			} catch (ArgumentException) {
+				variables[varname] = value;
+			}
+			data = UnparseData(variables);
+		}
+
+		public int? GetVar(string varname)
+		{
+			var variables = ParseData(data);
+			if (variables.ContainsKey(varname))
+				return variables[varname];
+			return null;
+		}
+
+		// Page handler interface for vessel description page.
+		// Analysis disable UnusedParameter
+		public string RawScreen(int screenWidth, int screenHeight) {
+			// Analysis restore UnusedParameter
+			return vesselDescription.UnMangleConfigText();
+		}
+
+		// Analysis disable UnusedParameter
+		public string WrappedScreen(int screenWidth, int screenHeight) {
+			// Analysis restore UnusedParameter
+			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(),screenWidth);
+		}
+
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
 		{
@@ -173,12 +233,6 @@ namespace JSI
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
 			}
-		}
-
-		public void UpdateRefreshRates(int rate, int dataRate)
-		{
-			refreshTextRate = Math.Min(rate, refreshTextRate);
-			refreshDataRate = Math.Min(dataRate, refreshDataRate);
 		}
 
 		private bool UpdateCheck()
@@ -198,9 +252,41 @@ namespace JSI
 			return false;
 		}
 
+
+		private static string UnparseData(Dictionary<string,int> variables)
+		{
+			var tokens = new List<string>();
+			foreach (KeyValuePair<string,int> item in variables) {
+				tokens.Add(item.Key + "$" + item.Value);
+			}
+			return String.Join("|", tokens.ToArray());
+		}
+
+		private static Dictionary<string,int> ParseData(string dataString)
+		{
+			var variables = new Dictionary<string,int>();
+			if (!string.IsNullOrEmpty(dataString))
+				foreach (string varstring in dataString.Split ('|')) {
+					string[] tokens = varstring.Split('$');
+					int value;
+					int.TryParse(tokens[1], out value);
+					variables.Add(tokens[0], value);
+				}
+
+			return variables;
+
+		}
+
+		// I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
+		public void Update() {
+			if (HighLogic.LoadedSceneIsEditor)
+				// I think it can't be null. But for some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
+				vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline,"$$$");
+		}
+
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
+			if (!JUtil.IsActiveVessel(vessel))
 				return;
 
 			if (!UpdateCheck())
