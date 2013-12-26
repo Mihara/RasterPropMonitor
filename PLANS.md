@@ -30,6 +30,5 @@
 
 ## Major new features
 
-* Analogue of Firespitter's infoitem module -- A page handler that is a part module which presents the user with a text editor. One clever idea is to use the vessel description, which requires getting at it before launch, since it doesn't exist after. EditorLogic.fetch.shipDescriptionField.Text should do it.
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
