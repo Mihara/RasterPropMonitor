@@ -9,6 +9,11 @@ namespace JSI
 {
 	public static class JUtil
 	{
+
+		public static readonly string[] variableListSeparator = { "$&$" };
+		public static readonly string[] variableSeparator = { };
+		public static readonly string[] lineSeparator = { Environment.NewLine };
+
 		public static void MakeReferencePart(this Part thatPart)
 		{
 			if (thatPart != null) {
@@ -281,6 +286,11 @@ namespace JSI
 		public static string UnMangleConfigText(this string input)
 		{
 			return input.Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine);
+		}
+
+		public static string MangleConfigText(this string input)
+		{
+			return input.Replace("{", "<=").Replace("}", "=>").Replace(Environment.NewLine, "$$$");
 		}
 
 		public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
