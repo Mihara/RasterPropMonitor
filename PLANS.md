@@ -20,6 +20,7 @@
 
 ## Minor new features
 
+* Get JSIVariableAnimator to also interpolate local prop rotation (for trimmer handles made from stock props) and local transform position (same).
 * Should I introduce TGT+/TGT- markers into PFD instead of mode switching? Come to think of it, can I do REL+/REL- markers too?
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
@@ -32,3 +33,10 @@
 
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
+* Moving-in-IVA:
+  * Make an InternalModule that detects doubleclicks on a transform. Place that collider over an internal hatch.
+  * When in IVA player clicks on that hatch, search the rest of the ship for a habitable capsule with IVA in the direction of the click (Somewhat non-trivial as it will require intelligently navigating the part tree).
+  * Locate a part which has an IVA and a free InternalSeat.
+  * Detect which kerbal we're currently looking with.
+  * Move that kerbal to the seat found.
+  Voila, we have moving-in-iva, or at least as close as it ever gets.
