@@ -29,6 +29,7 @@ namespace JSI
 		private double horzVelocity;
 		private ITargetable target;
 		private ModuleDockingNode targetDockingNode;
+		private Vessel targetVessel;
 		private double targetDistance;
 		private Vector3d targetSeparation;
 		private double approachSpeed;
@@ -287,8 +288,7 @@ namespace JSI
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
 
-				var targetVessel = target as Vessel;
-
+				targetVessel = target as Vessel;
 				targetBody = target as CelestialBody;	
 				targetDockingNode = target as ModuleDockingNode;
 
@@ -326,6 +326,7 @@ namespace JSI
 				targetDistance = 0;
 				approachSpeed = 0;
 				targetBody = null;
+				targetVessel = null;
 				targetDockingNode = null;
 				targetOrientation = vessel.GetTransform().rotation;
 				targetOrbitSensibility = false;
@@ -807,7 +808,17 @@ namespace JSI
 			// Names!
 				case "NAME":
 					return vessel.vesselName;
-
+				case "VESSELTYPE":
+					return vessel.vesselType.ToString();
+				case "TARGETTYPE":
+					if (targetVessel != null) {
+						return targetVessel.vesselType.ToString();
+					}
+					if (targetDockingNode != null)
+						return "Port";
+					if (targetBody != null)
+						return "Celestial";
+					return "Position";
 
 			// Coordinates.
 				case "LATITUDE":
@@ -889,7 +900,6 @@ namespace JSI
 				case "TARGETALTITUDE":
 					if (target == null)
 						return -1d;
-					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
 					}
