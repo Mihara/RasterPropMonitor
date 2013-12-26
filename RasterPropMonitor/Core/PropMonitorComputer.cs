@@ -1246,9 +1246,7 @@ namespace JSI
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
-						if (resources[resourceType.Value].y > 0)
-							return (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d);
-						return 0d;
+						return resources[resourceType.Value].y > 0 ? (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d) : 0d;
 					}
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y :
 						resources[resourceType.Value].x.Clamp(0d, resources[resourceType.Value].y);
