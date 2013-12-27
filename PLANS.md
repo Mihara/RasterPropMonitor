@@ -3,7 +3,6 @@
 ## Minor new features
 
 * A variable to compute the mass of propellants only. Needs asking the engines which propellants do they want...
-* JSISteerableCamera needs some graphical way of indicating how far did it actually get offset. Some kind of crosshair icon that keeps pointing in the pre-offset direction? Maybe even changes size with zoom?
 
 ## Major new features
 
