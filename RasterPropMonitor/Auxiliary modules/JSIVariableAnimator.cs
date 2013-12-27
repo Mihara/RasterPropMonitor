@@ -43,9 +43,13 @@ namespace JSI
 			}
 
 			// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
-			if (variableSets.Count < 1 && moduleConfig != null)
-				variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
-
+			if (variableSets.Count < 1 && moduleConfig != null) {
+				try {
+					variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
+				} catch (ArgumentException e) {
+					JUtil.LogMessage(this, "Error - {0}", e);
+				}
+			}
 			JUtil.LogMessage(this, "Configuration complete, supporting {0} variable indicators.", variableSets.Count);
 			startupComplete = true;
 		}
