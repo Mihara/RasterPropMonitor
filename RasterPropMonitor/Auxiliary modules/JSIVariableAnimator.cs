@@ -282,12 +282,8 @@ namespace JSI
 			} else {
 				switch (mode) {
 					case Mode.Rotation:
-						Quaternion newRotation;
-						if (longPath) {
-							newRotation = Quaternion.Euler(Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue));
-						} else {
-							newRotation = Quaternion.Slerp(reverse ? rotationEnd : rotationStart, reverse ? rotationStart : rotationEnd, scaledValue);
-						}
+						Quaternion newRotation = longPath ? Quaternion.Euler(Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue)) :
+						                         Quaternion.Slerp(reverse ? rotationEnd : rotationStart, reverse ? rotationStart : rotationEnd, scaledValue);
 						controlledTransform.localRotation = initialRotation * newRotation;
 						break;
 					case Mode.Translation:
