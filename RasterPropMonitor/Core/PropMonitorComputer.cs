@@ -65,6 +65,7 @@ namespace JSI
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
 		private double actualAverageIsp;
+		private bool anyEnginesOverheating;
 		private double totalDataAmount;
 		private double secondsToImpact;
 		private double bestPossibleSpeedAtImpact;
@@ -812,6 +813,8 @@ namespace JSI
 			totalDataAmount = 0;
 			double averageIspContribution = 0;
 
+			anyEnginesOverheating = false;
+
 			foreach (Part thatPart in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
@@ -848,6 +851,7 @@ namespace JSI
 					}
 				}
 
+				anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.7;
 			}
 
 			if (averageIspContribution > 0)
@@ -1178,6 +1182,8 @@ namespace JSI
 					return totalMaximumThrust / totalShipWetMass;
 				case "GFORCE":
 					return vessel.geeForce_immediate;
+				case "EFFECTIVEACCEL":
+					return vessel.acceleration.magnitude;
 				case "REALISP":
 					return actualAverageIsp;
 
@@ -1520,6 +1526,9 @@ namespace JSI
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
+					// Well, it's not a compound but it's an alarm...
+				case "ENGINEOVERHEATALARM":
+					return anyEnginesOverheating.GetHashCode();
 					
 
 			// SCIENCE!!
