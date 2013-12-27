@@ -65,6 +65,7 @@ namespace JSI
 		private double totalCurrentThrust;
 		private double totalMaximumThrust;
 		private double actualAverageIsp;
+		private bool anyEnginesOverheating;
 		private double totalDataAmount;
 		private double secondsToImpact;
 		private double bestPossibleSpeedAtImpact;
@@ -321,7 +322,6 @@ namespace JSI
 			FetchCommonData();
 			UpdateTransferAngles();
 		}
-
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
 		private void UpdateTransferAngles()
@@ -361,7 +361,7 @@ namespace JSI
 					// Target is a planet
 					targetIsMoon = false;
 					targetSystem = targetBody;
-				} else  {
+				} else {
 					// Target is a moon.
 					targetIsMoon = true;
 					targetSystem = targetBody.referenceBody;
@@ -483,9 +483,7 @@ namespace JSI
 				targetBodyDeltaV = -1.0;
 			}
 		}
-
 		//--- Protractor utility methods
-
 		private double CalculateDeltaV(CelestialBody dest)    //calculates ejection v to reach destination
 		{
 			if (vessel.mainBody == dest.orbit.referenceBody) {
@@ -538,7 +536,7 @@ namespace JSI
 		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleSimple got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleSimple got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -551,12 +549,11 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Adjacent phase angle: transfer planet -> planet or moon -> moon
 		private double UpdatePhaseAngleAdjacent(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleAdjacent got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleAdjacent got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -568,12 +565,11 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Oberth phase angle: transfer moon -> another planet
 		private double UpdatePhaseAngleOberth(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleOberth got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleOberth got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -585,7 +581,6 @@ namespace JSI
 
 			return phase;
 		}
-
 		// project two vectors to 2D plane and returns the angle between them
 		private static double Angle2d(Vector3d vector1, Vector3d vector2)
 		{
@@ -598,7 +593,6 @@ namespace JSI
 		{
 			return orbit.semiMajorAxis * (1.0 + orbit.eccentricity * orbit.eccentricity / 2.0);
 		}
-
 		// calculates angle between vessel's position and prograde of orbited body
 		// MOARdV: The parameter 'check' is always NULL in protractor.  Factored it out
 		private double CurrentEjectAngle()
@@ -616,7 +610,6 @@ namespace JSI
 
 			return eject;
 		}
-
 		//calculates ejection angle to reach destination body from origin body
 		private double CalculateDesiredEjectionAngle(CelestialBody orig, CelestialBody dest)
 		{
@@ -639,7 +632,6 @@ namespace JSI
 
 			return vessel.orbit.inclination > 90 && !(vessel.Landed) ? 360 - eject : eject;
 		}
-
 		// Compute the current phase of the target.
 		private double CurrentPhase(Orbit originOrbit, Orbit targetOrbit)
 		{
@@ -650,11 +642,11 @@ namespace JSI
 
 			vecthis = Quaternion.AngleAxis(90.0f, Vector3d.forward) * vecthis;
 
-			if (Angle2d(vecthis, vectarget) > 90.0) phase = 360.0 - phase;
+			if (Angle2d(vecthis, vectarget) > 90.0)
+				phase = 360.0 - phase;
 
 			return (phase + 360.0) % 360.0;
 		}
-
 		// Calculates phase angle for rendezvous between two bodies orbiting same parent
 		private static double DesiredPhase(double vesselAlt, double destAlt, double gravParameter)
 		{
@@ -665,7 +657,8 @@ namespace JSI
 			double th = Math.PI * Math.Sqrt(Math.Pow(o_alt + d_alt, 3.0) / (8.0 * u));
 			double phase = (180.0 - Math.Sqrt(u / d_alt) * (th / d_alt) * (180.0 / Math.PI));
 
-			while (phase < 0.0) phase += 360.0;
+			while (phase < 0.0)
+				phase += 360.0;
 
 			return phase % 360.0;
 		}
@@ -728,7 +721,6 @@ namespace JSI
 
 			return mindist;
 		}
-
 		// For going from a moon to another planet exploiting oberth effect
 		private double OberthDesiredPhase(Orbit destOrbit)
 		{
@@ -746,12 +738,12 @@ namespace JSI
 
 			double phase = (180.0 - Math.Sqrt(usun / destalt) * ((th1 + th2) / destalt) * (180.0 / Math.PI));
 
-			while (phase < 0.0) phase += 360.0;
+			while (phase < 0.0)
+				phase += 360.0;
 
 			return phase % 360.0;
 		}
 		//--- End Protractor imports
-
 		// Sigh. MechJeb math.
 		private static double GetCurrentThrust(PartModule engine)
 		{
@@ -934,6 +926,8 @@ namespace JSI
 			totalDataAmount = 0;
 			double averageIspContribution = 0;
 
+			anyEnginesOverheating = false;
+
 			foreach (Part thatPart in vessel.parts) {
 				// The cute way of using vector2d in place of a tuple is from Firespitter.
 				// Hey, it works.
@@ -970,6 +964,7 @@ namespace JSI
 					}
 				}
 
+				anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.7;
 			}
 
 			if (averageIspContribution > 0)
@@ -1300,6 +1295,8 @@ namespace JSI
 					return totalMaximumThrust / totalShipWetMass;
 				case "GFORCE":
 					return vessel.geeForce_immediate;
+				case "EFFECTIVEACCEL":
+					return vessel.acceleration.magnitude;
 				case "REALISP":
 					return actualAverageIsp;
 
@@ -1647,6 +1644,9 @@ namespace JSI
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
+			// Well, it's not a compound but it's an alarm...
+				case "ENGINEOVERHEATALARM":
+					return anyEnginesOverheating.GetHashCode();
 					
 
 			// SCIENCE!!
@@ -1743,6 +1743,32 @@ namespace JSI
 					if (targetBody != null)
 						return 4 * Math.PI * targetBody.Radius * targetBody.Radius;
 					return -1d;
+				case "ORBITBODYSYNCORBITALTITUDE":
+					double syncRadius = Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+					return syncRadius > vessel.orbit.referenceBody.sphereOfInfluence ? double.NaN : syncRadius - vessel.orbit.referenceBody.Radius;
+				case "TARGETBODYSYNCORBITALTITUDE":
+					if (targetBody != null) {
+						double syncRadiusT = Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+						return syncRadiusT > targetBody.sphereOfInfluence ? double.NaN : syncRadiusT - targetBody.Radius;
+					}
+					return -1d;
+				case "ORBITBODYSYNCORBITVELOCITY":
+					return (Math.PI / vessel.orbit.referenceBody.rotationPeriod) *
+					Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+				case "TARGETBODYSYNCORBITVELOCITY":
+					if (targetBody != null) {
+						return (Math.PI / targetBody.rotationPeriod) *
+						Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+					}
+					return -1d;
+				case "ORBITBODYSYNCORBITPERIOD":
+					return 2 * Math.PI * Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+				case "TARGETBODYSYNCORBITPERIOD":
+					if (targetBody != null) {
+						return 2 * Math.PI * Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+					}
+					return -1d;
+
 
 			// These variables are no longer documented and are DEPRECATED. They will be removed as soon as I can see that people aren't using them.
 				case "LATITUDE_DMS":
