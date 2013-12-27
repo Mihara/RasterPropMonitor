@@ -80,7 +80,6 @@ namespace JSI
 		private double ejectionAngle;
 		private double timeToEjectionAngle;
 		private double targetClosestApproach;
-
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -318,7 +317,6 @@ namespace JSI
 			FetchCommonData();
 			UpdateTransferAngles();
 		}
-
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
 		private void UpdateTransferAngles()
@@ -358,7 +356,7 @@ namespace JSI
 					// Target is a planet
 					targetIsMoon = false;
 					targetSystem = targetBody;
-				} else  {
+				} else {
 					// Target is a moon.
 					targetIsMoon = true;
 					targetSystem = targetBody.referenceBody;
@@ -462,14 +460,12 @@ namespace JSI
 				targetClosestApproach = -1.0;
 			}
 		}
-
 		//--- Protractor utility methods
-
 		// Simple phase angle: transfer from sun -> planet or planet -> moon
 		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleSimple got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleSimple got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -482,12 +478,11 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Adjacent phase angle: transfer planet -> planet or moon -> moon
 		private double UpdatePhaseAngleAdjacent(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleAdjacent got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleAdjacent got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -499,12 +494,11 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Oberth phase angle: transfer moon -> another planet
 		private double UpdatePhaseAngleOberth(Orbit srcOrbit, Orbit destOrbit)
 		{
 			if (destOrbit == null) {
-				Debug.Log(String.Format("!!! UpdatePhaseAngleOberth got a NULL orbit !!!"));
+				JUtil.LogMessage(this, "!!! UpdatePhaseAngleOberth got a NULL orbit !!!");
 				return 0.0;
 			}
 
@@ -516,7 +510,6 @@ namespace JSI
 
 			return phase;
 		}
-
 		// project two vectors to 2D plane and returns the angle between them
 		private static double Angle2d(Vector3d vector1, Vector3d vector2)
 		{
@@ -529,7 +522,6 @@ namespace JSI
 		{
 			return orbit.semiMajorAxis * (1.0 + orbit.eccentricity * orbit.eccentricity / 2.0);
 		}
-
 		// calculates angle between vessel's position and prograde of orbited body
 		// MOARdV: The parameter 'check' is always NULL in protractor.  Factored it out
 		private double CurrentEjectAngle()
@@ -547,7 +539,6 @@ namespace JSI
 
 			return eject;
 		}
-
 		//calculates ejection angle to reach destination body from origin body
 		private double CalculateDesiredEjectionAngle(CelestialBody orig, CelestialBody dest)
 		{
@@ -570,7 +561,6 @@ namespace JSI
 
 			return vessel.orbit.inclination > 90 && !(vessel.Landed) ? 360 - eject : eject;
 		}
-
 		// Compute the current phase of the target.
 		private double CurrentPhase(Orbit originOrbit, Orbit targetOrbit)
 		{
@@ -581,11 +571,11 @@ namespace JSI
 
 			vecthis = Quaternion.AngleAxis(90.0f, Vector3d.forward) * vecthis;
 
-			if (Angle2d(vecthis, vectarget) > 90.0) phase = 360.0 - phase;
+			if (Angle2d(vecthis, vectarget) > 90.0)
+				phase = 360.0 - phase;
 
 			return (phase + 360.0) % 360.0;
 		}
-
 		// Calculates phase angle for rendezvous between two bodies orbiting same parent
 		private static double DesiredPhase(double vesselAlt, double destAlt, double gravParameter)
 		{
@@ -596,7 +586,8 @@ namespace JSI
 			double th = Math.PI * Math.Sqrt(Math.Pow(o_alt + d_alt, 3.0) / (8.0 * u));
 			double phase = (180.0 - Math.Sqrt(u / d_alt) * (th / d_alt) * (180.0 / Math.PI));
 
-			while (phase < 0.0) phase += 360.0;
+			while (phase < 0.0)
+				phase += 360.0;
 
 			return phase % 360.0;
 		}
@@ -619,7 +610,6 @@ namespace JSI
 			 */
 			return 0.0;
 		}
-
 		// For going from a moon to another planet exploiting oberth effect
 		private double OberthDesiredPhase(Orbit destOrbit)
 		{
@@ -637,12 +627,12 @@ namespace JSI
 
 			double phase = (180.0 - Math.Sqrt(usun / destalt) * ((th1 + th2) / destalt) * (180.0 / Math.PI));
 
-			while (phase < 0.0) phase += 360.0;
+			while (phase < 0.0)
+				phase += 360.0;
 
 			return phase % 360.0;
 		}
 		//--- End Protractor imports
-
 		// Sigh. MechJeb math.
 		private static double GetCurrentThrust(PartModule engine)
 		{
@@ -1450,9 +1440,9 @@ namespace JSI
 					return ejectionAngle;
 				case "TARGETBODYEJECTIONANGLESECS":
 					return timeToEjectionAngle;
-					// MOARdV: The following is not implemented yet.
-				//case "TARGETBODYCLOSESTAPPROACH":
-				//	return targetClosestApproach;
+			// MOARdV: The following is not implemented yet.
+			//case "TARGETBODYCLOSESTAPPROACH":
+			//	return targetClosestApproach;
 
 			// FLight control status
 				case "THROTTLE":
