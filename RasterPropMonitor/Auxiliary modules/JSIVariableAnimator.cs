@@ -35,7 +35,7 @@ namespace JSI
 						try {
 							variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
 						} catch (ArgumentException e) {
-							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e, internalProp.propID);
+							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
 						}
 					}
 					break;
@@ -47,7 +47,7 @@ namespace JSI
 				try {
 					variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
 				} catch (ArgumentException e) {
-					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e, internalProp.propID);
+					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
 				}
 			}
 			JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
