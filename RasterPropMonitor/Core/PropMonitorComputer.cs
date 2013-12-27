@@ -1526,7 +1526,7 @@ namespace JSI
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
-					// Well, it's not a compound but it's an alarm...
+			// Well, it's not a compound but it's an alarm...
 				case "ENGINEOVERHEATALARM":
 					return anyEnginesOverheating.GetHashCode();
 					
@@ -1625,6 +1625,32 @@ namespace JSI
 					if (targetBody != null)
 						return 4 * Math.PI * targetBody.Radius * targetBody.Radius;
 					return -1d;
+				case "ORBITBODYSYNCORBITALTITUDE":
+					double syncRadius = Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+					return syncRadius > vessel.orbit.referenceBody.sphereOfInfluence ? double.NaN : syncRadius - vessel.orbit.referenceBody.Radius;
+				case "TARGETBODYSYNCORBITALTITUDE":
+					if (targetBody != null) {
+						double syncRadiusT = Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+						return syncRadiusT > targetBody.sphereOfInfluence ? double.NaN : syncRadiusT - targetBody.Radius;
+					}
+					return -1d;
+				case "ORBITBODYSYNCORBITVELOCITY":
+					return (Math.PI / vessel.orbit.referenceBody.rotationPeriod) *
+					Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+				case "TARGETBODYSYNCORBITVELOCITY":
+					if (targetBody != null) {
+						return (Math.PI / targetBody.rotationPeriod) *
+						Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+					}
+					return -1d;
+				case "ORBITBODYSYNCORBITPERIOD":
+					return 2 * Math.PI * Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
+				case "TARGETBODYSYNCORBITPERIOD":
+					if (targetBody != null) {
+						return 2 * Math.PI * Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+					}
+					return -1d;
+
 
 			// These variables are no longer documented and are DEPRECATED. They will be removed as soon as I can see that people aren't using them.
 				case "LATITUDE_DMS":
