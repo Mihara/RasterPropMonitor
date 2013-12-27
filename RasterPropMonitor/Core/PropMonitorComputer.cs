@@ -758,7 +758,7 @@ namespace JSI
 				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
 					return actionGroupMemo[groupID];
 				}
-				return string.Empty;
+				return input;
 			}
 
 			switch (input) {
