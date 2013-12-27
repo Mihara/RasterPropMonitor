@@ -84,7 +84,6 @@ namespace JSI
 		private double moonEjectionAngle;
 		private double ejectionAltitude;
 		private double targetBodyDeltaV;
-
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -213,9 +212,7 @@ namespace JSI
 		public int? GetVar(string varname)
 		{
 			var variables = ParseData(data);
-			if (variables.ContainsKey(varname))
-				return variables[varname];
-			return null;
+			return variables.ContainsKey(varname) ? (int?)variables[varname] : (int?)null;
 		}
 		// Page handler interface for vessel description page.
 		// Analysis disable UnusedParameter
@@ -388,7 +385,11 @@ namespace JSI
 				} else if (vesselOrbitDepth == 1) {
 					// We are orbiting a planet and ...
 
-					if (targetIsMoon == false) {
+					// Mihara: Just to keep my IDE happy.
+					if (vesselSystem == null || vesselSystem.orbit == null)
+						throw new ArithmeticException("Basic assumptions about the universe turned out to be wrong.");
+
+					if (!targetIsMoon) {
 						// ... our target is a planet
 
 						phaseAngle = UpdatePhaseAngleAdjacent(vesselSystem.orbit, targetSystem.orbit);
@@ -419,6 +420,10 @@ namespace JSI
 				} else {
 					// We are orbiting a moon and ...
 
+					// Mihara: Just to keep my IDE happy.
+					if (vesselSystem == null || vesselSystem.orbit == null)
+						throw new ArithmeticException("Basic assumptions about the universe turned out to be wrong.");
+
 					if (vesselSystem != targetSystem) {
 						// ... our target is or orbits a different planet.
 
@@ -430,7 +435,7 @@ namespace JSI
 						moonEjectionAngle = (MoonAngle() - CurrentEjectAngle() + 360.0) % 360.0;
 						ejectionAltitude = 1.05 * vesselSystem.maxAtmosphereAltitude;
 						targetBodyDeltaV = CalculateDeltaV(targetSystem);
-					} else if (targetIsMoon == false) {
+					} else if (!targetIsMoon) {
 						// ... we are targeting our parent planet.
 
 						phaseAngle = -1.0;
@@ -531,7 +536,6 @@ namespace JSI
 
 			return (vessel.orbit.inclination > 90.0 && !(vessel.Landed)) ? (360.0 - eject) : eject;
 		}
-
 		// Simple phase angle: transfer from sun -> planet or planet -> moon
 		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
 		{
@@ -573,8 +577,8 @@ namespace JSI
 				return 0.0;
 			}
 
-			double srcAlt = CalcMeanAlt(srcOrbit);
-			double destAlt = CalcMeanAlt(destOrbit);
+			//double srcAlt = CalcMeanAlt(srcOrbit);
+			//double destAlt = CalcMeanAlt(destOrbit);
 
 			double phase = CurrentPhase(srcOrbit, destOrbit) - OberthDesiredPhase(destOrbit);
 			phase = (phase + 360.0) % 360.0;
@@ -633,10 +637,10 @@ namespace JSI
 			return vessel.orbit.inclination > 90 && !(vessel.Landed) ? 360 - eject : eject;
 		}
 		// Compute the current phase of the target.
-		private double CurrentPhase(Orbit originOrbit, Orbit targetOrbit)
+		private double CurrentPhase(Orbit originOrbit, Orbit destinationOrbit)
 		{
 			Vector3d vecthis = originOrbit.getRelativePositionAtUT(time);
-			Vector3d vectarget = targetOrbit.getRelativePositionAtUT(time);
+			Vector3d vectarget = destinationOrbit.getRelativePositionAtUT(time);
 
 			double phase = Angle2d(vecthis, vectarget);
 
@@ -663,7 +667,7 @@ namespace JSI
 			return phase % 360.0;
 		}
 
-		private Orbit GetClosestOrbit(CelestialBody target)
+		private Orbit GetClosestOrbit(CelestialBody targetCelestial)
 		{
 			Orbit checkorbit = vessel.orbit;
 			int orbitcount = 0;
@@ -671,7 +675,7 @@ namespace JSI
 			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
 				checkorbit = checkorbit.nextPatch;
 				orbitcount += 1;
-				if (checkorbit.referenceBody == target) {
+				if (checkorbit.referenceBody == targetCelestial) {
 					return checkorbit;
 				}
 
@@ -682,7 +686,7 @@ namespace JSI
 			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
 				checkorbit = checkorbit.nextPatch;
 				orbitcount += 1;
-				if (checkorbit.referenceBody == target.orbit.referenceBody) {
+				if (checkorbit.referenceBody == targetCelestial.orbit.referenceBody) {
 					return checkorbit;
 				}
 			}
@@ -690,23 +694,21 @@ namespace JSI
 			return vessel.orbit;
 		}
 
-		private double GetClosestApproach(CelestialBody target)
+		private double GetClosestApproach(CelestialBody targetCelestial)
 		{
-			Orbit closestorbit = GetClosestOrbit(target);
-			if (closestorbit.referenceBody == target) {
+			Orbit closestorbit = GetClosestOrbit(targetCelestial);
+			if (closestorbit.referenceBody == targetCelestial) {
 				return closestorbit.PeA;
 			}
-			else if (closestorbit.referenceBody == target.referenceBody) {
-				return MinTargetDistance(target, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - target.Radius;
+			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
+				return MinTargetDistance(targetCelestial, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - targetCelestial.Radius;
 			}
-			else {
-				return MinTargetDistance(target, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - target.Radius;
-			}
+			return MinTargetDistance(targetCelestial, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - targetCelestial.Radius;
 		}
 
 		private static double MinTargetDistance(CelestialBody target, double time, double dt, Orbit vesselorbit)
 		{
-			double[] dist_at_int = new double[11];
+			var dist_at_int = new double[11];
 			for (int i = 0; i <= 10; i++) {
 				double step = time + i * dt;
 				dist_at_int[i] = (target.getPositionAtUT(step) - vesselorbit.getPositionAtUT(step)).magnitude;
