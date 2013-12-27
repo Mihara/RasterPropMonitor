@@ -80,6 +80,9 @@ namespace JSI
 		public float iconPixelSize = 8f;
 		[KSPField]
 		public bool showTargetIcon;
+		[KSPField]
+		public string homeCrosshairColor = "0,0,0,0";
+		private Material homeCrosshairMaterial;
 		private FlyingCamera cameraObject;
 		private float currentFoV;
 		private float currentYaw;
@@ -95,6 +98,42 @@ namespace JSI
 		private static Vector2 ClampToEdge(Vector2 position)
 		{
 			return position / (Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y));
+		}
+
+		private Vector2 GetNormalizedScreenPosition(Vector3 directionVector, float yawOffset, float pitchOffset, float cameraAspect)
+		{
+			// Transform direction using the active camera's rotation.
+			var targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * directionVector;
+
+			// (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
+			var targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
+
+			// I want to scale the displacement such that 1.0
+			// represents the edge of the viewport. And my math is too
+			// rusty to remember the right way to get that scalar.
+			// Both of these are off by just a bit at wider zooms
+			// (tan scales a little too much, sin a little too
+			// little).  It may simply be an artifact of the camera
+			// perspective divide.
+			var fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
+			//Vector2 fovScale = new Vector2(cameraAspect * Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f));
+
+			// MOARdV: Are there no overloaded operators for vector math?
+			// Normalize to a [-1,+1] range on both axes
+			targetDisp.x = targetDisp.x / fovScale.x;
+			targetDisp.y = targetDisp.y / fovScale.y;
+
+			// If the target is behind the camera, or outside the
+			// bounds of the viewport, the icon needs to be clamped
+			// to the edge.
+			if (targetTransformed.z < 0.0f || Math.Max(Math.Abs(targetDisp.x), Math.Abs(targetDisp.y)) > 1.0f) {
+				targetDisp = ClampToEdge(targetDisp);
+			}
+
+			targetDisp.x = targetDisp.x * 0.5f + 0.5f;
+			targetDisp.y = targetDisp.y * 0.5f + 0.5f;
+
+			return targetDisp;
 		}
 
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)
@@ -120,41 +159,20 @@ namespace JSI
 			if (cameraObject.Render(currentYaw, -currentPitch)) {
 				ITargetable target = FlightGlobals.fetch.VesselTarget;
 
+				bool drawSomething = ((gizmoTexture != null && target != null && showTargetIcon) || homeCrosshairMaterial.color.a > 0);
+
+				if (drawSomething) {
+					GL.PushMatrix();
+					GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
+				}
+
 				if (gizmoTexture != null && target != null && showTargetIcon) {
 					// Figure out which direction the target is.
 					Vector3 targetDisplacement = target.GetTransform().position - cameraObject.GetTransform().position;
 					targetDisplacement.Normalize();
 
 					// Transform it using the active camera's rotation.
-					Vector3 targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * targetDisplacement;
-
-					// (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
-					var targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
-
-					// I want to scale the displacement such that 1.0
-					// represents the edge of the viewport. And my math is too
-					// rusty to remember the right way to get that scalar.
-					// Both of these are off by just a bit at wider zooms
-					// (tan scales a little too much, sin a little too
-					// little).  It may simply be an artifact of the camera
-					// perspective divide.
-					var fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
-					//Vector2 fovScale = new Vector2(cameraAspect * Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f));
-
-					// MOARdV: Are there no overloaded operators for vector math?
-					// Normalize to a [-1,+1] range on both axes
-					targetDisp.x = targetDisp.x / fovScale.x;
-					targetDisp.y = targetDisp.y / fovScale.y;
-
-					// If the target is behind the camera, or outside the
-					// bounds of the viewport, the icon needs to be clamped
-					// to the edge.
-					if (targetTransformed.z < 0.0f || Math.Max(Math.Abs(targetDisp.x), Math.Abs(targetDisp.y)) > 1.0f) {
-						targetDisp = ClampToEdge(targetDisp);
-					}
-
-					targetDisp.x = targetDisp.x * 0.5f + 0.5f;
-					targetDisp.y = targetDisp.y * 0.5f + 0.5f;
+					var targetDisp = GetNormalizedScreenPosition(targetDisplacement, currentYaw, -currentPitch, cameraAspect);
 
 					var iconCenter = new Vector2(screen.width * targetDisp.x, screen.height * targetDisp.y);
 
@@ -168,9 +186,31 @@ namespace JSI
 					// TGT+ is at (2/3, 2/3).
 					var srcRect = new Rect(2.0f / 3.0f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f);
 
-					GL.PushMatrix();
-					GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
 					Graphics.DrawTexture(position, gizmoTexture, srcRect, 0, 0, 0, 0, iconMaterial);
+				}
+
+				if (homeCrosshairMaterial.color.a > 0) {
+					var cameraForward = cameraObject.GetTransform().forward;
+					var crossHairCenter = GetNormalizedScreenPosition(cameraForward, 0.0f, 0.0f, cameraAspect);
+					crossHairCenter.x *= screen.width;
+					crossHairCenter.y *= screen.height;
+					crossHairCenter.x = Math.Max(iconPixelSize * 0.5f, crossHairCenter.x);
+					crossHairCenter.x = Math.Min(screen.width - iconPixelSize * 0.5f, crossHairCenter.x);
+					crossHairCenter.y = Math.Max(iconPixelSize * 0.5f, crossHairCenter.y);
+					crossHairCenter.y = Math.Min(screen.height - iconPixelSize * 0.5f, crossHairCenter.y);
+
+					float zoomAdjustedIconSize = iconPixelSize * Mathf.Tan(Mathf.Deg2Rad * fovLimits.y * 0.5f) / Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f); 
+
+					homeCrosshairMaterial.SetPass(0);
+					GL.Begin(GL.LINES);
+					GL.Vertex3(crossHairCenter.x - zoomAdjustedIconSize * 0.5f, crossHairCenter.y, 0.0f);
+					GL.Vertex3(crossHairCenter.x + zoomAdjustedIconSize * 0.5f, crossHairCenter.y, 0.0f);
+					GL.Vertex3(crossHairCenter.x, crossHairCenter.y - zoomAdjustedIconSize * 0.5f, 0.0f);
+					GL.Vertex3(crossHairCenter.x, crossHairCenter.y + zoomAdjustedIconSize * 0.5f, 0.0f);
+					GL.End();
+				}
+
+				if (drawSomething) {
 					GL.PopMatrix();
 				}
 
@@ -286,6 +326,9 @@ namespace JSI
 			Color32 iconColor = ConfigNode.ParseColor32(targetIconColor);
 			iconColor.a /= 2;
 			iconMaterial.color = iconColor;
+
+			homeCrosshairMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			homeCrosshairMaterial.color = ConfigNode.ParseColor32(homeCrosshairColor);
 		}
 	}
 }

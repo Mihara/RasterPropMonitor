@@ -81,6 +81,10 @@ namespace JSI
 		private double ejectionAngle;
 		private double timeToEjectionAngle;
 		private double targetClosestApproach;
+		private double moonEjectionAngle;
+		private double ejectionAltitude;
+		private double targetBodyDeltaV;
+
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -377,7 +381,10 @@ namespace JSI
 					ejectionAngle = -1.0;
 					timeToEjectionAngle = -1.0;
 
-					targetClosestApproach = -1.0;
+					moonEjectionAngle = -1.0;
+					ejectionAltitude = -1.0;
+					targetBodyDeltaV = CalculateDeltaV(targetSystem);
+
 				} else if (vesselOrbitDepth == 1) {
 					// We are orbiting a planet and ...
 
@@ -388,8 +395,7 @@ namespace JSI
 						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
 						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetBody) - CurrentEjectAngle() + 360.0) % 360.0;
-
-						targetClosestApproach = -1.0;
+						targetBodyDeltaV = CalculateDeltaV(targetBody);
 					} else if (vesselSystem == targetSystem) {
 						// ... our target is a moon of this planet
 
@@ -397,8 +403,7 @@ namespace JSI
 						delta_theta = (360.0 / vessel.orbit.period) - (360.0 / targetBody.orbit.period);
 
 						ejectionAngle = -1.0;
-
-						targetClosestApproach = -1.0;
+						targetBodyDeltaV = CalculateDeltaV(targetBody);
 					} else {
 						// ... our target orbits a different planet.
 
@@ -406,9 +411,11 @@ namespace JSI
 						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
 						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetSystem) - CurrentEjectAngle() + 360.0) % 360.0;
-
-						targetClosestApproach = -1.0;
+						targetBodyDeltaV = CalculateDeltaV(targetSystem);
 					}
+
+					moonEjectionAngle = -1.0;
+					ejectionAltitude = -1.0;
 				} else {
 					// We are orbiting a moon and ...
 
@@ -419,6 +426,10 @@ namespace JSI
 						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
 						ejectionAngle = -1.0;
+
+						moonEjectionAngle = (MoonAngle() - CurrentEjectAngle() + 360.0) % 360.0;
+						ejectionAltitude = 1.05 * vesselSystem.maxAtmosphereAltitude;
+						targetBodyDeltaV = CalculateDeltaV(targetSystem);
 					} else if (targetIsMoon == false) {
 						// ... we are targeting our parent planet.
 
@@ -426,6 +437,10 @@ namespace JSI
 						timeToPhaseAngle = -1.0;
 
 						ejectionAngle = -1.0;
+
+						moonEjectionAngle = -1.0;
+						ejectionAltitude = -1.0;
+						targetBodyDeltaV = -1.0;
 					} else {
 						// ... we are targeting a sibling moon.
 
@@ -433,6 +448,10 @@ namespace JSI
 						delta_theta = (360.0 / vessel.mainBody.orbit.period) - (360.0 / targetBody.GetOrbit().period);
 						
 						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetBody) - CurrentEjectAngle() + 360.0) % 360.0;
+
+						moonEjectionAngle = -1.0;
+						ejectionAltitude = -1.0;
+						targetBodyDeltaV = CalculateDeltaV(targetBody);
 					}
 
 				}
@@ -451,7 +470,7 @@ namespace JSI
 					timeToEjectionAngle = -1.0;
 				}
 
-				targetClosestApproach = -1.0;
+				targetClosestApproach = GetClosestApproach(targetBody);
 			} else {
 				// No valid orbit.  Make sure the angles are cleared out.
 				phaseAngle = -1.0;
@@ -459,9 +478,60 @@ namespace JSI
 				ejectionAngle = -1.0;
 				timeToEjectionAngle = -1.0;
 				targetClosestApproach = -1.0;
+				moonEjectionAngle = -1.0;
+				ejectionAltitude = -1.0;
+				targetBodyDeltaV = -1.0;
 			}
 		}
 		//--- Protractor utility methods
+		private double CalculateDeltaV(CelestialBody dest)    //calculates ejection v to reach destination
+		{
+			if (vessel.mainBody == dest.orbit.referenceBody) {
+				double radius = dest.referenceBody.Radius;
+				double u = dest.referenceBody.gravParameter;
+				double d_alt = CalcMeanAlt(dest.orbit);
+				double alt = (vessel.mainBody.GetAltitude(vessel.findWorldCenterOfMass())) + radius;
+				double v = Math.Sqrt(u / alt) * (Math.Sqrt((2 * d_alt) / (alt + d_alt)) - 1);
+				return Math.Abs((Math.Sqrt(u / alt) + v) - vessel.orbit.GetVel().magnitude);
+			} else {
+				CelestialBody orig = vessel.mainBody;
+				double d_alt = CalcMeanAlt(dest.orbit);
+				double o_radius = orig.Radius;
+				double u = orig.referenceBody.gravParameter;
+				double o_mu = orig.gravParameter;
+				double o_soi = orig.sphereOfInfluence;
+				double o_alt = CalcMeanAlt(orig.orbit);
+				double exitalt = o_alt + o_soi;
+				double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2 * d_alt) / (exitalt + d_alt)) - 1);
+				double r = o_radius + (vessel.mainBody.GetAltitude(vessel.findWorldCenterOfMass()));
+				double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
+				return Math.Abs(v - vessel.orbit.GetVel().magnitude);
+			}
+		}
+
+		private double MoonAngle()  //calculates eject angle for moon -> planet in preparation for planet -> planet transfer
+		{
+			CelestialBody orig = vessel.mainBody;
+			double o_alt = CalcMeanAlt(orig.orbit);
+			double d_alt = (orig.orbit.referenceBody.Radius + orig.orbit.referenceBody.maxAtmosphereAltitude) * 1.05;
+			double o_soi = orig.sphereOfInfluence;
+			double o_radius = orig.Radius;
+			double o_mu = orig.gravParameter;
+			double u = orig.referenceBody.gravParameter;
+			double exitalt = o_alt + o_soi;
+			double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2.0 * d_alt) / (exitalt + d_alt)) - 1.0);
+			double r = o_radius + (orig.GetAltitude(vessel.findWorldCenterOfMass()));
+			double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2.0 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
+			double eta = Math.Abs(v * v / 2.0 - o_mu / r);
+			double h = r * v;
+			double e = Math.Sqrt(1.0 + ((2.0 * eta * h * h) / (o_mu * o_mu)));
+			double eject = (180.0 - (Math.Acos(1.0 / e) * (180.0 / Math.PI))) % 360.0;
+
+			eject = (o_alt > d_alt) ? (180.0 - eject) : (360.0 - eject);
+
+			return (vessel.orbit.inclination > 90.0 && !(vessel.Landed)) ? (360.0 - eject) : eject;
+		}
+
 		// Simple phase angle: transfer from sun -> planet or planet -> moon
 		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
 		{
@@ -593,23 +663,63 @@ namespace JSI
 			return phase % 360.0;
 		}
 
+		private Orbit GetClosestOrbit(CelestialBody target)
+		{
+			Orbit checkorbit = vessel.orbit;
+			int orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == target) {
+					return checkorbit;
+				}
+
+			}
+			checkorbit = vessel.orbit;
+			orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == target.orbit.referenceBody) {
+					return checkorbit;
+				}
+			}
+
+			return vessel.orbit;
+		}
+
 		private double GetClosestApproach(CelestialBody target)
 		{
-			/*
-			Orbit closestorbit = new Orbit();
-			closestorbit = getclosestorbit(target);
+			Orbit closestorbit = GetClosestOrbit(target);
 			if (closestorbit.referenceBody == target) {
-				closestApproachTime = closestorbit.StartUT + closestorbit.timeToPe;
 				return closestorbit.PeA;
 			}
 			else if (closestorbit.referenceBody == target.referenceBody) {
-				return mindistance(target, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - target.Radius;
+				return MinTargetDistance(target, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - target.Radius;
 			}
 			else {
-				return mindistance(target, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - target.Radius;
+				return MinTargetDistance(target, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - target.Radius;
 			}
-			 */
-			return 0.0;
+		}
+
+		private static double MinTargetDistance(CelestialBody target, double time, double dt, Orbit vesselorbit)
+		{
+			double[] dist_at_int = new double[11];
+			for (int i = 0; i <= 10; i++) {
+				double step = time + i * dt;
+				dist_at_int[i] = (target.getPositionAtUT(step) - vesselorbit.getPositionAtUT(step)).magnitude;
+			}
+			double mindist = dist_at_int.Min();
+			double maxdist = dist_at_int.Max();
+			int minindex = Array.IndexOf(dist_at_int, mindist);
+
+			if ((maxdist - mindist) / maxdist >= 0.00001) {
+				mindist = MinTargetDistance(target, time + ((minindex - 1) * dt), dt / 5, vesselorbit);
+			}
+
+			return mindist;
 		}
 		// For going from a moon to another planet exploiting oberth effect
 		private double OberthDesiredPhase(Orbit destOrbit)
@@ -796,8 +906,11 @@ namespace JSI
 					secondsToImpact = altitude / -speedVertical;
 				}
 
-				// This is probably nonsense, but will do for the moment.
-				bestPossibleSpeedAtImpact = speedVertical - Math.Sqrt(2 * (localG - (totalMaximumThrust / totalShipWetMass)) * altitude);
+				// MOARdV: I think this gets the computation right.  High thrust will
+				// result in NaN, which is already handled.
+				double accelerationAtMaxThrust = localG - (totalMaximumThrust / totalShipWetMass);
+				double timeToImpactAtMaxThrust = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * accelerationAtMaxThrust * altitude)) / accelerationAtMaxThrust;
+				bestPossibleSpeedAtImpact = speedVertical - accelerationAtMaxThrust * timeToImpactAtMaxThrust;
 				if (double.IsNaN(bestPossibleSpeedAtImpact))
 					bestPossibleSpeedAtImpact = 0;
 			} else {
@@ -1446,9 +1559,14 @@ namespace JSI
 					return ejectionAngle;
 				case "TARGETBODYEJECTIONANGLESECS":
 					return timeToEjectionAngle;
-			// MOARdV: The following is not implemented yet.
-			//case "TARGETBODYCLOSESTAPPROACH":
-			//	return targetClosestApproach;
+				case "TARGETBODYCLOSESTAPPROACH":
+					return targetClosestApproach;
+				case "TARGETBODYMOONEJECTIONANGLE":
+					return moonEjectionAngle;
+				case "TARGETBODYEJECTIONALTITUDE":
+					return ejectionAltitude;
+				case "TARGETBODYDELTAV":
+					return targetBodyDeltaV;
 
 			// FLight control status
 				case "THROTTLE":
