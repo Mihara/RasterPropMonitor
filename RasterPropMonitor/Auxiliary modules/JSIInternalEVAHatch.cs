@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace JSI
 {
 	public class JSIInternalEVAHatch: InternalModule
@@ -11,11 +13,15 @@ namespace JSI
 				JUtil.LogMessage(this, "Where's my transform?");
 				return;
 			}
+			Transform actualTransform;
 			if (internalProp == null) {
-				SmarterButton.CreateButton(null, hatchTransform, EVAClick, null, internalModel);
+				actualTransform = internalModel.FindModelTransform(hatchTransform);
 			} else {
-				SmarterButton.CreateButton(internalProp, hatchTransform, EVAClick);
+				actualTransform = internalProp.FindModelTransform(hatchTransform);
 			}
+			// Switching to using the stock button class because right now SmarterButton can't correctly handle doubleclick.
+			InternalButton.Create(actualTransform.gameObject).OnDoubleTap(new InternalButton.InternalButtonDelegate(EVAClick));
+
 		}
 
 		public void EVAClick()
