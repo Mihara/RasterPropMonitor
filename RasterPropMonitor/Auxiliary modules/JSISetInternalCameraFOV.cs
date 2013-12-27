@@ -16,10 +16,12 @@ namespace JSI
 		public override void OnUpdate()
 		{
 			if (JUtil.VesselIsInIVA(vessel) && CameraManager.Instance.currentCameraMode != oldCameraMode && InternalCamera.Instance.isActive) {
-				InternalCamera.Instance.SetFOV(fov);
-				InternalCamera.Instance.maxRot = maxRot;
-				InternalCamera.Instance.maxPitch = maxPitch;
-				InternalCamera.Instance.minPitch = minPitch;
+				if (JUtil.FindCurrentKerbal(part) != null) {
+					InternalCamera.Instance.SetFOV(fov);
+					InternalCamera.Instance.maxRot = maxRot;
+					InternalCamera.Instance.maxPitch = maxPitch;
+					InternalCamera.Instance.minPitch = minPitch;
+				}
 				oldCameraMode = CameraManager.Instance.currentCameraMode;
 			}
 		}
