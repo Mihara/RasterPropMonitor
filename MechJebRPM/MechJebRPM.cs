@@ -116,7 +116,7 @@ namespace MechJebRPM
 				result.Append(activeMenu.ShowMenu(width, height));
 			} else {
 				if (activeJeb == null)
-					result.AppendLine("Autopilot not installed.");
+					result.AppendLine("Autopilot not found.");
 				else
 					result.AppendLine("Attitude control unavailable.");
 			}

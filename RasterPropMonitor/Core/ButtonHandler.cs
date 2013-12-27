@@ -42,10 +42,10 @@ namespace JSI
 			public void ShowNext()
 			{
 				if (pages.Count > 0) {
-					selector(pages[counter]);
 					counter++;
 					if (counter >= pages.Count)
 						counter = 0;
+					selector(pages[counter]);
 				}
 			}
 		}

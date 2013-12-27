@@ -1,7 +1,3 @@
-# 0.12 milestone targets
-
-* Testing for Christmas release!
-
 # 0.13 milestone targets
 
 ## Minor new features
@@ -24,11 +20,21 @@
 
 ## Minor new features
 
-* Should I introduce TGT+/TGT- markers into PFD instead of mode switching? Come to think of it, can I do REL+/REL- markers too?
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
+* Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
+* Undocking menu.
+* cameraTransform should be a list of prospective transform names to try.
+* On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :)
 
 ## Major new features
 
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
+* Moving-in-IVA:
+  * Make an InternalModule that detects doubleclicks on a transform. Place that collider over an internal hatch.
+  * When in IVA player clicks on that hatch, search the rest of the ship for a habitable capsule with IVA in the direction of the click (Somewhat non-trivial as it will require intelligently navigating the part tree).
+  * Locate a part which has an IVA and a free InternalSeat.
+  * Detect which kerbal we're currently looking with.
+  * Move that kerbal to the seat found.
+  Voila, we have moving-in-iva, or at least as close as it ever gets.

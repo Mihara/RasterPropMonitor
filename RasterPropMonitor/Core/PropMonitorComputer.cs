@@ -7,6 +7,18 @@ namespace JSI
 {
 	public class RasterPropMonitorComputer: PartModule
 	{
+		// Persistence for internal modules.
+		[KSPField(isPersistant = true)]
+		public string data = "";
+		// Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
+		// because nothing appears to work as documented -- IF it's documented.
+		// This one is sure to work and isn't THAT much of a performance drain, really.
+		// Pull requests welcome
+		// Vessel description storage and related code.
+		[KSPField(isPersistant = true)]
+		public string vesselDescription = string.Empty;
+		private readonly string editorNewline = ((char)0x0a).ToString();
+		// Public interface.
 		public bool updateForced;
 		// Data common for various variable calculations
 		private int vesselNumParts;
@@ -29,6 +41,7 @@ namespace JSI
 		private double horzVelocity;
 		private ITargetable target;
 		private ModuleDockingNode targetDockingNode;
+		private Vessel targetVessel;
 		private double targetDistance;
 		private Vector3d targetSeparation;
 		private double approachSpeed;
@@ -36,6 +49,9 @@ namespace JSI
 		private ManeuverNode node;
 		private double time;
 		private ProtoCrewMember[] vesselCrew;
+		private kerbalExpressionSystem[] vesselCrewMedical;
+		private ProtoCrewMember[] localCrew;
+		private kerbalExpressionSystem[] localCrewMedical;
 		private double altitudeASL;
 		private double altitudeTrue;
 		private double altitudeBottom;
@@ -71,6 +87,18 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
+		private readonly string[] actionGroupMemo = {
+			"AG0",
+			"AG1",
+			"AG2",
+			"AG3",
+			"AG4",
+			"AG5",
+			"AG6",
+			"AG7",
+			"AG8",
+			"AG9",
+		};
 		// This is only here to support the deprecated DMS and KDT variables.
 		// These should be gone as soon as possible along with this class instance.
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
@@ -142,18 +170,61 @@ namespace JSI
 		};
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
-
-		public static RasterPropMonitorComputer Instantiate(InternalProp thatProp)
+		// Public functions:
+		// Request the instance, create it if one doesn't exist:
+		public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
 		{
-			if (thatProp.part != null) {
-				for (int i = 0; i < thatProp.part.Modules.Count; i++)
-					if (thatProp.part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
-						var other = thatProp.part.Modules[i] as RasterPropMonitorComputer;
-						return other;
-					}
-				return thatProp.part.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+			var thatProp = referenceLocation as InternalProp;
+			var thatPart = referenceLocation as Part;
+			if (thatPart == null) {
+				if (thatProp == null)
+					throw new ArgumentException("Cannot instantiate RPMC in this location.");
+				thatPart = thatProp.part;
 			}
+			for (int i = 0; i < thatPart.Modules.Count; i++)
+				if (thatPart.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name) {
+					var other = thatPart.Modules[i] as RasterPropMonitorComputer;
+					return other;
+				}
+			return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+		}
+		// Set refresh rates.
+		public void UpdateRefreshRates(int rate, int dataRate)
+		{
+			refreshTextRate = Math.Min(rate, refreshTextRate);
+			refreshDataRate = Math.Min(dataRate, refreshDataRate);
+		}
+		// Internal persistence interface:
+		public void SetVar(string varname, int value)
+		{
+			var variables = ParseData(data);
+			try {
+				variables.Add(varname, value);
+			} catch (ArgumentException) {
+				variables[varname] = value;
+			}
+			data = UnparseData(variables);
+		}
+
+		public int? GetVar(string varname)
+		{
+			var variables = ParseData(data);
+			if (variables.ContainsKey(varname))
+				return variables[varname];
 			return null;
+		}
+		// Page handler interface for vessel description page.
+		// Analysis disable UnusedParameter
+		public string VesselDescriptionRaw(int screenWidth, int screenHeight)
+		{
+			// Analysis restore UnusedParameter
+			return vesselDescription.UnMangleConfigText();
+		}
+		// Analysis disable UnusedParameter
+		public string VesselDescriptionWordwrapped(int screenWidth, int screenHeight)
+		{
+			// Analysis restore UnusedParameter
+			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(), screenWidth);
 		}
 		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
 		public void Start()
@@ -168,13 +239,21 @@ namespace JSI
 			if (HighLogic.LoadedSceneIsFlight) {
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
-			}
-		}
 
-		public void UpdateRefreshRates(int rate, int dataRate)
-		{
-			refreshTextRate = Math.Min(rate, refreshTextRate);
-			refreshDataRate = Math.Min(dataRate, refreshDataRate);
+				// Parse vessel description here for special lines:
+					
+				string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.lineSeparator, StringSplitOptions.None);
+				for (int i = 0; i < descriptionStrings.Length; i++) {
+					if (descriptionStrings[i].StartsWith("AG", StringComparison.Ordinal) && descriptionStrings[i][3] == '=') {
+						uint groupID;
+						if (uint.TryParse(descriptionStrings[i][2].ToString(), out groupID)) {
+							actionGroupMemo[groupID] = descriptionStrings[i].Substring(4).Trim();
+							descriptionStrings[i] = string.Empty;
+						}
+					}
+				}
+				vesselDescription = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
+			}
 		}
 
 		private bool UpdateCheck()
@@ -194,9 +273,40 @@ namespace JSI
 			return false;
 		}
 
+		private static string UnparseData(Dictionary<string,int> variables)
+		{
+			var tokens = new List<string>();
+			foreach (KeyValuePair<string,int> item in variables) {
+				tokens.Add(item.Key + "$" + item.Value);
+			}
+			return String.Join("|", tokens.ToArray());
+		}
+
+		private static Dictionary<string,int> ParseData(string dataString)
+		{
+			var variables = new Dictionary<string,int>();
+			if (!string.IsNullOrEmpty(dataString))
+				foreach (string varstring in dataString.Split ('|')) {
+					string[] tokens = varstring.Split('$');
+					int value;
+					int.TryParse(tokens[1], out value);
+					variables.Add(tokens[0], value);
+				}
+
+			return variables;
+
+		}
+		// I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
+		public void Update()
+		{
+			if (HighLogic.LoadedSceneIsEditor)
+				// I think it can't be null. But for some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
+				vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$");
+		}
+
 		public override void OnUpdate()
 		{
-			if (!HighLogic.LoadedSceneIsFlight || vessel != FlightGlobals.ActiveVessel)
+			if (!JUtil.IsActiveVessel(vessel))
 				return;
 
 			if (!UpdateCheck())
@@ -615,8 +725,7 @@ namespace JSI
 				targetSeparation = vessel.GetTransform().position - target.GetTransform().position;
 				targetOrientation = target.GetTransform().rotation;
 
-				var targetVessel = target as Vessel;
-
+				targetVessel = target as Vessel;
 				targetBody = target as CelestialBody;	
 				targetDockingNode = target as ModuleDockingNode;
 
@@ -654,6 +763,7 @@ namespace JSI
 				targetDistance = 0;
 				approachSpeed = 0;
 				targetBody = null;
+				targetVessel = null;
 				targetDockingNode = null;
 				targetOrientation = vessel.GetTransform().rotation;
 				targetOrbitSensibility = false;
@@ -766,6 +876,23 @@ namespace JSI
 			Array.Sort(resourcesAlphabetic);
 			// I seriously hope you don't have crew jumping in and out more than once per second.
 			vesselCrew = (vessel.GetVesselCrew()).ToArray();
+			// The sneaky bit: This way we can get at their panic and whee values!
+			vesselCrewMedical = new kerbalExpressionSystem[vesselCrew.Length];
+			for (int i = 0; i < vesselCrew.Length; i++) {
+				vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+			}
+
+			// Part-local list is assembled somewhat differently.
+			if (part.internalModel == null) {
+				JUtil.LogMessage(this, "Running on a part with no IVA, how did that happen?");
+			} else {
+				localCrew = new ProtoCrewMember[part.internalModel.seats.Count];
+				localCrewMedical = new kerbalExpressionSystem[localCrew.Length];
+				for (int i = 0; i < part.internalModel.seats.Count; i++) {
+					localCrew[i] = part.internalModel.seats[i].crew;
+					localCrewMedical[i] = localCrew[i] == null ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+				}
+			}
 		}
 		// Another piece from MechJeb.
 		private void FetchAltitudes()
@@ -871,6 +998,37 @@ namespace JSI
 			return returnValue;
 		}
 
+		private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
+		{
+			bool exists = seatID < crewList.Count;
+			bool valid = exists && crewList[seatID] != null;
+			switch (element) {
+				case "PRESENT":
+					return valid ? 1d : -1d;
+				case "EXISTS":
+					return exists ? 1d : -1d;
+				case "FIRST":
+					return valid ? crewList[seatID].name.Split()[0] : string.Empty;
+				case "LAST":
+					return valid ? crewList[seatID].name.Split()[1] : string.Empty;
+				case "FULL":
+					return valid ? crewList[seatID].name : string.Empty;
+				case "STUPIDITY":
+					return valid ? crewList[seatID].stupidity : -1d;
+				case "COURAGE":
+					return valid ? crewList[seatID].courage : -1d;
+				case "BADASS":
+					return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
+				case "PANIC":
+					return valid ? crewMedical[seatID].panicLevel : -1d;
+				case "WHEE":
+					return valid ? crewMedical[seatID].wheeLevel : -1d;
+				default:
+					return "???!";
+			}
+
+		}
+
 		private object VariableToObject(string input, out bool cacheable)
 		{
 
@@ -912,26 +1070,26 @@ namespace JSI
 
 				// We do similar things for crew rosters.
 				// The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
-				if (tokens.Length == 3 && tokens[0] == "CREW") { 
+				// Part-local crew list is identical but CREWLOCAL_.
+				if (tokens.Length == 3) { 
 					ushort crewSeatID = Convert.ToUInt16(tokens[1]);
-					if (tokens[2] == "PRESENT") {
-						return crewSeatID >= vesselCrew.Length ? -1 : 1;
-					}
-					if (crewSeatID >= vesselCrew.Length)
-						return string.Empty;
-					string kerbalname = vesselCrew[crewSeatID].name;
-					string[] tokenisedname = kerbalname.Split();
-					switch (tokens[2]) {
-						case "FIRST":
-							return tokenisedname[0];
-						case "LAST":
-							return tokenisedname[1];
-						case "FULL":
-							return kerbalname;
-						default:
-							return "???!";
+					switch (tokens[0]) {
+						case "CREW":
+							return CrewListElement(tokens[2], crewSeatID, vesselCrew, vesselCrewMedical);
+						case "CREWLOCAL":
+							return CrewListElement(tokens[2], crewSeatID, localCrew, localCrewMedical);
 					}
 				}
+
+			}
+
+			// Action group memo strings from vessel description.
+			if (input.StartsWith("AGMEMO", StringComparison.Ordinal)) {
+				uint groupID;
+				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
+					return actionGroupMemo[groupID];
+				}
+				return input;
 			}
 
 			switch (input) {
@@ -989,6 +1147,8 @@ namespace JSI
 					return altitudeTrue;
 				case "ALTITUDEBOTTOM":
 					return altitudeBottom;
+				case "TERRAINHEIGHT":
+					return altitudeASL - altitudeTrue;
 
 			// Atmospheric values
 				case "ATMPRESSURE":
@@ -1094,7 +1254,17 @@ namespace JSI
 			// Names!
 				case "NAME":
 					return vessel.vesselName;
-
+				case "VESSELTYPE":
+					return vessel.vesselType.ToString();
+				case "TARGETTYPE":
+					if (targetVessel != null) {
+						return targetVessel.vesselType.ToString();
+					}
+					if (targetDockingNode != null)
+						return "Port";
+					if (targetBody != null)
+						return "Celestial";
+					return "Position";
 
 			// Coordinates.
 				case "LATITUDE":
@@ -1176,7 +1346,6 @@ namespace JSI
 				case "TARGETALTITUDE":
 					if (target == null)
 						return -1d;
-					var targetVessel = target as Vessel;
 					if (targetVessel != null) {
 						return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
 					}
@@ -1345,22 +1514,22 @@ namespace JSI
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 50).GetHashCode();
+					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 100).GetHashCode();
 				case "GROUNDPROXIMITYALARM":
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
 				case "TUMBLEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
 				case "SLOPEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 10).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 15).GetHashCode();
 				case "DOCKINGANGLEALARM":
 					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-					(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up) > 1.5 ||
-					JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right) > 1.5)).GetHashCode();
+					(Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
+					Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
 				case "DOCKINGSPEEDALARM":
-					return (targetDockingNode != null && approachSpeed > 3 && targetDistance < 10).GetHashCode();
+					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
 					
 
 			// SCIENCE!!
@@ -1536,9 +1705,7 @@ namespace JSI
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
 					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
-						if (resources[resourceType.Value].y > 0)
-							return (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d);
-						return 0d;
+						return resources[resourceType.Value].y > 0 ? (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d) : 0d;
 					}
 					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y :
 						resources[resourceType.Value].x.Clamp(0d, resources[resourceType.Value].y);

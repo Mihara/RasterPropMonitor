@@ -16,6 +16,7 @@ namespace JSI
 		private readonly RenderTexture screenTexture;
 		private bool isReferenceCamera;
 		private const string referenceCamera = "CurrentReferenceDockingPortCamera";
+		private readonly Quaternion referencePointRotation = Quaternion.Euler(-90, 0, 0);
 
 		public float FOV { get; set; }
 
@@ -143,6 +144,8 @@ namespace JSI
 		public Quaternion CameraRotation(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
 			Quaternion rotation = cameraTransform.transform.rotation;
+			if (isReferenceCamera)
+				rotation *=  referencePointRotation;
 			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
 			return rotation * offset;
 		}
@@ -175,7 +178,7 @@ namespace JSI
 
 			if (isReferenceCamera) {
 				// Reference transforms of docking ports have the wrong orientation, so need an extra rotation applied before that.
-				rotation *= Quaternion.Euler(-90, 0, 0);
+				rotation *= referencePointRotation;
 			}
 
 			rotation = rotation * offset;

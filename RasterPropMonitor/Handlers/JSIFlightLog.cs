@@ -56,7 +56,7 @@ namespace JSI
 		public void Start()
 		{
 			if (!string.IsNullOrEmpty(pageTitle))
-				pageTitle = pageTitle.Replace("<=", "{").Replace("=>", "}");
+				pageTitle = pageTitle.UnMangleConfigText();
 		}
 		// You can have an OnUpdate in this module, this particular one doesn't need it.
 		private void LogToBuffer(int screenWidth, int screenHeight)

@@ -43,9 +43,13 @@ namespace JSI
 			}
 
 			// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
-			if (variableSets.Count < 1 && moduleConfig != null)
-				variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
-
+			if (variableSets.Count < 1 && moduleConfig != null) {
+				try {
+					variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
+				} catch (ArgumentException e) {
+					JUtil.LogMessage(this, "Error - {0}", e);
+				}
+			}
 			JUtil.LogMessage(this, "Configuration complete, supporting {0} variable indicators.", variableSets.Count);
 			startupComplete = true;
 		}
@@ -79,14 +83,26 @@ namespace JSI
 		private readonly string animationName;
 		private readonly bool alarmSoundLooping;
 		private readonly Color passiveColor, activeColor;
-		private readonly bool colorShiftMode = false;
 		private readonly Renderer colorShiftRenderer;
+		private readonly Transform controlledTransform;
+		private readonly Vector3 initialPosition, vectorStart, vectorEnd;
+		private readonly Quaternion initialRotation, rotationStart, rotationEnd;
+		private readonly bool longPath;
 		private readonly double flashingDelay;
 		private readonly string colorName = "_EmissiveColor";
+		private readonly Mode mode;
 		// runtime values:
 		private bool alarmActive;
 		private bool currentState;
 		private double lastStateChange;
+
+		private enum Mode
+		{
+			Animation,
+			Color,
+			Rotation,
+			Translation
+		}
 
 		public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
 		{
@@ -128,8 +144,8 @@ namespace JSI
 				anim[animationName].normalizedTime = reverse ? 1f : 0f;
 				anim.Play();
 				JUtil.LogMessage(this, "Using animation mode with animation {0}.", animationName);
+				mode = Mode.Animation;
 			} else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject")) {
-				colorShiftMode = true;
 				if (node.HasValue("colorName"))
 					colorName = node.GetValue("colorName");
 				passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
@@ -137,8 +153,29 @@ namespace JSI
 				colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
 				colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
 				JUtil.LogMessage(this, "Using color shift mode with object {0}.", node.GetValue("coloredObject"));
+				mode = Mode.Color;
+			} else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd")) {
+				controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+				initialRotation = controlledTransform.localRotation;
+				if (node.HasValue("longPath")) {
+					longPath = true;
+					vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
+					vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+				} else {
+					rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
+					rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+				}
+				JUtil.LogMessage(this, "Using rotation mode with object {0}.", node.GetValue("controlledTransform"));
+				mode = Mode.Rotation;
+			} else if (node.HasValue("controlledTransform") && node.HasValue("localTranslationStart") && node.HasValue("localTranslationEnd")) {
+				controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+				initialPosition = controlledTransform.localPosition;
+				vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
+				vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+				JUtil.LogMessage(this, "Using translation mode with object {0}.", node.GetValue("controlledTransform"));
+				mode = Mode.Translation;
 			} else
-				throw new ArgumentException("Cannot initiate neither animation nor color shift mode.");
+				throw new ArgumentException("Cannot initiate any of the possible action modes.");
 
 			if (node.HasValue("threshold"))
 				threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
@@ -175,10 +212,19 @@ namespace JSI
 		private void TurnOn()
 		{
 			if (!currentState) {
-				if (colorShiftMode) {
-					colorShiftRenderer.material.SetColor(colorName, (reverse ? passiveColor : activeColor));
-				} else {
-					anim[animationName].normalizedTime = reverse ? 0f : 1f;
+				switch (mode) {
+					case Mode.Color:
+						colorShiftRenderer.material.SetColor(colorName, (reverse ? passiveColor : activeColor));
+						break;
+					case Mode.Animation:
+						anim[animationName].normalizedTime = reverse ? 0f : 1f;
+						break;
+					case Mode.Rotation:
+						controlledTransform.localRotation = initialRotation * (reverse ? rotationEnd : rotationStart);
+						break;
+					case Mode.Translation:
+						controlledTransform.localPosition = initialPosition + (reverse ? vectorEnd : vectorStart);
+						break;
 				}
 			}
 			currentState = true;
@@ -188,10 +234,19 @@ namespace JSI
 		private void TurnOff()
 		{
 			if (currentState) {
-				if (colorShiftMode) {
-					colorShiftRenderer.material.SetColor(colorName, (reverse ? activeColor : passiveColor));
-				} else {
-					anim[animationName].normalizedTime = reverse ? 1f : 0f;
+				switch (mode) {
+					case Mode.Color:
+						colorShiftRenderer.material.SetColor(colorName, (reverse ? activeColor : passiveColor));
+						break;
+					case Mode.Animation:
+						anim[animationName].normalizedTime = reverse ? 1f : 0f;
+						break;
+					case Mode.Rotation:
+						controlledTransform.localRotation = initialRotation * (reverse ? rotationStart : rotationEnd);
+						break;
+					case Mode.Translation:
+						controlledTransform.localPosition = initialPosition + (reverse ? vectorStart : vectorEnd);
+						break;
 				}
 			}
 			currentState = false;
@@ -204,9 +259,8 @@ namespace JSI
 			for (int i = 0; i < 3; i++)
 				if (!scaleEnds[i].Get(out scaleResults[i]))
 					return;
-
+			float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
 			if (thresholdMode) {
-				float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
 				if (scaledValue >= threshold.x && scaledValue <= threshold.y) {
 					if (flashingDelay > 0) {
 						if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay) {
@@ -230,15 +284,25 @@ namespace JSI
 				}
 
 			} else {
-				if (colorShiftMode) {
-					colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor,
-						Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2])));
-				} else {
-					float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
-					if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
-						lerp = reverse ? 1f : 0f;
-					}
-					anim[animationName].normalizedTime = lerp;
+				switch (mode) {
+					case Mode.Rotation:
+						Quaternion newRotation = longPath ? Quaternion.Euler(Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue)) :
+						                         Quaternion.Slerp(reverse ? rotationEnd : rotationStart, reverse ? rotationStart : rotationEnd, scaledValue);
+						controlledTransform.localRotation = initialRotation * newRotation;
+						break;
+					case Mode.Translation:
+						controlledTransform.localPosition = initialPosition + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
+						break;
+					case Mode.Color:
+						colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
+						break;
+					case Mode.Animation:
+						float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
+						if (float.IsNaN(lerp) || float.IsInfinity(lerp)) {
+							lerp = reverse ? 1f : 0f;
+						}
+						anim[animationName].normalizedTime = lerp;
+						break;
 				}
 			}
 
