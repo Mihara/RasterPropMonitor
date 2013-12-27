@@ -211,143 +211,138 @@ namespace JSI
 
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
-		// Overview of TransferAngles feature:
-		// This functionality is based on the Protractor plug-in.  However,
-		// where the Protractor computes transfer angles for all planets plus
-		// any moons in the current planetary system, the RPM transfer angle
-		// computations are focused on the current target.  RPM generalizes
-		// this functionality to provide transfer angles to ships (if in the
-		// same SoI) and moons or ships orbiting other planets (by using the
-		// parent planet as a proxy).
 		private void UpdateTransferAngles()
 		{
-			// MOARdV warning: This method is much more convoluted than it
-			// strictly needs to be.  It's set up for developing the algorithms
-			// and understanding how they work together.  Clean up and
+			// MOARdV warning: This method is more convoluted than it strictly
+			// needs to be.  It's set up for developing the algorithms and
+			// understanding how they work together.  Clean up and
 			// optimization is still TODO.
-			if (targetOrbit != null) {
+
+
+			// Only calculate these values for planets and moons, and not the
+			// sun, nor vessels.  I may add vessels later, once I am confident
+			// I understand the equations well enough to validate the results.
+			if (targetBody != null && targetBody != Planetarium.fetch.Sun) {
 				// Get some basic metrics on our orbital situation.
 				// "orbit depth" for the sake of this discussion counts how
 				// far removed from orbiting the sun the target is.
 				int vesselOrbitDepth;
-				CelestialBody vesselOrbitSystem;
+				CelestialBody vesselSystem;
 				if (vessel.mainBody == Planetarium.fetch.Sun) {
 					// We are orbiting Kerbol
 					vesselOrbitDepth = 0;
-					vesselOrbitSystem = vessel.mainBody;
+					vesselSystem = null;
 				} else if (vessel.mainBody.referenceBody == Planetarium.fetch.Sun) {
 					// We are orbiting a planet.
 					vesselOrbitDepth = 1;
-					vesselOrbitSystem = vessel.mainBody;
+					vesselSystem = vessel.mainBody;
 				} else {
-					// We are orbiting a moon.  At present, we don't have to
-					// worry about any deeper nesting.
+					// We are orbiting a moon.
 					vesselOrbitDepth = 2;
-					vesselOrbitSystem = vessel.mainBody.referenceBody;
+					vesselSystem = vessel.mainBody.referenceBody;
 				}
 
-				int targetOrbitDepth;
-				CelestialBody targetOrbitSystem;
-				Orbit targetPlanetOrbit;
+				bool targetIsMoon;
+				CelestialBody targetSystem;
 				if (targetOrbit.referenceBody == Planetarium.fetch.Sun) {
-					// Target is orbiting Kerbol
-					targetOrbitDepth = 0;
-					targetOrbitSystem = targetOrbit.referenceBody;
-					targetPlanetOrbit = target.GetOrbit();
-				} else if (targetOrbit.referenceBody.referenceBody == Planetarium.fetch.Sun) {
-					// Target is orbiting a planet.
-					targetOrbitDepth = 1;
-					targetOrbitSystem = targetOrbit.referenceBody;
-					targetPlanetOrbit = targetOrbit.referenceBody.orbit;
-				} else {
-					// Target is orbiting a moon.
-					targetOrbitDepth = 2;
-					targetOrbitSystem = targetOrbit.referenceBody.referenceBody;
-					targetPlanetOrbit = targetOrbit.referenceBody.referenceBody.orbit;
+					// Target is a planet
+					targetIsMoon = false;
+					targetSystem = targetBody;
+				} else  {
+					// Target is a moon.
+					targetIsMoon = true;
+					targetSystem = targetBody.referenceBody;
 				}
+
+				// Used if we have a valid phase angle
+				double delta_theta = 0.0;
 
 				if (vesselOrbitDepth == 0) {
 					// We are orbiting Kerbol and ...
 
-					// ... actually, it doesn't matter what the target is
-					// orbiting.  We must target its planet.
+					// ... actually, it doesn't matter what the target is.
 
-					phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, targetPlanetOrbit);
+					phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, targetSystem.orbit);
+					delta_theta = (360.0 / vessel.orbit.period) - (360.0 / targetSystem.orbit.period);
 
-					timeToPhaseAngle = -1.0;
 					ejectionAngle = -1.0;
 					timeToEjectionAngle = -1.0;
+
 					targetClosestApproach = -1.0;
 				} else if (vesselOrbitDepth == 1) {
 					// We are orbiting a planet and ...
 
-					if (targetOrbitDepth == 0) {
-						// ... our target is orbiting Kerbol
+					if (targetIsMoon == false) {
+						// ... our target is a planet
 
-						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, targetPlanetOrbit);
+						phaseAngle = UpdatePhaseAngleAdjacent(vesselSystem.orbit, targetSystem.orbit);
+						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
-						timeToPhaseAngle = -1.0;
-						ejectionAngle = -1.0;
-						timeToEjectionAngle = -1.0;
+						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetBody) - CurrentEjectAngle() + 360.0) % 360.0;
+
 						targetClosestApproach = -1.0;
-					} else if (vesselOrbitSystem == targetOrbitSystem) {
-						// ... our target orbits the same planet we do
+					} else if (vesselSystem == targetSystem) {
+						// ... our target is a moon of this planet
 
-						// If targetOrbitDepth is also 1, we can use the
-						// target's orbit directly.  If it's 2, we need
-						// to get the orbit info of the moon it orbits.
-						phaseAngle = UpdatePhaseAngleSimple(vessel.orbit,
-							(targetOrbitDepth == 1) ? target.GetOrbit() : target.GetOrbit().referenceBody.orbit);
+						phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, targetBody.orbit);
+						delta_theta = (360.0 / vessel.orbit.period) - (360.0 / targetBody.orbit.period);
 
-						timeToPhaseAngle = -1.0;
 						ejectionAngle = -1.0;
-						timeToEjectionAngle = -1.0;
+
 						targetClosestApproach = -1.0;
 					} else {
 						// ... our target orbits a different planet.
 
-						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, targetPlanetOrbit);
+						phaseAngle = UpdatePhaseAngleAdjacent(vesselSystem.orbit, targetSystem.orbit);
+						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
-						timeToPhaseAngle = -1.0;
-						ejectionAngle = -1.0;
-						timeToEjectionAngle = -1.0;
+						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetSystem) - CurrentEjectAngle() + 360.0) % 360.0;
+
 						targetClosestApproach = -1.0;
 					}
 				} else {
 					// We are orbiting a moon and ...
 
-					if (vesselOrbitSystem != targetOrbitSystem) {
+					if (vesselSystem != targetSystem) {
 						// ... our target is or orbits a different planet.
 
-						phaseAngle = UpdatePhaseAngleOberth(vesselOrbitSystem.orbit, targetPlanetOrbit);
+						phaseAngle = UpdatePhaseAngleOberth(vesselSystem.orbit, targetSystem.orbit);
+						delta_theta = (360.0 / vesselSystem.orbit.period) - (360.0 / targetSystem.orbit.period);
 
-					} else if (targetOrbitDepth == 0) {
+						ejectionAngle = -1.0;
+					} else if (targetIsMoon == false) {
 						// ... we are targeting our parent planet.
 
-						// MOARdV: UNIMPLEMENTED & UNTESTED
 						phaseAngle = -1.0;
+						timeToPhaseAngle = -1.0;
 
-					} else if (targetOrbitDepth == 1) {
-						// ... we are targeting something orbiting our parent planet.
-
-						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, target.GetOrbit());
-
-					} else if (vessel.mainBody == target.GetOrbit().referenceBody) {
-						// ... we are targeting something orbiting the same moon we're at.
-
-						phaseAngle = UpdatePhaseAngleSimple(vessel.orbit, target.GetOrbit());
-
+						ejectionAngle = -1.0;
 					} else {
-						// ... we are targeting something orbiting another moon of our planet.
+						// ... we are targeting a sibling moon.
 
-						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, target.GetOrbit().referenceBody.orbit);
+						phaseAngle = UpdatePhaseAngleAdjacent(vessel.mainBody.orbit, targetBody.GetOrbit());
+						delta_theta = (360.0 / vessel.mainBody.orbit.period) - (360.0 / targetBody.GetOrbit().period);
+						
+						ejectionAngle = (CalculateDesiredEjectionAngle(vessel.mainBody, targetBody) - CurrentEjectAngle() + 360.0) % 360.0;
 					}
 
-					timeToPhaseAngle = -1.0;
-					ejectionAngle = -1.0;
-					timeToEjectionAngle = -1.0;
-					targetClosestApproach = -1.0;
 				}
+
+				if (phaseAngle >= 0.0) {
+					if (delta_theta > 0.0) {
+						timeToPhaseAngle = phaseAngle / delta_theta;
+					} else {
+						timeToPhaseAngle = Math.Abs((360.0 - phaseAngle) / delta_theta);
+					}
+				}
+
+				if (ejectionAngle >= 0.0) {
+					timeToEjectionAngle = ejectionAngle * vessel.orbit.period / 360.0;
+				} else {
+					timeToEjectionAngle = -1.0;
+				}
+
+				targetClosestApproach = -1.0;
 			} else {
 				// No valid orbit.  Make sure the angles are cleared out.
 				phaseAngle = -1.0;
@@ -420,18 +415,13 @@ namespace JSI
 			return Vector3d.Angle(v1, v2);
 		}
 
-		private static double CalcMeanAlt(CelestialBody body)
-		{
-			return body.orbit.semiMajorAxis * (1.0 + body.orbit.eccentricity * body.orbit.eccentricity / 2.0);
-		}
-
 		private static double CalcMeanAlt(Orbit orbit)
 		{
 			return orbit.semiMajorAxis * (1.0 + orbit.eccentricity * orbit.eccentricity / 2.0);
 		}
 
 		// calculates angle between vessel's position and prograde of orbited body
-		// MOARdV: The parameter 'check' is always NULL in protractor.
+		// MOARdV: The parameter 'check' is always NULL in protractor.  Factored it out
 		private double CurrentEjectAngle()
 		{
 			Vector3d vesselvec = vessel.orbit.getRelativePositionAtUT(time);
@@ -451,8 +441,8 @@ namespace JSI
 		//calculates ejection angle to reach destination body from origin body
 		private double CalculateDesiredEjectionAngle(CelestialBody orig, CelestialBody dest)
 		{
-			double o_alt = CalcMeanAlt(orig);
-			double d_alt = CalcMeanAlt(dest);
+			double o_alt = CalcMeanAlt(orig.orbit);
+			double d_alt = CalcMeanAlt(dest.orbit);
 			double o_soi = orig.sphereOfInfluence;
 			double o_radius = orig.Radius;
 			double o_mu = orig.gravParameter;
@@ -525,9 +515,9 @@ namespace JSI
 		{
 			CelestialBody moon = vessel.mainBody;
 			CelestialBody planet = vessel.mainBody.referenceBody;
-			double planetalt = CalcMeanAlt(planet);
+			double planetalt = CalcMeanAlt(planet.orbit);
 			double destalt = CalcMeanAlt(destOrbit);
-			double moonalt = CalcMeanAlt(moon);
+			double moonalt = CalcMeanAlt(moon.orbit);
 			double usun = Planetarium.fetch.Sun.gravParameter;
 			double uplanet = planet.gravParameter;
 			double oberthalt = (planet.Radius + planet.maxAtmosphereAltitude) * 1.05;
@@ -541,6 +531,7 @@ namespace JSI
 
 			return phase % 360.0;
 		}
+		//--- End Protractor imports
 
 		// Sigh. MechJeb math.
 		private static double GetCurrentThrust(PartModule engine)
@@ -1281,16 +1272,18 @@ namespace JSI
 							-targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
 					return double.NaN;
 
-				case "TARGETPHASEANGLE":
+			// Protractor-type values (phase angle, ejection angle)
+				case "TARGETBODYPHASEANGLE":
 					return phaseAngle;
-				case "TARGETPHASEANGLESECS":
+				case "TARGETBODYPHASEANGLESECS":
 					return timeToPhaseAngle;
-				case "TARGETEJECTIONANGLE":
+				case "TARGETBODYEJECTIONANGLE":
 					return ejectionAngle;
-				case "TARGETEJECTIONANGLESECS":
+				case "TARGETBODYEJECTIONANGLESECS":
 					return timeToEjectionAngle;
-				case "TARGETCLOSESTAPPROACH":
-					return targetClosestApproach;
+					// MOARdV: The following is not implemented yet.
+				//case "TARGETBODYCLOSESTAPPROACH":
+				//	return targetClosestApproach;
 
 			// FLight control status
 				case "THROTTLE":
