@@ -68,27 +68,28 @@ namespace JSI
 				releaseHandler();
 		}
 
-		private static SmarterButton AttachBehaviour(InternalProp thatProp, string buttonName)
+		private static SmarterButton AttachBehaviour(InternalProp thatProp, InternalModel thatModel, string buttonName)
 		{
 
-			InternalModel thatModel = null;
-			string[] tokens = buttonName.Split('|');
-			if (tokens.Length == 2) {
-				// First token is the button name, second is the prop ID.
-				int propID;
-				if (int.TryParse(tokens[1], out propID)) {
-					if (propID < thatProp.internalModel.props.Count) {
-						if (propID < 0)
-							thatModel = thatProp.internalModel;
-						else
-							thatProp = thatProp.internalModel.props[propID];
+			if (thatModel == null) {
+				string[] tokens = buttonName.Split('|');
+				if (tokens.Length == 2) {
+					// First token is the button name, second is the prop ID.
+					int propID;
+					if (int.TryParse(tokens[1], out propID)) {
+						if (propID < thatProp.internalModel.props.Count) {
+							if (propID < 0)
+								thatModel = thatProp.internalModel;
+							else
+								thatProp = thatProp.internalModel.props[propID];
 
-						buttonName = tokens[0].Trim();
-					} else
-						Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
-				}
-			} else
-				buttonName = buttonName.Trim();
+							buttonName = tokens[0].Trim();
+						} else
+							Debug.LogError(string.Format("Could not find a prop with ID {0}", propID));
+					}
+				} else
+					buttonName = buttonName.Trim();
+			}
 			try {
 				GameObject buttonObject;
 				buttonObject = thatModel == null ? thatProp.FindModelTransform(buttonName).gameObject : thatModel.FindModelTransform(buttonName).gameObject;
@@ -102,10 +103,10 @@ namespace JSI
 			return null;
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, MonitorPage thatPage, Action<MonitorPage> handlerFunction)
+		public static void CreateButton(InternalProp thatProp, string buttonName, MonitorPage thatPage, Action<MonitorPage> handlerFunction, InternalModel thatModel = null)
 		{
 			SmarterButton buttonBehaviour;
-			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
+			if ((buttonBehaviour = AttachBehaviour(thatProp, thatModel, buttonName)) == null)
 				return;
 			foreach (PageTriggerSet pageset in buttonBehaviour.pageTriggers)
 				if (pageset.Add(handlerFunction, thatPage))
@@ -114,10 +115,10 @@ namespace JSI
 			buttonBehaviour.pageTriggers.Add(new PageTriggerSet(handlerFunction, thatPage));
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, int numericID, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction)
+		public static void CreateButton(InternalProp thatProp, string buttonName, int numericID, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction, InternalModel thatModel = null)
 		{
 			SmarterButton buttonBehaviour;
-			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
+			if ((buttonBehaviour = AttachBehaviour(thatProp, thatModel, buttonName)) == null)
 				return;
 
 			buttonBehaviour.clickHandlersID.Add(new HandlerID {
@@ -130,10 +131,10 @@ namespace JSI
 			});
 		}
 
-		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction = null)
+		public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction = null, InternalModel thatModel = null)
 		{
 			SmarterButton buttonBehaviour;
-			if ((buttonBehaviour = AttachBehaviour(thatProp, buttonName)) == null)
+			if ((buttonBehaviour = AttachBehaviour(thatProp, thatModel, buttonName)) == null)
 				return;
 			buttonBehaviour.clickHandlers.Add(handlerFunction);
 			if (releaseHandlerFunction != null)
