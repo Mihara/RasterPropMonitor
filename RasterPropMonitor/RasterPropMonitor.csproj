@@ -79,6 +79,7 @@
     <Compile Include="Core\TextMenu.cs" />
     <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
     <Compile Include="Core\PersistenceAccessor.cs" />
+    <Compile Include="Auxiliary modules\JSIInternalEVAHatch.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
