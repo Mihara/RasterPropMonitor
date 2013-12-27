@@ -1,6 +1,3 @@
-using System;
-using UnityEngine;
-
 namespace JSI
 {
 	public class JSIInternalEVAHatch: InternalModule
