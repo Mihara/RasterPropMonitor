@@ -35,7 +35,7 @@ namespace JSI
 						try {
 							variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
 						} catch (ArgumentException e) {
-							JUtil.LogMessage(this, "Error - {0}", e);
+							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e, internalProp.propID);
 						}
 					}
 					break;
@@ -47,10 +47,10 @@ namespace JSI
 				try {
 					variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
 				} catch (ArgumentException e) {
-					JUtil.LogMessage(this, "Error - {0}", e);
+					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e, internalProp.propID);
 				}
 			}
-			JUtil.LogMessage(this, "Configuration complete, supporting {0} variable indicators.", variableSets.Count);
+			JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
 			startupComplete = true;
 		}
 
@@ -143,7 +143,6 @@ namespace JSI
 				anim[animationName].speed = 0;
 				anim[animationName].normalizedTime = reverse ? 1f : 0f;
 				anim.Play();
-				JUtil.LogMessage(this, "Using animation mode with animation {0}.", animationName);
 				mode = Mode.Animation;
 			} else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject")) {
 				if (node.HasValue("colorName"))
@@ -152,7 +151,6 @@ namespace JSI
 				activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
 				colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
 				colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
-				JUtil.LogMessage(this, "Using color shift mode with object {0}.", node.GetValue("coloredObject"));
 				mode = Mode.Color;
 			} else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd")) {
 				controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
@@ -165,14 +163,12 @@ namespace JSI
 					rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
 					rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
 				}
-				JUtil.LogMessage(this, "Using rotation mode with object {0}.", node.GetValue("controlledTransform"));
 				mode = Mode.Rotation;
 			} else if (node.HasValue("controlledTransform") && node.HasValue("localTranslationStart") && node.HasValue("localTranslationEnd")) {
 				controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
 				initialPosition = controlledTransform.localPosition;
 				vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
 				vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
-				JUtil.LogMessage(this, "Using translation mode with object {0}.", node.GetValue("controlledTransform"));
 				mode = Mode.Translation;
 			} else
 				throw new ArgumentException("Cannot initiate any of the possible action modes.");
