@@ -23,15 +23,13 @@ namespace JSI
 
 		public void EVAClick()
 		{
-			// I wish there were a more sensible way to do it, but looks like there is no other way to get a pointer to it.
-			IVACamera currentCamera = (IVACamera)FindObjectOfType(typeof(IVACamera));
-			if (currentCamera == null)
-				return;
-			if (HighLogic.CurrentGame.Parameters.Flight.CanEVA) {
+			Kerbal thatKerbal = JUtil.FindCurrentKerbal(part);
+			if (thatKerbal != null && HighLogic.CurrentGame.Parameters.Flight.CanEVA) {
+				FlightEVA.SpawnEVA(thatKerbal);
 				CameraManager.Instance.SetCameraFlight();
-				FlightEVA.SpawnEVA(currentCamera.kerbal);
-			}
-
+				JUtil.LogMessage(this, "{0} has opened the internal EVA hatch.", thatKerbal.name);
+			} else
+				JUtil.LogMessage(this, "Could not open the internal EVA hatch, not sure why.");
 		}
 	}
 }

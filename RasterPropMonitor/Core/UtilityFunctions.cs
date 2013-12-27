@@ -31,6 +31,24 @@ namespace JSI
 			}
 		}
 
+		public static Kerbal FindCurrentKerbal(Part thisPart)
+		{
+			if (!JUtil.VesselIsInIVA(thisPart.vessel))
+				return null;
+			// InternalCamera instance does not contain a reference to the kerbal it's looking from.
+			// So we have to search through all of them...
+			Kerbal thatKerbal = null;
+			foreach (InternalSeat thatSeat in thisPart.internalModel.seats) {
+				if (thatSeat.kerbalRef != null) {
+					if (thatSeat.kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent) {
+						thatKerbal = thatSeat.kerbalRef;
+						break;
+					}
+				}
+			}
+			return thatKerbal;
+		}
+
 		public static Material DrawLineMaterial()
 		{
 			var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
