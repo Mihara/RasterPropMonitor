@@ -31,26 +31,17 @@ namespace JSI
 			}
 		}
 
-		public static bool ActiveKerbalIsLocal(Part thisPart)
+		public static bool ActiveKerbalIsLocal(this Part thisPart)
 		{
 			return FindCurrentKerbal(thisPart) != null;
 		}
 
-		public static int CurrentActiveSeat(Part thisPart)
-		{
-			if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
-				return -1;
-			for (int i = 0; i < thisPart.internalModel.seats.Count; i++) {
-				if (thisPart.internalModel.seats[i].taken) {
-					if (thisPart.internalModel.seats[i].kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent) {
-						return i;
-					}
-				}
-			}
-			return -1;
+		public static int CurrentActiveSeat(this Part thisPart) {
+			Kerbal activeKerbal = thisPart.FindCurrentKerbal();
+			return activeKerbal != null ? activeKerbal.protoCrewMember.seatIdx : -1;
 		}
 
-		public static Kerbal FindCurrentKerbal(Part thisPart)
+		public static Kerbal FindCurrentKerbal(this Part thisPart)
 		{
 			if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
 				return null;
