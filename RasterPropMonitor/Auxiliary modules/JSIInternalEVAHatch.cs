@@ -26,7 +26,7 @@ namespace JSI
 
 		public void EVAClick()
 		{
-			Kerbal thatKerbal = JUtil.FindCurrentKerbal(part);
+			Kerbal thatKerbal = part.FindCurrentKerbal();
 			if (thatKerbal != null && HighLogic.CurrentGame.Parameters.Flight.CanEVA) {
 				FlightEVA.SpawnEVA(thatKerbal);
 				CameraManager.Instance.SetCameraFlight();
