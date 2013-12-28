@@ -25,6 +25,7 @@
 * Undocking menu.
 * cameraTransform should be a list of prospective transform names to try.
 * On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :)
+* Spot lights generated within camera structure?
 
 ## Major new features
 
