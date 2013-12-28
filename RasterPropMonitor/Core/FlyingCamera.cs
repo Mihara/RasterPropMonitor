@@ -145,7 +145,7 @@ namespace JSI
 		{
 			Quaternion rotation = cameraTransform.transform.rotation;
 			if (isReferenceCamera)
-				rotation *=  referencePointRotation;
+				rotation *= referencePointRotation;
 			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
 			return rotation * offset;
 		}
@@ -153,6 +153,13 @@ namespace JSI
 		public Transform GetTransform()
 		{
 			return cameraTransform.transform;
+		}
+
+		public Vector3 GetTransformForward()
+		{
+			if (isReferenceCamera)
+				return cameraTransform.transform.up;
+			return cameraTransform.transform.forward;
 		}
 
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)

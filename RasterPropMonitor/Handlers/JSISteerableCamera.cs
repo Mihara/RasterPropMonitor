@@ -190,7 +190,8 @@ namespace JSI
 				}
 
 				if (homeCrosshairMaterial.color.a > 0) {
-					var cameraForward = cameraObject.GetTransform().forward;
+					// Mihara: Reference point cameras are different enough to warrant it.
+					var cameraForward = cameraObject.GetTransformForward();
 					var crossHairCenter = GetNormalizedScreenPosition(cameraForward, 0.0f, 0.0f, cameraAspect);
 					crossHairCenter.x *= screen.width;
 					crossHairCenter.y *= screen.height;
