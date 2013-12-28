@@ -493,7 +493,7 @@ namespace JSI
 				return; 
 
 			// Screenshots need to happen in at this moment, because otherwise they may miss.
-			if ((Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftControl)) && Input.GetKeyDown(KeyCode.F1) && JUtil.ActiveKerbalIsLocal(part)) {
+			if (GameSettings.TAKE_SCREENSHOT.GetKeyDown() && JUtil.ActiveKerbalIsLocal(part)) {
 				// Let's try to save a screenshot.
 				JUtil.LogMessage(this, "SCREENSHOT!");
 
