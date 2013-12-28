@@ -31,9 +31,14 @@ namespace JSI
 			}
 		}
 
+		public static bool ActiveKerbalIsLocal(Part thisPart)
+		{
+			return FindCurrentKerbal(thisPart) != null;
+		}
+
 		public static Kerbal FindCurrentKerbal(Part thisPart)
 		{
-			if (!JUtil.VesselIsInIVA(thisPart.vessel))
+			if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
 				return null;
 			// InternalCamera instance does not contain a reference to the kerbal it's looking from.
 			// So we have to search through all of them...

@@ -489,7 +489,27 @@ namespace JSI
 		public override void OnUpdate()
 		{
 
-			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
+			if (!JUtil.VesselIsInIVA(vessel))
+				return; 
+
+			// Screenshots need to happen in at this moment, because otherwise they may miss.
+			if ((Input.GetKey(KeyCode.RightControl) || Input.GetKey(KeyCode.LeftControl)) && Input.GetKeyDown(KeyCode.F1) && JUtil.ActiveKerbalIsLocal(part)) {
+				// Let's try to save a screenshot.
+				JUtil.LogMessage(this, "SCREENSHOT!");
+
+				string screenshotName = string.Format("{0}{1}{2:yyyy-MM-dd_HH-mm-ss}_{4}_{3}.png",
+					                        KSPUtil.ApplicationRootPath, "Screenshots/monitor", DateTime.Now, internalProp.propID, part.uid);
+				var screenshot = new Texture2D(screenTexture.width, screenTexture.height);
+				RenderTexture backupRenderTexture = RenderTexture.active;
+				RenderTexture.active = screenTexture;
+				screenshot.ReadPixels(new Rect(0, 0, screenTexture.width, screenTexture.height), 0, 0);
+				RenderTexture.active = backupRenderTexture;
+				var bytes = screenshot.EncodeToPNG();
+				Destroy(screenshot);
+				File.WriteAllBytes(screenshotName, bytes);
+			}
+
+			if (!UpdateCheck())
 				return;
 
 			if (!activePage.isMutable) { 
