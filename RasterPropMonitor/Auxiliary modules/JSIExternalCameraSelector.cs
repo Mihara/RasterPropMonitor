@@ -170,7 +170,7 @@ namespace JSI
 
 		public override string GetInfo()
 		{
-			return 	"Hold down 'U' to display all the camera fields of view at once.";
+			return 	"Hold down '"+GameSettings.HEADLIGHT_TOGGLE.primary+"' to display all the camera fields of view at once.";
 		}
 	}
 }
