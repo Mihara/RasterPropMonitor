@@ -1,28 +1,66 @@
+using System.Collections.Generic;
 
 namespace JSI
 {
 	public class JSISetInternalCameraFOV: InternalModule
 	{
-		[KSPField]
-		public float fov = 60f;
-		[KSPField]
-		public float maxRot = 60f;
-		[KSPField]
-		public float maxPitch = 60f;
-		[KSPField]
-		public float minPitch = -30f;
-		private CameraManager.CameraMode oldCameraMode;
+		private readonly List<SeatCamera> seats = new List<SeatCamera>();
+		private int oldSeat = -1;
+
+		private struct SeatCamera
+		{
+			public float fov;
+			public float maxRot;
+			public float maxPitch;
+			public float minPitch;
+		}
+
+		private const float defaultFov = 60f;
+		private const float defaultMaxRot = 60f;
+		private const float defaultMaxPitch = 60f;
+		private const float defaultMinPitch = -30f;
+
+		public void Start()
+		{
+			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("INTERNAL")) {
+				if (node.GetValue("name") == internalModel.internalName) {
+					foreach (ConfigNode moduleConfig in node.GetNodes("MODULE")) {
+						// The order we get should in theory match the order of seats, shouldn't it.
+						if (moduleConfig.HasValue("name") && moduleConfig.GetValue("name") == "InternalSeat") {
+							var seatData = new SeatCamera();
+							seatData.fov = moduleConfig.GetFloat("fov") ?? defaultFov;
+							seatData.maxRot = moduleConfig.GetFloat("maxRot") ?? defaultMaxRot;
+							seatData.maxPitch = moduleConfig.GetFloat("maxPitch") ?? defaultMaxPitch;
+							seatData.minPitch = moduleConfig.GetFloat("minPitch") ?? defaultMinPitch;
+							seats.Add(seatData);
+							JUtil.LogMessage(this, "Setting per-seat camera parameters for seat {0}: fov {1}, maxRot {2}, maxPitch {3}, minPitch {4}",
+								seats.Count - 1, seatData.fov, seatData.maxRot, seatData.maxPitch, seatData.minPitch);
+						}
+					}
+				}
+			}
+			// Pseudo-seat with default values.
+			seats.Add(new SeatCamera {
+				fov = defaultFov,
+				maxRot = defaultMaxRot,
+				maxPitch = defaultMaxPitch,
+				minPitch = -defaultMinPitch
+			});
+		}
 
 		public override void OnUpdate()
 		{
-			if (JUtil.VesselIsInIVA(vessel) && CameraManager.Instance.currentCameraMode != oldCameraMode && InternalCamera.Instance.isActive) {
-				if (JUtil.FindCurrentKerbal(part) != null) {
-					InternalCamera.Instance.SetFOV(fov);
-					InternalCamera.Instance.maxRot = maxRot;
-					InternalCamera.Instance.maxPitch = maxPitch;
-					InternalCamera.Instance.minPitch = minPitch;
+			if (JUtil.VesselIsInIVA(vessel) && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
+				int seatID = JUtil.CurrentActiveSeat(part);
+				if (seatID < 0)
+					seatID = seats.Count - 1;
+				if (seatID != oldSeat) {
+					InternalCamera.Instance.SetFOV(seats[seatID].fov);
+					InternalCamera.Instance.maxRot = seats[seatID].maxRot;
+					InternalCamera.Instance.maxPitch = seats[seatID].maxPitch;
+					InternalCamera.Instance.minPitch = seats[seatID].minPitch;
 				}
-				oldCameraMode = CameraManager.Instance.currentCameraMode;
+				oldSeat = seatID;
 			}
 		}
 	}

@@ -36,6 +36,20 @@ namespace JSI
 			return FindCurrentKerbal(thisPart) != null;
 		}
 
+		public static int CurrentActiveSeat(Part thisPart)
+		{
+			if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
+				return -1;
+			for (int i = 0; i < thisPart.internalModel.seats.Count; i++) {
+				if (thisPart.internalModel.seats[i].taken) {
+					if (thisPart.internalModel.seats[i].kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent) {
+						return i;
+					}
+				}
+			}
+			return -1;
+		}
+
 		public static Kerbal FindCurrentKerbal(Part thisPart)
 		{
 			if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
@@ -84,6 +98,7 @@ namespace JSI
 
 		public static bool VesselIsInIVA(Vessel thatVessel)
 		{
+			// TODO: Inactive IVAs are renderer.enabled = false, this can and should be used;
 			return IsActiveVessel(thatVessel) && IsInIVA();
 		}
 
@@ -300,6 +315,17 @@ namespace JSI
 		}
 		// Piling all the extension methods into the same utility class to reduce the number of classes.
 		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
+		public static float? GetFloat(this string source)
+		{
+			float result;
+			return float.TryParse(source, out result) ? result : (float?)null;
+		}
+
+		public static float? GetFloat(this ConfigNode node, string valueName)
+		{
+			return node.HasValue(valueName) ? node.GetValue(valueName).GetFloat() : (float?)null;
+		}
+
 		public static string EnforceSlashes(this string input)
 		{
 			return input.Replace('\\', '/');
