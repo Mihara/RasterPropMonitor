@@ -100,7 +100,10 @@ namespace JSI
 			return position / (Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y));
 		}
 
+		// Mihara: Why are they unused anyway?
+		// Analysis disable UnusedParameter
 		private Vector2 GetNormalizedScreenPosition(Vector3 directionVector, float yawOffset, float pitchOffset, float cameraAspect)
+		// Analysis restore UnusedParameter
 		{
 			// Transform direction using the active camera's rotation.
 			var targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * directionVector;
