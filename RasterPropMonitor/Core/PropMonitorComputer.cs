@@ -68,7 +68,7 @@ namespace JSI
 		private bool anyEnginesOverheating;
 		private double totalDataAmount;
 		private double secondsToImpact;
-		private double bestPossibleSpeedAtImpact;
+		private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
 		private double localG;
 		private double standardAtmosphere;
 		private double slopeAngle;
@@ -910,15 +910,30 @@ namespace JSI
 
 				// MOARdV: I think this gets the computation right.  High thrust will
 				// result in NaN, which is already handled.
+				/*
 				double accelerationAtMaxThrust = localG - (totalMaximumThrust / totalShipWetMass);
 				double timeToImpactAtMaxThrust = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * accelerationAtMaxThrust * altitude)) / accelerationAtMaxThrust;
 				bestPossibleSpeedAtImpact = speedVertical - accelerationAtMaxThrust * timeToImpactAtMaxThrust;
 				if (double.IsNaN(bestPossibleSpeedAtImpact))
 					bestPossibleSpeedAtImpact = 0;
+				*/
+				bestPossibleSpeedAtImpact = SpeedAtImpact(totalMaximumThrust, totalShipWetMass, localG, speedVertical, altitude);
+				expectedSpeedAtImpact = SpeedAtImpact(totalCurrentThrust, totalShipWetMass, localG, speedVertical, altitude);
+
 			} else {
 				secondsToImpact = Double.NaN;
 				bestPossibleSpeedAtImpact = 0;
+				expectedSpeedAtImpact = 0;
 			}
+		}
+
+		private static double SpeedAtImpact(double thrust, double mass, double freeFall, double currentSpeed, double currentAltitude) {
+			double acceleration = freeFall - (thrust / mass);
+			double timeToImpact = (currentSpeed + Math.Sqrt(currentSpeed * currentSpeed + 2 * acceleration * currentAltitude)) / acceleration;
+			double speedAtImpact = currentSpeed - acceleration * timeToImpact;
+			if (double.IsNaN(speedAtImpact))
+				speedAtImpact = 0;
+			return speedAtImpact;
 		}
 
 		private void FetchPerPartData()
@@ -1233,6 +1248,10 @@ namespace JSI
 							return velocityRelativeTarget.magnitude;
 					}
 					return double.NaN;
+				case "SPEEDATIMPACT":
+					return expectedSpeedAtImpact;
+				case "BESTSPEEDATIMPACT":
+					return bestPossibleSpeedAtImpact;
 
 			// The way Engineer does it...
 				case "TGTRELX":
