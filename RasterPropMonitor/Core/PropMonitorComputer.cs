@@ -927,7 +927,8 @@ namespace JSI
 			}
 		}
 
-		private static double SpeedAtImpact(double thrust, double mass, double freeFall, double currentSpeed, double currentAltitude) {
+		private static double SpeedAtImpact(double thrust, double mass, double freeFall, double currentSpeed, double currentAltitude)
+		{
 			double acceleration = freeFall - (thrust / mass);
 			double timeToImpact = (currentSpeed + Math.Sqrt(currentSpeed * currentSpeed + 2 * acceleration * currentAltitude)) / acceleration;
 			double speedAtImpact = currentSpeed - acceleration * timeToImpact;
@@ -1774,11 +1775,11 @@ namespace JSI
 					}
 					return -1d;
 				case "ORBITBODYSYNCORBITVELOCITY":
-					return (Math.PI / vessel.orbit.referenceBody.rotationPeriod) *
+					return (2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod) *
 					Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
 				case "TARGETBODYSYNCORBITVELOCITY":
 					if (targetBody != null) {
-						return (Math.PI / targetBody.rotationPeriod) *
+						return (2 * Math.PI / targetBody.rotationPeriod) *
 						Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
 					}
 					return -1d;
