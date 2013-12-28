@@ -31,6 +31,23 @@ namespace JSI
 			}
 		}
 
+		/* I wonder why this isn't working.
+		public static void ReseatKerbalInPart(this Kerbal thatKerbal) {
+			if (thatKerbal.InPart == null || !JUtil.VesselIsInIVA(thatKerbal.InPart.vessel))
+				return;
+
+			InternalModel thatModel = thatKerbal.InPart.internalModel;
+			InternalSeat spareSeat = thatModel.GetNextAvailableSeat();
+			if (spareSeat != null) {
+				ProtoCrewMember crew = thatKerbal.protoCrewMember;
+				CameraManager.Instance.SetCameraFlight();
+				thatModel.part.RemoveCrewmember(crew);
+				thatModel.part.AddCrewmember(crew);
+				CameraManager.Instance.SetCameraIVA(thatKerbal,true);
+			}
+		}
+		*/
+
 		public static bool ActiveKerbalIsLocal(this Part thisPart)
 		{
 			return FindCurrentKerbal(thisPart) != null;

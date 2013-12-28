@@ -51,7 +51,7 @@ namespace JSI
 		public override void OnUpdate()
 		{
 			if (JUtil.VesselIsInIVA(vessel) && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
-				int seatID = JUtil.CurrentActiveSeat(part);
+				int seatID = part.CurrentActiveSeat();
 				if (seatID < 0)
 					seatID = seats.Count - 1;
 				if (seatID != oldSeat) {
@@ -61,6 +61,12 @@ namespace JSI
 					InternalCamera.Instance.minPitch = seats[seatID].minPitch;
 				}
 				oldSeat = seatID;
+
+				/* Figuring out an appropriate key combination is proving nontrivial.
+				if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && Input.GetKeyDown(KeyCode.Z)) {
+					part.FindCurrentKerbal().ReseatKerbalInPart();
+				}
+				*/
 			}
 		}
 	}
