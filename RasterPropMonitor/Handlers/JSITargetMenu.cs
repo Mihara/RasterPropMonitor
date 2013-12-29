@@ -289,6 +289,26 @@ namespace JSI
 			UpdateLists();
 		}
 
+		private static string PortOrientationText(Transform reference, Transform subject)
+		{
+			// Docking ports reference transform 'up' is the actual direction the port is pointing in, so.
+			Vector3 portDirection = subject.up;
+			const float deviation = 5f;
+			if (Vector3.Angle(reference.up, portDirection) < deviation)
+				return "front";
+			if (Vector3.Angle(-reference.up, portDirection) < deviation)
+				return "back";
+			if (Vector3.Angle(reference.right, portDirection) < deviation)
+				return "right";
+			if (Vector3.Angle(-reference.right, portDirection) < deviation)
+				return "left";
+			if (Vector3.Angle(reference.forward, portDirection) < deviation)
+				return "bottom";
+			if (Vector3.Angle(-reference.forward, portDirection) < deviation)
+				return "top";
+			return "??";
+		}
+
 		private void UpdateLists()
 		{
 
@@ -328,7 +348,12 @@ namespace JSI
 					foreach (PartModule referencePoint in referencePoints) {
 						var tmi = new TextMenu.Item();
 						tmi.action = SetReferencePoint;
-						tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
+						var thatPort = referencePoint as ModuleDockingNode;
+						if (thatPort == null)
+							tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
+						else
+							tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, referencePoint.part.name,
+								PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
 						tmi.isSelected = (currentReference == referencePoint.part);
 						activeMenu.Add(tmi);
 					}
@@ -372,7 +397,7 @@ namespace JSI
 					foreach (ModuleDockingNode port in portsList) {
 						var tmi = new TextMenu.Item();
 						tmi.action = TargetVessel;
-						tmi.labelText = port.name;
+						tmi.labelText = string.Format("{0} ({1})", port.name, PortOrientationText(port.vessel.ReferenceTransform, port.controlTransform));
 						tmi.isSelected = (selectedPort == port);
 						tmi.action = TargetPort;
 						activeMenu.Add(tmi);
