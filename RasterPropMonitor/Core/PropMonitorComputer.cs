@@ -1003,7 +1003,7 @@ namespace JSI
 			// We can use the stock routines to get at the per-stage resources.
 			activeResources.Clear();
 			foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources()) {
-				activeResources.Add(thatResource.info.name, new Vector2d(thatResource.amount, thatResource.maxAmount));
+				activeResources.Add(thatResource.info.name, new Vector2d(Math.Round(thatResource.amount, 2), Math.Round(thatResource.maxAmount, 2)));
 			}
 
 			// I seriously hope you don't have crew jumping in and out more than once per second.
