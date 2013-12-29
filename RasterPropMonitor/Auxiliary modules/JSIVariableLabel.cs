@@ -17,6 +17,8 @@ namespace JSI
 		private Transform textObjTransform;
 		private RasterPropMonitorComputer comp;
 		private int updateCountdown;
+		// Annoying as it is, that is the only font actually available to InternalComponents for some bizarre reason,
+		// even though I'm pretty sure there are quite a few other fonts in there.
 		private const string fontName = "Arial";
 		private string sourceString;
 
