@@ -820,10 +820,9 @@ namespace JSI
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
 
-			Vector3d horizontalVelocityVector = (velocityVesselSurface - (speedVertical * up));
-			horzVelocity = horizontalVelocityVector.magnitude;
-			horzVelocityForward = horizontalVelocityVector.x;
-			horzVelocityRight = horizontalVelocityVector.y;
+			horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
+			horzVelocityForward = Vector3d.Dot(velocityVesselSurface, forward);
+			horzVelocityRight = Vector3d.Dot(velocityVesselSurface, right);
 
 			atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
 			dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
