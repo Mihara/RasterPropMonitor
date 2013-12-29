@@ -53,6 +53,7 @@ namespace JSI
 		private readonly bool simpleLockingPage;
 		private readonly List<string> disableSwitchingTo = new List<string>();
 		private readonly DefaultableDictionary<string,string> redirectPages = new DefaultableDictionary<string,string>(string.Empty);
+		private readonly DefaultableDictionary<int,int?> redirectGlobals = new DefaultableDictionary<int, int?>(null);
 
 		private struct HandlerSupportMethods
 		{
@@ -123,9 +124,19 @@ namespace JSI
 			if (node.HasNode("CONTEXTREDIRECT")) {
 				foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("redirect")) {
 					string[] tokens = content.Split(',');
-					if (tokens.Length > 2)
+					if (tokens.Length > 2 || !IsValidPageName(tokens[0].Trim()) || !IsValidPageName(tokens[1].Trim()))
 						continue;
 					redirectPages[tokens[0].Trim()] = tokens[1].Trim();
+				}
+				foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("renumber")) {
+					string[] tokens = content.Split(',');
+					if (tokens.Length > 2)
+						continue;
+					int from = -1;
+					int to = -1;
+					if (!int.TryParse(tokens[0], out from) || !int.TryParse(tokens[1], out to))
+						continue;
+					redirectGlobals[from] = to;
 				}
 				JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects.", idNum, redirectPages.Count, name);
 			}
@@ -329,6 +340,9 @@ namespace JSI
 
 		public bool GlobalButtonClick(int buttonID)
 		{
+			buttonID = redirectGlobals[buttonID] ?? buttonID;
+			if (buttonID == -1)
+				return false;
 			bool actionTaken = false;
 			if (pageHandlerS.buttonClick != null) {
 				pageHandlerS.buttonClick(buttonID);
@@ -354,6 +368,10 @@ namespace JSI
 
 		public bool GlobalButtonRelease(int buttonID)
 		{
+			buttonID = redirectGlobals[buttonID] ?? buttonID;
+			if (buttonID == -1)
+				return false;
+
 			bool actionTaken = false;
 			if (pageHandlerS.buttonRelease != null) {
 				pageHandlerS.buttonRelease(buttonID);
