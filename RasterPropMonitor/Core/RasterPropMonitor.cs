@@ -224,7 +224,10 @@ namespace JSI
 			if (!string.IsNullOrEmpty(globalButtons)) {
 				string[] tokens = globalButtons.Split(',');
 				for (int i = 0; i < tokens.Length; i++) {
-					SmarterButton.CreateButton(internalProp, tokens[i].Trim(), i, GlobalButtonClick, GlobalButtonRelease);
+					string buttonName = tokens[i].Trim();
+					// Notice that holes in the global button list ARE legal.
+					if (!string.IsNullOrEmpty(buttonName))
+						SmarterButton.CreateButton(internalProp, buttonName, i, GlobalButtonClick, GlobalButtonRelease);
 				}
 			}
 
@@ -258,13 +261,27 @@ namespace JSI
 			activePage.GlobalButtonRelease(buttonID);
 		}
 
+		private MonitorPage FindPageByName(string pageName)
+		{
+			if (!string.IsNullOrEmpty(pageName)) {
+				foreach (MonitorPage page in pages) {
+					if (page.name == pageName)
+						return page;
+				}
+			}
+			return null;
+		}
+
 		public void PageButtonClick(MonitorPage triggeredPage)
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			if (triggeredPage != activePage && (!activePage.Locking || triggeredPage.Unlocker)) {
+			if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.Unlocker)) {
+				// Apply page redirect like this:
+				MonitorPage newPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
+				// And proceed:
 				activePage.Active(false);
-				activePage = triggeredPage;
+				activePage = newPage;
 				activePage.Active(true);
 				persistence.SetVar(persistentVarName, activePage.pageNumber);
 				refreshDrawCountdown = refreshTextCountdown = 0;

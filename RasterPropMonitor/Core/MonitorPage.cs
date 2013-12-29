@@ -1,24 +1,21 @@
 using System;
 using System.Reflection;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace JSI
 {
 	public class MonitorPage
 	{
 		// We still need a numeric ID cause it makes persistence easier.
-		public int pageNumber;
-		public bool Locking;
-		public bool Unlocker;
-		private string text;
+		public readonly int pageNumber;
+		public readonly string name = string.Empty;
+		public readonly bool Unlocker;
+		private readonly string text;
 
 		public string Text {
 			get {
 				return pageHandler != null ? pageHandler(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
-			}
-			private set {
-				text = value;
-
 			}
 		}
 
@@ -31,8 +28,8 @@ namespace JSI
 			None,
 			Camera,
 			Texture,
-			Handler}
-		;
+			Handler,
+		};
 
 		private readonly BackgroundType background = BackgroundType.None;
 		private readonly float cameraFOV;
@@ -53,12 +50,35 @@ namespace JSI
 		private readonly float zoomSkip;
 		private int currentZoom;
 		private readonly bool showNoSignal;
+		private readonly bool simpleLockingPage;
+		private readonly List<string> disableSwitchingTo = new List<string>();
+		private readonly DefaultableDictionary<string,string> redirectPages = new DefaultableDictionary<string,string>(string.Empty);
 
 		private struct HandlerSupportMethods
 		{
 			public Action <bool,int> activate;
 			public Action <int> buttonClick;
 			public Action <int> buttonRelease;
+		}
+
+		public bool SwitchingPermitted(string destination)
+		{
+			return !simpleLockingPage && !disableSwitchingTo.Contains(destination);
+		}
+
+		public string ContextRedirect(string destination)
+		{
+			return redirectPages[destination];
+		}
+
+		private static bool IsValidPageName(string thatName)
+		{
+			char[] illegalChars = { ' ', ',', '#', '=' };
+			foreach (char thatChar in illegalChars) {
+				if (thatName.IndexOf(thatChar) != -1)
+					return false;
+			}
+			return true;
 		}
 
 		public MonitorPage(int idNum, ConfigNode node, RasterPropMonitor thatMonitor)
@@ -74,13 +94,41 @@ namespace JSI
 			if (!node.HasData)
 				throw new ArgumentException("Empty page?");
 
+			if (node.HasValue("name")) {
+				string value = node.GetValue("name").Trim();
+				if (!IsValidPageName(value)) {
+					JUtil.LogMessage(ourMonitor, "Warning, name given for page #{0} is invalid, ignoring.", pageNumber);
+				} else
+					name = value;
+			} else
+				JUtil.LogMessage(ourMonitor, "Warning, page #{0} has no name. It's much better if it does.", pageNumber);
+
 			isDefault |= node.HasValue("default");
 
 			if (node.HasValue("button"))
 				SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
 
-			Locking |= node.HasValue("lockingPage");
+			// Page locking system -- simple locking:
+			simpleLockingPage |= node.HasValue("lockingPage");
+			// and name-based locking.
+			if (node.HasValue("disableSwitchingTo")) {
+				string[] tokens = node.GetValue("disableSwitchingTo").Split(',');
+				foreach (string token in tokens) {
+					disableSwitchingTo.Add(token.Trim());
+				}
+			}
+
 			Unlocker |= node.HasValue("unlockerPage");
+
+			if (node.HasNode("CONTEXTREDIRECT")) {
+				foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("redirect")) {
+					string[] tokens = content.Split(',');
+					if (tokens.Length > 2)
+						continue;
+					redirectPages[tokens[0].Trim()] = tokens[1].Trim();
+				}
+				JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects.", idNum, redirectPages.Count, name);
+			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER")) {
 				MonoBehaviour handlerModule;
@@ -101,8 +149,8 @@ namespace JSI
 
 			if (pageHandler == null)
 			if (node.HasValue("text")) {
-				Text = JUtil.LoadPageDefinition(node.GetValue("text"));
-				isMutable |= Text.IndexOf("$&$", StringComparison.Ordinal) != -1;
+				text = JUtil.LoadPageDefinition(node.GetValue("text"));
+				isMutable |= text.IndexOf("$&$", StringComparison.Ordinal) != -1;
 			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
