@@ -276,18 +276,20 @@ namespace JSI
 		{
 			if (needsElectricCharge && electricChargeReserve < 0.01d)
 				return;
-			if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.Unlocker)) {
+			if (triggeredPage != activePage) {
 				// Apply page redirect like this:
-				MonitorPage newPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
-				// And proceed:
-				activePage.Active(false);
-				activePage = newPage;
-				activePage.Active(true);
-				persistence.SetVar(persistentVarName, activePage.pageNumber);
-				refreshDrawCountdown = refreshTextCountdown = 0;
-				comp.updateForced = true;
-				firstRenderComplete = false;
-				PlayClickSound(audioOutput);
+				triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
+				if (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.Unlocker) {
+					// And proceed:
+					activePage.Active(false);
+					activePage = triggeredPage;
+					activePage.Active(true);
+					persistence.SetVar(persistentVarName, activePage.pageNumber);
+					refreshDrawCountdown = refreshTextCountdown = 0;
+					comp.updateForced = true;
+					firstRenderComplete = false;
+					PlayClickSound(audioOutput);
+				}
 			}
 		}
 
