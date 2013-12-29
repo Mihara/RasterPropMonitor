@@ -137,8 +137,7 @@ namespace JSI
 						JUtil.LogMessage(ourMonitor, valueError, pageNumber, "requires two arguments.");
 						continue;
 					}
-					int from = -1;
-					int to = -1;
+					int from, to;
 					if (!int.TryParse(tokens[0], out from) || !int.TryParse(tokens[1], out to)) {
 						JUtil.LogMessage(ourMonitor, valueError, pageNumber, "something isn't a number.");
 						continue;
