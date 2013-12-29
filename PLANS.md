@@ -27,7 +27,6 @@
 * On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :) Possibly other camera effects?
 * Spot lights generated within camera structure?
 * A key combination to reseat the current kerbal in the same pod so that he can take the pilot's seat if the pilot went out. (This is proving to be difficult...)
-* _STAGE qualifier for resources, selective by flow modes. I don't think stock has any advanced simulations so how exactly do they do it?
 
 ## Major new features
 
