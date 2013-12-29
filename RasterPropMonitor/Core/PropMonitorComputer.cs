@@ -59,6 +59,7 @@ namespace JSI
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
 		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(Vector2d.zero);
+		private readonly DefaultableDictionary<string,Vector2d> activeResources = new DefaultableDictionary<string, Vector2d>(Vector2d.zero);
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
 		private double totalShipWetMass;
@@ -997,8 +998,14 @@ namespace JSI
 				Vector2d values = resources[resource];
 				resources[resource] = new Vector2d(Math.Round(values.x, 2), Math.Round(values.y, 2));
 			}
-
 			Array.Sort(resourcesAlphabetic);
+
+			// We can use the stock routines to get at the per-stage resources.
+			activeResources.Clear();
+			foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources()) {
+				activeResources.Add(thatResource.info.name, new Vector2d(thatResource.amount, thatResource.maxAmount));
+			}
+
 			// I seriously hope you don't have crew jumping in and out more than once per second.
 			vesselCrew = (vessel.GetVesselCrew()).ToArray();
 			// The sneaky bit: This way we can get at their panic and whee values!
@@ -1156,6 +1163,33 @@ namespace JSI
 
 		}
 
+		private static object ResourceListElement(string resourceName, string valueType, DefaultableDictionary<string,Vector2d> dataSource)
+		{
+			PartResourceDefinition resourceDef = PartResourceLibrary.Instance.GetDefinition(resourceName);
+			switch (valueType) {
+				case "":
+				case "VAL":
+					return dataSource[resourceName].x.Clamp(0d, dataSource[resourceName].y);
+				case "DENSITY":
+					if (resourceDef == null)
+						return 0d;
+					return resourceDef.density;
+				case "MASS":
+					if (resourceDef == null)
+						return 0d;
+					return resourceDef.density * dataSource[resourceName].x;
+				case "MAXMASS":
+					if (resourceDef == null)
+						return 0d;
+					return resourceDef.density * dataSource[resourceName].y;
+				case "MAX":
+					return dataSource[resourceName].y;
+				case "PERCENT":
+					return (dataSource[resourceName].y > 0) ? dataSource[resourceName].x / dataSource[resourceName].y : 0d;
+			}
+			return 0d;
+		}
+
 		private object VariableToObject(string input, out bool cacheable)
 		{
 
@@ -1171,28 +1205,14 @@ namespace JSI
 				// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
 				if (tokens.Length == 3 && tokens[0] == "LISTR") {
 					ushort resourceID = Convert.ToUInt16(tokens[1]);
-					switch (tokens[2]) {
-						case "NAME":
-							if (resourceID >= resources.Count)
-								return string.Empty;
-							return resourcesAlphabetic[resourceID];
-						case "VAL":
-							if (resourceID >= resources.Count)
-								return 0d;
-							return resources[resourcesAlphabetic[resourceID]].x;
-						case "MAX":
-							if (resourceID >= resources.Count)
-								return 0d;
-							return resources[resourcesAlphabetic[resourceID]].y;
-						case "PERCENT":
-							if (resourceID >= resources.Count)
-								return 0d;
-							if (resources[resourcesAlphabetic[resourceID]].y > 0)
-								return resources[resourcesAlphabetic[resourceID]].x / resources[resourcesAlphabetic[resourceID]].y;
-							return 0d;
+					if (tokens[2] == "NAME") {
+						return resourceID >= resources.Count ? string.Empty : resourcesAlphabetic[resourceID];
 					}
-
-
+					if (resourceID >= resources.Count)
+						return 0d;
+					return tokens[2].StartsWith("STAGE", StringComparison.Ordinal) ? 
+						ResourceListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), activeResources) : 
+						ResourceListElement(resourcesAlphabetic[resourceID], tokens[2], resources);
 				}
 
 				// We do similar things for crew rosters.
@@ -1866,19 +1886,17 @@ namespace JSI
 					return string.Empty;
 			}
 
-
-
 			// Named resources are all the same and better off processed like this:
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
-					if (input.EndsWith("PERCENT", StringComparison.Ordinal)) {
-						return resources[resourceType.Value].y > 0 ? (resources[resourceType.Value].x / resources[resourceType.Value].y).Clamp(0d, 1d) : 0d;
+					string argument = input.Substring(resourceType.Key.Length);
+					if (argument.StartsWith("STAGE", StringComparison.Ordinal)) {
+						argument = argument.Substring("STAGE".Length);
+						ResourceListElement(resourceType.Value, argument, activeResources);
 					}
-					return input.EndsWith("MAX", StringComparison.Ordinal) ? resources[resourceType.Value].y :
-						resources[resourceType.Value].x.Clamp(0d, resources[resourceType.Value].y);
+					return ResourceListElement(resourceType.Value, argument, resources);
 				}
 			}
-
 
 			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
