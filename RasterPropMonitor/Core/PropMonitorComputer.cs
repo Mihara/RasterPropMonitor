@@ -38,7 +38,7 @@ namespace JSI
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
 		private double speedVerticalRounded;
-		private double horzVelocity;
+		private double horzVelocity,horzVelocityForward,horzVelocityRight;
 		private ITargetable target;
 		private ModuleDockingNode targetDockingNode;
 		private Vessel targetVessel;
@@ -820,7 +820,10 @@ namespace JSI
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
 
-			horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
+			Vector3d horizontalVelocityVector = (velocityVesselSurface - (speedVertical * up));
+			horzVelocity = horizontalVelocityVector.magnitude;
+			horzVelocityForward = horizontalVelocityVector.x;
+			horzVelocityRight = horizontalVelocityVector.y;
 
 			atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
 			dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
@@ -1257,6 +1260,10 @@ namespace JSI
 					return velocityRelativeTarget.magnitude;
 				case "HORZVELOCITY":
 					return horzVelocity;
+				case "HORZVELOCITYFORWARD":
+					return horzVelocityForward;
+				case "HORZVELOCITYRIGHT":
+					return horzVelocityRight;
 				case "EASPEED":
 					return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
 				case "APPROACHSPEED":
