@@ -24,9 +24,12 @@ namespace JSI
 		[KSPField]
 		public float hudFov = 60.0f;
 		[KSPField]
-		public Vector2 ladderSize = new Vector2( 64, 32 );
+		public Vector2 ladderSize = new Vector2(64.0f, 32.0f);
 		[KSPField]
 		public string ladderTexture = string.Empty;
+		[KSPField]
+		public bool use360ladder = false;
+
 		private Material ladderMaterial;
 
 		private bool startupComplete = false;
@@ -60,12 +63,22 @@ namespace JSI
 				return false;
 			}
 
+			// Figure out the texture coordinate scaling for the ladder.
+			float ladderTextureOffset;
+			float ladderHeightRatio = ladderSize.y / screen.height;
+			float ladderHalfHeightDegrees = hudFov * 0.5f * ladderHeightRatio;
+			if (use360ladder) {
+				ladderTextureOffset = ladderHalfHeightDegrees / 180.0f;
+			} else {
+				ladderTextureOffset = ladderHalfHeightDegrees / 90.0f;
+			}
+
 			// Configure the matrix so that the origin is the center of the screen.
 			GL.PushMatrix();
 
 			// Draw the HUD ladder
-			GL.LoadPixelMatrix(-ladderSize.x, ladderSize.x, -ladderSize.y, ladderSize.y);
-			GL.Viewport(new Rect(screen.width / 2 - ladderSize.x, screen.height / 2 - ladderSize.y, 2.0f * ladderSize.x, 2.0f * ladderSize.y));
+			GL.LoadPixelMatrix(-ladderSize.x * 0.5f, ladderSize.x * 0.5f, -ladderSize.y * 0.5f, ladderSize.y * 0.5f);
+			GL.Viewport(new Rect((screen.width - ladderSize.x) * 0.5f, (screen.height - ladderSize.y) * 0.5f, ladderSize.x, ladderSize.y));
 
 			Vector3 coM = vessel.findWorldCenterOfMass();
 			Vector3 up = (coM - vessel.mainBody.position).normalized;
@@ -77,19 +90,42 @@ namespace JSI
 			float cosRoll = Vector3.Dot(top, up);
 			float sinRoll = Vector3.Dot(right, up);
 
+			var normalizedRoll = new Vector2(cosRoll, sinRoll);
+			normalizedRoll.Normalize();
+			cosRoll = normalizedRoll.x;
+			sinRoll = normalizedRoll.y;
+
+			float pitch = Mathf.Asin(cosUp) * Mathf.Rad2Deg;
+
+			float ladderMidpointCoord;
+			if (use360ladder) {
+				// Straight up is texture coord 0.75;
+				// Straight down is TC 0.25;
+				ladderMidpointCoord = pitch / 90.0f * 0.25f + 0.5f;
+			}
+			else {
+				// Straight up is texture coord 1.0;
+				// Straight down is TC 0.0;
+				ladderMidpointCoord = pitch / 90.0f * 0.5f + 0.5f;
+			}
+
 			ladderMaterial.SetPass(0);
 			GL.Begin(GL.QUADS);
+
 			// transform -x -y
-			GL.TexCoord2(0.0f, 1.0f);
+			GL.TexCoord2(0, ladderMidpointCoord + ladderTextureOffset);
 			GL.Vertex3(cosRoll * ladderSize.x + sinRoll * ladderSize.y, sinRoll * ladderSize.x - cosRoll * ladderSize.y, 0.0f);
+
 			// transform +x -y
-			GL.TexCoord2(1.0f, 1.0f);
+			GL.TexCoord2(1.0f, ladderMidpointCoord + ladderTextureOffset);
 			GL.Vertex3(-cosRoll * ladderSize.x + sinRoll * ladderSize.y, -sinRoll * ladderSize.x - cosRoll * ladderSize.y, 0.0f);
+
 			// transform +x +y
-			GL.TexCoord2(1.0f, 0.0f);
+			GL.TexCoord2(1.0f, ladderMidpointCoord - ladderTextureOffset);
 			GL.Vertex3(-cosRoll * ladderSize.x - sinRoll * ladderSize.y, -sinRoll * ladderSize.x + cosRoll * ladderSize.y, 0.0f);
+
 			// transform -x +y
-			GL.TexCoord2(0.0f, 0.0f);
+			GL.TexCoord2(0.0f, ladderMidpointCoord - ladderTextureOffset);
 			GL.Vertex3(cosRoll * ladderSize.x - sinRoll * ladderSize.y, sinRoll * ladderSize.x + cosRoll * ladderSize.y, 0.0f);
 			GL.End();
 
@@ -108,16 +144,10 @@ namespace JSI
 			startupComplete = true;
 
 			ladderMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-			ladderMaterial.color = new Color(0.0f, 1.0f, 0.0f, 0.75f);
+			ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 			if (!String.IsNullOrEmpty(ladderTexture)) {
 				ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(ladderTexture.EnforceSlashes(), false);
 			}
-
-			// We rescale these values by 1/2 because we always work
-			// with 1/2 the values.  No sense remultiplying them every single
-			// frame.
-			ladderSize.x *= 0.5f;
-			ladderSize.y *= 0.5f;
 		}
 	}
 }
