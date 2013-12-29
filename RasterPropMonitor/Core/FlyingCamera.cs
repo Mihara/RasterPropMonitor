@@ -66,11 +66,12 @@ namespace JSI
 				isReferenceCamera = false;
 				// First, we search our own part for this camera transform,
 				// only then we search all other parts of the vessel.
-				if (!LocateCamera(ourPart, newCameraName))
+				if (!LocateCamera(ourPart, newCameraName)) {
 					foreach (Part thatpart in ourVessel.parts) {
 						if (LocateCamera(thatpart, newCameraName))
 							break;
 					}
+				}
 			}
 			if (cameraTransform != null) {
 				CameraSetup(0, "Camera ScaledSpace");
@@ -157,9 +158,7 @@ namespace JSI
 
 		public Vector3 GetTransformForward()
 		{
-			if (isReferenceCamera)
-				return cameraTransform.transform.up;
-			return cameraTransform.transform.forward;
+			return isReferenceCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
 		}
 
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
@@ -181,13 +180,13 @@ namespace JSI
 			}
 
 			Quaternion rotation = cameraTransform.transform.rotation;
-			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
 
 			if (isReferenceCamera) {
 				// Reference transforms of docking ports have the wrong orientation, so need an extra rotation applied before that.
 				rotation *= referencePointRotation;
 			}
 
+			Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
 			rotation = rotation * offset;
 
 
