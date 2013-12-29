@@ -31,19 +31,25 @@ namespace JSI
 			}
 		}
 
-		/* I wonder why this isn't working.
+		/* I wonder why this isn't working. 
+		 * It's like the moment I unseat a kerbal, no matter what else I do,
+		 * the entire internal goes poof. Although I'm pretty sure it doesn't quite,
+		 * because the modules keep working and generating errors.
+		 * What's really going on here, and why the same thing works for Crew Manifest?
 		public static void ReseatKerbalInPart(this Kerbal thatKerbal) {
 			if (thatKerbal.InPart == null || !JUtil.VesselIsInIVA(thatKerbal.InPart.vessel))
 				return;
 
 			InternalModel thatModel = thatKerbal.InPart.internalModel;
-			InternalSeat spareSeat = thatModel.GetNextAvailableSeat();
-			if (spareSeat != null) {
+			Part thatPart = thatKerbal.InPart;
+			int spareSeat = thatModel.GetNextAvailableSeatIndex();
+			if (spareSeat >= 0) {
 				ProtoCrewMember crew = thatKerbal.protoCrewMember;
 				CameraManager.Instance.SetCameraFlight();
-				thatModel.part.RemoveCrewmember(crew);
-				thatModel.part.AddCrewmember(crew);
-				CameraManager.Instance.SetCameraIVA(thatKerbal,true);
+				thatPart.internalModel.UnseatKerbal(crew);
+				thatPart.internalModel.SitKerbalAt(crew,thatPart.internalModel.seats[spareSeat]);
+				thatPart.internalModel.part.vessel.SpawnCrew();
+				CameraManager.Instance.SetCameraIVA(thatPart.internalModel.seats[spareSeat].kerbalRef,true);
 			}
 		}
 		*/
