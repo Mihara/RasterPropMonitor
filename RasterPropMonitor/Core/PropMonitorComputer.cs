@@ -1008,6 +1008,8 @@ namespace JSI
 			}
 
 			// Part-local list is assembled somewhat differently.
+			// Mental note: Actually, there's a list of ProtoCrewMember in part.protoModuleCrew. 
+			// But that list loses information about seats, which is what we'd like to keep in this particular case.
 			if (part.internalModel == null) {
 				JUtil.LogMessage(this, "Running on a part with no IVA, how did that happen?");
 			} else {
