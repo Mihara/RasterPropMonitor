@@ -90,7 +90,7 @@ namespace JSI
 					try {
 						pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					} catch {
-						JUtil.LogErrorMessage("Incorrect signature for the page handler method {0}", handlerModule.name);
+						JUtil.LogErrorMessage(ourMonitor, "Incorrect signature for the page handler method {0}", handlerModule.name);
 						break;
 					}
 					pageHandlerS = supportMethods;
@@ -113,7 +113,7 @@ namespace JSI
 					try {
 						backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					} catch {
-						JUtil.LogErrorMessage("Incorrect signature for the background handler method {0}", handlerModule.name);
+						JUtil.LogErrorMessage(ourMonitor, "Incorrect signature for the background handler method {0}", handlerModule.name);
 						break;
 					}
 					backgroundHandlerS = supportMethods;
