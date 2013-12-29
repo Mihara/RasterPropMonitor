@@ -1805,9 +1805,9 @@ namespace JSI
 						Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
 					}
 					return -1d;
-				case "ORBITBODYSYNCORBITPERIOD":
+				case "ORBITBODYSYNCORBITCIRCUMFERENCE":
 					return 2 * Math.PI * Math.Pow(vessel.orbit.referenceBody.gravParameter / Math.Pow(2 * Math.PI / vessel.orbit.referenceBody.rotationPeriod, 2), 1 / 3d);
-				case "TARGETBODYSYNCORBITPERIOD":
+				case "TARGETBODYSYNCORBICIRCUMFERENCE":
 					if (targetBody != null) {
 						return 2 * Math.PI * Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
 					}
