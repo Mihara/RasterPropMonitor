@@ -7,7 +7,7 @@ namespace JSI
 	public class PersistenceAccessor
 	{
 		private readonly RasterPropMonitorComputer persistenceStorage;
-		private const string errorMessage = "Warning: RasterPropMonitor components want JSIInternalPersistence to be loaded by the pod they're in. {0}";
+		private const string errorMessage = "Warning: RasterPropMonitor components want RasterPropMonitorComputer PartModule to be loaded by the pod they're in. {0}";
 
 		public PersistenceAccessor(Part thatPart)
 		{
