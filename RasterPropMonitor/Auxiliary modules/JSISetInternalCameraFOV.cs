@@ -45,7 +45,7 @@ namespace JSI
 				fov = defaultFov,
 				maxRot = defaultMaxRot,
 				maxPitch = defaultMaxPitch,
-				minPitch = -defaultMinPitch
+				minPitch = defaultMinPitch
 			});
 		}
 
