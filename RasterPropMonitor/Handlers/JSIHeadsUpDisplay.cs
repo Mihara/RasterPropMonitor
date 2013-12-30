@@ -37,15 +37,30 @@ namespace JSI
 		public Vector4 headingBarPosition = new Vector4(0f, 0f, 64f, 32f);
 
 		[KSPField] // Texture to use
-		public string altBarTexture = string.Empty;
-		[KSPField] // Position and size of the altitude bar, in pixels
-		public Vector4 altBarPosition = new Vector4(0f, 0f, 64f, 320f);
-		[KSPField] // maximum altitude of the altimeter
-		public float altBarMaxAltitude = 10000f;
+		public string vertBar1Texture = string.Empty;
+		[KSPField] // Position and size of the bar, in pixels
+		public Vector4 vertBar1Position = new Vector4(0f, 0f, 64f, 320f);
+		[KSPField] // minimum and maximum values
+		public Vector2 vertBar1Limit = new Vector2(0f, 10000f);
 		[KSPField] // lower and upper bound of the texture, in texture coordinates
-		public Vector2 altBarTextureLimit = new Vector2(0.0f, 1.0f);
-		[KSPField] // Amount of boundary on the texture (offset added to the current altitude's texture coordinate, to limit how much of the strip is visible)
-		public float altBarTextureBoundary = 0.25f;
+		public Vector2 vertBar1TextureLimit = new Vector2(0.0f, 1.0f);
+		[KSPField] // Amount of boundary on the texture (offset added to the current value's texture coordinate, to limit how much of the strip is visible)
+		public float vertBar1TextureBoundary = 0.25f;
+		[KSPField]
+		public string vertBar1Variable = string.Empty;
+
+		[KSPField] // Texture to use
+		public string vertBar2Texture = string.Empty;
+		[KSPField] // Position and size of the bar, in pixels
+		public Vector4 vertBar2Position = new Vector4(0f, 0f, 64f, 320f);
+		[KSPField] // minimum and maximum values
+		public Vector2 vertBar2Limit = new Vector2(-10000f, 10000f);
+		[KSPField] // lower and upper bound of the texture, in texture coordinates
+		public Vector2 vertBar2TextureLimit = new Vector2(0.0f, 1.0f);
+		[KSPField] // Amount of boundary on the texture (offset added to the current value's texture coordinate, to limit how much of the strip is visible)
+		public float vertBar2TextureBoundary = 0.25f;
+		[KSPField]
+		public string vertBar2Variable = string.Empty;
 
 		[KSPField]
 		public string staticOverlay = string.Empty;
@@ -54,6 +69,8 @@ namespace JSI
 		private Material headingMaterial = null;
 		private Material overlayMaterial = null;
 		private Material altBarMaterial = null;
+		private Material vertBar2Material = null;
+		private RasterPropMonitorComputer comp;
 
 		private bool startupComplete = false;
 
@@ -161,6 +178,13 @@ namespace JSI
 				Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 				Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 				float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y);
+				// MOARdV: While we can use the comp to get these values, the
+				// HUD update stutters if the computation refresh rate is too
+				// low.  We can switch this back with a caveat to implementers
+				// that they must keep the refresh rate high for smooth
+				// performance.
+				//float heading = comp.ProcessVariable("HEADING").MassageToFloat();
+				//float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, heading);
 
 				float headingTextureOffset;
 				float headingHeightRatio = headingBarPosition.z / screen.width;
@@ -181,46 +205,44 @@ namespace JSI
 			}
 
 			if (altBarMaterial != null) {
-				float altitudeASL = (float)vessel.mainBody.GetAltitude(coM);
-				float altitudeTrue;
-				RaycastHit sfc;
-				if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15)) {
-					altitudeTrue = sfc.distance;
-				} else if (vessel.mainBody.pqsController != null) {
-					// from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
-					altitudeTrue = (float)(vessel.mainBody.GetAltitude(coM) -
-					(vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(coM), Vector3d.down) *
-					QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(coM), Vector3d.forward) *
-					Vector3d.right) - vessel.mainBody.pqsController.radius));
-				} else {
-					altitudeTrue = (float)vessel.mainBody.GetAltitude(coM);
+				float value = comp.ProcessVariable(vertBar1Variable).MassageToFloat();
+				if (float.IsNaN(value)) {
+					value = 0.0f;
 				}
 
-				if (vessel.mainBody.ocean) {
-					altitudeTrue = Math.Min(altitudeTrue, altitudeASL);
-				}
-
-				// Clamp the range to legal values
-				altitudeTrue = Math.Min(Math.Max(0.0f, altitudeTrue), altBarMaxAltitude);
-				float log10Altitude;
-				if (altitudeTrue < 1.0f) {
-					log10Altitude = 1.0f - altitudeTrue;
-				} else {
-					log10Altitude = Mathf.Log10(altitudeTrue);
-				}
-
-				float altitudeTexCoord = JUtil.DualLerp(altBarTextureLimit.x, altBarTextureLimit.y, -1.0f, Mathf.Log10(altBarMaxAltitude), log10Altitude);
+				float vertBar1TexCoord = JUtil.DualLerp(vertBar1TextureLimit.x, vertBar1TextureLimit.y, vertBar1Limit.x, vertBar1Limit.y, value);
 
 				altBarMaterial.SetPass(0);
 				GL.Begin(GL.QUADS);
-				GL.TexCoord2(0.0f, altitudeTexCoord + altBarTextureBoundary);
-				GL.Vertex3(altBarPosition.x, altBarPosition.y, 0.0f);
-				GL.TexCoord2(1.0f, altitudeTexCoord + altBarTextureBoundary);
-				GL.Vertex3(altBarPosition.x + altBarPosition.z, altBarPosition.y, 0.0f);
-				GL.TexCoord2(1.0f, altitudeTexCoord - altBarTextureBoundary);
-				GL.Vertex3(altBarPosition.x + altBarPosition.z, altBarPosition.y + altBarPosition.w, 0.0f);
-				GL.TexCoord2(0.0f, altitudeTexCoord - altBarTextureBoundary);
-				GL.Vertex3(altBarPosition.x, altBarPosition.y + altBarPosition.w, 0.0f);
+				GL.TexCoord2(0.0f, vertBar1TexCoord + vertBar1TextureBoundary);
+				GL.Vertex3(vertBar1Position.x, vertBar1Position.y, 0.0f);
+				GL.TexCoord2(1.0f, vertBar1TexCoord + vertBar1TextureBoundary);
+				GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y, 0.0f);
+				GL.TexCoord2(1.0f, vertBar1TexCoord - vertBar1TextureBoundary);
+				GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y + vertBar1Position.w, 0.0f);
+				GL.TexCoord2(0.0f, vertBar1TexCoord - vertBar1TextureBoundary);
+				GL.Vertex3(vertBar1Position.x, vertBar1Position.y + vertBar1Position.w, 0.0f);
+				GL.End();
+			}
+
+			if (vertBar2Material != null) {
+				float value = comp.ProcessVariable(vertBar2Variable).MassageToFloat();
+				if (float.IsNaN(value)) {
+					value = 0.0f;
+				}
+
+				float vertBar2TexCoord = JUtil.DualLerp(vertBar2TextureLimit.x, vertBar2TextureLimit.y, vertBar2Limit.x, vertBar2Limit.y, value);
+
+				vertBar2Material.SetPass(0);
+				GL.Begin(GL.QUADS);
+				GL.TexCoord2(0.0f, vertBar2TexCoord + vertBar2TextureBoundary);
+				GL.Vertex3(vertBar2Position.x, vertBar2Position.y, 0.0f);
+				GL.TexCoord2(1.0f, vertBar2TexCoord + vertBar2TextureBoundary);
+				GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y, 0.0f);
+				GL.TexCoord2(1.0f, vertBar2TexCoord - vertBar2TextureBoundary);
+				GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y + vertBar2Position.w, 0.0f);
+				GL.TexCoord2(0.0f, vertBar2TexCoord - vertBar2TextureBoundary);
+				GL.Vertex3(vertBar2Position.x, vertBar2Position.y + vertBar2Position.w, 0.0f);
 				GL.End();
 			}
 
@@ -247,6 +269,9 @@ namespace JSI
 		{
 			backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
+			// MOARdV: Not sure this is the right one to use - I see some
+			// lighting artifacts, like interior lights are affecting the
+			// stuff I'm rendering.
 			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
 			ladderMaterial = new Material(unlit);
 			ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
@@ -266,11 +291,20 @@ namespace JSI
 				overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
 			}
 
-			if (!String.IsNullOrEmpty(altBarTexture)) {
+			if (!String.IsNullOrEmpty(vertBar1Texture) && !String.IsNullOrEmpty(vertBar1Variable)) {
 				altBarMaterial = new Material(unlit);
 				altBarMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				altBarMaterial.mainTexture = GameDatabase.Instance.GetTexture(altBarTexture.EnforceSlashes(), false);
+				altBarMaterial.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
 			}
+
+			if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable)) {
+				vertBar2Material = new Material(unlit);
+				vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
+			}
+
+			comp = RasterPropMonitorComputer.Instantiate(internalProp);
+
 			startupComplete = true;
 		}
 	}
