@@ -38,7 +38,7 @@ namespace JSI
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
 		private double speedVerticalRounded;
-		private double horzVelocity,horzVelocityForward,horzVelocityRight;
+		private double horzVelocity, horzVelocityForward, horzVelocityRight;
 		private ITargetable target;
 		private ModuleDockingNode targetDockingNode;
 		private Vessel targetVessel;
@@ -228,17 +228,17 @@ namespace JSI
 			// Analysis restore UnusedParameter
 			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(), screenWidth);
 		}
-		// TODO: Figure out if I can keep it at Start or OnAwake is better since it's a PartModule now.
-		public void Start()
-		{
-			// Well, it looks like we have to do that bit just like in Firespitter.
-			gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
-			brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
-			sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
-			lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
-			rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
 
-			if (HighLogic.LoadedSceneIsFlight) {
+		public override void OnStart(PartModule.StartState state)
+		{
+			if (state != StartState.Editor) {
+				// Well, it looks like we have to do that bit just like in Firespitter.
+				gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
+				brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
+				sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
+				lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
+				rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
+
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
 
@@ -255,6 +255,7 @@ namespace JSI
 					}
 				}
 				vesselDescription = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
+
 			}
 		}
 
