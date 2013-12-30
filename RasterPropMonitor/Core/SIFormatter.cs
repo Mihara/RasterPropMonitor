@@ -32,18 +32,58 @@ namespace JSI
 				return DefaultFormat(format, arg, formatProvider);    
 			}
 
+			// Mihara: Ok, this one I need help with.
+			// Custom formatters should behave just like the system formatter does respecting
+			// the +;-;0 format -- right now, it gets the entire string on input.
+			// But the most common use of them would be to use a custom formatter
+			// in one case (positive or negative) and something else entirely in others,
+			// most likely a string. And likely in quotes.
+			//
+			// The problem of having to fish out escapes and delimiters out of the custom format string is
+			// nicely avoided by passing the entire format string to the system formatter,
+			// rather than just the chunk that is selected by the positive/negative/zero rule, and
+			// letting it decide which string gets used, knowing that the one our formatters matched won't.
+			//
+			// But the split itself needs to avoid \; and "whatever;", and preferably, do it without regex.
+			// Any ideas?
+
+			string splitformat = format;
+			#if SPLITTERENABLED
+			if (format.IndexOf(";", StringComparison.Ordinal) > -1) {
+				// This splitter needs to be MUCH more complex, unfortunately.
+				var tokens = format.Split(';');
+				switch (tokens.Length) {
+					case 2:
+						splitformat = inputValue >= 0 ? tokens[0] : tokens[1];
+						break;
+					case 3:
+						// Analysis disable once CompareOfFloatsByEqualityOperator
+						if (inputValue == 0)
+							splitformat = tokens[2];
+						else if (inputValue > 0)
+							splitformat = tokens[0];
+						else
+							splitformat = tokens[1];
+						break;
+				}
+			}
+			#endif
+
 			// This way we can chain prefixes for other KSP-specific formats,
 			// like Kerbal Time or degrees-minutes-seconds, which are internally
 			// also doubles, right.
-			if (format.StartsWith(formatPrefixSIP, StringComparison.Ordinal))
-				return SIPFormat(format, inputValue);
-			if (format.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
-				return DMSFormat(format, inputValue);
-			if (format.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
-				return KDTFormat(format, inputValue);
-			if (format.StartsWith(formatPrefixBAR, StringComparison.Ordinal))
-				return BARFormat(format, inputValue);
+			if (splitformat.StartsWith(formatPrefixSIP, StringComparison.Ordinal))
+				return SIPFormat(splitformat, inputValue);
+			if (splitformat.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
+				return DMSFormat(splitformat, inputValue);
+			if (splitformat.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
+				return KDTFormat(splitformat, inputValue);
+			if (splitformat.StartsWith(formatPrefixBAR, StringComparison.Ordinal))
+				return BARFormat(splitformat, inputValue);
 
+			// But if we did not recognise any of the custom formatters in the split 
+			// member we fished out, we don't push our luck and use the original string,
+			// letting the system string.format sort it out.
 			return DefaultFormat(format, arg, formatProvider);
 		}
 		// BAR -- Bar pseudo-formatter that produces a horizontal bar
