@@ -169,6 +169,28 @@ namespace JSI
 			return (to - from) * ((value - from2) / (to2 - from2)) + from;
 		}
 
+		// Convert a variable to a log10-like value (log10 for values > 1,
+		// pass-through for values [-1, 1], and -log10(abs(value)) for values
+		// < -1.  Useful for logarithmic VSI and altitude strips.
+		public static double PseudoLog10(double value)
+		{
+			if (Math.Abs(value) <= 1.0) {
+				return value;
+			}
+			else {
+				return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
+			}
+		}
+		public static float PseudoLog10(float value)
+		{
+			if (Mathf.Abs(value) <= 1.0f) {
+				return value;
+			}
+			else {
+				return (1.0f + Mathf.Log10(Mathf.Abs(value))) * Mathf.Sign(value);
+			}
+		}
+
 		public static string LoadPageDefinition(string pageDefinition)
 		{
 			try {
