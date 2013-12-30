@@ -1306,8 +1306,7 @@ namespace JSI
 				case "RADARALTOCEAN":
 					if (vessel.mainBody.ocean)
 						return Math.Min(altitudeASL, altitudeTrue);
-					else
-						return altitudeTrue;
+					return altitudeTrue;
 				case "ALTITUDEBOTTOM":
 					return altitudeBottom;
 				case "TERRAINHEIGHT":
