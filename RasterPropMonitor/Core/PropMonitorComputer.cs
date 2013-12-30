@@ -17,6 +17,7 @@ namespace JSI
 		// Vessel description storage and related code.
 		[KSPField(isPersistant = true)]
 		public string vesselDescription = string.Empty;
+		private string vesselDescriptionForDisplay = string.Empty;
 		private readonly string editorNewline = ((char)0x0a).ToString();
 		// Public interface.
 		public bool updateForced;
@@ -220,13 +221,13 @@ namespace JSI
 		public string VesselDescriptionRaw(int screenWidth, int screenHeight)
 		{
 			// Analysis restore UnusedParameter
-			return vesselDescription.UnMangleConfigText();
+			return vesselDescriptionForDisplay.UnMangleConfigText();
 		}
 		// Analysis disable UnusedParameter
 		public string VesselDescriptionWordwrapped(int screenWidth, int screenHeight)
 		{
 			// Analysis restore UnusedParameter
-			return JUtil.WordWrap(vesselDescription.UnMangleConfigText(), screenWidth);
+			return JUtil.WordWrap(vesselDescriptionForDisplay.UnMangleConfigText(), screenWidth);
 		}
 
 		public override void OnStart(PartModule.StartState state)
@@ -254,7 +255,7 @@ namespace JSI
 						}
 					}
 				}
-				vesselDescription = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
+				vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
 
 			}
 		}
