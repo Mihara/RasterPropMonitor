@@ -1905,7 +1905,7 @@ namespace JSI
 					string argument = input.Substring(resourceType.Key.Length);
 					if (argument.StartsWith("STAGE", StringComparison.Ordinal)) {
 						argument = argument.Substring("STAGE".Length);
-						ResourceListElement(resourceType.Value, argument, activeResources);
+						return ResourceListElement(resourceType.Value, argument, activeResources);
 					}
 					return ResourceListElement(resourceType.Value, argument, resources);
 				}
