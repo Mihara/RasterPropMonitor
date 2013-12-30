@@ -4,7 +4,6 @@ namespace JSI
 {
 	public class JSIVariableLabel: InternalModule
 	{
-
 		[KSPField]
 		public string labelText = "<=0=>$&$ALTITUDE";
 		[KSPField]
@@ -13,6 +12,9 @@ namespace JSI
 		public float fontSize = 0.008f;
 		[KSPField]
 		public int refreshRate = 10;
+		[KSPField]
+		public bool oneshot;
+		private bool oneshotComplete;
 		private InternalText textObj;
 		private Transform textObjTransform;
 		private RasterPropMonitorComputer comp;
@@ -42,10 +44,13 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
+			if (oneshotComplete && oneshot)
+				return;
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
 			textObj.text.Text = StringProcessor.ProcessString(sourceString, comp);
+			oneshotComplete = true;
 		}
 	}
 }
