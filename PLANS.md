@@ -3,10 +3,11 @@
 ## Minor new features
 
 * A variable to compute the mass of propellants only. Needs asking the engines which propellants do they want...
+* ...but if I can get the list of propellants for the currently active engines, I can get a reasonable dV-for-current-stage at least.
 
 ## Major new features
 
-* Aviation-style PFD for transparent HUD use.
+* Aviation-style PFD for transparent HUD use. (Well, this is just about done, needs testing and documenting...
 * Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
 * API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
 
@@ -32,12 +33,12 @@
 ## Major new features
 
 
-  * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
+* kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 * Maneuver node creator/editor menu? I don't even know how to start this one, I don't see how it could be usable yet, even though there's no problem actually doing it.
 * Moving-in-IVA:
-  * Make an InternalModule that detects doubleclicks on a transform. Place that collider over an internal hatch.
-  * When in IVA player clicks on that hatch, search the rest of the ship for a habitable capsule with IVA in the direction of the click (Somewhat non-trivial as it will require intelligently navigating the part tree).
-  * Locate a part which has an IVA and a free InternalSeat.
-  * Detect which kerbal we're currently looking with. (Well, that is now it's own static function)
-  * Move that kerbal to the seat found. (Despawn/spawn should work)
-  Voila, we have moving-in-iva, or at least as close as it ever gets.
+    * Make an InternalModule that detects doubleclicks on a transform. Place that collider over an internal hatch.
+    * When in IVA player clicks on that hatch, search the rest of the ship for a habitable capsule with IVA in the direction of the click (Somewhat non-trivial as it will require intelligently navigating the part tree).
+    * Locate a part which has an IVA and a free InternalSeat.
+    * Detect which kerbal we're currently looking with. (Well, that is now it's own static function)
+    * Move that kerbal to the seat found. (Despawn/spawn should work, but somehow the entire internal is getting borked in the attempt.)
+      Voila, we have moving-in-iva, or at least as close as it ever gets.
