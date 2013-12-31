@@ -229,11 +229,10 @@ namespace JSI
 			// Analysis restore UnusedParameter
 			return JUtil.WordWrap(vesselDescriptionForDisplay.UnMangleConfigText(), screenWidth);
 		}
-
-		public override void OnStart(PartModule.StartState state)
+		// Damnit, looks like this needs a separate start.
+		public void Start()
 		{
-			if (state != StartState.Editor) {
-				// Well, it looks like we have to do that bit just like in Firespitter.
+			if (!HighLogic.LoadedSceneIsEditor) {
 				gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
 				brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
 				sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
@@ -242,7 +241,12 @@ namespace JSI
 
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+			}
+		}
 
+		public override void OnStart(PartModule.StartState state)
+		{
+			if (state != StartState.Editor) {
 				// Parse vessel description here for special lines:
 					
 				string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.lineSeparator, StringSplitOptions.None);
