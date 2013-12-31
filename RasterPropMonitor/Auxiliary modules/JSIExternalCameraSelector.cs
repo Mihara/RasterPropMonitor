@@ -81,7 +81,7 @@ namespace JSI
 			if (state == StartState.Editor) {
 				if (part.parent == null) {
 					foreach (Part thatPart in EditorLogic.SortedShipList) {
-						if (thatPart.name == part.name && thatPart != this) {
+						if (thatPart != part) {
 							foreach (PartModule thatModule in thatPart.Modules) {
 								var peerModule = thatModule as JSIExternalCameraSelector;
 								if (peerModule != null && peerModule.cameraIDPrefix == cameraIDPrefix && peerModule.current == current)
