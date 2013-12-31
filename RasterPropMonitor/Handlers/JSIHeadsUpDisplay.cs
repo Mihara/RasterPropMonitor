@@ -48,6 +48,8 @@ namespace JSI
 		public float vertBar1TextureBoundary = 0.25f;
 		[KSPField]
 		public string vertBar1Variable = string.Empty;
+		[KSPField]
+		public bool vertBar1UseLog10 = false;
 
 		[KSPField] // Texture to use
 		public string vertBar2Texture = string.Empty;
@@ -61,6 +63,8 @@ namespace JSI
 		public float vertBar2TextureBoundary = 0.25f;
 		[KSPField]
 		public string vertBar2Variable = string.Empty;
+		[KSPField]
+		public bool vertBar2UseLog10 = false;
 
 		[KSPField]
 		public string staticOverlay = string.Empty;
@@ -68,7 +72,7 @@ namespace JSI
 		private Material ladderMaterial = null;
 		private Material headingMaterial = null;
 		private Material overlayMaterial = null;
-		private Material altBarMaterial = null;
+		private Material vertBar1Material = null;
 		private Material vertBar2Material = null;
 		private RasterPropMonitorComputer comp;
 
@@ -204,15 +208,19 @@ namespace JSI
 				GL.End();
 			}
 
-			if (altBarMaterial != null) {
+			if (vertBar1Material != null) {
 				float value = comp.ProcessVariable(vertBar1Variable).MassageToFloat();
 				if (float.IsNaN(value)) {
 					value = 0.0f;
 				}
 
+				if (vertBar1UseLog10) {
+					value = JUtil.PseudoLog10(value);
+				}
+
 				float vertBar1TexCoord = JUtil.DualLerp(vertBar1TextureLimit.x, vertBar1TextureLimit.y, vertBar1Limit.x, vertBar1Limit.y, value);
 
-				altBarMaterial.SetPass(0);
+				vertBar1Material.SetPass(0);
 				GL.Begin(GL.QUADS);
 				GL.TexCoord2(0.0f, vertBar1TexCoord + vertBar1TextureBoundary);
 				GL.Vertex3(vertBar1Position.x, vertBar1Position.y, 0.0f);
@@ -229,6 +237,10 @@ namespace JSI
 				float value = comp.ProcessVariable(vertBar2Variable).MassageToFloat();
 				if (float.IsNaN(value)) {
 					value = 0.0f;
+				}
+
+				if (vertBar2UseLog10) {
+					value = JUtil.PseudoLog10(value);
 				}
 
 				float vertBar2TexCoord = JUtil.DualLerp(vertBar2TextureLimit.x, vertBar2TextureLimit.y, vertBar2Limit.x, vertBar2Limit.y, value);
@@ -292,15 +304,25 @@ namespace JSI
 			}
 
 			if (!String.IsNullOrEmpty(vertBar1Texture) && !String.IsNullOrEmpty(vertBar1Variable)) {
-				altBarMaterial = new Material(unlit);
-				altBarMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				altBarMaterial.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
+				vertBar1Material = new Material(unlit);
+				vertBar1Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				vertBar1Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
 			}
 
 			if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable)) {
 				vertBar2Material = new Material(unlit);
 				vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 				vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
+			}
+
+			if (vertBar1UseLog10) {
+				vertBar1Limit.x = JUtil.PseudoLog10(vertBar1Limit.x);
+				vertBar1Limit.y = JUtil.PseudoLog10(vertBar1Limit.y);
+			}
+
+			if (vertBar2UseLog10) {
+				vertBar2Limit.x = JUtil.PseudoLog10(vertBar2Limit.x);
+				vertBar2Limit.y = JUtil.PseudoLog10(vertBar2Limit.y);
 			}
 
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
