@@ -1252,6 +1252,8 @@ namespace JSI
 			// Speeds.
 				case "VERTSPEED":
 					return speedVertical;
+				case "VERTSPEEDLOG10":
+					return JUtil.PseudoLog10(speedVertical);
 				case "VERTSPEEDROUNDED":
 					return speedVerticalRounded;
 				case "SURFSPEED":
@@ -1303,16 +1305,28 @@ namespace JSI
 			// Altitudes
 				case "ALTITUDE":
 					return altitudeASL;
+				case "ALTITUDELOG10":
+					return JUtil.PseudoLog10(altitudeASL);
 				case "RADARALT":
 					return altitudeTrue;
+				case "RADARALTLOG10":
+					return JUtil.PseudoLog10(altitudeTrue);
 				case "RADARALTOCEAN":
 					if (vessel.mainBody.ocean)
 						return Math.Min(altitudeASL, altitudeTrue);
 					return altitudeTrue;
+				case "RADARALTOCEANLOG10":
+					if (vessel.mainBody.ocean)
+						return JUtil.PseudoLog10(Math.Min(altitudeASL, altitudeTrue));
+					return JUtil.PseudoLog10(altitudeTrue);
 				case "ALTITUDEBOTTOM":
 					return altitudeBottom;
+				case "ALTITUDEBOTTOMLOG10":
+					return JUtil.PseudoLog10(altitudeBottom);
 				case "TERRAINHEIGHT":
 					return altitudeASL - altitudeTrue;
+				case "TERRAINHEIGHTLOG10":
+					return JUtil.PseudoLog10(altitudeASL - altitudeTrue);
 
 			// Atmospheric values
 				case "ATMPRESSURE":
