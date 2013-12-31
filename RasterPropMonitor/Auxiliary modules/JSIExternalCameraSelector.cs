@@ -13,6 +13,8 @@ namespace JSI
 		public int maximum = 8;
 		[KSPField]
 		public Vector3 rotateCamera = Vector3.zero;
+		[KSPField]
+		public Vector3 translateCamera = Vector3.zero;
 		// Internal data storage.
 		[KSPField(isPersistant = true)]
 		public int current = 1;
@@ -66,6 +68,8 @@ namespace JSI
 
 			if (rotateCamera != Vector3.zero)
 				actualCamera.transform.Rotate(rotateCamera);
+			if (translateCamera != Vector3.zero)
+				actualCamera.transform.localPosition = translateCamera;
 
 			visibleCameraName = actualCamera.name = cameraIDPrefix + current;
 			if (HighLogic.LoadedSceneIsEditor)
