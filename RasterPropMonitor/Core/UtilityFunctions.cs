@@ -177,18 +177,14 @@ namespace JSI
 			if (Math.Abs(value) <= 1.0) {
 				return value;
 			}
-			else {
-				return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
-			}
+			return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
 		}
 		public static float PseudoLog10(float value)
 		{
 			if (Mathf.Abs(value) <= 1.0f) {
 				return value;
 			}
-			else {
-				return (1.0f + Mathf.Log10(Mathf.Abs(value))) * Mathf.Sign(value);
-			}
+			return (1.0f + Mathf.Log10(Mathf.Abs(value))) * Mathf.Sign(value);
 		}
 
 		public static string LoadPageDefinition(string pageDefinition)
