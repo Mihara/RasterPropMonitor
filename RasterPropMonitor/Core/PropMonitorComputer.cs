@@ -1719,6 +1719,13 @@ namespace JSI
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
+				case "PODTEMPERATUREALARM":
+					double tempRatio = part.temperature / part.maxTemp;
+					if (tempRatio > 0.85d)
+						return 1d;
+					if (tempRatio > 0.75d)
+						return 0d;
+					return -1d;
 			// Well, it's not a compound but it's an alarm...
 				case "ENGINEOVERHEATALARM":
 					return anyEnginesOverheating.GetHashCode();
