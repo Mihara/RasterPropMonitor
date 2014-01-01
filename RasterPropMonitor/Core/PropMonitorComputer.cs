@@ -1430,6 +1430,15 @@ namespace JSI
 					if (orbitSensibility)
 						return 1d;
 					return -1d;
+				case "TIMETOANEQUATORIAL":
+					if (orbitSensibility && vessel.orbit.AscendingNodeEquatorialExists())
+						return vessel.orbit.TimeOfAscendingNodeEquatorial(time) - time;
+					return double.NaN;
+				case "TIMETODNEQUATORIAL":
+					if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
+						return vessel.orbit.TimeOfDescendingNodeEquatorial(time) - time;
+					return double.NaN;
+
 
 			// Time
 				case "UTSECS":
