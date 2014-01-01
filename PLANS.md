@@ -1,12 +1,7 @@
 # 0.13 milestone targets
 
-## Minor new features
-
-* Undocking menu inside the targeting control menu structure.
-
-## Major new features
-
-* Aviation-style PFD for transparent HUD use. (Well, this is just about done, needs testing and documenting...)
+* Testing.
+* Possibly a round of further minor features.
 
 # 0.14 milestone targets
 

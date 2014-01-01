@@ -50,16 +50,20 @@ namespace JSI
 		private readonly TextMenu topMenu = new TextMenu();
 		private TextMenu activeMenu;
 		private TextMenu.Item clearTarget;
+		private TextMenu.Item undockMenuItem;
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
+		private const string clearTargetItemText = "Clear target";
+		private const string undockItemText = "Undock";
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
 			"Reference part",
+			undockItemText,
 			"Filters",
-			"Clear target",
+			clearTargetItemText,
 		};
 		private readonly Dictionary<VesselType,bool> vesselFilter = new Dictionary<VesselType,bool> {
 			{ VesselType.Ship,true },
@@ -81,6 +85,7 @@ namespace JSI
 			Vessels,
 			Reference,
 			Ports,
+			Undock,
 			Filters,
 		};
 
@@ -96,6 +101,7 @@ namespace JSI
 		private CelestialBody selectedCelestial;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
+		private readonly List<ModuleDockingNode> undockablesList = new List<ModuleDockingNode>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private readonly List<PartModule> referencePoints = new List<PartModule>();
 		private int partCount;
@@ -112,6 +118,9 @@ namespace JSI
 		public string ShowMenu(int width, int height)
 		{
 			switch (currentMenu) {
+				case MenuList.Undock:
+					activeMenu.menuTitle = string.Format(fp, menuTitleFormatString, "Decouple ports");
+					break;
 				case MenuList.Root:
 					activeMenu.menuTitle = MakeMenuTitle("Root menu", width);
 					break;
@@ -138,6 +147,7 @@ namespace JSI
 			}
 
 			clearTarget.isDisabled = (currentTarget == null);
+			undockMenuItem.isDisabled = (undockablesList.Count == 0);
 
 			if (string.IsNullOrEmpty(pageTitle)) {
 				return activeMenu.ShowMenu(width, height);
@@ -282,8 +292,10 @@ namespace JSI
 			selectedPort = currentTarget as ModuleDockingNode;
 			if (selectedPort != null)
 				selectedVessel = selectedPort.vessel;
-			if (vessel.parts.Count != partCount)
+			if (vessel.parts.Count != partCount) {
 				FindReferencePoints();
+				UpdateUndockablesList();
+			}
 			if (!UpdateCheck())
 				return;
 			UpdateLists();
@@ -308,11 +320,64 @@ namespace JSI
 				return "top";
 			return "??";
 		}
+		// Decouple port menu...
+		private void DecouplePort(int index, TextMenu.Item ti)
+		{
+			switch (undockablesList[index].state) {
+				case "Docked (docker)":
+					undockablesList[index].Undock();
+					break;
+				case "PreAttached":
+					undockablesList[index].Decouple();
+					break;
+			}
+			UpdateUndockablesList();
+			activeMenu = topMenu;
+			currentMenu = MenuList.Root;
+			UpdateLists();
+		}
+
+		private int UpdateUndockablesList()
+		{
+			undockablesList.Clear();
+			foreach (Part thatPart in vessel.parts) {
+				foreach (PartModule thatModule in thatPart.Modules) {
+					var thatPort = thatModule as ModuleDockingNode;
+					if (thatPort != null) {
+						JUtil.LogMessage(this, "port state: \"{0}\", portinfo: \"{1}\"", thatPort.state, thatPort.vesselInfo);
+						if (thatPort.state == "Docked (docker)" || thatPort.state == "PreAttached") {
+							undockablesList.Add(thatPort);
+						}
+					}
+				}
+			}
+			return undockablesList.Count;
+		}
 
 		private void UpdateLists()
 		{
 
 			switch (currentMenu) {
+				case MenuList.Undock:
+					UpdateUndockablesList();
+
+					activeMenu.Clear();
+					foreach (ModuleDockingNode thatPort in undockablesList) {
+						var tmi = new TextMenu.Item();
+						tmi.action = DecouplePort;
+						switch (thatPort.state) {
+							case "Docked (docker)":
+								tmi.labelText = "Undock " + thatPort.vesselInfo.name;
+								break;
+							case "PreAttached":
+								tmi.labelText = string.Format("Detach {0} ({1})", thatPort.part.name,
+									PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
+								break;
+						}
+						activeMenu.Add(tmi);
+					}
+
+					break;
 				case MenuList.Celestials: 
 					foreach (Celestial body in celestialsList)
 						body.UpdateDistance(vessel.transform.position);
@@ -466,11 +531,13 @@ namespace JSI
 			}
 
 			FindReferencePoints();
+			UpdateUndockablesList();
 
 			var menuActions = new List<Action<int, TextMenu.Item>>();
 			menuActions.Add(ShowCelestialMenu);
 			menuActions.Add(ShowVesselMenu);
 			menuActions.Add(ShowReferenceMenu);
+			menuActions.Add(ShowUndockMenu);
 			menuActions.Add(ShowFiltersMenu);
 			menuActions.Add(ClearTarget);
 
@@ -479,9 +546,17 @@ namespace JSI
 				menuitem.labelText = rootMenu[i];
 				menuitem.action = menuActions[i];
 				topMenu.Add(menuitem);
+				switch (menuitem.labelText) {
+					case clearTargetItemText:
+						clearTarget = topMenu[i];
+						break;
+					case undockItemText:
+						undockMenuItem = topMenu[i];
+						break;
+				}
 			}
 			// As long as ClearTarget is the last menu entry, this works:
-			clearTarget = topMenu[topMenu.Count - 1];
+			//clearTarget = topMenu[topMenu.Count - 1];
 
 			activeMenu = topMenu;
 		}
@@ -590,6 +665,19 @@ namespace JSI
 			UpdateLists();
 
 			activeMenu.currentSelection = referencePoints.FindIndex(x => x.part == vessel.GetReferenceTransformPart());
+		}
+
+		private void ShowUndockMenu(int index, TextMenu.Item ti)
+		{
+			currentMenu = MenuList.Undock;
+
+			activeMenu = new TextMenu();
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+			UpdateLists();
 		}
 
 		private void ShowFiltersMenu(int index, TextMenu.Item ti)
