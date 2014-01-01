@@ -117,6 +117,7 @@ namespace JSI
 			{ "MONOPROP", "MonoPropellant" },
 			{ "RSINTAKEAIR", "IntakeAir" },
 			{ "XENON", "XenonGas" },
+			{ "SOLIDFUEL", "SolidFuel" },
 			// Mod resources...
 			{ "KETHANE", "Kethane" },
 			// Modular fuels.
