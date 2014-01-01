@@ -1699,6 +1699,16 @@ namespace JSI
 					if (thatPort != null)
 						return 1d;
 					return 0d;
+				case "FLIGHTUIMODE":
+					switch (FlightUIModeController.Instance.Mode) {
+						case FlightUIMode.DOCKING:
+							return 1d;
+						case FlightUIMode.STAGING:
+							return -1d;
+						case FlightUIMode.ORBITAL:
+							return 0d;
+					}
+					return double.NaN;
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
