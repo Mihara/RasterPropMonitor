@@ -1,7 +1,9 @@
 # 0.13 milestone targets
 
+* Finish the Hullcam camera models patch.
+* Finish and install the Mk1 cockpit handle.
 * Testing.
-* Possibly a round of further minor features.
+* Minor features from confirmed list when inspiration permits.
 
 # 0.14 milestone targets
 
@@ -21,16 +23,24 @@
 * Debugging, debugging, debugging. It needs to be as idiot proof as it can possibly be.
 * If there are any breaking API changes that are still needed, they should be settled by then.
 
-# Future targets
+# Confirmed features with no set target
 
 ## Minor new features
 
 * ;-splitter in custom formatters needs to be able to survive quoted and escaped ; when splitting -- but it should do that without regex.
-* Resource consumption rates.
+* Resource consumption rates. (Requires actually counting, which implies a different method of keeping data and some rewrites.)
+
+## Major new features
+
+* Make JSIActionGroupSwitch pluggable and plug MechJeb into it. (Most likely, a generic action handler interface like the regular RPM).
+
+# Potential features
+
+## Minor new features
+
 * Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
-* Make JSIActionGroupSwitch pluggable and plug MechJeb into it.
-* cameraTransform should be a list of prospective transform names to try.
+* cameraTransform could be a list of prospective transform names to try. (I'm not clear on what kind of behaviour is desirable in this case exactly though.)
 * On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :) Possibly other camera effects?
 * Spot lights generated within camera structure?
 * A key combination to reseat the current kerbal in the same pod so that he can take the pilot's seat if the pilot went out. (This is proving to be difficult...)
