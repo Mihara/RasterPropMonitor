@@ -1,9 +1,15 @@
 # 0.13 milestone targets
 
+## Pre-release checklist.
+
 * Finish the Hullcam camera models patch.
 * Finish and install the Mk1 cockpit handle.
 * Testing.
 * Minor features from confirmed list when inspiration permits.
+
+## Unfinished features
+
+* Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal.
 
 # 0.14 milestone targets
 
@@ -14,7 +20,6 @@
 
 ## Major new features
 
-* Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal. Needs quite a bit of thinking...
 * API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
 * kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
 
