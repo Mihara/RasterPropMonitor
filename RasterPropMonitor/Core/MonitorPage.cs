@@ -30,6 +30,11 @@ namespace JSI
 			Texture,
 			Handler,
 		};
+		public readonly int screenXMin, screenYMin;
+		public readonly int pageFont = 0;
+		public readonly Texture2D overlayTexture, interlayTexture;
+
+		public readonly Color defaultColor;
 
 		private readonly BackgroundType background = BackgroundType.None;
 		private readonly float cameraFOV;
@@ -37,7 +42,6 @@ namespace JSI
 		private readonly FlyingCamera cameraObject;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
-		public readonly Texture2D overlayTexture, interlayTexture;
 		private readonly Func<int,int,string> pageHandler;
 		private readonly Func<RenderTexture,float,bool> backgroundHandler;
 		private readonly HandlerSupportMethods pageHandlerS, backgroundHandlerS;
@@ -89,6 +93,9 @@ namespace JSI
 			screenHeight = ourMonitor.screenHeight;
 			cameraAspect = ourMonitor.cameraAspect;
 			cameraObject = thatMonitor.CameraStructure;
+			defaultColor = ourMonitor.defaultFontTintValue;
+			screenXMin = 0;
+			screenYMin = 0;
 
 			pageNumber = idNum;
 			isMutable = false;
@@ -120,6 +127,20 @@ namespace JSI
 			}
 
 			Unlocker |= node.HasValue("unlockerPage");
+
+			if (node.HasValue("localMargins")) {
+				Vector4 margindata = ConfigNode.ParseVector4(node.GetValue("localMargins"));
+				screenXMin = (int)margindata.x;
+				screenYMin = (int)margindata.y;
+				screenWidth = screenWidth - (int)margindata.z - screenXMin;
+				screenHeight = screenHeight - (int)margindata.w - screenYMin;
+			}
+
+			pageFont = node.GetInt("defaultFontNumber") ?? 0;
+
+			if (node.HasValue("defaultFontTint")) {
+				defaultColor = ConfigNode.ParseColor32(node.GetValue("defaultFontTint"));
+			}
 
 			if (node.HasNode("CONTEXTREDIRECT")) {
 				foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("redirect")) {

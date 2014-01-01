@@ -362,6 +362,17 @@ namespace JSI
 			return node.HasValue(valueName) ? node.GetValue(valueName).GetFloat() : (float?)null;
 		}
 
+		public static int? GetInt(this string source)
+		{
+			int result;
+			return int.TryParse(source, out result) ? result : (int?)null;
+		}
+
+		public static int? GetInt(this ConfigNode node, string valueName)
+		{
+			return node.HasValue(valueName) ? node.GetValue(valueName).GetInt() : (int?)null;
+		}
+
 		public static string EnforceSlashes(this string input)
 		{
 			return input.Replace('\\', '/');
