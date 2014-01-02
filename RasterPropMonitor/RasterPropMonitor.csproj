@@ -85,6 +85,7 @@
     <Compile Include="Core\OrbitExtensions.cs" />
     <Compile Include="Core\MathExtensions.cs" />
     <Compile Include="Core\CelestialBodyExtensions.cs" />
+    <Compile Include="Handlers\JSIOrbitDisplay.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
