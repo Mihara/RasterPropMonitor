@@ -3,7 +3,6 @@
 ## Pre-release checklist.
 
 * Finish and install the Mk1 cockpit handle.
-* Find out the cause of supposed B9 incompatibility. (wtf?)
 * Testing.
 * Minor features from confirmed list when inspiration permits.
 
