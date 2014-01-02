@@ -21,15 +21,16 @@ namespace JSI
 		// Fields to handle right-click GUI.
 		[KSPField(guiActive = true, guiActiveEditor = true, guiName = "Camera ID: ")]
 		public string visibleCameraName;
+		[UI_Toggle(disabledText = "off", enabledText = "on")]
+		[KSPField(guiActiveEditor = true, guiName = "FOV marker ", isPersistant = true)]
+		public bool showCones = true;
+		// The rest of it
 		private GameObject lightCone;
 		private LineRenderer lightConeRenderer;
 		private static readonly Material lightConeMaterial = new Material(Shader.Find("Particles/Additive"));
 		private Transform actualCamera;
 		private const float endSpan = 15f;
 		private const float fovAngle = 60f;
-		[UI_Toggle(disabledText = "off", enabledText = "on")]
-		[KSPField(guiActiveEditor = true, guiName = "FOV marker ", isPersistant = true)]
-		public bool showCones = true;
 
 		[KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "ID +")]
 		public void IdPlus()
@@ -52,14 +53,9 @@ namespace JSI
 		private void UpdateName()
 		{
 			Transform containingTransform = part.FindModelTransform(cameraContainer);
-			foreach (Transform thatTransform in containingTransform.gameObject.GetComponentsInChildren<Transform>()) {
-				if (containingTransform != thatTransform) {
-					actualCamera = thatTransform;
-					break;
-				}
-			}
-			// I'm amused to find that this does appear to work.
-			if (actualCamera == null) {
+			if (containingTransform.childCount > 0) {
+				actualCamera = containingTransform.GetChild(0);
+			} else {
 				actualCamera = new GameObject().transform;
 				actualCamera.parent = containingTransform;
 			}
@@ -174,7 +170,7 @@ namespace JSI
 
 		public override string GetInfo()
 		{
-			return 	"Hold down '"+GameSettings.HEADLIGHT_TOGGLE.primary+"' to display all the camera fields of view at once.";
+			return 	"Hold down '" + GameSettings.HEADLIGHT_TOGGLE.primary + "' to display all the camera fields of view at once.";
 		}
 	}
 }

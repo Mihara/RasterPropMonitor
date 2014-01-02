@@ -82,6 +82,9 @@
     <Compile Include="Auxiliary modules\JSIInternalEVAHatch.cs" />
     <Compile Include="Auxiliary modules\JSIPropIDFinder.cs" />
     <Compile Include="Handlers\JSIHeadsUpDisplay.cs" />
+    <Compile Include="Core\OrbitExtensions.cs" />
+    <Compile Include="Core\MathExtensions.cs" />
+    <Compile Include="Core\CelestialBodyExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

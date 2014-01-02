@@ -177,18 +177,14 @@ namespace JSI
 			if (Math.Abs(value) <= 1.0) {
 				return value;
 			}
-			else {
-				return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
-			}
+			return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
 		}
 		public static float PseudoLog10(float value)
 		{
 			if (Mathf.Abs(value) <= 1.0f) {
 				return value;
 			}
-			else {
-				return (1.0f + Mathf.Log10(Mathf.Abs(value))) * Mathf.Sign(value);
-			}
+			return (1.0f + Mathf.Log10(Mathf.Abs(value))) * Mathf.Sign(value);
 		}
 
 		public static string LoadPageDefinition(string pageDefinition)
@@ -349,6 +345,14 @@ namespace JSI
 					}
 			return defaultAttribute;
 		}
+
+		public static Orbit OrbitFromStateVectors(Vector3d pos, Vector3d vel, CelestialBody body, double UT)
+		{
+			Orbit ret = new Orbit();
+			ret.UpdateFromStateVectors(OrbitExtensions.SwapYZ(pos - body.position), OrbitExtensions.SwapYZ(vel), body, UT);
+			return ret;
+		}
+
 		// Piling all the extension methods into the same utility class to reduce the number of classes.
 		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
 		public static float? GetFloat(this string source)
@@ -360,6 +364,17 @@ namespace JSI
 		public static float? GetFloat(this ConfigNode node, string valueName)
 		{
 			return node.HasValue(valueName) ? node.GetValue(valueName).GetFloat() : (float?)null;
+		}
+
+		public static int? GetInt(this string source)
+		{
+			int result;
+			return int.TryParse(source, out result) ? result : (int?)null;
+		}
+
+		public static int? GetInt(this ConfigNode node, string valueName)
+		{
+			return node.HasValue(valueName) ? node.GetValue(valueName).GetInt() : (int?)null;
 		}
 
 		public static string EnforceSlashes(this string input)
@@ -431,153 +446,6 @@ namespace JSI
 		}
 	}
 
-	public static class CelestialBodyExtensions
-	{
-		public static double TerrainAltitude(this CelestialBody body, Vector3d worldPosition)
-		{
-			return body.TerrainAltitude(body.GetLatitude(worldPosition), body.GetLongitude(worldPosition));
-		}
-
-		public static double TerrainAltitude(this CelestialBody body, double latitude, double longitude)
-		{
-			if (body.pqsController == null)
-				return 0;
-
-			Vector3d pqsRadialVector = QuaternionD.AngleAxis(longitude, Vector3d.down) * QuaternionD.AngleAxis(latitude, Vector3d.forward) * Vector3d.right;
-			double ret = body.pqsController.GetSurfaceHeight(pqsRadialVector) - body.pqsController.radius;
-			if (ret < 0)
-				ret = 0;
-			return ret;
-		}
-	}
-	// Should I just import the entire class from MJ?...
-	public static class OrbitExtensions
-	{
-		public static Vector3d SwapYZ(Vector3d v)
-		{
-			return v.xzy;
-		}
-
-		public static Vector3d SwappedOrbitNormal(this Orbit o)
-		{
-			return -SwapYZ(o.GetOrbitNormal()).normalized;
-		}
-
-		public static double TimeOfAscendingNode(this Orbit a, Orbit b, double uT)
-		{
-			return a.TimeOfTrueAnomaly(a.AscendingNodeTrueAnomaly(b), uT);
-		}
-
-		public static double TimeOfDescendingNode(this Orbit a, Orbit b, double uT)
-		{
-			return a.TimeOfTrueAnomaly(a.DescendingNodeTrueAnomaly(b), uT);
-		}
-
-		public static double TimeOfTrueAnomaly(this Orbit o, double trueAnomaly, double uT)
-		{
-			return o.UTAtMeanAnomaly(o.GetMeanAnomalyAtEccentricAnomaly(o.GetEccentricAnomalyAtTrueAnomaly(trueAnomaly)), uT);
-		}
-
-		public static double AscendingNodeTrueAnomaly(this Orbit a, Orbit b)
-		{
-			Vector3d vectorToAN = Vector3d.Cross(a.SwappedOrbitNormal(), b.SwappedOrbitNormal());
-			return a.TrueAnomalyFromVector(vectorToAN);
-		}
-
-		public static double DescendingNodeTrueAnomaly(this Orbit a, Orbit b)
-		{
-			return JUtil.ClampDegrees360(a.AscendingNodeTrueAnomaly(b) + 180);
-		}
-
-		public static double TrueAnomalyFromVector(this Orbit o, Vector3d vec)
-		{
-			Vector3d projected = Vector3d.Exclude(o.SwappedOrbitNormal(), vec);
-			Vector3d vectorToPe = SwapYZ(o.eccVec);
-			double angleFromPe = Math.Abs(Vector3d.Angle(vectorToPe, projected));
-
-			//If the vector points to the infalling part of the orbit then we need to do 360 minus the
-			//angle from Pe to get the true anomaly. Test this by taking the the cross product of the
-			//orbit normal and vector to the periapsis. This gives a vector that points to center of the 
-			//outgoing side of the orbit. If vectorToAN is more than 90 degrees from this vector, it occurs
-			//during the infalling part of the orbit.
-			if (Math.Abs(Vector3d.Angle(projected, Vector3d.Cross(o.SwappedOrbitNormal(), vectorToPe))) < 90) {
-				return angleFromPe;
-			}
-			return 360 - angleFromPe;
-		}
-
-		public static double UTAtMeanAnomaly(this Orbit o, double meanAnomaly, double uT)
-		{
-			double currentMeanAnomaly = o.MeanAnomalyAtUT(uT);
-			double meanDifference = meanAnomaly - currentMeanAnomaly;
-			if (o.eccentricity < 1)
-				meanDifference = JUtil.ClampRadiansTwoPi(meanDifference);
-			return uT + meanDifference / o.MeanMotion();
-		}
-
-		public static double MeanAnomalyAtUT(this Orbit o, double uT)
-		{
-			double ret = o.meanAnomalyAtEpoch + o.MeanMotion() * (uT - o.epoch);
-			if (o.eccentricity < 1)
-				ret = JUtil.ClampRadiansTwoPi(ret);
-			return ret;
-		}
-
-		public static double MeanMotion(this Orbit o)
-		{
-			return Math.Sqrt(o.referenceBody.gravParameter / Math.Abs(Math.Pow(o.semiMajorAxis, 3)));
-		}
-
-		public static double GetMeanAnomalyAtEccentricAnomaly(this Orbit o, double eE)
-		{
-			double e = o.eccentricity;
-			if (e < 1) { //elliptical orbits
-				return JUtil.ClampRadiansTwoPi(eE - (e * Math.Sin(eE)));
-			} //hyperbolic orbits
-			return (e * Math.Sinh(eE)) - eE;
-		}
-
-		public static Vector3d SwappedAbsolutePositionAtUT(this Orbit o, double UT)
-		{
-			return o.referenceBody.position + o.SwappedRelativePositionAtUT(UT);
-		}
-
-		public static Vector3d SwappedRelativePositionAtUT(this Orbit o, double UT)
-		{
-			return SwapYZ(o.getRelativePositionAtUT(UT));
-		}
-		//distance from the center of the planet
-		public static double Radius(this Orbit o, double UT)
-		{
-			return o.SwappedRelativePositionAtUT(UT).magnitude;
-		}
-
-		public static double GetEccentricAnomalyAtTrueAnomaly(this Orbit o, double trueAnomaly)
-		{
-			double e = o.eccentricity;
-			trueAnomaly = JUtil.ClampDegrees360(trueAnomaly);
-			trueAnomaly = trueAnomaly * (Math.PI / 180);
-
-			if (e < 1) { //elliptical orbits
-				double cosE = (e + Math.Cos(trueAnomaly)) / (1 + e * Math.Cos(trueAnomaly));
-				double sinE = Math.Sqrt(1 - (cosE * cosE));
-				if (trueAnomaly > Math.PI)
-					sinE *= -1;
-
-				return JUtil.ClampRadiansTwoPi(Math.Atan2(sinE, cosE));
-			} else {  //hyperbolic orbits
-				double coshE = (e + Math.Cos(trueAnomaly)) / (1 + e * Math.Cos(trueAnomaly));
-				if (coshE < 1)
-					throw new ArgumentException("OrbitExtensions.GetEccentricAnomalyAtTrueAnomaly: True anomaly of " + trueAnomaly + " radians is not attained by orbit with eccentricity " + o.eccentricity);
-
-				double E = JUtil.Acosh(coshE);
-				if (trueAnomaly > Math.PI)
-					E *= -1;
-
-				return E;
-			}
-		}
-	}
 	// This handy class is also from MechJeb.
 	//A simple wrapper around a Dictionary, with the only change being that
 	//accessing the value of a nonexistent key returns a default value instead of an error.

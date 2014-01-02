@@ -117,6 +117,7 @@ namespace JSI
 			{ "MONOPROP", "MonoPropellant" },
 			{ "RSINTAKEAIR", "IntakeAir" },
 			{ "XENON", "XenonGas" },
+			{ "SOLIDFUEL", "SolidFuel" },
 			// Mod resources...
 			{ "KETHANE", "Kethane" },
 			// Modular fuels.
@@ -1429,6 +1430,15 @@ namespace JSI
 					if (orbitSensibility)
 						return 1d;
 					return -1d;
+				case "TIMETOANEQUATORIAL":
+					if (orbitSensibility && vessel.orbit.AscendingNodeEquatorialExists())
+						return vessel.orbit.TimeOfAscendingNodeEquatorial(time) - time;
+					return double.NaN;
+				case "TIMETODNEQUATORIAL":
+					if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
+						return vessel.orbit.TimeOfDescendingNodeEquatorial(time) - time;
+					return double.NaN;
+
 
 			// Time
 				case "UTSECS":
@@ -1545,6 +1555,15 @@ namespace JSI
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return double.NaN;
 					return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
+				case "TARGETCLOSESTAPPROACHTIME":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return double.NaN;
+					return vessel.orbit.NextClosestApproachTime(targetOrbit, time) - time;
+				case "TARGETCLOSESTAPPROACHDISTANCE":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return double.NaN;
+					return vessel.orbit.NextClosestApproachDistance(targetOrbit, time);
+
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
@@ -1699,6 +1718,16 @@ namespace JSI
 					if (thatPort != null)
 						return 1d;
 					return 0d;
+				case "FLIGHTUIMODE":
+					switch (FlightUIModeController.Instance.Mode) {
+						case FlightUIMode.DOCKING:
+							return 1d;
+						case FlightUIMode.STAGING:
+							return -1d;
+						case FlightUIMode.ORBITAL:
+							return 0d;
+					}
+					return double.NaN;
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
@@ -1719,6 +1748,13 @@ namespace JSI
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
 					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
+				case "PODTEMPERATUREALARM":
+					double tempRatio = part.temperature / part.maxTemp;
+					if (tempRatio > 0.85d)
+						return 1d;
+					if (tempRatio > 0.75d)
+						return 0d;
+					return -1d;
 			// Well, it's not a compound but it's an alarm...
 				case "ENGINEOVERHEATALARM":
 					return anyEnginesOverheating.GetHashCode();

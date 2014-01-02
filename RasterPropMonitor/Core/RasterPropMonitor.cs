@@ -47,7 +47,7 @@ namespace JSI
 		public bool needsElectricCharge = true;
 		[KSPField]
 		public string defaultFontTint = string.Empty;
-		private Color defaultFontTintValue = Color.white;
+		public Color defaultFontTintValue = Color.white;
 		[KSPField]
 		public string noSignalTextureURL = string.Empty;
 		[KSPField]
@@ -369,16 +369,18 @@ namespace JSI
 			}
 
 			if (!string.IsNullOrEmpty(activePage.Text)) {
-				float yCursor = 0;
+				float yCursor = activePage.screenYMin * fontLetterHeight;
 				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 					if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
-						Color fontColor = defaultFontTintValue;
+						Color fontColor = activePage.defaultColor;
 						float xOffset = 0;
 						float yOffset = 0;
 						Script scriptType = Script.Normal;
 						Width fontWidth = Width.Normal;
 						fontTextureIndex = 0;
-						float xCursor = 0;
+						if (activePage.pageFont < fontTexture.Count)
+							fontTextureIndex = activePage.pageFont;
+						float xCursor = activePage.screenXMin * fontLetterWidth;
 						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++) {
 							bool escapedBracket = false;
 							// We will continue parsing bracket pairs until we're out of bracket pairs,
