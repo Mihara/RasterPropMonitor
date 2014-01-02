@@ -1555,6 +1555,15 @@ namespace JSI
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return double.NaN;
 					return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
+				case "TARGETCLOSESTAPPROACHTIME":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return double.NaN;
+					return vessel.orbit.NextClosestApproachTime(targetOrbit, time) - time;
+				case "TARGETCLOSESTAPPROACHDISTANCE":
+					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+						return double.NaN;
+					return vessel.orbit.NextClosestApproachDistance(targetOrbit, time);
+
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":
