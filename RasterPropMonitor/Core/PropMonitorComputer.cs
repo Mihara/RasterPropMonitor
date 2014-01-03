@@ -1067,6 +1067,8 @@ namespace JSI
 				}
 				altitudeBottom = (altitudeTrue - altitudeASL) + lowestPoint;
 			}
+			if (altitudeBottom < 0)
+				altitudeBottom = 0;
 		}
 		// According to C# specification, switch-case is compiled to a constant hash table.
 		// So this is actually more efficient than a dictionary, who'd have thought.
