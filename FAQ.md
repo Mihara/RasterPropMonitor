@@ -2,7 +2,7 @@
 
 ### Half the buttons don't work!
 
-Half the buttons are reserved for future expansion, which happens pretty rapidly. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
+Certain buttons are reserved for future expansion, which happens pretty rapidly -- there's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
 
 It's sort of an approximation of how actual MFDs work, though they actually typically use interfaces even less similar to what you might expect. 
 
