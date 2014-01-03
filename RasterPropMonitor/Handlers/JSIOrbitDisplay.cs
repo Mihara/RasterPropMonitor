@@ -15,6 +15,9 @@ namespace JSI
 		public string iconColorSelf = string.Empty;
 		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
+		public string orbitColorSelf = string.Empty;
+		private Color orbitColorSelfValue = MapView.PatchColors[0];
+		[KSPField]
 		public string iconColorTarget = string.Empty;
 		private Color iconColorTargetValue = new Color32(255, 235, 4, 153);
 		[KSPField]
@@ -22,10 +25,10 @@ namespace JSI
 		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
 		[KSPField]
 		public string iconColorAP = string.Empty;
-		private Color iconColorAPValue = new Color(0f, 1f, 0f, 0.5f);
+		private Color iconColorAPValue = MapView.PatchColors[0];
 		[KSPField]
 		public string iconColorPE = string.Empty;
-		private Color iconColorPEValue = new Color(1f, 0f, 0f, 0.5f);
+		private Color iconColorPEValue = MapView.PatchColors[0];
 
 		[KSPField]
 		public Vector4 orbitDisplayPosition = new Vector4(0f, 0f, 512f, 512f);
@@ -133,6 +136,37 @@ namespace JSI
 			*/
 		}
 
+		private static Vector2 GetPositionBasedOnTrueAnomaly(float semiMajorAxis, float eccentricity, float trueAnomaly)
+		{
+			float cosTheta = Mathf.Cos(trueAnomaly * Mathf.PI / 180.0f);
+			float sinTheta = Mathf.Sin(trueAnomaly * Mathf.PI / 180.0f);
+
+			float distance = semiMajorAxis * (eccentricity*eccentricity - 1.0f) / (1.0f + eccentricity*cosTheta);
+
+			return new Vector2(cosTheta * distance, sinTheta * distance);
+		}
+
+		private static void DrawPrimaryHyperbola(float centerX, float centerY, float semiMajorAxis, float eccentricity, int maxOrbitPoints)
+		{
+			// MOARdV: TODO: Figure out a good value for thetaBound
+			float thetaBound = 120.0f;
+			float dTheta = -thetaBound / (float)(maxOrbitPoints/2);
+
+			Vector2 position = GetPositionBasedOnTrueAnomaly(semiMajorAxis, eccentricity, thetaBound);
+			Vector3 lastVertex = new Vector3(position.x + centerX, position.y + centerY, 0.0f);
+
+			for (int i = 0; i < maxOrbitPoints; ++i) {
+				GL.Vertex(lastVertex);
+				thetaBound += dTheta;
+
+				position = GetPositionBasedOnTrueAnomaly(semiMajorAxis, eccentricity, thetaBound);
+				Vector3 newVertex = new Vector3(position.x + centerX, position.y + centerY, 0.0f);
+				GL.Vertex(newVertex);
+
+				lastVertex = newVertex;
+			}
+		}
+
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
 			if (!startupComplete) {
@@ -141,12 +175,9 @@ namespace JSI
 
 			GL.Clear(true, true, backgroundColorValue);
 			GL.PushMatrix();
-			GL.LoadPixelMatrix(-orbitDisplayPosition.z * 0.5f, orbitDisplayPosition.z * 0.5f, -orbitDisplayPosition.w * 0.5f, orbitDisplayPosition.w * 0.5f);
+			GL.LoadPixelMatrix(-orbitDisplayPosition.z * 0.5f, orbitDisplayPosition.z * 0.5f, orbitDisplayPosition.w * 0.5f, -orbitDisplayPosition.w * 0.5f);
 			GL.Viewport(new Rect(orbitDisplayPosition.x, screen.height - orbitDisplayPosition.y - orbitDisplayPosition.w, orbitDisplayPosition.z, orbitDisplayPosition.w));
-			//GL.Viewport(new Rect(orbitDisplayPosition.x, orbitDisplayPosition.y, orbitDisplayPosition.z, orbitDisplayPosition.w));
 
-			double pixelScalar;
-			double focus;
 			if (vessel.orbit.eccentricity < 1.0) {
 				// Convert orbital parameters to a format that's handy for drawing an ellipse:
 
@@ -155,26 +186,30 @@ namespace JSI
 				// Distance from the primary focus to the apoapsis point.
 				double distanceFA1 = vessel.orbit.ApR;
 				// Distance from the primary focus to the center of the ellipse
-				focus = (distanceFA1 - distanceFA) * 0.5;
+				double focus = (distanceFA1 - distanceFA) * 0.5;
 				double semiMajorAxis = vessel.orbit.semiMajorAxis;
 				double semiMinorAxis = vessel.orbit.semiMinorAxis;
 
 				// Figure out our scaling (pixels/meter)
 				double horizPixelSize = (orbitDisplayPosition.z - iconPixelSize) / (2.0 * semiMajorAxis);
 				double vertPixelSize = (orbitDisplayPosition.w - iconPixelSize) / (2.0 * semiMinorAxis);
-				pixelScalar = Math.Min(horizPixelSize, vertPixelSize);
+				double pixelScalar = Math.Min(horizPixelSize, vertPixelSize);
 
 				lineMaterial.SetPass(0);
 				GL.Begin(GL.LINES);
 
+				// Is this safe to use when orbiting the Sun?
+				GL.Color(vessel.mainBody.orbitDriver.orbitColor);
 				// Draw the planet
-				GL.Color(vessel.mainBody.orbitDriver.Renderer.orbitColor);
-				DrawCircle((float)(-focus * pixelScalar), 0.0f, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
+				DrawCircle((float)(focus * pixelScalar), 0.0f, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
 
 				// Draw the atmosphere
 				if (vessel.mainBody.atmosphere) {
-					GL.Color(vessel.mainBody.atmosphericAmbientColor);
-					DrawCircle((float)(-focus * pixelScalar), 0.0f, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
+					// Until we figure out a good color to use for the
+					// atmosphere, use 1/2 the value from the orbitColor.
+					GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f,vessel.mainBody.orbitDriver.orbitColor.g * 0.5f,vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
+
+					DrawCircle((float)(focus * pixelScalar), 0.0f, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
 				}
 
 				// Draw the orbit
@@ -184,21 +219,66 @@ namespace JSI
 				GL.End();
 
 				// Draw the orbital features:
-				DrawIcon((float)(-semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
-				DrawIcon((float)(semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorAPValue, OtherIcon.AP);
+				DrawIcon((float)(semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
+				DrawIcon((float)(-semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorAPValue, OtherIcon.AP);
 
 				// Where are we?
-				// MOARdV: Theta seems to be 180 degrees from where I expect
-				// it, so I am adding a half circle here.
+				// MOARdV: True anomaly seems to be 180 degrees from where I
+				// expect it, so I am adding a half circle here.
 				double cosTheta = Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0) + Math.PI);
 				double sinTheta = Math.Sin(vessel.orbit.trueAnomaly * (Math.PI / 180.0) + Math.PI);
 				double distFromFocus = vessel.orbit.semiLatusRectum / (1.0 - vessel.orbit.eccentricity * cosTheta);
 
-				DrawIcon((float)((-focus + cosTheta * distFromFocus) * pixelScalar), (float)(sinTheta * distFromFocus * pixelScalar), vessel.vesselType, iconColorSelfValue);
+				DrawIcon((float)((focus - cosTheta * distFromFocus) * pixelScalar), (float)(sinTheta * distFromFocus * pixelScalar), vessel.vesselType, iconColorSelfValue);
 			} else {
-				// MOARdV TODO: ecc >= 1.0 (parabola / hyperbola)
-				pixelScalar = 0.0;
-				focus = 0.0;
+				// MOARdV: For the time being:
+				// We assume the focus (planetary center of mass) is at the
+				// origin when the orbit is hyperbolic.  We furthermore
+				// assume that the vessel's position is the most distant
+				// point we need to render.
+				// semiMajorAxis is coming up negative for the hyperbola.
+				double semiMajorAxis = Math.Abs(vessel.orbit.semiMajorAxis);
+
+				double distanceFromFocus = semiMajorAxis * (vessel.orbit.eccentricity * vessel.orbit.eccentricity - 1.0) / (1.0 + vessel.orbit.eccentricity * Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0)));
+				double cosTheta = Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0));
+				// Flip the sign.  This seems to be inverted from where I want it.
+				double sinTheta = -Math.Sin(vessel.orbit.trueAnomaly * (Math.PI / 180.0));
+
+				// get the x/y displacement:
+				double xPos = cosTheta * distanceFromFocus;
+				double yPos = sinTheta * distanceFromFocus;
+				double horizPixelSize = (orbitDisplayPosition.z - iconPixelSize) / (2.0 * Math.Abs(xPos));
+				double vertPixelSize = (orbitDisplayPosition.w - iconPixelSize) / (2.0 * Math.Abs(yPos));
+				double pixelScalar = Math.Min(horizPixelSize, vertPixelSize);
+
+
+				Debug.Log(String.Format("Hyperbolic! semiMajorAxis = {0}; ship distance may be {1}; trueAnomaly {2}",
+					semiMajorAxis, distanceFromFocus, vessel.orbit.trueAnomaly * (Math.PI/180.0)));
+
+				lineMaterial.SetPass(0);
+				GL.Begin(GL.LINES);
+
+				// Is this safe to use when orbiting the Sun?
+				GL.Color(vessel.mainBody.orbitDriver.orbitColor);
+				// Draw the planet
+				DrawCircle(0.0f, 0.0f, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
+
+				// Draw the atmosphere
+				if (vessel.mainBody.atmosphere) {
+					// Until we figure out a good color to use for the
+					// atmosphere, use 1/2 the value from the orbitColor.
+					GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f, vessel.mainBody.orbitDriver.orbitColor.g * 0.5f, vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
+
+					DrawCircle(0.0f, 0.0f, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
+				}
+
+				GL.Color(iconColorSelfValue);
+				DrawPrimaryHyperbola(0.0f, 0.0f, (float)(semiMajorAxis * pixelScalar), (float)(vessel.orbit.eccentricity), orbitPoints);
+
+				GL.End();
+
+				DrawIcon((float)(vessel.orbit.PeR * pixelScalar), 0.0f, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
+				DrawIcon((float)(xPos * pixelScalar), (float)(yPos * pixelScalar), vessel.vesselType, iconColorSelfValue);
 			}
 
 			GL.PopMatrix();
@@ -232,6 +312,9 @@ namespace JSI
 			}
 			if (!string.IsNullOrEmpty(iconColorSelf)) {
 				iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
+			}
+			if (!string.IsNullOrEmpty(orbitColorSelf)) {
+				orbitColorSelfValue = ConfigNode.ParseColor32(orbitColorSelf);
 			}
 			if (!string.IsNullOrEmpty(iconColorTarget)) {
 				iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
