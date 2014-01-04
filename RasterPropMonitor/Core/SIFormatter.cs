@@ -108,9 +108,15 @@ namespace JSI
 			if (tokens[0].Length >= formatPrefixBAR.Length + 1)
 				filled = tokens[0][formatPrefixBAR.Length];
 			int outputLength = 0;
+			bool reverse = false;
 			try {
-				if (tokens.Length > 1)
+				if (tokens.Length > 1) {
 					outputLength = int.Parse(tokens[1]);
+					if (outputLength < 0) {
+						outputLength = Math.Abs(outputLength);
+						reverse = true;
+					}
+				}
 				if (tokens.Length > 2)
 					minimum = double.Parse(tokens[2]);
 				if (tokens.Length > 3)
@@ -123,7 +129,8 @@ namespace JSI
 			if (double.IsInfinity(value))
 				value = maximum;
 
-			return string.Empty.PadRight((int)JUtil.DualLerp(0, outputLength, minimum, maximum, value), filled).PadRight(outputLength, empty);
+			string filledPart = string.Empty.PadRight((int)JUtil.DualLerp(0, outputLength, minimum, maximum, value), filled);
+			return reverse ? filledPart.PadLeft(outputLength, empty) : filledPart.PadRight(outputLength, empty);
 		}
 		// KDT -- Kerbal Date/Time format.
 		// y - years
