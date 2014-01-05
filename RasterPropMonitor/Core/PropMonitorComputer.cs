@@ -71,7 +71,7 @@ namespace JSI
 		private double totalDataAmount;
 		private double secondsToImpact;
 		private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
-		private double localG;
+		private double localGeeASL, localGeeDirect;
 		private double standardAtmosphere;
 		private double slopeAngle;
 		private double atmPressure;
@@ -808,8 +808,9 @@ namespace JSI
 
 		private void FetchCommonData()
 		{
-			localG = vessel.orbit.referenceBody.GeeASL * gee;
+			localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
 			coM = vessel.findWorldCenterOfMass();
+			localGeeDirect = FlightGlobals.getGeeForceAtPosition(coM).magnitude;
 			up = (coM - vessel.mainBody.position).normalized;
 			forward = vessel.GetTransform().up;
 			right = vessel.GetTransform().right;
@@ -906,7 +907,7 @@ namespace JSI
 					// If we are warping, accelUp is always zero, so if we
 					// do not use this case, we would fall to the simple
 					// formula, which is wrong.
-					secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * localG * altitude)) / localG;
+					secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * localGeeASL * altitude)) / localGeeASL;
 				} else if (accelUp > 0.005) {
 					// This general case takes into account vessel acceleration,
 					// so estimates on craft that include parachutes or do
@@ -927,8 +928,8 @@ namespace JSI
 				if (double.IsNaN(bestPossibleSpeedAtImpact))
 					bestPossibleSpeedAtImpact = 0;
 				*/
-				bestPossibleSpeedAtImpact = SpeedAtImpact(totalMaximumThrust, totalShipWetMass, localG, speedVertical, altitude);
-				expectedSpeedAtImpact = SpeedAtImpact(totalCurrentThrust, totalShipWetMass, localG, speedVertical, altitude);
+				bestPossibleSpeedAtImpact = SpeedAtImpact(totalMaximumThrust, totalShipWetMass, localGeeASL, speedVertical, altitude);
+				expectedSpeedAtImpact = SpeedAtImpact(totalCurrentThrust, totalShipWetMass, localGeeASL, speedVertical, altitude);
 
 			} else {
 				secondsToImpact = Double.NaN;
@@ -1364,9 +1365,9 @@ namespace JSI
 				case "THRUSTMAX":
 					return totalMaximumThrust;
 				case "TWR":
-					return totalCurrentThrust / (totalShipWetMass * localG);
+					return totalCurrentThrust / (totalShipWetMass * localGeeASL);
 				case "TWRMAX":
-					return totalMaximumThrust / (totalShipWetMass * localG);
+					return totalMaximumThrust / (totalShipWetMass * localGeeASL);
 				case "ACCEL":
 					return totalCurrentThrust / totalShipWetMass;
 				case "MAXACCEL":
@@ -1377,6 +1378,10 @@ namespace JSI
 					return vessel.acceleration.magnitude;
 				case "REALISP":
 					return actualAverageIsp;
+				case "HOVERPOINT":
+					return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0d, 1d);
+				case "HOVERPOINTEXISTS":
+					return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1 ? -1d : 1d;
 
 			// Maneuvers
 				case "MNODETIMESECS":
