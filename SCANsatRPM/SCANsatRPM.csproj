@@ -36,12 +36,15 @@
     <Reference Include="System" />
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="SCANsat">
-      <HintPath>..\..\..\..\..\..\KSP v23 Test Installation\GameData\SCANsat\SCANsat.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\KSP\Testing\0.23\GameData\SCANsat\SCANsat.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
