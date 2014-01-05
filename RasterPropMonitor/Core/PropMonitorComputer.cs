@@ -1428,6 +1428,14 @@ namespace JSI
 							vessel.orbit.timeToPe : 
 							-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
 					return double.NaN;
+				case "TIMESINCELASTAP":
+					if (orbitSensibility)
+						return vessel.orbit.period - vessel.orbit.timeToAp;
+					return double.NaN;
+				case "TIMESINCELASTPE":
+					if (orbitSensibility)
+						return vessel.orbit.period - (vessel.orbit.eccentricity < 1 ? vessel.orbit.timeToPe : -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+					return double.NaN;
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return 1d;
