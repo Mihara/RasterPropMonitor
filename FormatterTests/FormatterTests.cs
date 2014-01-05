@@ -29,13 +29,15 @@ namespace FormatterTests
 			};
 
 			foreach (double value in bars) {
-				Console.WriteLine(string.Format(fp, "BAR,10,100,10000   :>{0:BAR,10,100,10000}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR,-10,100,10000  :>{0:BAR,-10,100,10000}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR~,10,100,10000  :>{0:BAR~,10,100,10000}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR ~,10,100,10000 :>{0:BAR ~,10,100,10000}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR= ,10,0,1       :>{0:BAR= ,10,0,1}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR= ,10           :>{0:BAR= ,10}<| {0}", value));
-				Console.WriteLine(string.Format(fp, "BAR,10             :>{0:BAR,10}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR,10,100,10000    :>{0:BAR,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR,-10,100,10000   :>{0:BAR,-10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= |,10,100,10000 :>{0:BAR= |,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= |,-10,100,10000:>{0:BAR= |,-10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR~,10,100,10000   :>{0:BAR~,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR ~,10,100,10000  :>{0:BAR ~,10,100,10000}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= ,10,0,1        :>{0:BAR= ,10,0,1}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR= ,10            :>{0:BAR= ,10}<| {0}", value));
+				Console.WriteLine(string.Format(fp, "BAR,10              :>{0:BAR,10}<| {0}", value));
 			}
 			Console.WriteLine("BAR tests done, press any key to start SIP tests");
 			Console.ReadKey();

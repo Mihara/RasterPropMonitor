@@ -96,17 +96,21 @@ namespace JSI
 		// BAR,10
 		private static string BARFormat(string format, double value)
 		{
-			char filled = '=';
-			char empty = ' ';
+			char fullChar = '=';
+			char emptyChar = ' ';
+			string trailerChar = string.Empty;
 			double maximum = 1;
 			double minimum = 0;
 			string[] tokens = format.Split(',');
 			if (tokens.Length < 2)
 				return value.ToString(format);
+			if (tokens[0].Length == formatPrefixBAR.Length + 3) {
+				trailerChar = new string(tokens[0][formatPrefixBAR.Length + 2], 1);
+			}
 			if (tokens[0].Length == formatPrefixBAR.Length + 2)
-				empty = tokens[0][formatPrefixBAR.Length + 1];
+				emptyChar = tokens[0][formatPrefixBAR.Length + 1];
 			if (tokens[0].Length >= formatPrefixBAR.Length + 1)
-				filled = tokens[0][formatPrefixBAR.Length];
+				fullChar = tokens[0][formatPrefixBAR.Length];
 			int outputLength = 0;
 			bool reverse = false;
 			try {
@@ -129,8 +133,21 @@ namespace JSI
 			if (double.IsInfinity(value))
 				value = maximum;
 
-			string filledPart = string.Empty.PadRight((int)JUtil.DualLerp(0, outputLength, minimum, maximum, value), filled);
-			return reverse ? filledPart.PadLeft(outputLength, empty) : filledPart.PadRight(outputLength, empty);
+			int filledLength = (int)JUtil.DualLerp(0, outputLength, minimum, maximum, value);
+			string filledPart = string.Empty;
+			if (!string.IsNullOrEmpty(trailerChar)) {
+				if (filledLength > 0) {
+					if (filledLength == 1) {
+						filledPart = trailerChar;
+					} else {
+						filledPart = string.Empty.PadRight(filledLength - 1, fullChar);
+						filledPart = reverse ? trailerChar + filledPart : filledPart + trailerChar;
+					}
+				}
+			} else {
+				filledPart = string.Empty.PadRight(filledLength, fullChar);
+			} 
+			return reverse ? filledPart.PadLeft(outputLength, emptyChar) : filledPart.PadRight(outputLength, emptyChar);
 		}
 		// KDT -- Kerbal Date/Time format.
 		// y - years
