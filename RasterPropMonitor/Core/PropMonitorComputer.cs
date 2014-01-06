@@ -779,12 +779,12 @@ namespace JSI
 			if (straightEngine != null) {
 				if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
 					return 0;
-				return straightEngine.maxThrust;
+				return straightEngine.maxThrust * (straightEngine.thrustPercentage / 100d);
 			}
 			if (flippyEngine != null) {
 				if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
 					return 0;
-				return flippyEngine.maxThrust;
+				return flippyEngine.maxThrust * (flippyEngine.thrustPercentage / 100d);
 			}
 			return 0;
 		}
@@ -1382,6 +1382,8 @@ namespace JSI
 					return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0d, 1d);
 				case "HOVERPOINTEXISTS":
 					return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1 ? -1d : 1d;
+				case "EFFECTIVETHROTTLE":
+					return totalCurrentThrust / totalMaximumThrust;
 
 			// Maneuvers
 				case "MNODETIMESECS":
