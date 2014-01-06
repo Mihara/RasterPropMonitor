@@ -143,7 +143,7 @@ namespace JSI
 			return targetDisp;
 		}
 
-		public void PageActive(bool state)
+		public void PageActive(bool state, int pageID)
 		{
 			if (cameraObject == null)
 				return;
