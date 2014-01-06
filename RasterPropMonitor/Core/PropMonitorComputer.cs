@@ -979,7 +979,7 @@ namespace JSI
 					var thatEngineModuleFX = pm as ModuleEnginesFX;
 					if (thatEngineModule != null || thatEngineModuleFX != null) {
 						// This part is an engine, so check if it's overheating here.
-						anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.7;
+						anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
 
 						totalCurrentThrust += GetCurrentThrust(pm);
 						totalMaximumThrust += GetMaximumThrust(pm);
