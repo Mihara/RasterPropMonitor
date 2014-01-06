@@ -34,6 +34,12 @@ RasterPropMonitor interfaces to other mods for certain functionality and if thos
 
 Majir [seems to have fixed it](https://github.com/Majiir/Kethane/commit/e97d806b63cad6921532a612974fd941c9f50209), but he isn't treating releasing the fixed version as a matter of urgency. Until he does, you can either install MechJeb and SCANsat or remove MechJebRPM.dll/SCANsatRPM.dll.
 
+### What are those ☊ and ☋ symbols?
+
+They are the traditional symbols for ascending node and descending node respectively. [See Wikipedia page](https://en.wikipedia.org/wiki/Orbital_node) which also nicely explains what those node things are. :)
+
+Basically, they're points in which you want to burn to change your orbit inclination optimally.
+
 ### Can your monitors show X?
 
 RasterPropMonitor is more of an IVA makers toolkit than a standalone product, I spend most of my time programming new things for the monitors to show, but barely have the energy left to arrange it for actual presentation. My own implementation is a few generations behind. Check the [list of variables](https://github.com/Mihara/RasterPropMonitor/wiki/Defined-variables) and the documentation on [page file syntax](https://github.com/Mihara/RasterPropMonitor/wiki/Writing-page-definition-files), it's quite possible what you want is already there, just isn't presented to the user in my own implementation yet. Customize your monitors and share the results -- if you make nice pages, I'll be happy to include them in the distribution.
