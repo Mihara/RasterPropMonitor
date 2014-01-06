@@ -59,6 +59,9 @@ namespace JSI
 		private readonly DefaultableDictionary<string,string> redirectPages = new DefaultableDictionary<string,string>(string.Empty);
 		private readonly DefaultableDictionary<int,int?> redirectGlobals = new DefaultableDictionary<int, int?>(null);
 
+		private readonly float cameraFlickerChance;
+		private readonly int cameraFlickerRange;
+
 		private struct HandlerSupportMethods
 		{
 			public Action <bool,int> activate;
@@ -216,6 +219,10 @@ namespace JSI
 					background = BackgroundType.Camera;
 					camera = node.GetValue("cameraTransform");
 					cameraFOV = defaultFOV;
+
+					cameraFlickerChance = node.GetFloat("flickerChance") ?? 0;
+					cameraFlickerRange = node.GetInt("flickerRange") ?? 0;
+
 					if (node.HasValue("fov")) {
 						float fov;
 						cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
@@ -363,6 +370,11 @@ namespace JSI
 				pageHandlerS.activate(state, pageNumber);
 			if (backgroundHandlerS.activate != null && backgroundHandlerS.activate != pageHandlerS.activate)
 				backgroundHandlerS.activate(state, pageNumber);
+			if (cameraFlickerChance > 0) {
+				cameraObject.SetFlicker(cameraFlickerChance, cameraFlickerRange);
+			} else {
+				cameraObject.SetFlicker(0,0);
+			}
 		}
 
 		public bool GlobalButtonClick(int buttonID)

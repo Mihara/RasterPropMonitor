@@ -82,6 +82,11 @@ namespace JSI
 		public bool showTargetIcon;
 		[KSPField]
 		public string homeCrosshairColor = "0,0,0,0";
+		// Flicker options to match standard cameras.
+		[KSPField]
+		public float flickerChance;
+		[KSPField]
+		public int flickerRange;
 		private Material homeCrosshairMaterial;
 		private FlyingCamera cameraObject;
 		private float currentFoV;
@@ -99,7 +104,6 @@ namespace JSI
 		{
 			return position / (Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y));
 		}
-
 		// Mihara: Why are they unused anyway?
 		// Analysis disable UnusedParameter
 		private Vector2 GetNormalizedScreenPosition(Vector3 directionVector, float yawOffset, float pitchOffset, float cameraAspect)
@@ -137,6 +141,16 @@ namespace JSI
 			targetDisp.y = targetDisp.y * 0.5f + 0.5f;
 
 			return targetDisp;
+		}
+
+		public void PageActive(bool state)
+		{
+			if (cameraObject == null)
+				return;
+			if (state)
+				cameraObject.SetFlicker(flickerChance, flickerRange);
+			else
+				cameraObject.SetFlicker(0, 0);
 		}
 
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)

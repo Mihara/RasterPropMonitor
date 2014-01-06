@@ -17,6 +17,9 @@ namespace JSI
 		private bool isReferenceCamera;
 		private const string referenceCamera = "CurrentReferenceDockingPortCamera";
 		private readonly Quaternion referencePointRotation = Quaternion.Euler(-90, 0, 0);
+		private float flickerChance;
+		private int flickerMaxTime;
+		private int flickerCounter;
 
 		public float FOV { get; set; }
 
@@ -26,6 +29,12 @@ namespace JSI
 			ourPart = thatPart;
 			screenTexture = screen;
 			cameraAspect = aspect;
+		}
+
+		public void SetFlicker(float flicker, int flickerTime) {
+			flickerChance = flicker;
+			flickerMaxTime = flickerTime;
+			flickerCounter = 0;
 		}
 
 		public void PointCamera(string newCameraName, float initialFOV)
@@ -176,6 +185,17 @@ namespace JSI
 
 			if (cameraPart == null || cameraPart.vessel != FlightGlobals.ActiveVessel || cameraTransform == null || cameraTransform.transform == null) {
 				CleanupCameraObjects();
+				return false;
+			}
+
+			// Randomized camera flicker.
+			if (flickerChance > 0 && flickerCounter == 0) {
+				if (flickerChance > UnityEngine.Random.Range(0f, 1000f)) {
+					flickerCounter = UnityEngine.Random.Range(1, flickerMaxTime);
+				}
+			}
+			if (flickerCounter > 0) {
+				flickerCounter--;
 				return false;
 			}
 
