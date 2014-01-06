@@ -36,7 +36,7 @@ Majir [seems to have fixed it](https://github.com/Majiir/Kethane/commit/e97d806b
 
 ### What are those ☊ and ☋ symbols?
 
-They are the traditional symbols for ascending node and descending node respectively. [See Wikipedia page](https://en.wikipedia.org/wiki/Orbital_node) which also nicely explains what those node things are. :)
+They are the traditional symbols for ascending node and descending node respectively. [See Wikipedia page](https://en.wikipedia.org/wiki/Orbital%20node) which also nicely explains what those node things are. :)
 
 Basically, they're points in which you want to burn to change your orbit inclination optimally.
 
@@ -62,6 +62,6 @@ I can import the whole chunk of code from MechJeb, though it is fairly big, but 
 
 You can't. String.Format is a (rather basic by itself) string layout language, but it is not a mathematical expression processor. Tags are a screen layout language, but they are not a mathematical expression processor either.
 
-While there have been calls for implementing one, that's one of the things I'm very wary of doing at all -- it's not particularly hard to do, but it's also all too easy to produce a [Turing Tarpit](https://en.wikipedia.org/wiki/Turing_tarpit), unwieldy to use and slowing the whole thing down, I've spent much of my life fighting these things and I don't want to create another one. If it's to be a programming language, I can at least make sure it will be a real one and make it suck in modules that will get locally compiled from a domain-specific [Boo](http://boo.codehaus.org/) variant or something to that effect. It will take a while for me to write that, though, but I'm pretty sure eventually I will.
+While there have been calls for implementing one, that's one of the things I'm very wary of doing at all -- it's not particularly hard to do, but it's also all too easy to produce a [Turing Tarpit](https://en.wikipedia.org/wiki/Turing%20tarpit), unwieldy to use and slowing the whole thing down, I've spent much of my life fighting these things and I don't want to create another one. If it's to be a programming language, I can at least make sure it will be a real one and make it suck in modules that will get locally compiled from a domain-specific [Boo](http://boo.codehaus.org/) variant or something to that effect. It will take a while for me to write that, though, but I'm pretty sure eventually I will.
 
 In the meantime, if you want a variable that is derived from existing variables, there's no problem at all just adding one -- give me a list of what you actually want. I'll readily add anything provided it doesn't require writing more than a page of code to do it, and I will seriously consider things that will so require.
