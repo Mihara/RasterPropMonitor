@@ -1455,7 +1455,34 @@ namespace JSI
 					if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
 						return vessel.orbit.TimeOfDescendingNodeEquatorial(time) - time;
 					return double.NaN;
-
+			// SOI changes in orbits.
+				case "ENCOUNTEREXISTS":
+					if (orbitSensibility) {
+						switch (vessel.orbit.patchEndTransition) {
+							case Orbit.PatchTransitionType.ESCAPE:
+								return -1d;
+							case Orbit.PatchTransitionType.ENCOUNTER:
+								return 1d;
+						}
+					}
+					return 0d;
+				case "ENCOUNTERTIME":
+					if (orbitSensibility &&
+					    (vessel.orbit.patchEndTransition == Orbit.PatchTransitionType.ENCOUNTER ||
+					    vessel.orbit.patchEndTransition == Orbit.PatchTransitionType.ESCAPE)) {
+						return vessel.orbit.UTsoi - time;
+					}
+					return double.NaN;
+				case "ENCOUNTERBODY":
+					if (orbitSensibility) {
+						switch (vessel.orbit.patchEndTransition) { 
+							case Orbit.PatchTransitionType.ENCOUNTER:
+								return vessel.orbit.nextPatch.referenceBody.bodyName;
+							case Orbit.PatchTransitionType.ESCAPE:
+								return vessel.mainBody.referenceBody.bodyName;
+						}
+					}
+					return string.Empty;
 
 			// Time
 				case "UTSECS":
