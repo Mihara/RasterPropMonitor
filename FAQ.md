@@ -16,9 +16,9 @@ To my knowledge it isn't, and I develop it on a machine that is well over five y
 
 I want your KSP_Data/output_log.txt and as precise a description of what you were doing as possible.
 
-### There's a conflict with Firespitter.dll
+### There's a conflict with B9 capsules / Firespitter.dll
 
-Update your Firespitter.dll from the [master Firespitter package](http://kerbalspaceport.com/firespitter-propeller-plane-parts/) and the problem will go away.
+There isn't. Update your Firespitter.dll from the [master Firespitter package](http://kerbalspaceport.com/firespitter-propeller-plane-parts/) and the problem will go away.
 
 ### How do I get the map to show? It says "No satellite connection"
 
@@ -38,11 +38,17 @@ Majir [seems to have fixed it](https://github.com/Majiir/Kethane/commit/e97d806b
 
 RasterPropMonitor is more of an IVA makers toolkit than a standalone product, I spend most of my time programming new things for the monitors to show, but barely have the energy left to arrange it for actual presentation. My own implementation is a few generations behind. Check the [list of variables](https://github.com/Mihara/RasterPropMonitor/wiki/Defined-variables) and the documentation on [page file syntax](https://github.com/Mihara/RasterPropMonitor/wiki/Writing-page-definition-files), it's quite possible what you want is already there, just isn't presented to the user in my own implementation yet. Customize your monitors and share the results -- if you make nice pages, I'll be happy to include them in the distribution.
 
+### Can I have an orbital map on the screen?
+
+It is unfortunately impossible to just display the stock map on screen as it is and be done with it, or you'd have one many versions ago. Right now, MOARdV is working on a vector-based representation of the orbital map [kind of like in some Orbiter mods](http://users.kymp.net/p501474a/Orbiter/sc2.gif), which will be released in version 0.13.
+
+Creating maneuver nodes on it will have to wait until we can figure out a way to make a menu-based maneuver node editor that doesn't suck.
+
 ### How do I show remaining delta V?
 
-You can't. There is a strong technical reason, because otherwise I've been implementing everything including a kitchen sink whenever I could, and plan to continue doing so.
+You can't. There is a strong technical reason, because otherwise I've been implementing everything including a kitchen sink whenever I could, and plan to continue doing so -- I'm still working on that sink.
 
-Calculating remaining dV is mathematically simple, but the actual problem is not so much calculating it, but determining the exact amount of fuel that your currently enabled engines have access to, depending on what counts as fuel this season. Paradoxically, even the stock resource tab has problems showing you resources remaining in the current stage. To show you dV per stage, MechJeb requires a separate module which does nothing but that, runs in a separate thread, and needs to be periodically polled until it can come up with results because otherwise it takes too long. Even MechJeb does not always get it right, although it comes up with better numbers than stock resource tab.
+Calculating remaining dV is mathematically simple, but the actual problem is not so much calculating it, but determining the exact amount of fuel that your currently enabled engines have access to, depending on what counts as fuel this season. Paradoxically, even the stock resource tab has problems showing you resources remaining in the current stage. To show you dV per stage, MechJeb requires a separate module which does nothing but that, runs in a separate thread, and needs to be periodically polled until it can come up with results because otherwise it takes too long. Even MechJeb does not always get it right, although it comes up with better numbers than stock resource tab. Kerbal Engineer regularly gets confused by this or that obscure staging configuration, as well, so the problem is much more complicated than you'd think.
 
 I can import the whole chunk of code from MechJeb, though it is fairly big, but then I would end up with a module that is essentially a black box to me which I do not understand particularly well and can't fix when it breaks -- eventually it will -- or I can ask MechJeb for the values if MechJeb is installed and give you a very, very rough figure if it isn't. This is what I plan to do in a future version.
 
