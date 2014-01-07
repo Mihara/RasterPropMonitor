@@ -69,7 +69,7 @@ namespace JSI
 			float dTheta = (float)(2.0 * Math.PI / (double)(numSegments));
 			float theta = 0.0f;
 
-			Vector3 lastVertex = new Vector3(centerX + radius, 0.0f, 0.0f);
+			Vector3 lastVertex = new Vector3(centerX + radius, centerY, 0.0f);
 			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex(lastVertex);
 				theta += dTheta;
@@ -82,87 +82,23 @@ namespace JSI
 				// number of vertices we shove at the GPU.
 				lastVertex = newVertex;
 			}
-			/* // Draw a bounding box for debugging:
-			GL.Vertex3(centerX - radius, centerY - radius, 0.0f);
-			GL.Vertex3(centerX + radius, centerY - radius, 0.0f);
-			GL.Vertex3(centerX + radius, centerY - radius, 0.0f);
-			GL.Vertex3(centerX + radius, centerY + radius, 0.0f);
-			GL.Vertex3(centerX + radius, centerY + radius, 0.0f);
-			GL.Vertex3(centerX - radius, centerY + radius, 0.0f);
-			GL.Vertex3(centerX - radius, centerY + radius, 0.0f);
-			GL.Vertex3(centerX - radius, centerY - radius, 0.0f);
-			*/
 		}
 
-		// This draws the primary orbit ellipse, which is always centered
-		// at the origin (for computational simplicity)
-		private static void DrawPrimaryOrbitEllipse(float semiMajorAxis, float semiMinorAxis, int maxOrbitPoints)
+		private static void DrawOrbit(Orbit o, double startUT, double endUT, Matrix4x4 screenTransform, int numSegments)
 		{
-			// TODO: figure out the circumference of an ellipse so I can
-			// make an appropriate tessellation level.
-			// Circumference based on Ramanujan's approximation, per
-			// Wikipedia.
-			float circumferenceInPixels = Mathf.PI * (3.0f*(semiMinorAxis+semiMajorAxis) - Mathf.Sqrt(10.0f * semiMajorAxis * semiMinorAxis + 3.0f* (semiMinorAxis*semiMinorAxis + semiMajorAxis*semiMajorAxis)));
-			int idealOrbitPoints = Math.Max(1, (int)(circumferenceInPixels / 2.0f));
-			int numSegments = Math.Min(maxOrbitPoints, idealOrbitPoints);
+			float dT = (float)(endUT-startUT) / (float)numSegments;
+			float t = (float)startUT;
 
-			float dTheta = (float)(2.0 * Math.PI / (double)(numSegments));
-			float theta = 0.0f;
-
-			Vector3 lastVertex = new Vector3(semiMajorAxis, 0.0f, 0.0f);
-			for (int i = 0; i < numSegments; ++i)
-			{
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
+			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex(lastVertex);
-				theta += dTheta;
 
-				float cosTheta = Mathf.Cos(theta);
-				float sinTheta = Mathf.Sin(theta);
-				Vector3 newVertex = new Vector3(cosTheta * semiMajorAxis, sinTheta * semiMinorAxis, 0.0f);
+				t += dT;
+
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
 				GL.Vertex(newVertex);
 				// Pity LINE_STRIP isn't supported.  We have to double the
 				// number of vertices we shove at the GPU.
-				lastVertex = newVertex;
-			}
-
-			/* // Draw a bounding box for debugging:
-			GL.Vertex3(-semiMajorAxis, -semiMinorAxis, 0.0f);
-			GL.Vertex3(semiMajorAxis, -semiMinorAxis, 0.0f);
-			GL.Vertex3(semiMajorAxis, -semiMinorAxis, 0.0f);
-			GL.Vertex3(semiMajorAxis, semiMinorAxis, 0.0f);
-			GL.Vertex3(semiMajorAxis, semiMinorAxis, 0.0f);
-			GL.Vertex3(-semiMajorAxis, semiMinorAxis, 0.0f);
-			GL.Vertex3(-semiMajorAxis, semiMinorAxis, 0.0f);
-			GL.Vertex3(-semiMajorAxis, -semiMinorAxis, 0.0f);
-			*/
-		}
-
-		private static Vector2 GetPositionBasedOnTrueAnomaly(float semiMajorAxis, float eccentricity, float trueAnomaly)
-		{
-			float cosTheta = Mathf.Cos(trueAnomaly * Mathf.PI / 180.0f);
-			float sinTheta = Mathf.Sin(trueAnomaly * Mathf.PI / 180.0f);
-
-			float distance = semiMajorAxis * (eccentricity*eccentricity - 1.0f) / (1.0f + eccentricity*cosTheta);
-
-			return new Vector2(cosTheta * distance, sinTheta * distance);
-		}
-
-		private static void DrawPrimaryHyperbola(float centerX, float centerY, float semiMajorAxis, float eccentricity, int maxOrbitPoints)
-		{
-			// MOARdV: TODO: Figure out a good value for thetaBound
-			float thetaBound = 120.0f;
-			float dTheta = -thetaBound / (float)(maxOrbitPoints/2);
-
-			Vector2 position = GetPositionBasedOnTrueAnomaly(semiMajorAxis, eccentricity, thetaBound);
-			Vector3 lastVertex = new Vector3(position.x + centerX, position.y + centerY, 0.0f);
-
-			for (int i = 0; i < maxOrbitPoints; ++i) {
-				GL.Vertex(lastVertex);
-				thetaBound += dTheta;
-
-				position = GetPositionBasedOnTrueAnomaly(semiMajorAxis, eccentricity, thetaBound);
-				Vector3 newVertex = new Vector3(position.x + centerX, position.y + centerY, 0.0f);
-				GL.Vertex(newVertex);
-
 				lastVertex = newVertex;
 			}
 		}
@@ -173,113 +109,227 @@ namespace JSI
 				JUtil.AnnoyUser(this);
 			}
 
+			// Make sure the parameters fit on the screen.
+			Vector4 displayPosition = orbitDisplayPosition;
+			displayPosition.z = Mathf.Min(screen.width - displayPosition.x, displayPosition.z);
+			displayPosition.w = Mathf.Min(screen.height - displayPosition.y, displayPosition.w);
+
+			// Here is our pixel budget in each direction:
+			double horizPixelSize = displayPosition.z - iconPixelSize;
+			double vertPixelSize = displayPosition.w - iconPixelSize;
+
+			// Find a basis for transforming values into the framework of
+			// vessel.orbit.  The rendering framework assumes the periapsis
+			// is drawn directly to the right of the mainBody center of mass.
+			// It assumes the orbit's prograde direction is "up" (screen
+			// relative) at the periapsis, providing a counter-clockwise
+			// motion for vessel.
+			// Once we have the basic transform, we will add in scalars
+			// that will ultimately transform an arbitrary point (relative to
+			// the planet's center) into screen space.
+			Matrix4x4 screenTransform = Matrix4x4.identity;
+			double now = Planetarium.GetUniversalTime();
+			double timeAtPe = vessel.orbit.NextPeriapsisTime(now);
+
+			// Get the 3 direction vectors, based on Pe being on the right of the screen
+			// OrbitExtensions provides handy utilities to get these.
+			Vector3d right = vessel.orbit.Up(timeAtPe);
+			Vector3d forward = vessel.orbit.SwappedOrbitNormal();
+			// MOARdV: OrbitExtensions.Horizontal is unstable.  I've seen it
+			// become (0, 0, 0) intermittently in flight.  Instead, use the
+			// cross product of the other two.
+			// We flip the sign of this vector because we are using an inverted
+			// y coordinate system to keep the icons right-side up.
+			Vector3d up = -Vector3d.Cross(forward, right);
+			//Vector3d up = -vessel.orbit.Horizontal(timeAtPe);
+
+			screenTransform.SetRow(0, new Vector4d(right.x, right.y, right.z, 0.0));
+			screenTransform.SetRow(1, new Vector4d(up.x, up.y, up.z, 0.0));
+			screenTransform.SetRow(2, new Vector4d(forward.x, forward.y, forward.z, 0.0));
+
+			// Figure out our bounds.  First, make sure the entire planet
+			// fits on the screen.
+			double maxX = vessel.mainBody.Radius;
+			double minX = -maxX;
+			double maxY = maxX;
+			double minY = -maxX;
+
+			if (vessel.mainBody.atmosphere) {
+				maxX += vessel.mainBody.maxAtmosphereAltitude;
+				minX = -maxX;
+				maxY = maxX;
+				minY = -maxX;
+			}
+
+			// Now make sure the entire orbit fits on the screen.
+			// The PeR, ApR, and semiMinorAxis are all one dimensional, so we
+			// can just apply them directly to these values.
+			maxX = Math.Max(maxX, vessel.orbit.PeR);
+			if (vessel.orbit.eccentricity < 1.0) {
+				minX = Math.Min(minX, -vessel.orbit.ApR);
+
+				maxY = Math.Max(maxY, vessel.orbit.semiMinorAxis);
+				minY = Math.Min(minY, -vessel.orbit.semiMinorAxis);
+			}
+
+			// Make sure the vessel shows up on-screen.  Since a hyperbolic
+			// orbit doesn't have a meaningful ApR, we use this as a proxy for
+			// how far we need to extend the bounds to show the vessel.
+			Vector3 vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(now));
+			maxX = Math.Max(maxX, vesselPos.x);
+			minX = Math.Min(minX, vesselPos.x);
+			maxY = Math.Max(maxY, vesselPos.y);
+			minY = Math.Min(minY, vesselPos.y);
+
+			// Account for a target vessel
+			Vessel targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
+			if (targetVessel != null) {
+
+				if (targetVessel.mainBody == vessel.mainBody) {
+					double tgtPe = targetVessel.orbit.NextPeriapsisTime(now);
+
+					vesselPos = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(tgtPe));
+					maxX = Math.Max(maxX, vesselPos.x);
+					minX = Math.Min(minX, vesselPos.x);
+					maxY = Math.Max(maxY, vesselPos.y);
+					minY = Math.Min(minY, vesselPos.y);
+
+					if (targetVessel.orbit.eccentricity < 1.0) {
+						vesselPos = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextApoapsisTime(now)));
+						maxX = Math.Max(maxX, vesselPos.x);
+						minX = Math.Min(minX, vesselPos.x);
+						maxY = Math.Max(maxY, vesselPos.y);
+						minY = Math.Min(minY, vesselPos.y);
+					}
+
+					vesselPos = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(now));
+					maxX = Math.Max(maxX, vesselPos.x);
+					minX = Math.Min(minX, vesselPos.x);
+					maxY = Math.Max(maxY, vesselPos.y);
+					minY = Math.Min(minY, vesselPos.y);
+				} else {
+					// We only care about tgtVessel if it is in the same SoI.
+					targetVessel = null;
+				}
+			}
+
+			// Add translation.  This will ensure that all of the features
+			// under consideration above will be displayed.
+			screenTransform[0, 3] = -0.5f * (float)(maxX + minX);
+			screenTransform[1, 3] = -0.5f * (float)(maxY + minY);
+
+			double neededWidth = maxX - minX;
+			double neededHeight = maxY - minY;
+
+			// Pick a scalar that will fit the bounding box we just created.
+			float pixelScalar = (float)Math.Min(horizPixelSize / neededWidth, vertPixelSize / neededHeight);
+			screenTransform = Matrix4x4.Scale(new Vector3(pixelScalar, pixelScalar, pixelScalar)) * screenTransform;
+
 			GL.Clear(true, true, backgroundColorValue);
 			GL.PushMatrix();
-			GL.LoadPixelMatrix(-orbitDisplayPosition.z * 0.5f, orbitDisplayPosition.z * 0.5f, orbitDisplayPosition.w * 0.5f, -orbitDisplayPosition.w * 0.5f);
-			GL.Viewport(new Rect(orbitDisplayPosition.x, screen.height - orbitDisplayPosition.y - orbitDisplayPosition.w, orbitDisplayPosition.z, orbitDisplayPosition.w));
+			GL.LoadPixelMatrix(-displayPosition.z * 0.5f, displayPosition.z * 0.5f, displayPosition.w * 0.5f, -displayPosition.w * 0.5f);
+			GL.Viewport(new Rect(displayPosition.x, screen.height - displayPosition.y - displayPosition.w, displayPosition.z, displayPosition.w));
+
+			lineMaterial.SetPass(0);
+			GL.Begin(GL.LINES);
+
+			// Draw the planet:
+			Vector3 focusCenter = screenTransform.MultiplyPoint3x4(new Vector3(0.0f, 0.0f, 0.0f));
+
+			// MOARdV TODO: for the sun, vessel.mainBody.orbitDriver is null.
+			// What color do we use to represent the sun?
+			GL.Color((vessel.mainBody.orbitDriver == null) ? new Color(1.0f, 1.0f, 1.0f) : vessel.mainBody.orbitDriver.orbitColor);
+			DrawCircle(focusCenter.x, focusCenter.y, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
+			if (vessel.mainBody.atmosphere) {
+				// Use the atmospheric ambient.  Need to see how this looks
+				// on Eve, Duna, Laythe, and Jool.
+				GL.Color(vessel.mainBody.atmosphericAmbientColor);
+				//GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f, vessel.mainBody.orbitDriver.orbitColor.g * 0.5f, vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
+
+				DrawCircle(focusCenter.x, focusCenter.y, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
+			}
+
+			double orbitStart, orbitEnd;
+			if (targetVessel) {
+				double tgtPe = targetVessel.orbit.NextPeriapsisTime(now);
+				if (targetVessel.orbit.eccentricity < 1.0) {
+					orbitStart = tgtPe;
+					orbitEnd = tgtPe + targetVessel.orbit.period;
+				}
+				else {
+					orbitStart = Math.Min(now, tgtPe);
+					orbitEnd = Math.Max(now, targetVessel.orbit.EndUT);
+				}
+
+				// MOARdV TODO: This seems to be drawing an incomplete
+				// orbit, even though it appears to work as expected for the
+				// vessel orbit below.
+				GL.Color(iconColorTargetValue);
+				DrawOrbit(targetVessel.orbit, orbitStart, orbitEnd, screenTransform, orbitPoints);
+			}
 
 			if (vessel.orbit.eccentricity < 1.0) {
-				// Convert orbital parameters to a format that's handy for drawing an ellipse:
-
-				// Distance from the primary focus (mainBody's CoM) to the periapsis point.
-				double distanceFA = vessel.orbit.PeR;
-				// Distance from the primary focus to the apoapsis point.
-				double distanceFA1 = vessel.orbit.ApR;
-				// Distance from the primary focus to the center of the ellipse
-				double focus = (distanceFA1 - distanceFA) * 0.5;
-				double semiMajorAxis = vessel.orbit.semiMajorAxis;
-				double semiMinorAxis = vessel.orbit.semiMinorAxis;
-
-				// Figure out our scaling (pixels/meter)
-				double horizPixelSize = (orbitDisplayPosition.z - iconPixelSize) / (2.0 * semiMajorAxis);
-				double vertPixelSize = (orbitDisplayPosition.w - iconPixelSize) / (2.0 * semiMinorAxis);
-				double pixelScalar = Math.Min(horizPixelSize, vertPixelSize);
-
-				lineMaterial.SetPass(0);
-				GL.Begin(GL.LINES);
-
-				// Is this safe to use when orbiting the Sun?
-				GL.Color(vessel.mainBody.orbitDriver.orbitColor);
-				// Draw the planet
-				DrawCircle((float)(focus * pixelScalar), 0.0f, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
-
-				// Draw the atmosphere
-				if (vessel.mainBody.atmosphere) {
-					// Until we figure out a good color to use for the
-					// atmosphere, use 1/2 the value from the orbitColor.
-					GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f,vessel.mainBody.orbitDriver.orbitColor.g * 0.5f,vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
-
-					DrawCircle((float)(focus * pixelScalar), 0.0f, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
-				}
-
-				// Draw the orbit
-				GL.Color(iconColorSelfValue);
-				DrawPrimaryOrbitEllipse((float)(semiMajorAxis * pixelScalar), (float)(semiMinorAxis * pixelScalar), orbitPoints);
-
-				GL.End();
-
-				// Draw the orbital features:
-				DrawIcon((float)(semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
-				DrawIcon((float)(-semiMajorAxis * pixelScalar), 0.0f, VesselType.Unknown, iconColorAPValue, OtherIcon.AP);
-
-				// Where are we?
-				// MOARdV: True anomaly seems to be 180 degrees from where I
-				// expect it, so I am adding a half circle here.
-				double cosTheta = Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0) + Math.PI);
-				double sinTheta = Math.Sin(vessel.orbit.trueAnomaly * (Math.PI / 180.0) + Math.PI);
-				double distFromFocus = vessel.orbit.semiLatusRectum / (1.0 - vessel.orbit.eccentricity * cosTheta);
-
-				DrawIcon((float)((focus - cosTheta * distFromFocus) * pixelScalar), (float)(sinTheta * distFromFocus * pixelScalar), vessel.vesselType, iconColorSelfValue);
+				orbitStart = timeAtPe;
+				orbitEnd = timeAtPe + vessel.orbit.period;
 			} else {
-				// MOARdV: For the time being:
-				// We assume the focus (planetary center of mass) is at the
-				// origin when the orbit is hyperbolic.  We furthermore
-				// assume that the vessel's position is the most distant
-				// point we need to render.
-				// semiMajorAxis is coming up negative for the hyperbola.
-				double semiMajorAxis = Math.Abs(vessel.orbit.semiMajorAxis);
+				// MOARdV TODO: Is this sufficient?  We can query maximum
+				// true anomaly, which is the asymptote of the hyperbola.  But,
+				// if we pick a true anomaly near that value, most of the
+				// line segments will be off-screen, unless we're near the
+				// asymptote ourself.  This seems to work okay.
+				orbitStart = Math.Min(now, timeAtPe);
+				orbitEnd = Math.Max(now, vessel.orbit.EndUT);
+			}
 
-				double distanceFromFocus = semiMajorAxis * (vessel.orbit.eccentricity * vessel.orbit.eccentricity - 1.0) / (1.0 + vessel.orbit.eccentricity * Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0)));
-				double cosTheta = Math.Cos(vessel.orbit.trueAnomaly * (Math.PI / 180.0));
-				// Flip the sign.  This seems to be inverted from where I want it.
-				double sinTheta = -Math.Sin(vessel.orbit.trueAnomaly * (Math.PI / 180.0));
+			// Draw the vessel orbit
+			GL.Color(orbitColorSelfValue);
+			DrawOrbit(vessel.orbit, orbitStart, orbitEnd, screenTransform, orbitPoints);
 
-				// get the x/y displacement:
-				double xPos = cosTheta * distanceFromFocus;
-				double yPos = sinTheta * distanceFromFocus;
-				double horizPixelSize = (orbitDisplayPosition.z - iconPixelSize) / (2.0 * Math.Abs(xPos));
-				double vertPixelSize = (orbitDisplayPosition.w - iconPixelSize) / (2.0 * Math.Abs(yPos));
-				double pixelScalar = Math.Min(horizPixelSize, vertPixelSize);
+			// Done drawing lines.
+			GL.End();
 
+			// Draw target vessel icons.
+			Vector3 transformedPosition;
+			if (targetVessel) {
+				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(now)));
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.PE);
 
-				Debug.Log(String.Format("Hyperbolic! semiMajorAxis = {0}; ship distance may be {1}; trueAnomaly {2}",
-					semiMajorAxis, distanceFromFocus, vessel.orbit.trueAnomaly * (Math.PI/180.0)));
-
-				lineMaterial.SetPass(0);
-				GL.Begin(GL.LINES);
-
-				// Is this safe to use when orbiting the Sun?
-				GL.Color(vessel.mainBody.orbitDriver.orbitColor);
-				// Draw the planet
-				DrawCircle(0.0f, 0.0f, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
-
-				// Draw the atmosphere
-				if (vessel.mainBody.atmosphere) {
-					// Until we figure out a good color to use for the
-					// atmosphere, use 1/2 the value from the orbitColor.
-					GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f, vessel.mainBody.orbitDriver.orbitColor.g * 0.5f, vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
-
-					DrawCircle(0.0f, 0.0f, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
+				if (targetVessel.orbit.eccentricity < 1.0) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextApoapsisTime(now)));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.AP);
 				}
 
-				GL.Color(iconColorSelfValue);
-				DrawPrimaryHyperbola(0.0f, 0.0f, (float)(semiMajorAxis * pixelScalar), (float)(vessel.orbit.eccentricity), orbitPoints);
-
-				GL.End();
-
-				DrawIcon((float)(vessel.orbit.PeR * pixelScalar), 0.0f, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
-				DrawIcon((float)(xPos * pixelScalar), (float)(yPos * pixelScalar), vessel.vesselType, iconColorSelfValue);
+				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(now));
+				DrawIcon(transformedPosition.x, transformedPosition.y, targetVessel.vesselType, iconColorTargetValue);
 			}
+
+			// Draw orbital features
+			// MOARdV TODO: Reminder of the missing icons:
+			//  AN/DN equatorial if targetVessel == null
+			//  AN/DN if targetVessel != null
+			//  NODE icon
+			//  NODE orbit (up above, after target vessel orbit & before vessel orbit).
+			/*
+			 *	public static bool AscendingNodeExists(this Orbit a, Orbit b)
+
+			 * public static bool DescendingNodeExists(this Orbit a, Orbit b)
+
+			 * public static bool AscendingNodeEquatorialExists(this Orbit o)
+
+			 * public static bool DescendingNodeEquatorialExists(this Orbit o)
+			 */
+
+			transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(timeAtPe));
+			DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
+
+			if (vessel.orbit.eccentricity < 1.0) {
+				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.NextApoapsisTime(now)));
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorAPValue, OtherIcon.AP);
+			}
+
+			// Draw ownship icon
+			transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(now));
+			DrawIcon(transformedPosition.x, transformedPosition.y, vessel.vesselType, iconColorSelfValue);
 
 			GL.PopMatrix();
 			GL.Viewport(new Rect(0, 0, screen.width, screen.height));
