@@ -29,6 +29,8 @@ namespace JSI
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			textObjTransform = internalProp.FindModelTransform(transformName);
 			textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
+			// Force oneshot if there's no variables:
+			oneshot |= !labelText.Contains("$&$");
 			sourceString = labelText.UnMangleConfigText();
 		}
 
