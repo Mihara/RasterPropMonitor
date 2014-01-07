@@ -10,7 +10,8 @@ namespace JSI
 		// We still need a numeric ID cause it makes persistence easier.
 		public readonly int pageNumber;
 		public readonly string name = string.Empty;
-		public readonly bool Unlocker;
+
+		public readonly bool unlocker;
 		private readonly string text;
 
 		public string Text {
@@ -32,7 +33,7 @@ namespace JSI
 		};
 		public readonly int screenXMin, screenYMin;
 		public readonly int pageFont = 0;
-		public readonly Texture2D overlayTexture, interlayTexture;
+		private readonly Texture2D overlayTexture, interlayTexture;
 
 		public readonly Color defaultColor;
 
@@ -129,7 +130,7 @@ namespace JSI
 				}
 			}
 
-			Unlocker |= node.HasValue("unlockerPage");
+			unlocker |= node.HasValue("unlockerPage");
 
 			if (node.HasValue("localMargins")) {
 				Vector4 margindata = ConfigNode.ParseVector4(node.GetValue("localMargins"));
@@ -432,22 +433,33 @@ namespace JSI
 				case BackgroundType.Camera:
 					if (!cameraObject.Render()) {
 						if (ourMonitor.noSignalTexture != null)
-							Graphics.Blit(ourMonitor.noSignalTexture, screen);
+							Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
 						else
 							GL.Clear(true, true, ourMonitor.emptyColorValue);
 					}
 					break;
 				case BackgroundType.Texture:
-					Graphics.Blit(backgroundTexture, screen);
+					GL.Clear(true, true, ourMonitor.emptyColorValue);
+					Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
 					break;
 				case BackgroundType.Handler:
 					if (!backgroundHandler(screen, cameraAspect)) {
 						if (ourMonitor.noSignalTexture != null && showNoSignal)
-							Graphics.Blit(ourMonitor.noSignalTexture, screen);
+							Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
 						else
 							GL.Clear(true, true, ourMonitor.emptyColorValue);
 					}
 					break;
+			}
+			// If the handlers aren't missing their popmatrix, it should be alright.
+			if (interlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), interlayTexture);
+			}
+		}
+
+		public void RenderOverlay(RenderTexture screen) {
+			if (overlayTexture != null) {
+				Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), overlayTexture);
 			}
 		}
 	}

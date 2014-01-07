@@ -278,7 +278,7 @@ namespace JSI
 				return;
 			// Apply page redirect like this:
 			triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
-			if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.Unlocker)) {
+			if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker)) {
 				activePage.Active(false);
 				activePage = triggeredPage;
 				activePage.Active(true);
@@ -354,19 +354,13 @@ namespace JSI
 				return;
 			}
 
-			// Actual rendering of the background is delegated to the page object.
-			activePage.RenderBackground(screenTexture);
-
 			// This is the important witchcraft. Without that, DrawTexture does not print where we expect it to.
 			// Cameras don't care because they have their own matrices, but DrawTexture does.
 			GL.PushMatrix();
 			GL.LoadPixelMatrix(0, screenPixelWidth, screenPixelHeight, 0);
 
-			// Interlay texture is drawn here because I don't want to have another pushmatrix/popmatrix cycle unnecessarily --
-			// no idea how much of an overhead that operation really is -- and Graphics.Blit will overwrite the background.
-			if (activePage.interlayTexture != null) {
-				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.interlayTexture);
-			}
+			// Actual rendering of the background is delegated to the page object.
+			activePage.RenderBackground(screenTexture);
 
 			if (!string.IsNullOrEmpty(activePage.Text)) {
 				float yCursor = activePage.screenYMin * fontLetterHeight;
@@ -477,10 +471,7 @@ namespace JSI
 				}
 			}
 
-			if (activePage.overlayTexture != null) {
-				Graphics.DrawTexture(new Rect(0, 0, screenPixelWidth, screenPixelHeight), activePage.overlayTexture);
-			}
-
+			activePage.RenderOverlay(screenTexture);
 			GL.PopMatrix();
 
 			RenderTexture.active = backupRenderTexture;
