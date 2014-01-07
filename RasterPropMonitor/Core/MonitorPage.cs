@@ -96,7 +96,7 @@ namespace JSI
 			screenWidth = ourMonitor.screenWidth;
 			screenHeight = ourMonitor.screenHeight;
 			cameraAspect = ourMonitor.cameraAspect;
-			cameraObject = thatMonitor.CameraStructure;
+			cameraObject = thatMonitor.cameraStructure;
 			defaultColor = ourMonitor.defaultFontTintValue;
 			screenXMin = 0;
 			screenYMin = 0;

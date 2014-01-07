@@ -53,7 +53,7 @@ namespace JSI
 		[KSPField]
 		public string fontDefinition = string.Empty;
 		// This needs to be public so that pages can point it.
-		public FlyingCamera CameraStructure;
+		public FlyingCamera cameraStructure;
 		// Internal stuff.
 		private readonly List<Texture2D> fontTexture = new List<Texture2D>();
 		private RenderTexture screenTexture;
@@ -171,7 +171,7 @@ namespace JSI
 			}
 
 			// Create camera instance...
-			CameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
+			cameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
 
 			// The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
 			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
