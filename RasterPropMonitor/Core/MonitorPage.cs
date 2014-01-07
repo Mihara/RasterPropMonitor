@@ -440,7 +440,7 @@ namespace JSI
 					break;
 				case BackgroundType.Texture:
 					GL.Clear(true, true, ourMonitor.emptyColorValue);
-					Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+					Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
 					break;
 				case BackgroundType.Handler:
 					if (!backgroundHandler(screen, cameraAspect)) {
