@@ -309,8 +309,8 @@ namespace JSI
 				);
 			} else {
 				if (!characterWarnings[letter]) {
-					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" not present in the font.",
-						letter.ToString());
+					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" (u{1}) not present in the font.",
+						letter.ToString(),letter);
 					characterWarnings[letter] = true;
 				}
 			}
