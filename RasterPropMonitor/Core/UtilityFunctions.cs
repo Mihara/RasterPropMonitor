@@ -9,9 +9,9 @@ namespace JSI
 {
 	public static class JUtil
 	{
-		public static readonly string[] variableListSeparator = { "$&$" };
-		public static readonly string[] variableSeparator = { };
-		public static readonly string[] lineSeparator = { Environment.NewLine };
+		public static readonly string[] VariableListSeparator = { "$&$" };
+		public static readonly string[] VariableSeparator = { };
+		public static readonly string[] LineSeparator = { Environment.NewLine };
 
 		public static void MakeReferencePart(this Part thatPart)
 		{

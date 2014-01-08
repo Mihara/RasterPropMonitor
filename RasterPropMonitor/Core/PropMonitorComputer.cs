@@ -268,7 +268,7 @@ namespace JSI
 			if (state != StartState.Editor) {
 				// Parse vessel description here for special lines:
 					
-				string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.lineSeparator, StringSplitOptions.None);
+				string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
 				for (int i = 0; i < descriptionStrings.Length; i++) {
 					if (descriptionStrings[i].StartsWith("AG", StringComparison.Ordinal) && descriptionStrings[i][3] == '=') {
 						uint groupID;

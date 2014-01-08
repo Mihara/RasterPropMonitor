@@ -480,7 +480,7 @@ namespace JSI
 		private void FillScreenBuffer()
 		{
 			screenBuffer = new string[screenHeight];
-			string[] linesArray = activePage.Text.Split(JUtil.lineSeparator, StringSplitOptions.None);
+			string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
 			for (int i = 0; i < screenHeight; i++)
 				screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
 			textRefreshRequired = false;

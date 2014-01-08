@@ -8,12 +8,12 @@ namespace JSI
 
 		public static string ProcessString(string input, RasterPropMonitorComputer comp, bool trim = true)
 		{
-			if (input.IndexOf(JUtil.variableListSeparator[0], StringComparison.Ordinal) >= 0) {
-				string[] tokens = input.Split(JUtil.variableListSeparator, StringSplitOptions.RemoveEmptyEntries);
+			if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0) {
+				string[] tokens = input.Split(JUtil.VariableListSeparator, StringSplitOptions.RemoveEmptyEntries);
 				if (tokens.Length != 2) {
 					return "FORMAT ERROR";
 				} else {
-					string[] vars = tokens[1].Split(JUtil.variableSeparator, StringSplitOptions.RemoveEmptyEntries);
+					string[] vars = tokens[1].Split(JUtil.VariableSeparator, StringSplitOptions.RemoveEmptyEntries);
 
 					var variables = new object[vars.Length];
 					for (int i = 0; i < vars.Length; i++) {
