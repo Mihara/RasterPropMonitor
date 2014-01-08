@@ -40,9 +40,9 @@ namespace JSI
 		public Vector2 iconShadowShift = new Vector2(1, 1);
 		[KSPField]
 		public int orbitPoints = 120;
-		private bool startupComplete = false;
+		private bool startupComplete;
 		private Material iconMaterial;
-		private Material lineMaterial = JUtil.DrawLineMaterial();
+		private readonly Material lineMaterial = JUtil.DrawLineMaterial();
 
 		// All units in pixels.  Assumes GL.Begin(LINES) and GL.Color() have
 		// already been called for this circle.
@@ -58,14 +58,14 @@ namespace JSI
 			float dTheta = (float)(2.0 * Math.PI / (double)(numSegments));
 			float theta = 0.0f;
 
-			Vector3 lastVertex = new Vector3(centerX + radius, centerY, 0.0f);
+			var lastVertex = new Vector3(centerX + radius, centerY, 0.0f);
 			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex(lastVertex);
 				theta += dTheta;
 
 				float cosTheta = Mathf.Cos(theta);
 				float sinTheta = Mathf.Sin(theta);
-				Vector3 newVertex = new Vector3(centerX + cosTheta * radius, centerY + sinTheta * radius, 0.0f);
+				var newVertex = new Vector3(centerX + cosTheta * radius, centerY + sinTheta * radius, 0.0f);
 				GL.Vertex(newVertex);
 				// Pity LINE_STRIP isn't supported.  We have to double the
 				// number of vertices we shove at the GPU.
@@ -92,6 +92,7 @@ namespace JSI
 			}
 		}
 
+		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
 			if (!startupComplete) {
@@ -171,7 +172,7 @@ namespace JSI
 			minY = Math.Min(minY, vesselPos.y);
 
 			// Account for a target vessel
-			Vessel targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
+			var targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
 			if (targetVessel != null) {
 
 				if (targetVessel.mainBody == vessel.mainBody) {
