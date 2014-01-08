@@ -258,7 +258,7 @@ namespace JSI
 			}
 
 			double orbitStart, orbitEnd;
-			if (targetVessel) {
+			if (targetVessel != null) {
 				double tgtPe = targetVessel.orbit.NextPeriapsisTime(now);
 				if (targetVessel.orbit.eccentricity < 1.0) {
 					orbitStart = tgtPe;
@@ -311,7 +311,7 @@ namespace JSI
 
 			// Draw target vessel icons.
 			Vector3 transformedPosition;
-			if (targetVessel) {
+			if (targetVessel != null) {
 				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(now)));
 				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PE);
 
