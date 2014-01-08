@@ -92,6 +92,7 @@ namespace JSI
 		private int sasGroupNumber;
 		private int lightGroupNumber;
 		private int rcsGroupNumber;
+		private readonly int[] actionGroupID = new int[10];
 		private readonly string[] actionGroupMemo = {
 			"AG0",
 			"AG1",
@@ -239,6 +240,23 @@ namespace JSI
 				sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
 				lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
 				rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
+
+				KSPActionGroup[] customGroups = {
+					KSPActionGroup.Custom10,
+					KSPActionGroup.Custom01,
+					KSPActionGroup.Custom02,
+					KSPActionGroup.Custom03,
+					KSPActionGroup.Custom04,
+					KSPActionGroup.Custom05,
+					KSPActionGroup.Custom06,
+					KSPActionGroup.Custom07,
+					KSPActionGroup.Custom08,
+					KSPActionGroup.Custom09,
+				};
+
+				for (int i = 0; i < 10; i++) {
+					actionGroupID[i] = BaseAction.GetGroupIndex(customGroups[i]);
+				}
 
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
@@ -1247,6 +1265,12 @@ namespace JSI
 			if (input.StartsWith("AGMEMO", StringComparison.Ordinal)) {
 				uint groupID;
 				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
+					string[] tokens;
+					if (actionGroupMemo[groupID].IndexOf('|') > 1 && (tokens = actionGroupMemo[groupID].Split('|')).Length == 2) {
+						if (FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID[groupID]])
+							return tokens[0];
+						return tokens[1];
+					}
 					return actionGroupMemo[groupID];
 				}
 				return input;
