@@ -7,6 +7,102 @@ using System.Reflection;
 
 namespace JSI
 {
+	public static class MapIcons
+	{
+		public enum OtherIcon
+		{
+			None,
+			PE,
+			AP,
+			AN,
+			DN,
+			NODE,
+		}
+
+		public static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
+		{
+			int x = 0;
+			int y = 0;
+			const float symbolSpan = 0.2f;
+			if (icon != OtherIcon.None) {
+				switch (icon) {
+					case OtherIcon.AP:
+						x = 1;
+						y = 4;
+						break;
+					case OtherIcon.PE:
+						x = 0;
+						y = 4;
+						break;
+					case OtherIcon.AN:
+						x = 2;
+						y = 4;
+						break;
+					case OtherIcon.DN:
+						x = 3;
+						y = 4;
+						break;
+					case OtherIcon.NODE:
+						x = 2;
+						y = 1;
+						break;
+				}
+			} else {
+				switch (type) {
+					case VesselType.Base:
+						x = 2;
+						y = 0;
+						break;
+					case VesselType.Debris:
+						x = 1;
+						y = 3;
+						break;
+					case VesselType.EVA:
+						x = 2;
+						y = 2;
+						break;
+					case VesselType.Flag:
+						x = 4;
+						y = 0;
+						break;
+					case VesselType.Lander:
+						x = 3;
+						y = 0;
+						break;
+					case VesselType.Probe:
+						x = 1;
+						y = 0;
+						break;
+					case VesselType.Rover:
+						x = 0;
+						y = 0;
+						break;
+					case VesselType.Ship:
+						x = 0;
+						y = 3;
+						break;
+					case VesselType.Station:
+						x = 3;
+						y = 1;
+						break;
+					case VesselType.Unknown:
+						x = 3;
+						y = 3;
+						break;
+					default:
+						x = 3;
+						y = 2;
+						break;
+				}
+			}
+			var result = new Rect();
+			result.x = symbolSpan * x;
+			result.y = symbolSpan * y;
+			result.height = result.width = symbolSpan;
+			return result;
+		}
+	}
+
 	public static class JUtil
 	{
 		public static readonly string[] VariableListSeparator = { "$&$" };
@@ -30,7 +126,6 @@ namespace JSI
 				}
 			}
 		}
-
 		/* I wonder why this isn't working. 
 		 * It's like the moment I unseat a kerbal, no matter what else I do,
 		 * the entire internal goes poof. Although I'm pretty sure it doesn't quite,
@@ -53,13 +148,13 @@ namespace JSI
 			}
 		}
 		*/
-
 		public static bool ActiveKerbalIsLocal(this Part thisPart)
 		{
 			return FindCurrentKerbal(thisPart) != null;
 		}
 
-		public static int CurrentActiveSeat(this Part thisPart) {
+		public static int CurrentActiveSeat(this Part thisPart)
+		{
 			Kerbal activeKerbal = thisPart.FindCurrentKerbal();
 			return activeKerbal != null ? activeKerbal.protoCrewMember.seatIdx : -1;
 		}
@@ -168,7 +263,6 @@ namespace JSI
 			}
 			return (to - from) * ((value - from2) / (to2 - from2)) + from;
 		}
-
 		// Convert a variable to a log10-like value (log10 for values > 1,
 		// pass-through for values [-1, 1], and -log10(abs(value)) for values
 		// < -1.  Useful for logarithmic VSI and altitude strips.
@@ -179,6 +273,7 @@ namespace JSI
 			}
 			return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
 		}
+
 		public static float PseudoLog10(float value)
 		{
 			if (Mathf.Abs(value) <= 1.0f) {
@@ -352,7 +447,6 @@ namespace JSI
 			ret.UpdateFromStateVectors(OrbitExtensions.SwapYZ(pos - body.position), OrbitExtensions.SwapYZ(vel), body, UT);
 			return ret;
 		}
-
 		// Piling all the extension methods into the same utility class to reduce the number of classes.
 		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
 		public static float? GetFloat(this string source)
@@ -445,7 +539,6 @@ namespace JSI
 			}
 		}
 	}
-
 	// This handy class is also from MechJeb.
 	//A simple wrapper around a Dictionary, with the only change being that
 	//accessing the value of a nonexistent key returns a default value instead of an error.

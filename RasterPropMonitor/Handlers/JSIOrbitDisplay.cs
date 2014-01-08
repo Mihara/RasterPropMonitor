@@ -32,31 +32,17 @@ namespace JSI
 		[KSPField]
 		public string orbitColorNextNode = string.Empty;
 		private Color orbitColorNextNodeValue = MapView.PatchColors[1];
-
 		[KSPField]
 		public Vector4 orbitDisplayPosition = new Vector4(0f, 0f, 512f, 512f);
 		[KSPField]
 		public float iconPixelSize = 8f;
 		[KSPField]
 		public Vector2 iconShadowShift = new Vector2(1, 1);
-
 		[KSPField]
 		public int orbitPoints = 120;
-
 		private bool startupComplete = false;
 		private Material iconMaterial;
 		private Material lineMaterial = JUtil.DrawLineMaterial();
-
-		// MOARdV: Move this to JUtil?
-		private enum OtherIcon
-		{
-			None,
-			PE,
-			AP,
-			AN,
-			DN,
-			NODE,
-		}
 
 		// All units in pixels.  Assumes GL.Begin(LINES) and GL.Color() have
 		// already been called for this circle.
@@ -89,7 +75,7 @@ namespace JSI
 
 		private static void DrawOrbit(Orbit o, double startUT, double endUT, Matrix4x4 screenTransform, int numSegments)
 		{
-			float dT = (float)(endUT-startUT) / (float)numSegments;
+			float dT = (float)(endUT - startUT) / (float)numSegments;
 			float t = (float)startUT;
 
 			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
@@ -327,11 +313,11 @@ namespace JSI
 			Vector3 transformedPosition;
 			if (targetVessel) {
 				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(now)));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.PE);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PE);
 
 				if (targetVessel.orbit.eccentricity < 1.0) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextApoapsisTime(now)));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.AP);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.AP);
 				}
 
 				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(now));
@@ -340,48 +326,48 @@ namespace JSI
 				if (vessel.orbit.AscendingNodeExists(targetVessel.orbit)) {
 					double anTime = vessel.orbit.TimeOfAscendingNode(targetVessel.orbit, now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.AN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.AN);
 				}
 				if (vessel.orbit.DescendingNodeExists(targetVessel.orbit)) {
 					double anTime = vessel.orbit.TimeOfDescendingNode(targetVessel.orbit, now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, OtherIcon.DN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.DN);
 				}
 			} else {
 				if (vessel.orbit.AscendingNodeEquatorialExists()) {
 					double anTime = vessel.orbit.TimeOfAscendingNodeEquatorial(now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, OtherIcon.AN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
 				}
 				if (vessel.orbit.DescendingNodeEquatorialExists()) {
 					double anTime = vessel.orbit.TimeOfDescendingNodeEquatorial(now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, OtherIcon.DN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
 				}
 			}
 
 			// Draw orbital features
 			transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(timeAtPe));
-			DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, OtherIcon.PE);
+			DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, MapIcons.OtherIcon.PE);
 
 			if (vessel.orbit.eccentricity < 1.0) {
 				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.NextApoapsisTime(now)));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorAPValue, OtherIcon.AP);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorAPValue, MapIcons.OtherIcon.AP);
 			}
 
 			if (node != null) {
 				double nodePe = node.nextPatch.NextPeriapsisTime(now);
 
 				transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodePe));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, OtherIcon.PE);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.PE);
 
 				if (node.patch.eccentricity < 1.0) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(node.nextPatch.NextApoapsisTime(now)));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, OtherIcon.AP);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.AP);
 				}
 
 				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(node.UT));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, OtherIcon.NODE);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.NODE);
 			}
 
 			// Draw ownship icon
@@ -394,22 +380,22 @@ namespace JSI
 			return true;
 		}
 
-		private void DrawIcon(float xPos, float yPos, VesselType vt, Color iconColor, OtherIcon icon = OtherIcon.None)
+		private void DrawIcon(float xPos, float yPos, VesselType vt, Color iconColor, MapIcons.OtherIcon icon = MapIcons.OtherIcon.None)
 		{
 			// MOARdV TODO: These icons are all upside down, since I am using
 			// an inverted matrix.
 			var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
-							   iconPixelSize, iconPixelSize);
+				               iconPixelSize, iconPixelSize);
 
 			Rect shadow = position;
 			shadow.x += iconShadowShift.x;
 			shadow.y += iconShadowShift.y;
 
 			iconMaterial.color = iconColorShadowValue;
-			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, MapIcons.VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 
 			iconMaterial.color = iconColor;
-			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(position, MapView.OrbitIconsMap, MapIcons.VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 		}
 
 		public void Start()
@@ -445,87 +431,5 @@ namespace JSI
 			startupComplete = true;
 		}
 
-		private static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
-		{
-			int x = 0;
-			int y = 0;
-			const float symbolSpan = 0.2f;
-			if (icon != OtherIcon.None) {
-				switch (icon) {
-					case OtherIcon.AP:
-						x = 1;
-						y = 4;
-						break;
-					case OtherIcon.PE:
-						x = 0;
-						y = 4;
-						break;
-					case OtherIcon.AN:
-						x = 2;
-						y = 4;
-						break;
-					case OtherIcon.DN:
-						x = 3;
-						y = 4;
-						break;
-					case OtherIcon.NODE:
-						x = 2;
-						y = 1;
-						break;
-				}
-			} else {
-				switch (type) {
-					case VesselType.Base:
-						x = 2;
-						y = 0;
-						break;
-					case VesselType.Debris:
-						x = 1;
-						y = 3;
-						break;
-					case VesselType.EVA:
-						x = 2;
-						y = 2;
-						break;
-					case VesselType.Flag:
-						x = 4;
-						y = 0;
-						break;
-					case VesselType.Lander:
-						x = 3;
-						y = 0;
-						break;
-					case VesselType.Probe:
-						x = 1;
-						y = 0;
-						break;
-					case VesselType.Rover:
-						x = 0;
-						y = 0;
-						break;
-					case VesselType.Ship:
-						x = 0;
-						y = 3;
-						break;
-					case VesselType.Station:
-						x = 3;
-						y = 1;
-						break;
-					case VesselType.Unknown:
-						x = 3;
-						y = 3;
-						break;
-					default:
-						x = 3;
-						y = 2;
-						break;
-				}
-			}
-			var result = new Rect();
-			result.x = symbolSpan * x;
-			result.y = symbolSpan * y;
-			result.height = result.width = symbolSpan;
-			return result;
-		}
 	}
 }

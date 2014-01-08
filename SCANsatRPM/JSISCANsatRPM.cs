@@ -112,15 +112,6 @@ namespace SCANsatRPM
 		private bool satFound;
 		private bool startupComplete;
 
-		private enum OtherIcon
-		{
-			None,
-			PE,
-			AP,
-			AN,
-			DN,
-			NODE,
-		}
 
 		private bool TestForActiveSCANsat()
 		{
@@ -201,16 +192,16 @@ namespace SCANsatRPM
 					DrawOrbit(targetVessel, iconColorTargetValue);
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTargetValue);
 				if (showLines) {
-					DrawOrbitIcon(targetVessel, OtherIcon.AP, iconColorAPValue);
-					DrawOrbitIcon(targetVessel, OtherIcon.PE, iconColorPEValue);
+					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.AP, iconColorAPValue);
+					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.PE, iconColorPEValue);
 				}
 
 			}
 			// Own orbit goes above that.
 			if (showLines && JUtil.OrbitMakesSense(vessel)) {
 				DrawOrbit(vessel, iconColorSelfValue);
-				DrawOrbitIcon(vessel, OtherIcon.AP, iconColorAPValue);
-				DrawOrbitIcon(vessel, OtherIcon.PE, iconColorPEValue);
+				DrawOrbitIcon(vessel, MapIcons.OtherIcon.AP, iconColorAPValue);
+				DrawOrbitIcon(vessel, MapIcons.OtherIcon.PE, iconColorPEValue);
 			}
 			// Own icon goes above that
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelfValue);
@@ -222,14 +213,14 @@ namespace SCANsatRPM
 			return true;
 		}
 
-		private void DrawOrbitIcon(Vessel thatVessel, OtherIcon iconType, Color iconColor)
+		private void DrawOrbitIcon(Vessel thatVessel, MapIcons.OtherIcon iconType, Color iconColor)
 		{
 			double timePoint = start;
 			switch (iconType) {
-				case OtherIcon.AP:
+				case MapIcons.OtherIcon.AP:
 					timePoint += thatVessel.orbit.timeToAp;
 					break;
-				case OtherIcon.PE:
+				case MapIcons.OtherIcon.PE:
 					timePoint += thatVessel.orbit.timeToPe;
 					break;
 			}
@@ -376,7 +367,7 @@ namespace SCANsatRPM
 			Graphics.DrawTexture(scaleBarRect, scaleLabelTexture, new Rect(0f, scaleID * scaleLabelSpan, 1f, scaleLabelSpan), 0, 0, 0, 0, scaleTint);
 		}
 
-		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor, OtherIcon icon = OtherIcon.None)
+		private void DrawIcon(double longitude, double latitude, VesselType vt, Color iconColor, MapIcons.OtherIcon icon = MapIcons.OtherIcon.None)
 		{
 			var position = new Rect((float)(longitudeToPixels(longitude, latitude) - iconPixelSize / 2),
 				               (float)(latitudeToPixels(longitude, latitude) - iconPixelSize / 2),
@@ -387,10 +378,10 @@ namespace SCANsatRPM
 			shadow.y += iconShadowShift.y;
 
 			iconMaterial.color = iconColorShadowValue;
-			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(shadow, MapView.OrbitIconsMap, MapIcons.VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 
 			iconMaterial.color = iconColor;
-			Graphics.DrawTexture(position, MapView.OrbitIconsMap, VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(position, MapView.OrbitIconsMap, MapIcons.VesselTypeIcon(vt, icon), 0, 0, 0, 0, iconMaterial);
 		}
 
 		private double longitudeToPixels(double longitude, double latitude)
@@ -430,89 +421,6 @@ namespace SCANsatRPM
 			if (value < 0)
 				return value + clamp;
 			return value;
-		}
-
-		private static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
-		{
-			int x = 0;
-			int y = 0;
-			const float symbolSpan = 0.2f;
-			if (icon != OtherIcon.None) {
-				switch (icon) {
-					case OtherIcon.AP:
-						x = 1;
-						y = 4;
-						break;
-					case OtherIcon.PE:
-						x = 0;
-						y = 4;
-						break;
-					case OtherIcon.AN:
-						x = 2;
-						y = 4;
-						break;
-					case OtherIcon.DN:
-						x = 3;
-						y = 4;
-						break;
-					case OtherIcon.NODE:
-						x = 2;
-						y = 1;
-						break;
-				}
-			} else {
-				switch (type) {
-					case VesselType.Base:
-						x = 2;
-						y = 0;
-						break;
-					case VesselType.Debris:
-						x = 1;
-						y = 3;
-						break;
-					case VesselType.EVA:
-						x = 2;
-						y = 2;
-						break;
-					case VesselType.Flag:
-						x = 4;
-						y = 0;
-						break;
-					case VesselType.Lander:
-						x = 3;
-						y = 0;
-						break;
-					case VesselType.Probe:
-						x = 1;
-						y = 0;
-						break;
-					case VesselType.Rover:
-						x = 0;
-						y = 0;
-						break;
-					case VesselType.Ship:
-						x = 0;
-						y = 3;
-						break;
-					case VesselType.Station:
-						x = 3;
-						y = 1;
-						break;
-					case VesselType.Unknown:
-						x = 3;
-						y = 3;
-						break;
-					default:
-						x = 3;
-						y = 2;
-						break;
-				}
-			}
-			var result = new Rect();
-			result.x = symbolSpan * x;
-			result.y = symbolSpan * y;
-			result.height = result.width = symbolSpan;
-			return result;
 		}
 
 		public void ButtonProcessor(int buttonID)
