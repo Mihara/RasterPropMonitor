@@ -30,6 +30,8 @@ namespace JSI
 		public string horizonTexture = string.Empty;
 		[KSPField]
 		public bool use360horizon = false;
+		[KSPField] // Number of texels of the horizon texture to draw (width).
+		public float horizonTextureWidth = 1.0f;
 
 		[KSPField]
 		public string headingBar = string.Empty;
@@ -42,10 +44,10 @@ namespace JSI
 		public Vector4 vertBar1Position = new Vector4(0f, 0f, 64f, 320f);
 		[KSPField] // minimum and maximum values
 		public Vector2 vertBar1Limit = new Vector2(0f, 10000f);
-		[KSPField] // lower and upper bound of the texture, in texture coordinates
+		[KSPField] // lower and upper bound of the texture, in pixels.  Defaults are useless...
 		public Vector2 vertBar1TextureLimit = new Vector2(0.0f, 1.0f);
-		[KSPField] // Amount of boundary on the texture (offset added to the current value's texture coordinate, to limit how much of the strip is visible)
-		public float vertBar1TextureBoundary = 0.25f;
+		[KSPField] // Number of texels to draw (vertically) for this bar.
+		public float vertBar1TextureSize = 0.5f;
 		[KSPField]
 		public string vertBar1Variable = string.Empty;
 		[KSPField]
@@ -57,10 +59,10 @@ namespace JSI
 		public Vector4 vertBar2Position = new Vector4(0f, 0f, 64f, 320f);
 		[KSPField] // minimum and maximum values
 		public Vector2 vertBar2Limit = new Vector2(-10000f, 10000f);
-		[KSPField] // lower and upper bound of the texture, in texture coordinates
+		[KSPField] // lower and upper bound of the texture, in pixels.  Defaults are useless...
 		public Vector2 vertBar2TextureLimit = new Vector2(0.0f, 1.0f);
 		[KSPField] // Amount of boundary on the texture (offset added to the current value's texture coordinate, to limit how much of the strip is visible)
-		public float vertBar2TextureBoundary = 0.25f;
+		public float vertBar2TextureSize = 0.5f;
 		[KSPField]
 		public string vertBar2Variable = string.Empty;
 		[KSPField]
@@ -136,6 +138,13 @@ namespace JSI
 
 				var normalizedRoll = new Vector2(cosRoll, sinRoll);
 				normalizedRoll.Normalize();
+				if (normalizedRoll.magnitude < 0.99f) {
+					// If we're hitting +/- 90 nearly perfectly, the sin and cos will
+					// be too far out of whack to normalize.  Arbitrarily pick
+					// a roll of 0.0.
+					normalizedRoll.x = 1.0f;
+					normalizedRoll.y = 0.0f;
+				}
 				cosRoll = normalizedRoll.x;
 				sinRoll = normalizedRoll.y;
 
@@ -146,8 +155,7 @@ namespace JSI
 					// Straight up is texture coord 0.75;
 					// Straight down is TC 0.25;
 					ladderMidpointCoord = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch);
-				}
-				else {
+				} else {
 					// Straight up is texture coord 1.0;
 					// Straight down is TC 0.0;
 					ladderMidpointCoord = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch);
@@ -157,19 +165,19 @@ namespace JSI
 				GL.Begin(GL.QUADS);
 
 				// transform -x -y
-				GL.TexCoord2(0, ladderMidpointCoord + ladderTextureOffset);
+				GL.TexCoord2(0.5f + horizonTextureWidth, ladderMidpointCoord - ladderTextureOffset);
 				GL.Vertex3(cosRoll * horizonSize.x + sinRoll * horizonSize.y, sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x -y
-				GL.TexCoord2(1.0f, ladderMidpointCoord + ladderTextureOffset);
+				GL.TexCoord2(0.5f - horizonTextureWidth, ladderMidpointCoord - ladderTextureOffset);
 				GL.Vertex3(-cosRoll * horizonSize.x + sinRoll * horizonSize.y, -sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x +y
-				GL.TexCoord2(1.0f, ladderMidpointCoord - ladderTextureOffset);
+				GL.TexCoord2(0.5f - horizonTextureWidth, ladderMidpointCoord + ladderTextureOffset);
 				GL.Vertex3(-cosRoll * horizonSize.x - sinRoll * horizonSize.y, -sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 
 				// transform -x +y
-				GL.TexCoord2(0.0f, ladderMidpointCoord - ladderTextureOffset);
+				GL.TexCoord2(0.5f + horizonTextureWidth, ladderMidpointCoord + ladderTextureOffset);
 				GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 				GL.End();
 			}
@@ -222,13 +230,13 @@ namespace JSI
 
 				vertBar1Material.SetPass(0);
 				GL.Begin(GL.QUADS);
-				GL.TexCoord2(0.0f, vertBar1TexCoord + vertBar1TextureBoundary);
+				GL.TexCoord2(0.0f, vertBar1TexCoord + vertBar1TextureSize);
 				GL.Vertex3(vertBar1Position.x, vertBar1Position.y, 0.0f);
-				GL.TexCoord2(1.0f, vertBar1TexCoord + vertBar1TextureBoundary);
+				GL.TexCoord2(1.0f, vertBar1TexCoord + vertBar1TextureSize);
 				GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y, 0.0f);
-				GL.TexCoord2(1.0f, vertBar1TexCoord - vertBar1TextureBoundary);
+				GL.TexCoord2(1.0f, vertBar1TexCoord - vertBar1TextureSize);
 				GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y + vertBar1Position.w, 0.0f);
-				GL.TexCoord2(0.0f, vertBar1TexCoord - vertBar1TextureBoundary);
+				GL.TexCoord2(0.0f, vertBar1TexCoord - vertBar1TextureSize);
 				GL.Vertex3(vertBar1Position.x, vertBar1Position.y + vertBar1Position.w, 0.0f);
 				GL.End();
 			}
@@ -247,13 +255,13 @@ namespace JSI
 
 				vertBar2Material.SetPass(0);
 				GL.Begin(GL.QUADS);
-				GL.TexCoord2(0.0f, vertBar2TexCoord + vertBar2TextureBoundary);
+				GL.TexCoord2(0.0f, vertBar2TexCoord + vertBar2TextureSize);
 				GL.Vertex3(vertBar2Position.x, vertBar2Position.y, 0.0f);
-				GL.TexCoord2(1.0f, vertBar2TexCoord + vertBar2TextureBoundary);
+				GL.TexCoord2(1.0f, vertBar2TexCoord + vertBar2TextureSize);
 				GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y, 0.0f);
-				GL.TexCoord2(1.0f, vertBar2TexCoord - vertBar2TextureBoundary);
+				GL.TexCoord2(1.0f, vertBar2TexCoord - vertBar2TextureSize);
 				GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y + vertBar2Position.w, 0.0f);
-				GL.TexCoord2(0.0f, vertBar2TexCoord - vertBar2TextureBoundary);
+				GL.TexCoord2(0.0f, vertBar2TexCoord - vertBar2TextureSize);
 				GL.Vertex3(vertBar2Position.x, vertBar2Position.y + vertBar2Position.w, 0.0f);
 				GL.End();
 			}
@@ -289,6 +297,10 @@ namespace JSI
 			ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 			if (!String.IsNullOrEmpty(horizonTexture)) {
 				ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
+				if (ladderMaterial.mainTexture != null) {
+					horizonTextureWidth = horizonTextureWidth / (float)ladderMaterial.mainTexture.width;
+					ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				}
 			}
 
 			if (!String.IsNullOrEmpty(headingBar)) {
@@ -307,12 +319,26 @@ namespace JSI
 				vertBar1Material = new Material(unlit);
 				vertBar1Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 				vertBar1Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
+				if (vertBar1Material.mainTexture != null) {
+					float height = (float)vertBar1Material.mainTexture.height;
+					vertBar1TextureLimit.x = 1.0f - (vertBar1TextureLimit.x / height);
+					vertBar1TextureLimit.y = 1.0f - (vertBar1TextureLimit.y / height);
+					vertBar1TextureSize = 0.5f * (vertBar1TextureSize / height);
+					vertBar1Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				}
 			}
 
 			if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable)) {
 				vertBar2Material = new Material(unlit);
 				vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 				vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
+				if (vertBar2Material.mainTexture != null) {
+					float height = (float)vertBar2Material.mainTexture.height;
+					vertBar2TextureLimit.x = 1.0f - (vertBar2TextureLimit.x / height);
+					vertBar2TextureLimit.y = 1.0f - (vertBar2TextureLimit.y / height);
+					vertBar2TextureSize = 0.5f * (vertBar2TextureSize / height);
+					vertBar2Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				}
 			}
 
 			if (vertBar1UseLog10) {
