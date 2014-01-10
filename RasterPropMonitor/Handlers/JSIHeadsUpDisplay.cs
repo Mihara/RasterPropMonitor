@@ -37,6 +37,8 @@ namespace JSI
 		public string headingBar = string.Empty;
 		[KSPField] // x,y, width, height in pixels
 		public Vector4 headingBarPosition = new Vector4(0f, 0f, 64f, 32f);
+		[KSPField]
+		public float headingBarWidth = 64;
 
 		[KSPField] // Texture to use
 		public string vertBar1Texture = string.Empty;
@@ -198,10 +200,11 @@ namespace JSI
 				//float heading = comp.ProcessVariable("HEADING").MassageToFloat();
 				//float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, heading);
 
-				float headingTextureOffset;
-				float headingHeightRatio = headingBarPosition.z / screen.width;
-				float headingHalfHeightDegrees = hudFov * 0.5f * headingHeightRatio;
-				headingTextureOffset = headingHalfHeightDegrees / 180.0f;
+				//float headingTextureOffset;
+				//float headingHeightRatio = headingBarPosition.z / screen.width;
+				//float headingHalfHeightDegrees = hudFov * 0.5f * headingHeightRatio;
+				//headingTextureOffset = headingHalfHeightDegrees / 180.0f;
+				float headingTextureOffset = (headingBarWidth/headingMaterial.mainTexture.width)/2;
 
 				headingMaterial.SetPass(0);
 				GL.Begin(GL.QUADS);
