@@ -28,7 +28,7 @@ namespace JSI
 		[KSPField]
 		public string horizonTexture = string.Empty;
 		[KSPField]
-		public bool use360horizon;
+		public bool use360horizon = true;
 		[KSPField] // Number of texels of the horizon texture to draw (width).
 		public Vector2 horizonTextureSize = new Vector2(1f, 1f);
 		[KSPField]
@@ -50,7 +50,7 @@ namespace JSI
 		[KSPField]
 		public string vertBar1Variable = string.Empty;
 		[KSPField]
-		public bool vertBar1UseLog10;
+		public bool vertBar1UseLog10 = true;
 		[KSPField] // Texture to use
 		public string vertBar2Texture = string.Empty;
 		[KSPField] // Position and size of the bar, in pixels
@@ -64,7 +64,7 @@ namespace JSI
 		[KSPField]
 		public string vertBar2Variable = string.Empty;
 		[KSPField]
-		public bool vertBar2UseLog10;
+		public bool vertBar2UseLog10 = true;
 		[KSPField]
 		public string staticOverlay = string.Empty;
 		private Material ladderMaterial;
