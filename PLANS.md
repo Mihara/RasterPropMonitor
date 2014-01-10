@@ -4,11 +4,6 @@
 
 * Finish and install the Mk1 cockpit handle.
 * Testing.
-* Minor features from confirmed list when inspiration permits.
-
-## Unfinished features
-
-* Orbit display a-la Orbiter -- schematic representation of the body as a circle and the orbit as an ellipse viewed from the direction of orbit normal.
 
 # 0.14 milestone targets
 
