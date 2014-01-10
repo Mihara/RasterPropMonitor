@@ -4,7 +4,7 @@
 
 Certain buttons are reserved for future expansion, which happens pretty rapidly -- there's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
 
-It's sort of an approximation of how actual MFDs work, though they actually typically use interfaces even less similar to what you might expect. 
+It's sort of an approximation of how actual MFDs work, though they typically use interfaces even less similar to what you might expect. Version 0.13 lets you switch pages in much more creative ways, but the default package does not make use of them.
 
 ### The screens don't work at all!
 
@@ -12,27 +12,17 @@ Make sure that there is only one RasterPropMonitor.dll and that it is located at
 
 ### RasterPropMonitor is very heavy on the framerate.
 
-To my knowledge it isn't, and I develop it on a machine that is well over five years old. But it might be a problem I have yet to bump into, and if you help me, I can probably fix it.
+To my knowledge it isn't -- I started developing it on a machine that is well over five years old and was very conscious of the framerate the whole time. But it might be a problem I have yet to bump into, and if you help me, I can probably fix it.
 
 I want your KSP_Data/output_log.txt and as precise a description of what you were doing as possible.
 
-### There's a conflict with B9 capsules / Firespitter.dll
-
-There isn't. Update your Firespitter.dll from the [master Firespitter package](http://kerbalspaceport.com/firespitter-propeller-plane-parts/) and the problem will go away.
-
 ### How do I get the map to show? It says "No satellite connection"
 
-RasterPropMonitor relies on [SCANsat](http://forum.kerbalspaceprogram.com/threads/55832) for mapping data. These are the precise satellites it means to have a connection to -- install it and launch some, they're quite a lot of fun.
+RasterPropMonitor relies on [SCANsat](http://forum.kerbalspaceprogram.com/threads/55832) for mapping data. These are the precise satellites it means to have a connection to -- install it and launch some, they're quite a lot of fun. It's one of those things that makes probes more than just a practice launch.
 
 ### RasterPropMonitor breaks Kethane map!
 
-This is a Kethane problem that can be triggered by any mod which includes a plugin that fails to load. Unfortunately, sometimes they're *supposed* to fail to load, and that is the case with RasterPropMonitor.
-
-Kethane searches the other plugins for functions implementing it's API, so that the API can actually happen. Unfortunately, the plugin that failed to load also gets found, but then cannot be accessed and Kethane chokes on it. The solution at the moment is looking diligently through the debug log for a plugin that generates an AssemblyLoader exception ("AssemblyLoader: Exception loading *thatplugin*") and making sure it is updated or failing that, removed.
-
-RasterPropMonitor interfaces to other mods for certain functionality and if those mods are not installed, the interface modules will fail to load, because they refer to code that does not exist on the system. If you use RPM but do not use SCANsat, SCANsatRPM.dll will fail to load (as intended) and trigger this bug. If you use RPM but do not use MechJeb, MechJebRPM.dll will fail to load (as intended!) and trigger this bug. The same will happen with any plugins that optionally use the blizzy's [Toolbar](http://forum.kerbalspaceprogram.com/threads/60066) when the toolbar itself is not installed -- this requires them to bundle a separate plugin which they use to communicate with the toolbar, which will fail to load when the toolbar is not installed.
-
-Majir [seems to have fixed it](https://github.com/Majiir/Kethane/commit/e97d806b63cad6921532a612974fd941c9f50209), but he isn't treating releasing the fixed version as a matter of urgency. Until he does, you can either install MechJeb and SCANsat or remove MechJebRPM.dll/SCANsatRPM.dll.
+This is a Kethane problem. Update to Kethane 0.8.4 or newer.
 
 ### What are those ☊ and ☋ symbols?
 
@@ -44,11 +34,9 @@ Basically, they're points in which you want to burn to change your orbit inclina
 
 RasterPropMonitor is more of an IVA makers toolkit than a standalone product, I spend most of my time programming new things for the monitors to show, but barely have the energy left to arrange it for actual presentation. My own implementation is a few generations behind. Check the [list of variables](https://github.com/Mihara/RasterPropMonitor/wiki/Defined-variables) and the documentation on [page file syntax](https://github.com/Mihara/RasterPropMonitor/wiki/Writing-page-definition-files), it's quite possible what you want is already there, just isn't presented to the user in my own implementation yet. Customize your monitors and share the results -- if you make nice pages, I'll be happy to include them in the distribution.
 
-### Can I have an orbital map on the screen?
+### Can I make a maneuver node while in IVA?
 
-It is unfortunately impossible to just display the stock map on screen as it is and be done with it, or you'd have one many versions ago. Right now, MOARdV is working on a vector-based representation of the orbital map [kind of like in some Orbiter mods](http://users.kymp.net/p501474a/Orbiter/sc2.gif), which will be released in version 0.13.
-
-Creating maneuver nodes on it will have to wait until we can figure out a way to make a menu-based maneuver node editor that doesn't suck.
+Not *yet*. While it is in the plans, there is the considerable question of how to make a menu-based maneuver node editor with an interface that doesn't suck.
 
 ### How do I show remaining delta V?
 
