@@ -43,7 +43,6 @@ namespace JSI
 		private bool startupComplete;
 		private Material iconMaterial;
 		private readonly Material lineMaterial = JUtil.DrawLineMaterial();
-
 		// All units in pixels.  Assumes GL.Begin(LINES) and GL.Color() have
 		// already been called for this circle.
 		private static void DrawCircle(float centerX, float centerY, float radius, int maxOrbitPoints)
@@ -91,7 +90,6 @@ namespace JSI
 				lastVertex = newVertex;
 			}
 		}
-
 		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
@@ -431,6 +429,5 @@ namespace JSI
 
 			startupComplete = true;
 		}
-
 	}
 }

@@ -23,23 +23,20 @@ namespace JSI
 		// for both the camera render, and to know how to scale the HUD ladder.
 		[KSPField]
 		public float hudFov = 60.0f;
-
 		[KSPField]
 		public Vector2 horizonSize = new Vector2(64.0f, 32.0f);
 		[KSPField]
 		public string horizonTexture = string.Empty;
 		[KSPField]
-		public bool use360horizon = false;
+		public bool use360horizon;
 		[KSPField] // Number of texels of the horizon texture to draw (width).
-		public Vector2 horizonTextureSize = new Vector2(1f,1f);
-
+		public Vector2 horizonTextureSize = new Vector2(1f, 1f);
 		[KSPField]
 		public string headingBar = string.Empty;
 		[KSPField] // x,y, width, height in pixels
 		public Vector4 headingBarPosition = new Vector4(0f, 0f, 64f, 32f);
 		[KSPField]
 		public float headingBarWidth = 64;
-
 		[KSPField] // Texture to use
 		public string vertBar1Texture = string.Empty;
 		[KSPField] // Position and size of the bar, in pixels
@@ -53,8 +50,7 @@ namespace JSI
 		[KSPField]
 		public string vertBar1Variable = string.Empty;
 		[KSPField]
-		public bool vertBar1UseLog10 = false;
-
+		public bool vertBar1UseLog10;
 		[KSPField] // Texture to use
 		public string vertBar2Texture = string.Empty;
 		[KSPField] // Position and size of the bar, in pixels
@@ -68,19 +64,16 @@ namespace JSI
 		[KSPField]
 		public string vertBar2Variable = string.Empty;
 		[KSPField]
-		public bool vertBar2UseLog10 = false;
-
+		public bool vertBar2UseLog10;
 		[KSPField]
 		public string staticOverlay = string.Empty;
-
-		private Material ladderMaterial = null;
-		private Material headingMaterial = null;
-		private Material overlayMaterial = null;
-		private Material vertBar1Material = null;
-		private Material vertBar2Material = null;
+		private Material ladderMaterial;
+		private Material headingMaterial;
+		private Material overlayMaterial;
+		private Material vertBar1Material;
+		private Material vertBar2Material;
 		private RasterPropMonitorComputer comp;
-
-		private bool startupComplete = false;
+		private bool startupComplete;
 
 		public bool RenderHUD(RenderTexture screen, float cameraAspect)
 		{
@@ -189,7 +182,7 @@ namespace JSI
 			}
 
 			// Draw the rest of the HUD stuff (0,0) is the top left corner of the screen.
-			GL.LoadPixelMatrix(0, screen.width, screen.height , 0);
+			GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
 			GL.Viewport(new Rect(0, 0, screen.width, screen.height));
 
 			if (headingMaterial != null) {
@@ -208,12 +201,12 @@ namespace JSI
 				//float headingHeightRatio = headingBarPosition.z / screen.width;
 				//float headingHalfHeightDegrees = hudFov * 0.5f * headingHeightRatio;
 				//headingTextureOffset = headingHalfHeightDegrees / 180.0f;
-				float headingTextureOffset = (headingBarWidth/headingMaterial.mainTexture.width)/2;
+				float headingTextureOffset = (headingBarWidth / headingMaterial.mainTexture.width) / 2;
 
 				headingMaterial.SetPass(0);
 				GL.Begin(GL.QUADS);
 				GL.TexCoord2(headingTexture - headingTextureOffset, 1.0f);
-				GL.Vertex3(headingBarPosition.x, headingBarPosition.y,  0.0f);
+				GL.Vertex3(headingBarPosition.x, headingBarPosition.y, 0.0f);
 				GL.TexCoord2(headingTexture + headingTextureOffset, 1.0f);
 				GL.Vertex3(headingBarPosition.x + headingBarPosition.z, headingBarPosition.y, 0.0f);
 				GL.TexCoord2(headingTexture + headingTextureOffset, 0.0f);
