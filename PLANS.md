@@ -1,14 +1,8 @@
-# 0.13 milestone targets
-
-## Pre-release checklist.
-
-* Finish and install the Mk1 cockpit handle.
-* Testing.
-
 # 0.14 milestone targets
 
 ## Minor new features
 
+* Make EVA hatch module capable of animating internal and external hatches before kicking the kerbal out.
 * Teach JSISteerableCamera to accept a list of cameraTransforms and switch between them on keypress.
 * A variable to compute the mass of propellants only. Needs asking the engines which propellants do they want...
 * ...but if I can get the list of propellants for the currently active engines, I can get a reasonable dV-for-current-stage at least.
