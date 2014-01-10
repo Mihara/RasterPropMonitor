@@ -31,7 +31,7 @@ namespace JSI
 		[KSPField]
 		public bool use360horizon = false;
 		[KSPField] // Number of texels of the horizon texture to draw (width).
-		public float horizonTextureWidth = 1.0f;
+		public Vector2 horizonTextureSize = new Vector2(1f,1f);
 
 		[KSPField]
 		public string headingBar = string.Empty;
@@ -111,13 +111,17 @@ namespace JSI
 
 			// Figure out the texture coordinate scaling for the ladder.
 			float ladderTextureOffset;
+			/*
 			float ladderHeightRatio = horizonSize.y / screen.height;
 			float ladderHalfHeightDegrees = hudFov * 0.5f * ladderHeightRatio;
 			if (use360horizon) {
 				ladderTextureOffset = ladderHalfHeightDegrees / 180.0f;
+
 			} else {
 				ladderTextureOffset = ladderHalfHeightDegrees / 90.0f;
 			}
+			*/
+			ladderTextureOffset = horizonTextureSize.y / ladderMaterial.mainTexture.height;
 
 			// Configure the matrix so that the origin is the center of the screen.
 			GL.PushMatrix();
@@ -167,19 +171,19 @@ namespace JSI
 				GL.Begin(GL.QUADS);
 
 				// transform -x -y
-				GL.TexCoord2(0.5f + horizonTextureWidth, ladderMidpointCoord - ladderTextureOffset);
+				GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
 				GL.Vertex3(cosRoll * horizonSize.x + sinRoll * horizonSize.y, sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x -y
-				GL.TexCoord2(0.5f - horizonTextureWidth, ladderMidpointCoord - ladderTextureOffset);
+				GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
 				GL.Vertex3(-cosRoll * horizonSize.x + sinRoll * horizonSize.y, -sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x +y
-				GL.TexCoord2(0.5f - horizonTextureWidth, ladderMidpointCoord + ladderTextureOffset);
+				GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
 				GL.Vertex3(-cosRoll * horizonSize.x - sinRoll * horizonSize.y, -sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 
 				// transform -x +y
-				GL.TexCoord2(0.5f + horizonTextureWidth, ladderMidpointCoord + ladderTextureOffset);
+				GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
 				GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 				GL.End();
 			}
@@ -301,7 +305,7 @@ namespace JSI
 			if (!String.IsNullOrEmpty(horizonTexture)) {
 				ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
 				if (ladderMaterial.mainTexture != null) {
-					horizonTextureWidth = horizonTextureWidth / (float)ladderMaterial.mainTexture.width;
+					horizonTextureSize.x = horizonTextureSize.x / ladderMaterial.mainTexture.width;
 					ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 				}
 			}
