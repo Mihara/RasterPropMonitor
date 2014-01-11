@@ -147,7 +147,8 @@ namespace JSI
 				cosRoll = normalizedRoll.x;
 				sinRoll = normalizedRoll.y;
 
-				float pitch = Mathf.Asin(cosUp) * Mathf.Rad2Deg;
+				// Mihara: I'm pretty sure this was negative of what it should actually be, at least according to my mockup.
+				float pitch = -(Mathf.Asin(cosUp) * Mathf.Rad2Deg);
 
 				float ladderMidpointCoord;
 				if (use360horizon) {
