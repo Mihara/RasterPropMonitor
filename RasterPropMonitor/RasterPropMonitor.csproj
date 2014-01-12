@@ -87,6 +87,7 @@
     <Compile Include="Core\CelestialBodyExtensions.cs" />
     <Compile Include="Handlers\JSIOrbitDisplay.cs" />
     <Compile Include="Auxiliary modules\JSISwitchableVariableLabel.cs" />
+    <Compile Include="Core\ResourceDataStorage.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

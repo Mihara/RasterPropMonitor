@@ -59,8 +59,7 @@ namespace JSI
 		private Orbit targetOrbit;
 		private bool orbitSensibility;
 		private bool targetOrbitSensibility;
-		private readonly DefaultableDictionary<string,Vector2d> resources = new DefaultableDictionary<string,Vector2d>(Vector2d.zero);
-		private readonly DefaultableDictionary<string,Vector2d> activeResources = new DefaultableDictionary<string, Vector2d>(Vector2d.zero);
+		private readonly ResourceDataStorage resources = new ResourceDataStorage();
 		private string[] resourcesAlphabetic;
 		private double totalShipDryMass;
 		private double totalShipWetMass;
@@ -968,22 +967,21 @@ namespace JSI
 
 		private void FetchPerPartData()
 		{
-			resources.Clear();
 			totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
 			totalDataAmount = 0;
 			double averageIspContribution = 0;
 
 			anyEnginesOverheating = false;
 
+			resources.StartLoop(time);
+
 			foreach (Part thatPart in vessel.parts) {
-				// The cute way of using vector2d in place of a tuple is from Firespitter.
-				// Hey, it works.
+
 				foreach (PartResource resource in thatPart.Resources) {
-					resources[resource.resourceName] += new Vector2d(resource.amount, resource.maxAmount);
+					resources.Add(resource);
 				}
 
 				if (thatPart.physicalSignificance != Part.PhysicalSignificance.NONE) {
-
 					totalShipDryMass += thatPart.mass;
 					totalShipWetMass += thatPart.mass;
 				}
@@ -1020,19 +1018,11 @@ namespace JSI
 			else
 				actualAverageIsp = 0;
 
-			resourcesAlphabetic = resources.Keys.ToArray();
-
-			// Turns out, all those extra small tails in resources interfere with string formatting.
-			foreach (string resource in resourcesAlphabetic) {
-				Vector2d values = resources[resource];
-				resources[resource] = new Vector2d(Math.Round(values.x, 2), Math.Round(values.y, 2));
-			}
-			Array.Sort(resourcesAlphabetic);
+			resourcesAlphabetic = resources.Alphabetic();
 
 			// We can use the stock routines to get at the per-stage resources.
-			activeResources.Clear();
 			foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources()) {
-				activeResources.Add(thatResource.info.name, new Vector2d(Math.Round(thatResource.amount, 2), Math.Round(thatResource.maxAmount, 2)));
+				resources.SetActive(thatResource);
 			}
 
 			// I seriously hope you don't have crew jumping in and out more than once per second.
@@ -1194,33 +1184,6 @@ namespace JSI
 
 		}
 
-		private static object ResourceListElement(string resourceName, string valueType, DefaultableDictionary<string,Vector2d> dataSource)
-		{
-			PartResourceDefinition resourceDef = PartResourceLibrary.Instance.GetDefinition(resourceName);
-			switch (valueType) {
-				case "":
-				case "VAL":
-					return dataSource[resourceName].x.Clamp(0d, dataSource[resourceName].y);
-				case "DENSITY":
-					if (resourceDef == null)
-						return 0d;
-					return resourceDef.density;
-				case "MASS":
-					if (resourceDef == null)
-						return 0d;
-					return resourceDef.density * dataSource[resourceName].x;
-				case "MAXMASS":
-					if (resourceDef == null)
-						return 0d;
-					return resourceDef.density * dataSource[resourceName].y;
-				case "MAX":
-					return dataSource[resourceName].y;
-				case "PERCENT":
-					return (dataSource[resourceName].y > 0) ? dataSource[resourceName].x / dataSource[resourceName].y : 0d;
-			}
-			return 0d;
-		}
-
 		private object VariableToObject(string input, out bool cacheable)
 		{
 
@@ -1237,13 +1200,13 @@ namespace JSI
 				if (tokens.Length == 3 && tokens[0] == "LISTR") {
 					ushort resourceID = Convert.ToUInt16(tokens[1]);
 					if (tokens[2] == "NAME") {
-						return resourceID >= resources.Count ? string.Empty : resourcesAlphabetic[resourceID];
+						return resourceID >= resourcesAlphabetic.Length ? string.Empty : resourcesAlphabetic[resourceID];
 					}
-					if (resourceID >= resources.Count)
+					if (resourceID >= resourcesAlphabetic.Length)
 						return 0d;
 					return tokens[2].StartsWith("STAGE", StringComparison.Ordinal) ? 
-						ResourceListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), activeResources) : 
-						ResourceListElement(resourcesAlphabetic[resourceID], tokens[2], resources);
+						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), time, true) : 
+						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], time, false);
 				}
 
 				// We do similar things for crew rosters.
@@ -2039,9 +2002,9 @@ namespace JSI
 					string argument = input.Substring(resourceType.Key.Length);
 					if (argument.StartsWith("STAGE", StringComparison.Ordinal)) {
 						argument = argument.Substring("STAGE".Length);
-						return ResourceListElement(resourceType.Value, argument, activeResources);
+						return resources.ListElement(resourceType.Value, argument, time, true);
 					}
-					return ResourceListElement(resourceType.Value, argument, resources);
+					return resources.ListElement(resourceType.Value, argument, time, false);
 				}
 			}
 

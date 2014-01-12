@@ -19,10 +19,6 @@
 
 # Confirmed features with no set target
 
-## Minor new features
-
-* Resource consumption rates. (Requires actually counting, which implies a different method of keeping data and some rewrites.)
-
 ## Major new features
 
 * Make JSIActionGroupSwitch pluggable and plug MechJeb into it. (Most likely, a generic action handler interface like the regular RPM).
