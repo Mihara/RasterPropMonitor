@@ -123,7 +123,9 @@ namespace JSI
 				}
 			}
 
-			this[index].isSelected |= index >= 0 && index < Count;
+			if (index >= 0 && index < Count) {
+				this[index].isSelected = true;
+			}
 
 		}
 
