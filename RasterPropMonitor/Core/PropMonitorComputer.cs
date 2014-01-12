@@ -1275,6 +1275,18 @@ namespace JSI
 				}
 				return input;
 			}
+			// Action group state.
+			if (input.StartsWith("AGSTATE", StringComparison.Ordinal)) {
+				uint groupID;
+				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
+					if (FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID[groupID]])
+						return 1d;
+					return -1d;
+
+				}
+				return input;
+			}
+
 
 			switch (input) {
 
