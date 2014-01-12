@@ -1,5 +1,7 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace JSI
 {
@@ -14,6 +16,20 @@ namespace JSI
 		private const string formatPrefixDMS = "DMS";
 		private const string formatPrefixKDT = "KDT";
 		private const string formatPrefixBAR = "BAR";
+
+		private static string[] SplitByColon(string input)
+		{
+			var result = input.Replace("\\;", "ESCAPIDCOLON").Split('"')
+				.Select((element, index) => index % 2 == 0
+					? element.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)  // Split the item
+					: new [] { element })  // Keep the entire item
+				.SelectMany(element => element).ToList();
+			var output = new List<string>();
+			foreach (string token in result) {
+				output.Add(token.Replace("ESCAPIDCOLON", ";"));
+			}
+			return output.ToArray();
+		}
 
 		public string Format(string format, object arg, IFormatProvider formatProvider)
 		{    
@@ -48,26 +64,32 @@ namespace JSI
 			// Any ideas?
 
 			string splitformat = format;
-			#if SPLITTERENABLED
+
 			if (format.IndexOf(";", StringComparison.Ordinal) > -1) {
 				// This splitter needs to be MUCH more complex, unfortunately.
-				var tokens = format.Split(';');
+				//var tokens = format.Split(';');
+				var tokens = SplitByColon(format);
+
+				// String.format spec says that the colon section separator takes into account if the 
+				// result became zero after formatting according to the subsequent format strings.
+				// Which actually complicates things annoyingly, because I can't figure out how to test for it.
 				switch (tokens.Length) {
 					case 2:
 						splitformat = inputValue >= 0 ? tokens[0] : tokens[1];
 						break;
 					case 3:
 						// Analysis disable once CompareOfFloatsByEqualityOperator
-						if (inputValue == 0)
+						if (inputValue == 0) { 
 							splitformat = tokens[2];
-						else if (inputValue > 0)
+						} else if (inputValue > 0) {
 							splitformat = tokens[0];
-						else
+						} else {
 							splitformat = tokens[1];
+						}
 						break;
 				}
 			}
-			#endif
+
 
 			// This way we can chain prefixes for other KSP-specific formats,
 			// like Kerbal Time or degrees-minutes-seconds, which are internally
@@ -81,9 +103,6 @@ namespace JSI
 			if (splitformat.StartsWith(formatPrefixBAR, StringComparison.Ordinal))
 				return BARFormat(splitformat, inputValue);
 
-			// But if we did not recognise any of the custom formatters in the split 
-			// member we fished out, we don't push our luck and use the original string,
-			// letting the system string.format sort it out.
 			return DefaultFormat(format, arg, formatProvider);
 		}
 		// BAR -- Bar pseudo-formatter that produces a horizontal bar

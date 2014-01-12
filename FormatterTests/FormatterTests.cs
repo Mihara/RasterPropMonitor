@@ -68,17 +68,19 @@ namespace FormatterTests
 				// If the formatter is working correctly, all of the '|'
 				// characters will line up under the 'v'.
 				Console.WriteLine("\nUnformatted: {0}\nAlignment Mark      v", value);
-				Console.WriteLine(string.Format(fp, "SIP_6   :>{0:SIP_6}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP_06  :>{0:SIP_06}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP_6.3 :>{0:SIP_6.3}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP_6.2 :>{0:SIP_6.2}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP6    :>{0:SIP6}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP6.3  :>{0:SIP6.3}<   |", value));
-				Console.WriteLine(string.Format(fp, "SIP_9   :>{0:SIP_9}<|", value));
-				Console.WriteLine(string.Format(fp, "SIP_9.3 :>{0:SIP_9.3}<|", value));
-				Console.WriteLine(string.Format(fp, "SIP9.3  :>{0:SIP9.3}<|", value));
-				Console.WriteLine(string.Format(fp, "SIP09.3 :>{0:SIP09.3}<|", value));
-				Console.WriteLine(string.Format(fp, "SIP_10  :>{0:SIP_10}|", value));
+				Console.WriteLine(string.Format(fp, "SIP_6      :>{0:SIP_6}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_6;\"Q\"  :>{0:SIP_6;\"Q\"}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_6;\"Q\";0:>{0:SIP_6;\"Q\";0}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_06     :>{0:SIP_06}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_6.3    :>{0:SIP_6.3}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_6.2    :>{0:SIP_6.2}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP6       :>{0:SIP6}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP6.3     :>{0:SIP6.3}<   |", value));
+				Console.WriteLine(string.Format(fp, "SIP_9      :>{0:SIP_9}<|", value));
+				Console.WriteLine(string.Format(fp, "SIP_9.3    :>{0:SIP_9.3}<|", value));
+				Console.WriteLine(string.Format(fp, "SIP9.3     :>{0:SIP9.3}<|", value));
+				Console.WriteLine(string.Format(fp, "SIP09.3    :>{0:SIP09.3}<|", value));
+				Console.WriteLine(string.Format(fp, "SIP_10     :>{0:SIP_10}|", value));
 			}
 			Console.WriteLine("SIP tests done, press any key to start DMS tests");
 			Console.ReadKey();

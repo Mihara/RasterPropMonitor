@@ -21,7 +21,6 @@
 
 ## Minor new features
 
-* ;-splitter in custom formatters needs to be able to survive quoted and escaped ; when splitting -- but it should do that without regex.
 * Resource consumption rates. (Requires actually counting, which implies a different method of keeping data and some rewrites.)
 
 ## Major new features
