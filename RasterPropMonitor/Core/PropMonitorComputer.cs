@@ -1205,8 +1205,8 @@ namespace JSI
 					if (resourceID >= resourcesAlphabetic.Length)
 						return 0d;
 					return tokens[2].StartsWith("STAGE", StringComparison.Ordinal) ? 
-						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), time, true) : 
-						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], time, false);
+						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), true) : 
+						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], false);
 				}
 
 				// We do similar things for crew rosters.
@@ -2002,9 +2002,9 @@ namespace JSI
 					string argument = input.Substring(resourceType.Key.Length);
 					if (argument.StartsWith("STAGE", StringComparison.Ordinal)) {
 						argument = argument.Substring("STAGE".Length);
-						return resources.ListElement(resourceType.Value, argument, time, true);
+						return resources.ListElement(resourceType.Value, argument, true);
 					}
-					return resources.ListElement(resourceType.Value, argument, time, false);
+					return resources.ListElement(resourceType.Value, argument, false);
 				}
 			}
 

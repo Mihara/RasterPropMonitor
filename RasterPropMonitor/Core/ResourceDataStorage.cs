@@ -9,7 +9,7 @@ namespace JSI
 		private readonly Dictionary<string,int> nameID = new Dictionary<string, int>();
 		private readonly Dictionary<int,ResourceData> data = new Dictionary<int,ResourceData>();
 		private double lastcheck;
-		private const double secondsBetweenSamples = 1;
+		private const double secondsBetweenSamples = 0.5d;
 
 		public ResourceDataStorage()
 		{
@@ -53,7 +53,7 @@ namespace JSI
 			return result;
 		}
 
-		public object ListElement(string resourceName, string valueType, double time, bool stage)
+		public object ListElement(string resourceName, string valueType, bool stage)
 		{
 			if (!nameID.ContainsKey(resourceName))
 				return 0d;
@@ -73,7 +73,7 @@ namespace JSI
 					return stage ? data[nameID[resourceName]].stagemax : data[nameID[resourceName]].max;
 				case "PERCENT":
 					if (stage)
-						return  data[nameID[resourceName]].stagemax > 0 ? data[nameID[resourceName]].stage / data[nameID[resourceName]].stagemax : 0d;
+						return data[nameID[resourceName]].stagemax > 0 ? data[nameID[resourceName]].stage / data[nameID[resourceName]].stagemax : 0d;
 					return  data[nameID[resourceName]].max > 0 ? data[nameID[resourceName]].current / data[nameID[resourceName]].max : 0d;
 			}
 			return 0d;
