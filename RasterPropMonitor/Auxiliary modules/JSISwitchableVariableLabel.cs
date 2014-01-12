@@ -4,7 +4,6 @@ using System.Collections.Generic;
 
 namespace JSI
 {
-
 	public class JSISwitchableVariableLabel:InternalModule
 	{
 		[KSPField]
@@ -23,10 +22,8 @@ namespace JSI
 		public string coloredObject = string.Empty;
 		[KSPField]
 		public string colorName = "_EmissiveColor";
-
-		private List<VariableLabelSet> labelsEx = new List<VariableLabelSet>();
+		private readonly List<VariableLabelSet> labelsEx = new List<VariableLabelSet>();
 		private int activeLabel;
-
 		private const string fontName = "Arial";
 		private InternalText textObj;
 		private Transform textObjTransform;
@@ -53,9 +50,8 @@ namespace JSI
 
 					for (int i = 0; i < variableNodes.Length; i++) {
 						try {
-							labelsEx.Add(new VariableLabelSet(variableNodes[i], internalProp));
-						}
-						catch (ArgumentException e) {
+							labelsEx.Add(new VariableLabelSet(variableNodes[i]));
+						} catch (ArgumentException e) {
 							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
 						}
 					}
@@ -66,9 +62,8 @@ namespace JSI
 			// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
 			if (labelsEx.Count < 1 && moduleConfig != null) {
 				try {
-					labelsEx.Add(new VariableLabelSet(moduleConfig, internalProp));
-				}
-				catch (ArgumentException e) {
+					labelsEx.Add(new VariableLabelSet(moduleConfig));
+				} catch (ArgumentException e) {
 					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
 				}
 			}
@@ -125,7 +120,7 @@ namespace JSI
 			updateCountdown = 0;
 
 			if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-				CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
+			    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
 				audioOutput.audio.Play();
 			}
 		}
@@ -138,7 +133,7 @@ namespace JSI
 		public readonly Color color;
 		public readonly bool hasColor;
 
-		public VariableLabelSet(ConfigNode node, InternalProp thisProp)
+		public VariableLabelSet(ConfigNode node)
 		{
 			if (node.HasValue("labelText")) {
 				labelText = node.GetValue("labelText").Trim().UnMangleConfigText();
@@ -157,5 +152,4 @@ namespace JSI
 
 		}
 	}
-
 }
