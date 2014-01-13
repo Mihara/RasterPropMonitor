@@ -331,9 +331,14 @@ namespace JSI
 		// I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
 		public void Update()
 		{
-			if (HighLogic.LoadedSceneIsEditor)
-				// I think it can't be null. But for some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
-				vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$");
+			if (HighLogic.LoadedSceneIsEditor) {
+				// well, it looks sometimes it might become null..
+				if (EditorLogic.fetch.shipDescriptionField != null) {
+					// For some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
+					vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$");
+				} else
+					vesselDescription = string.Empty;
+			}
 		}
 
 		public override void OnUpdate()
