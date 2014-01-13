@@ -1,29 +1,4 @@
-# 0.14 milestone targets
-
-## Minor new features
-
-* Make EVA hatch module capable of animating internal and external hatches before kicking the kerbal out.
-* Teach JSISteerableCamera to accept a list of cameraTransforms and switch between them on keypress.
-* A variable to compute the mass of propellants only. Needs asking the engines which propellants do they want...
-* ...but if I can get the list of propellants for the currently active engines, I can get a reasonable dV-for-current-stage at least.
-
-## Major new features
-
-* API to plug extra modules into RPMC so that you could use variables siphoned out of MJ, FAR and other data producers that you otherwise can't. *(Global config blocks loaded through GameData like map vector points, calculator instantiates sub-part-modules when loaded, native variable processor returns some nonsense in case nothing was recognised upon which the results are fed through the chain of processors)*.
-* kOSTER ("Campfire") -- A full keyboard kOS terminal. Mostly waiting on the model now before starting.
-
-# 1.0 milestone targets
-
-* Debugging, debugging, debugging. It needs to be as idiot proof as it can possibly be.
-* If there are any breaking API changes that are still needed, they should be settled by then.
-
-# Confirmed features with no set target
-
-## Major new features
-
-* Make JSIActionGroupSwitch pluggable and plug MechJeb into it. (Most likely, a generic action handler interface like the regular RPM).
-
-# Potential features
+# Potential future features currently in research phase
 
 ## Minor new features
 
