@@ -65,6 +65,8 @@ namespace JSI
 					return data[nameID[resourceName]].density;
 				case "DELTA":
 					return data[nameID[resourceName]].delta;
+				case "DELTAINV":
+					return -data[nameID[resourceName]].delta;
 				case "MASS":
 					return data[nameID[resourceName]].density * (stage ? data[nameID[resourceName]].stage : data[nameID[resourceName]].current);
 				case "MAXMASS":
