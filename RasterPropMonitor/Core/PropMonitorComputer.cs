@@ -85,6 +85,7 @@ namespace JSI
 		private double moonEjectionAngle;
 		private double ejectionAltitude;
 		private double targetBodyDeltaV;
+		private ExternalVariableHandlers plugins;
 		// Local data fetching variables...
 		private int gearGroupNumber;
 		private int brakeGroupNumber;
@@ -234,6 +235,7 @@ namespace JSI
 		public void Start()
 		{
 			if (!HighLogic.LoadedSceneIsEditor) {
+
 				gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
 				brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
 				sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
@@ -259,6 +261,10 @@ namespace JSI
 
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+
+				// We instantiate plugins late.
+				plugins = new ExternalVariableHandlers(this);
+
 			}
 		}
 
@@ -1140,7 +1146,8 @@ namespace JSI
 			bool cacheable;
 			object returnValue;
 			try {
-				returnValue = VariableToObject(input, out cacheable);
+				if (!plugins.ProcessVariable(input, out returnValue, out cacheable))
+					returnValue = VariableToObject(input, out cacheable);
 			} catch (Exception e) {
 				JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
 				// Most of the variables are doubles...
