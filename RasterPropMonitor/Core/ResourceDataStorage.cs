@@ -33,10 +33,18 @@ namespace JSI
 				data[resource.Key].max = 0;
 				data[resource.Key].stage = 0;
 				data[resource.Key].stagemax = 0;
+				data[resource.Key].ispropellant = false;
 			}
 
 			if (time - lastcheck > secondsBetweenSamples) {
 				lastcheck = time;
+			}
+		}
+
+		public void MarkPropellant(Propellant propel)
+		{
+			foreach (PartResource resource in propel.connectedResources) {
+				data[resource.info.id].ispropellant = true;
 			}
 		}
 
@@ -51,6 +59,20 @@ namespace JSI
 			var result = names.ToArray();
 			Array.Sort(result);
 			return result;
+		}
+
+		public double PropellantMass(bool stage)
+		{
+			double mass = 0;
+			foreach (KeyValuePair<int,ResourceData> resource in data) {
+				if (resource.Value.ispropellant) {
+					if (stage)
+						mass += resource.Value.density * resource.Value.stage;
+					else
+						mass += resource.Value.density * resource.Value.current;
+				}
+			}
+			return mass;
 		}
 
 		public object ListElement(string resourceName, string valueType, bool stage)
@@ -102,6 +124,7 @@ namespace JSI
 			public double stagemax;
 			public double density;
 			public double delta;
+			public bool ispropellant;
 		}
 	}
 }

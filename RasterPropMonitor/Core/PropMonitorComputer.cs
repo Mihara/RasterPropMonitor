@@ -1008,7 +1008,14 @@ namespace JSI
 						double realIsp = GetRealIsp(pm);
 						if (realIsp > 0)
 							averageIspContribution += GetMaximumThrust(pm) / realIsp;
-					} 
+					}
+
+					if (thatEngineModule != null)
+						foreach (Propellant thatResource in thatEngineModule.propellants)
+							resources.MarkPropellant(thatResource);
+					if (thatEngineModuleFX != null)
+						foreach (Propellant thatResource in thatEngineModuleFX.propellants)
+							resources.MarkPropellant(thatResource);
 				}
 
 				foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>()) {
@@ -1364,6 +1371,17 @@ namespace JSI
 					return totalShipWetMass;
 				case "MASSRESOURCES":
 					return totalShipWetMass - totalShipDryMass;
+				case "MASSPROPELLANT":
+					return resources.PropellantMass(false);
+				case "MASSPROPELLANTSTAGE":
+					return resources.PropellantMass(true);
+
+			// The primitive delta V calculation.
+
+				case "DELTAV":
+					return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
+				case "DELTAVSTAGE":
+					return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
 
 			// Thrust and related
 				case "THRUST":
