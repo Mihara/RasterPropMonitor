@@ -243,7 +243,7 @@ namespace JSI
 					SetInternalLights(customGroupList[actionName]);
 					break;
 				case "plugin":
-					actionHandler(customGroupList[actionName]);
+					actionHandler((stateHandler != null) ? !stateHandler() : customGroupList[actionName]);
 					break;
 				case "stage":
 					Staging.ActivateNextStage();
