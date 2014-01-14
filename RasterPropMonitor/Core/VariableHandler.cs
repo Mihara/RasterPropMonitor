@@ -45,6 +45,7 @@ namespace JSI
 				public double defaultValue;
 				public string defaultString;
 				public bool cacheable;
+				public bool fallback;
 			};
 
 			private readonly Dictionary<string,VariableRecord> handledVariables = new Dictionary<string,VariableRecord>();
@@ -58,7 +59,9 @@ namespace JSI
 						result = handlerFunction(variable);
 						cacheable = handledVariables[variable].cacheable;
 					} else {
-						cacheable = true;
+						if (handledVariables[variable].fallback) {
+							return false;
+						}
 						result = string.IsNullOrEmpty(handledVariables[variable].defaultString) ? 
 						         (object)handledVariables[variable].defaultValue : handledVariables[variable].defaultString;
 					}
@@ -78,7 +81,11 @@ namespace JSI
 						if (double.TryParse(tokens[1], out defaultDouble)) {
 							record.defaultValue = defaultDouble;
 						} else {
-							record.defaultString = tokens[1];
+							if (tokens[1].Trim() == "fallback") {
+								record.fallback = true;
+							} else {
+								record.defaultString = tokens[1];
+							}
 						}
 					}
 					if (tokens.Length >= 3) {
