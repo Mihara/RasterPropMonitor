@@ -112,7 +112,7 @@ namespace JSI
 				colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
 			}
 
-			if (labelsEx[activeLabel].oneShot) {
+			if (labelsEx[activeLabel].hasText && labelsEx[activeLabel].oneShot) {
 				textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
 			}
 
@@ -129,6 +129,7 @@ namespace JSI
 	public class VariableLabelSet
 	{
 		public readonly string labelText;
+		public readonly bool hasText;
 		public readonly bool oneShot;
 		public readonly Color color;
 		public readonly bool hasColor;
@@ -137,11 +138,12 @@ namespace JSI
 		{
 			if (node.HasValue("labelText")) {
 				labelText = node.GetValue("labelText").Trim().UnMangleConfigText();
+				hasText = true;
+				oneShot = !labelText.Contains("$&$");
 			} else {
-				throw new ArgumentException("Missing variable name.");
+				hasText = false;
+				oneShot = true;
 			}
-
-			oneShot = !labelText.Contains("$&$");
 
 			if (node.HasValue("color")) {
 				color = ConfigNode.ParseColor32(node.GetValue("color").Trim());
