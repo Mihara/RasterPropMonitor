@@ -40,11 +40,7 @@ Not *yet*. While it is in the plans, there is the considerable question of how t
 
 ### How do I show remaining delta V?
 
-You can't. There is a strong technical reason, because otherwise I've been implementing everything including a kitchen sink whenever I could, and plan to continue doing so -- I'm still working on that sink.
-
-Calculating remaining dV is mathematically simple, but the actual problem is not so much calculating it, but determining the exact amount of fuel that your currently enabled engines have access to, depending on what counts as fuel this season. Paradoxically, even the stock resource tab has problems showing you resources remaining in the current stage. To show you dV per stage, MechJeb requires a separate module which does nothing but that, runs in a separate thread, and needs to be periodically polled until it can come up with results because otherwise it takes too long. Even MechJeb does not always get it right, although it comes up with better numbers than stock resource tab. Kerbal Engineer regularly gets confused by this or that obscure staging configuration, as well, so the problem is much more complicated than you'd think.
-
-I can import the whole chunk of code from MechJeb, though it is fairly big, but then I would end up with a module that is essentially a black box to me which I do not understand particularly well and can't fix when it breaks -- eventually it will -- or I can ask MechJeb for the values if MechJeb is installed and give you a very, very rough figure if it isn't. This is what I plan to do in a future version.
+Wait for version 0.14.
 
 ### How do I perform mathematical operations within a page? 
 
