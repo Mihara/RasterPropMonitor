@@ -87,6 +87,9 @@ namespace JSI
 			var handlerConfiguration = new ConfigNode("MODULE");
 			node.CopyTo(handlerConfiguration);
 			string moduleName = node.GetValue("name");
+			string stateMethod = string.Empty;
+			if (node.HasValue("stateMethod"))
+				stateMethod = node.GetValue("stateMethod");
 
 			InternalModule thatModule = null;
 			foreach (InternalModule potentialModule in ourSwitch.internalProp.internalModules)
@@ -102,13 +105,12 @@ namespace JSI
 			foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
 				if (m.Name == node.GetValue("actionMethod")) {
 					actionCall = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
-				} else if (m.Name == node.GetValue("stateMethod")) {
+				}
+				if (!string.IsNullOrEmpty(stateMethod) && m.Name == stateMethod) {
 					stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
 				}
 			}
-			if (actionCall != null && stateCall != null)
-				return true;
-			return false;
+			return actionCall != null;
 		}
 
 		public void Start()
@@ -154,7 +156,7 @@ namespace JSI
 					foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
 						if (node.GetValue("name") == internalProp.propName) {
 							foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
-								if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod") && pluginConfig.HasValue("stateMethod")) {
+								if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod")) {
 									if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
 										JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
 									} else {
