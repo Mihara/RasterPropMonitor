@@ -168,7 +168,7 @@ namespace JSI
 							}
 						}
 					}
-					if (actionHandler == null || stateHandler == null) {
+					if (actionHandler == null) {
 						actionName = "dummy";
 						JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
 					}
@@ -256,7 +256,7 @@ namespace JSI
 			// So there's no check for internal cameras.
 
 			bool state;
-			if (isPluginAction) {
+			if (isPluginAction && stateHandler != null) {
 				state = stateHandler();
 			} else if (isCustomAction) {
 				state = customGroupList[actionName];
