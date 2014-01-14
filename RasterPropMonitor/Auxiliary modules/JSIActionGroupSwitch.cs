@@ -134,9 +134,6 @@ namespace JSI
 					persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
 
 				persistence = new PersistenceAccessor(part);
-
-				oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
-
 			}
 
 			// set up the toggle switch
@@ -173,6 +170,14 @@ namespace JSI
 						JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
 					}
 					break;
+			}
+
+			if (isCustomAction) {
+				if (isPluginAction && stateHandler != null) {
+					oldState = stateHandler();
+				} else {
+					oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
+				}
 			}
 
 			if (!string.IsNullOrEmpty(animationName)) {
