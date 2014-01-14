@@ -12,15 +12,15 @@ namespace JSI
 		public ExternalVariableHandlers(RasterPropMonitorComputer ourComp)
 		{
 			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("RPMCVARIABLEHANDLER")) {
-				if (!node.HasValue("name") || !node.HasValue("method") || !node.HasValue("activeVariable")) {
+				if (!node.HasValue("name") || !node.HasValue("method")) {
 					JUtil.LogMessage(ourComp, "A variable handler configuration block is missing key items and was ignored.");
 				} else {
-					foreach (ConfigNode handlerBlock in node.GetNodes("RPMCVARIABLEHANDLER")) {
-						handlers.Add(new VariableHandler(handlerBlock, ourComp));
-					}
+					handlers.Add(new VariableHandler(node, ourComp));
 				}
 			}
-
+			foreach (VariableHandler thatHandler in handlers) {
+				JUtil.LogMessage(ourComp, "Variable handler {0} is known and {1:;;\"not\"} loaded.", thatHandler.handlerName, thatHandler.active);
+			}
 		}
 
 		public bool ProcessVariable(string variable, out object result, out bool cacheable)
@@ -28,7 +28,7 @@ namespace JSI
 			result = null;
 			cacheable = true;
 			foreach (VariableHandler handler in handlers) {
-				if (handler.ProcessVariable(variable, out result, out cacheable))
+				if (handler.ProcessVariable(variable, out result, out cacheable) && result != null)
 					return true;
 			}
 			return false;
@@ -36,12 +36,14 @@ namespace JSI
 
 		private class VariableHandler
 		{
-			private readonly bool active;
+			public readonly string handlerName;
+			public readonly bool active;
 			private readonly Func<string,object> handlerFunction;
 
 			private struct VariableRecord
 			{
 				public double defaultValue;
+				public string defaultString;
 				public bool cacheable;
 			};
 
@@ -56,8 +58,9 @@ namespace JSI
 						result = handlerFunction(variable);
 						cacheable = handledVariables[variable].cacheable;
 					} else {
-						result = handledVariables[variable].defaultValue;
 						cacheable = true;
+						result = string.IsNullOrEmpty(handledVariables[variable].defaultString) ? 
+						         (object)handledVariables[variable].defaultValue : handledVariables[variable].defaultString;
 					}
 					return true;
 				}
@@ -66,12 +69,17 @@ namespace JSI
 
 			public VariableHandler(ConfigNode node, RasterPropMonitorComputer ourComp)
 			{
-				string handlerName = node.GetValue("name");
+				handlerName = node.GetValue("name");
 				foreach (string variableRecord in node.GetValues("variable")) {
 					var record = new VariableRecord();
 					string[] tokens = variableRecord.Split(',');
 					if (tokens.Length >= 2) {
-						record.defaultValue = double.Parse(tokens[1]);
+						double defaultDouble;
+						if (double.TryParse(tokens[1], out defaultDouble)) {
+							record.defaultValue = defaultDouble;
+						} else {
+							record.defaultString = tokens[1];
+						}
 					}
 					if (tokens.Length >= 3) {
 						record.cacheable = bool.Parse(tokens[2]);
