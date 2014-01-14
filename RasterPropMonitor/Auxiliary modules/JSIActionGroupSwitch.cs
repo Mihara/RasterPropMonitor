@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Reflection;
 
 namespace JSI
 {
@@ -57,6 +58,7 @@ namespace JSI
 		private readonly Dictionary<string,bool> customGroupList = new Dictionary<string,bool> {
 			{ "intlight",false },
 			{ "dummy",false },
+			{ "plugin",false },
 		};
 		private int actionGroupID;
 		private KSPActionGroup actionGroup;
@@ -74,6 +76,40 @@ namespace JSI
 		private RasterPropMonitorComputer comp;
 		private bool startupComplete;
 		private Renderer colorShiftRenderer;
+		private Func<bool> stateHandler;
+		private Action<bool> actionHandler;
+		private bool isPluginAction;
+
+		private static bool InstantiateHandler(ConfigNode node, InternalModule ourSwitch, out Action<bool> actionCall, out Func<bool> stateCall)
+		{
+			actionCall = null;
+			stateCall = null;
+			var handlerConfiguration = new ConfigNode("MODULE");
+			node.CopyTo(handlerConfiguration);
+			string moduleName = node.GetValue("name");
+
+			InternalModule thatModule = null;
+			foreach (InternalModule potentialModule in ourSwitch.internalProp.internalModules)
+				if (potentialModule.ClassName == moduleName) {
+					thatModule = potentialModule;
+					break;
+				}
+
+			if (thatModule == null)
+				thatModule = ourSwitch.internalProp.AddModule(handlerConfiguration);
+			if (thatModule == null)
+				return false;
+			foreach (MethodInfo m in thatModule.GetType().GetMethods()) {
+				if (m.Name == node.GetValue("actionMethod")) {
+					actionCall = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
+				} else if (m.Name == node.GetValue("stateMethod")) {
+					stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
+				}
+			}
+			if (actionCall != null && stateCall != null)
+				return true;
+			return false;
+		}
 
 		public void Start()
 		{
@@ -116,6 +152,26 @@ namespace JSI
 						electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 					}
 					SetInternalLights(customGroupList[actionName]);
+					break;
+				case "plugin":
+					foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+						if (node.GetValue("name") == internalProp.propName) {
+							foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
+								if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod") && pluginConfig.HasValue("stateMethod")) {
+									if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
+										JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
+									} else {
+										isPluginAction = true;
+										break;
+									}
+								}
+							}
+						}
+					}
+					if (actionHandler == null || stateHandler == null) {
+						actionName = "dummy";
+						JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
+					}
 					break;
 			}
 
@@ -179,6 +235,9 @@ namespace JSI
 				case "intlight":
 					SetInternalLights(customGroupList[actionName]);
 					break;
+				case "plugin":
+					actionHandler(customGroupList[actionName]);
+					break;
 				case "stage":
 					Staging.ActivateNextStage();
 					break;
@@ -197,7 +256,13 @@ namespace JSI
 			// So there's no check for internal cameras.
 
 			bool state;
-			state = isCustomAction ? customGroupList[actionName] : FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
+			if (isPluginAction) {
+				state = stateHandler();
+			} else if (isCustomAction) {
+				state = customGroupList[actionName];
+			} else {
+				state = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
+			}
 
 			if (state != oldState) {
 				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
