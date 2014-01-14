@@ -7,7 +7,8 @@ namespace MechJebRPM
 	{
 		private MechJebCore activeJeb;
 
-		public object ProcessVariable(string variable) {
+		public object ProcessVariable(string variable)
+		{
 			activeJeb = vessel.GetMasterMechJeb();
 			switch (variable) {
 				case "MECHJEBAVAILABLE":
@@ -20,14 +21,14 @@ namespace MechJebRPM
 						stats.RequestUpdate(this);
 						return stats.vacStats.Sum(s => s.deltaV);
 					}
-					return 0;
+					return null;
 				case "DELTAVSTAGE":
 					if (activeJeb != null) {
 						MechJebModuleStageStats stats = activeJeb.GetComputerModule<MechJebModuleStageStats>();
 						stats.RequestUpdate(this);
 						return stats.vacStats[stats.vacStats.Length - 1].deltaV;
 					}
-					return 0;
+					return null;
 			}
 			return null;
 		}

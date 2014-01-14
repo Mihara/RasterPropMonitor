@@ -58,6 +58,8 @@ namespace JSI
 					if (active) {
 						result = handlerFunction(variable);
 						cacheable = handledVariables[variable].cacheable;
+						if (result == null)
+							return false;
 					} else {
 						if (handledVariables[variable].fallback) {
 							return false;
