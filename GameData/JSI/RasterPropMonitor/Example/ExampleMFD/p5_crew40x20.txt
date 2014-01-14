@@ -1,0 +1,13 @@
+"{0}" Crew roster: $&$ NAME
+{1:"Commander:"; ; }    {0}$&$CREW_0_FULL CREW_0_PRESENT
+{1:"Pilot:"; ; }        {0}$&$CREW_1_FULL CREW_1_PRESENT
+{1:"Medic:"; ; }        {0}$&$CREW_2_FULL CREW_2_PRESENT
+{1:"Engineer:"; ; }     {0}$&$CREW_3_FULL CREW_3_PRESENT
+{1:"Scientist:"; ; }    {0}$&$CREW_4_FULL CREW_4_PRESENT
+{1:"Crewman #2:"; ; }   {0}$&$CREW_5_FULL CREW_5_PRESENT
+{1:"Crewman #3:"; ; }   {0}$&$CREW_6_FULL CREW_6_PRESENT
+{1:"Crewman #4:"; ; }   {0}$&$CREW_7_FULL CREW_7_PRESENT
+{1:"Crewman #5:"; ; }   {0}$&$CREW_8_FULL CREW_8_PRESENT
+{1:"Crewman #6:"; ; }   {0}$&$CREW_9_FULL CREW_9_PRESENT
+{1:"Crewman #7:"; ; }   {0}$&$CREW_10_FULL CREW_10_PRESENT
+{1:"Crewman #8:"; ; }   {0}$&$CREW_11_FULL CREW_11_PRESENT

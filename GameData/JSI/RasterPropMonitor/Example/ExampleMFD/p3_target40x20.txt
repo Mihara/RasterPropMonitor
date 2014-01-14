@@ -1,0 +1,20 @@
+{1:"Target: ";"";""}{0}{1:;"Target: [#ffffff30]NO TARGET";""} $&$ TARGETNAME TARGETEXISTS
+{2:;"                                        ";""}Dist: {0:SIP_6.3}m   Vel: {1:SIP_6.3}m/s $&$ TARGETDISTANCE APPROACHSPEED TARGETEXISTS
+{3:;"                                        ";""}R.Ang X: {0,6:0.00}° Y:{1,6:0.00}° Z: {2,6:0.00}° $&$TARGETANGLEX TARGETANGLEY TARGETANGLEZ TARGETEXISTS
+{0:;;"    Please select a docking port as"} $&$ ISDOCKINGPORTREFERENCE
+{0:;;"       reference part in target"} $&$ ISDOCKINGPORTREFERENCE
+{0:;;"	         management menu."} $&$ ISDOCKINGPORTREFERENCE
+
+
+{0:;"                                                        ";""}                [#ffffff77][@x-{1:0.0}][@y-{1:0.0}]¢      [@x{1:0.0}][@y-{1:0.0}]¡ $&$ TARGETEXISTS TARGETANGLEDEV
+
+   
+{0:;"                                                        ";""}                [#ffffff77][@x-{1:0.0}][@y{1:0.0}]¤      [@x{1:0.0}][@y{1:0.0}]£ $&$ TARGETEXISTS TARGETANGLEDEV
+
+
+{0:;"                                                    ";""} R.Velocity                 R.Distance $&$ TARGETEXISTS   
+{2:;"                                        ";""} X:{0:SIP_8.3}m/s              X:{1:SIP_6.3}m $&$TGTRELX TARGETDISTANCEX TARGETEXISTS
+{2:;"                                        ";""} Y:{0:SIP_8.3}m/s              Y:{1:SIP_6.3}m $&$TGTRELY TARGETDISTANCEY TARGETEXISTS
+{2:;"                                        ";""} Z:{0:SIP_8.3}m/s              Z:{1:SIP_6.3}m $&$TGTRELZ TARGETDISTANCEZ TARGETEXISTS
+________________________________________
+SAS:{0,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| RCS:{1,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| {2:####.##;;"[#ff0000ff]!Empty!"}$&$ SAS RCS MONOPROP

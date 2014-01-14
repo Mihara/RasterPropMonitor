@@ -1,0 +1,18 @@
+﻿
+[@x38][@y20]This page intentionally left blank
+
+
+Testing character generation system...
+µ is mu. Δ is delta. ☊ is DN, ☋ is AN
+
+☊¡¢£¤¥¦§¨©ª«¬☋®¯ 
+°±²³´µ¶·¸¹º»¼½¾¿ 
+
+The system is also capable of[sup]superscript[/sup]
+as well as[sub]subscript[/sub].
+Also [hw]halfwidth[/hw] [dw]and double.[/dw]
+and [hw][sup]both sub/superscript and width at once[/hw][/sup]
+
+And [font1]multiple different fonts at once.[font0]
+
+Remember: All pages are user-editable!

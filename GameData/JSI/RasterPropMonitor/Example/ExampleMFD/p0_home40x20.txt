@@ -1,0 +1,20 @@
+    ATT   GRAPH  SELECT  SMART         
+                  TRGT   
+-ASC/DES                             Up-
+ (MAP)                           (Prev)
+
+                                   Down
+-ORBIT                           (Next)-
+           Junk Systems Inc.
+              Advanced 
+               Flight            Select
+-TARGET      Instruments      (Execute)-
+
+
+-INFO                              Back-
+
+
+ CREW
+-LOG                             Switch-
+           EXT                   [sub]TEST[/sub]
+   RSRC   CAMERA                 STBY

@@ -1,0 +1,20 @@
+[@y5] {0:SIP_6.1}m                       {1:SIP4}m/s    $&$ ALTITUDE SURFSPEED
+
+                [@x2]{0,6:000.0}° $&$ HEADING
+ {0:SIP_6.1}m                      {1:SIP4}m/s     $&$ ORBTSPEED ACCEL
+
+  {0:ORB;TGT;SRF}                                  $&$ SPEEDDISPLAYMODE 
+
+ [@x-3]{0,6:000.0}°                        [@x2]{1,6:000.0}° $&$ ROLL PITCH
+
+
+
+
+ 
+
+{0:;"                                                       ";""} Burn T:$&$ MNODEEXISTS
+{0:;"                                                       ";""} {1:KDTS.f}s $&$ MNODEEXISTS MNODEBURNTIMESECS
+{0:;"                                                       ";""} Node in T                       ΔV $&$ MNODEEXISTS
+{2:;"                                                       ";}{0,17:KDT+yy:ddd:hh:mm:ss.f}          {1:SIP_6.3}m/s     $&$ MNODETIMESECS MNODEDV MNODEEXISTS
+
+  {0:SIP_6.3}m       {1:SIP_6.3}m/s    {2:SIP_6.3}m/s      $&$RADARALT HORZVELOCITY VERTSPEED 

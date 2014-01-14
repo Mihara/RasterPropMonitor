@@ -1,0 +1,7 @@
+----Orbit: {1,-15} Stage {0:00}---- $&$STAGE ORBITBODY 
+Vel: {0:SIP_10.1}m/s  Alt: {1:SIP_8.3}m  $&$ORBTSPEED ALTITUDE
+ApA:   {0:SIP_6.1}m   INC:  {1,7:0.000}° $&$APOAPSIS INCLINATION
+ PeA:  {0:SIP_6.1}m   ECC:  {1,7:0.000} $&$PERIAPSIS ECCENTRICITY
+ ApT: {0:KDTyy:ddd:hh:mm:ss.f}  $&$TIMETOAPSECS
+ PeT:{0:KDT-yy:ddd:hh:mm:ss.f}  $&$TIMETOPESECS
+  OP: {0:KDTyy:ddd:hh:mm:ss.f}$&$ORBPERIODSECS

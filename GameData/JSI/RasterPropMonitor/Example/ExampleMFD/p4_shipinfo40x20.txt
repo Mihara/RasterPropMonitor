@@ -1,0 +1,20 @@
+﻿------"{0}" INFO--------------$&$ NAME
+Body: {0}  Status: {1} $&$ORBITBODY SITUATION
+
+Commander: {0}$&$CREW_0_FULL
+
+UT : {0:KDTyy:ddd:hh:mm:ss.f} $&$ UTSECS
+MET: {0:KDTyy:ddd:hh:mm:ss.f} $&$ METSECS
+
+Lat: {0:000.00000"°N";000.00000"°S"}  Lon:{1:000.00000"°E";000.00000"°W"}$&$LATITUDE LONGITUDE
+Mass(W):  {1,5:0.00}t  Mass(D): {0,4:0.00}t   $&$MASSWET MASSDRY
+G: {0,4:0.00} ACCL: {1,4:0.00}/{2,4:0.00} $&$GFORCE ACCEL MAXACCEL
+Isp: {0:0.0}s $&$ REALISP
+
+Stage: {0}. Temperature: {1:0.0}°C $&$ STAGE PODTEMPERATURE 
+{0:Atmosphere depth: 00.0%;;} $&$ ATMOSPHEREDEPTH
+Biome:
+{0} $&$ BIOMENAME
+Science: {0:0.0} Mits $&$SCIENCEDATA
+
+SAS:{0,-6:"[#00ff00ff]Active[#ffffffff]";0;Off} LIGHT:{1,-3:"[#00ff00ff]On [#ffffffff]";0;Off}    L.LEG:{2,-8:"[#00ff00ff]Deployed";0;Retracted} $&$SAS LIGHTS GEAR

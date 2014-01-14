@@ -1,0 +1,20 @@
+   Asc/Des Mode     Body: {0} $&$ ORBITBODY
+R.Alt [#00ffffff]{0:SIP_6.3}m            [#ffffffff]Roll: [#00ffffff]{1,7:0.00}° $&$RADARALT ROLL
+V.Spd [#00ffffff]{0:SIP_6.3}m/s          [#ffffffff]Pitch:[#00ffffff]{1,7:0.00}° $&$VERTSPEED PITCH
+H.Spd [#00ffffff]{0:SIP_6.3}m/s          [#ffffffff]Hdg:  [#00ffffff]{1,7:0.00}° $&$HORZVELOCITY HEADING
+TWR:[#00ffffff]{0,4:0.00}[#ffffffff]/[#0099ffff]{1,4:0.0}       [#ffffffff]Thr:[#00ffffff]{2,6:0.00}[#ffffffff]/[#0099ffff]{3,6:0.0}kN $&$TWR TWRMAX THRUST THRUSTMAX
+
+
+
+
+
+
+
+
+
+
+{0:"                 Slope: "0.0°;                                        } $&$ SLOPEANGLE
+  [#ffffff70]Lat:[#ffffffff]{0:DMSdd+mm+ss+N}      [#ffffff70]Lon:[#ffffffff]{1:DMSdd+mm+ss+E}$&$LATITUDE LONGITUDE
+{2:;"                                        ";""}[#ffffff70]T.Lat:[#ffffffff]{0:DMSdd+mm+ss+N}    [#ffffff70]T.Lon:[#ffffffff]{1:DMSdd+mm+ss+E}$&$LATITUDETGT LONGITUDETGT TARGETEXISTS
+{1:"Ascent                                   ";"[#ff9999ff]!Descent![#ffffffff] ";""}  {0:;                                      }Est. {0:KDTMM:ss.f}s $&$TIMETOIMPACTSECS VERTSPEEDROUNDED
+SAS:{0,-3:"[#00ff00ff]On [#ffffffff]";0;Off}| RCS:{1,-3:"[#00ff00ff]On [#ffffffff]";0;Off}/{2:####.##;;"[#ff0000ff]!Empty![#ffffffff]"}| LF:{3:#####.##;;"[#ff0000ff]!Empty!"}$&$ SAS RCS MONOPROP FUEL

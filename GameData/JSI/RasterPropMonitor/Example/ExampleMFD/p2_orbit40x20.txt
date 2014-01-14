@@ -1,0 +1,20 @@
+----Orbit: {1,-15} Stage {0:00}---- $&$STAGE ORBITBODY 
+Vel: {0:SIP_10.1}m/s  Alt: {1:SIP_8.3}m  $&$ORBTSPEED ALTITUDE
+------Node in T-----------ΔV:---THROTTLE---------------------------
+{0,17:KDT+yy:ddd:hh:mm:ss.f}  |{1,9:0.00} |   {2,5:P0} $&$ MNODETIMESECS MNODEDV THROTTLE
+----------------------------------------------
+ ApA:  {0:SIP_6.1}m   INC:  {1,7:0.000}° $&$APOAPSIS INCLINATION
+ PeA:  {0:SIP_6.1}m   ECC:  {1,7:0.000} $&$PERIAPSIS ECCENTRICITY
+ ApT: {0:KDTyy:ddd:hh:mm:ss.f}  $&$TIMETOAPSECS
+ PeT:{0:KDT-yy:ddd:hh:mm:ss.f}  $&$TIMETOPESECS
+  OP: {0:KDTyy:ddd:hh:mm:ss.f}$&$ORBPERIODSECS
+
+{1:"Target: ";"";""}{0}{1:;"                                          ";""} $&$ TARGETNAME TARGETEXISTS
+{1:;"                                        ";""}Relative inclination: {0:0.000}° $&$RELATIVEINCLINATION TARGETEXISTS
+{1:;"                                        ";""}To ☋:  {0:KDT-yy:ddd:hh:mm:ss.f} $&$ TIMETOANWITHTARGETSECS TARGETEXISTS
+{1:;"                                        ";""}To ☊:  {0:KDT-yy:ddd:hh:mm:ss.f} $&$ TIMETODNWITHTARGETSECS TARGETEXISTS
+{1:;"                                        ";""}T. OP:  {0:KDTyy:ddd:hh:mm:ss.f} $&$ TARGETORBPERIODSECS TARGETEXISTS
+{1:;"                                        ";""}Time to AP:  {0:KDTyy:ddd:hh:mm:ss.f} $&$ TARGETTIMETOAPSECS TARGETEXISTS
+{1:;"                                        ";""}Time to PE: {0:KDT-yy:ddd:hh:mm:ss.f} $&$ TARGETTIMETOPESECS TARGETEXISTS
+{0:;"                                        ";""}Target AP: {1:SIP_8}m  PE: {2:SIP_8}m$&$ TARGETEXISTS TARGETAPOAPSIS TARGETPERIAPSIS
+{0:;"                                        ";""}      ECC: {1:0.000}     Vel: {2:SIP_8}m/s$&$ TARGETEXISTS TARGETECCENTRICITY TARGETORBITALVEL

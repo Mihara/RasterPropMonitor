@@ -1,0 +1,20 @@
+Resources:
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_0_NAME LISTR_0_VAL LISTR_0_MAX LISTR_0_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_1_NAME LISTR_1_VAL LISTR_1_MAX LISTR_1_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_2_NAME LISTR_2_VAL LISTR_2_MAX LISTR_2_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_3_NAME LISTR_3_VAL LISTR_3_MAX LISTR_3_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_4_NAME LISTR_4_VAL LISTR_4_MAX LISTR_4_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_5_NAME LISTR_5_VAL LISTR_5_MAX LISTR_5_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_6_NAME LISTR_6_VAL LISTR_6_MAX LISTR_6_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_7_NAME LISTR_7_VAL LISTR_7_MAX LISTR_7_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_8_NAME LISTR_8_VAL LISTR_8_MAX LISTR_8_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_9_NAME LISTR_9_VAL LISTR_9_MAX LISTR_9_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_10_NAME LISTR_10_VAL LISTR_10_MAX LISTR_10_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_11_NAME LISTR_11_VAL LISTR_11_MAX LISTR_11_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_12_NAME LISTR_12_VAL LISTR_12_MAX LISTR_12_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_13_NAME LISTR_13_VAL LISTR_13_MAX LISTR_13_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_14_NAME LISTR_14_VAL LISTR_14_MAX LISTR_14_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_15_NAME LISTR_15_VAL LISTR_15_MAX LISTR_15_PERCENT
+{0,14}{2:\:;;}{1,8:0.0/;;}{2,-8:0.00;;}{2:;;                 }{3,8:"("00.0%")"}$&$LISTR_16_NAME LISTR_16_VAL LISTR_16_MAX LISTR_16_PERCENT
+
+Total mass:{0,9:0.000} t.              $&$MASSRESOURCES
