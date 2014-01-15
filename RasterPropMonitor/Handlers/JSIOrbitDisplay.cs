@@ -424,7 +424,7 @@ namespace JSI
 				orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
 			}
 
-			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			iconMaterial = new Material(Shader.Find("Hidden/Internal-GUITexture"));
 			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 
 			startupComplete = true;

@@ -290,10 +290,7 @@ namespace JSI
 		{
 			backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
-			// MOARdV: Not sure this is the right one to use - I see some
-			// lighting artifacts, like interior lights are affecting the
-			// stuff I'm rendering.
-			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
+			Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
 			ladderMaterial = new Material(unlit);
 			ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 			if (!String.IsNullOrEmpty(horizonTexture)) {
