@@ -10,6 +10,10 @@ It's sort of an approximation of how actual MFDs work, though they typically use
 
 Make sure that there is only one RasterPropMonitor.dll and that it is located at GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll -- several earlier third-party capsules distributed old versions incorrectly. They *will* fail to work in 0.23.
 
+### I get lots of exclamation signs and gibberish all over my screens!
+
+Update Active Texture Management to latest version and remember, for the future, that not all textures can be safely resized -- with any capsule that uses RasterPropMonitor, the problem may recur if you don't manage your Active Texture Management settings intelligently. "Aggressive" settings are called that for a reason.
+
 ### RasterPropMonitor is very heavy on the framerate.
 
 To my knowledge it isn't -- I started developing it on a machine that is well over five years old and was very conscious of the framerate the whole time. But it might be a problem I have yet to bump into, and if you help me, I can probably fix it.
