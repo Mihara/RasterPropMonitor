@@ -98,8 +98,8 @@ namespace JSI
 			}
 
 			// Draw the camera's view, if configured.
-			if (cameraObject != null && !cameraObject.Render()) {
-				return false;
+			if (cameraObject != null) {
+				cameraObject.Render();
 			}
 
 			// Figure out the texture coordinate scaling for the ladder.
