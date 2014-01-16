@@ -30,6 +30,41 @@ namespace MechJebRPM
 			MechJebModuleManeuverPlanner mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
 			return mp != null && activeJeb.node.enabled;
 		}
+
+		public void ButtonAscentGuidance(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleAscentAutopilot ap = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
+			if (ap == null) {
+				return;
+			}
+
+			if (state) {
+				ap.users.Add(this);
+			} else {
+				ap.users.Remove(this);
+			}
+		}
+
+		public bool ButtonAscentGuidanceState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			MechJebModuleAscentAutopilot ap = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
+			if (ap == null) {
+				return false;
+			}
+
+			return ap.enabled;
+		}
+
 		// All the other buttons are pretty much identical and just use different enum values.
 		// Off button
 		// Analysis disable once UnusedParameter
