@@ -306,8 +306,8 @@ namespace JSI
 			markerTargetMinus = BuildMarker(2, 2, targetColorValue);
 			markerNormal = BuildMarker(0, 0, normalColorValue);
 			markerNormalMinus = BuildMarker(1, 0, normalColorValue);
-			markerRadial = BuildMarker(0, 1, radialColorValue);
-			markerRadialMinus = BuildMarker(1, 1, radialColorValue);
+			markerRadial = BuildMarker(1, 1, radialColorValue);
+			markerRadialMinus = BuildMarker(0, 1, radialColorValue);
 
 			markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
 
