@@ -74,8 +74,8 @@ namespace JSI
 
 		private static void DrawOrbit(Orbit o, double startUT, double endUT, Matrix4x4 screenTransform, int numSegments)
 		{
-			float dT = (float)(endUT - startUT) / (float)numSegments;
-			float t = (float)startUT;
+			double dT = (endUT - startUT) / (double)numSegments;
+			double t = startUT;
 
 			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
 			for (int i = 0; i < numSegments; ++i) {
