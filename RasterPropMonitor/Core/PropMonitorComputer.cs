@@ -1597,6 +1597,12 @@ namespace JSI
 					if (target is ModuleDockingNode)
 						return 1d;
 					return 0d;
+				case "TARGETISVESSELORPORT":
+					if (target == null)
+						return -1d;
+					if (target is ModuleDockingNode || target is Vessel)
+						return 1d;
+					return 0d;
 				case "TARGETISCELESTIAL":
 					if (target == null)
 						return -1d;

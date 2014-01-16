@@ -424,7 +424,8 @@ namespace JSI
 				orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
 			}
 
-			iconMaterial = new Material(Shader.Find("Hidden/Internal-GUITexture"));
+			// This mess with shaders has to stop. Maybe we should have a single shader to draw EVERYTHING on the screen...
+			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
 			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 
 			startupComplete = true;

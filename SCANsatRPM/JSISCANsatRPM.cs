@@ -112,7 +112,6 @@ namespace SCANsatRPM
 		private bool satFound;
 		private bool startupComplete;
 
-
 		private bool TestForActiveSCANsat()
 		{
 			if (satFound)
@@ -544,6 +543,9 @@ namespace SCANsatRPM
 		private bool UpdateCheck()
 		{
 			if (map == null)
+				return false;
+			// Do not flush map when timewarping.
+			if (TimeWarp.WarpMode == TimeWarp.Modes.HIGH && TimeWarp.CurrentRateIndex != 0)
 				return false;
 			if (Math.Abs(vessel.longitude - mapCenterLong) > redrawDeviation)
 				return true;
