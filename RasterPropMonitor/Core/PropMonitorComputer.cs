@@ -1048,7 +1048,10 @@ namespace JSI
 			// The sneaky bit: This way we can get at their panic and whee values!
 			vesselCrewMedical = new kerbalExpressionSystem[vesselCrew.Length];
 			for (int i = 0; i < vesselCrew.Length; i++) {
-				vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+				if (vesselCrew[i].KerbalRef != null) {
+					vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+				} else
+					vesselCrewMedical[i] = null;
 			}
 
 			// Part-local list is assembled somewhat differently.
@@ -1194,9 +1197,9 @@ namespace JSI
 				case "BADASS":
 					return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
 				case "PANIC":
-					return valid ? crewMedical[seatID].panicLevel : -1d;
+					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
 				case "WHEE":
-					return valid ? crewMedical[seatID].wheeLevel : -1d;
+					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
 				default:
 					return "???!";
 			}
