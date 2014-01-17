@@ -60,6 +60,12 @@ namespace SCANsatRPM
 		public string iconColorPE = string.Empty;
 		private Color iconColorPEValue = new Color(1f, 0f, 0f, 0.5f);
 		[KSPField]
+		public string iconColorNode = string.Empty;
+		private Color iconColorNodeValue = XKCDColors.Aqua;
+		[KSPField]
+		public string iconColorANDN = string.Empty;
+		private Color iconColorANDNValue = XKCDColors.Mauve;
+		[KSPField]
 		public string trailColor = string.Empty;
 		private Color trailColorValue = new Color(0f, 0f, 1f, 0.6f);
 		[KSPField]
@@ -170,7 +176,7 @@ namespace SCANsatRPM
 			if (showLines)
 				foreach (MapMarkupLine vectorLine in mapMarkup) {
 					if (vectorLine.body == orbitingBody && vectorLine.points.Count > 0) {
-						DrawTrail(vectorLine.points, vectorLine.color, Vector2d.zero, false);
+						DrawTrail(vectorLine.points, vectorLine.color, Vector2d.zero);
 					}
 				}
 
@@ -187,20 +193,49 @@ namespace SCANsatRPM
 			}
 			// Target orbit and targets go above anomalies
 			if (targetVessel != null && targetVessel.mainBody == orbitingBody) {
-				if (showLines && JUtil.OrbitMakesSense(targetVessel))
-					DrawOrbit(targetVessel, iconColorTargetValue);
+				if (showLines && JUtil.OrbitMakesSense(targetVessel)) {
+					DrawOrbit(targetVessel, targetVessel.orbit, start, iconColorTargetValue);
+					// Connect our orbit and the target orbit with a line at the point of closest approach...
+					if (JUtil.OrbitMakesSense(vessel)) {
+						double closestApproachMoment = vessel.orbit.NextClosestApproachTime(targetVessel.orbit, start);
+						Vector2d targetCoord, vesselCoord;
+						bool targetCollision, vesselCollision;
+						// Analysis disable once CompareOfFloatsByEqualityOperator
+						if (closestApproachMoment != start &&
+						    GetPositionAtT(targetVessel, targetVessel.orbit, start, closestApproachMoment, out targetCoord, out targetCollision) && !targetCollision &&
+						    GetPositionAtT(vessel, targetVessel.orbit, start, closestApproachMoment, out vesselCoord, out vesselCollision) && !vesselCollision) {
+							var endpoints = new List<Vector2d>();
+							endpoints.Add(targetCoord);
+							endpoints.Add(vesselCoord);
+							DrawTrail(endpoints, iconColorTargetValue, Vector2d.zero);
+						}
+					}
+				}
 				DrawIcon(targetVessel.longitude, targetVessel.latitude, targetVessel.vesselType, iconColorTargetValue);
 				if (showLines) {
-					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.AP, iconColorAPValue);
-					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.PE, iconColorPEValue);
+					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.AP, iconColorTargetValue);
+					DrawOrbitIcon(targetVessel, MapIcons.OtherIcon.PE, iconColorTargetValue);
 				}
+
 
 			}
 			// Own orbit goes above that.
 			if (showLines && JUtil.OrbitMakesSense(vessel)) {
-				DrawOrbit(vessel, iconColorSelfValue);
+				DrawOrbit(vessel, vessel.orbit, start, iconColorSelfValue);
 				DrawOrbitIcon(vessel, MapIcons.OtherIcon.AP, iconColorAPValue);
 				DrawOrbitIcon(vessel, MapIcons.OtherIcon.PE, iconColorPEValue);
+				if (targetVessel != null && JUtil.OrbitMakesSense(targetVessel)) {
+					if (vessel.orbit.AscendingNodeExists(targetVessel.orbit))
+						DrawOrbitIcon(vessel, MapIcons.OtherIcon.AN, iconColorANDNValue, vessel.orbit.TimeOfAscendingNode(targetVessel.orbit, start));
+					if (vessel.orbit.DescendingNodeExists(targetVessel.orbit))
+						DrawOrbitIcon(vessel, MapIcons.OtherIcon.DN, iconColorANDNValue, vessel.orbit.TimeOfDescendingNode(targetVessel.orbit, start));
+				}
+				// And the maneuver node and post-maneuver orbit: 
+				ManeuverNode node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+				if (node != null) {
+					DrawOrbit(vessel, node.nextPatch, node.UT, iconColorNodeValue);
+					DrawOrbitIcon(vessel, MapIcons.OtherIcon.NODE, iconColorNodeValue, node.UT);
+				}
 			}
 			// Own icon goes above that
 			DrawIcon(vessel.longitude, vessel.latitude, vessel.vesselType, iconColorSelfValue);
@@ -212,7 +247,7 @@ namespace SCANsatRPM
 			return true;
 		}
 
-		private void DrawOrbitIcon(Vessel thatVessel, MapIcons.OtherIcon iconType, Color iconColor)
+		private void DrawOrbitIcon(Vessel thatVessel, MapIcons.OtherIcon iconType, Color iconColor, double givenPoint = 0)
 		{
 			double timePoint = start;
 			switch (iconType) {
@@ -222,29 +257,34 @@ namespace SCANsatRPM
 				case MapIcons.OtherIcon.PE:
 					timePoint += thatVessel.orbit.timeToPe;
 					break;
+				case MapIcons.OtherIcon.AN:
+				case MapIcons.OtherIcon.DN:
+				case MapIcons.OtherIcon.NODE:
+					timePoint = givenPoint;
+					break;
 			}
 
 			if (JUtil.OrbitMakesSense(thatVessel)) {
 				bool collision;
 				Vector2d coord;
-				if (GetPositionAtT(thatVessel, start, timePoint, out coord, out collision) && !collision) {
+				if (GetPositionAtT(thatVessel, thatVessel.orbit, start, timePoint, out coord, out collision) && !collision) {
 					DrawIcon(coord.x, coord.y, thatVessel.vesselType, iconColor, iconType);
 				}
 			}
 		}
 
-		private static bool GetPositionAtT(Vessel thatVessel, double initial, double timePoint, out Vector2d coordinates, out bool collision)
+		private static bool GetPositionAtT(Vessel thatVessel, Orbit thatOrbit, double initial, double timePoint, out Vector2d coordinates, out bool collision)
 		{
 			coordinates = Vector2d.zero;
 			collision = false;
-			if (double.IsNaN(thatVessel.orbit.getObtAtUT(initial + timePoint)))
+			if (double.IsNaN(thatOrbit.getObtAtUT(initial + timePoint)))
 				return false;
 			double rotOffset = 0;
 			if (thatVessel.mainBody.rotates) {
 				rotOffset = (360 * ((timePoint - initial) / thatVessel.mainBody.rotationPeriod)) % 360;
 			}
-			Vector3d pos = thatVessel.orbit.getPositionAtUT(timePoint);
-			if (thatVessel.orbit.Radius(timePoint) < thatVessel.mainBody.Radius + thatVessel.mainBody.TerrainAltitude(pos)) {
+			Vector3d pos = thatOrbit.getPositionAtUT(timePoint);
+			if (thatOrbit.Radius(timePoint) < thatVessel.mainBody.Radius + thatVessel.mainBody.TerrainAltitude(pos)) {
 				collision = true;
 				return false;
 			}
@@ -252,24 +292,24 @@ namespace SCANsatRPM
 			return true;
 		}
 
-		private void DrawOrbit(Vessel thatVessel, Color32 thatColor)
+		private void DrawOrbit(Vessel thatVessel, Orbit thatOrbit, double startMoment, Color32 thatColor)
 		{
 			if (orbitPoints == 0)
 				return;
-			double dTstep = Math.Floor(thatVessel.orbit.period / orbitPoints);
+			double dTstep = Math.Floor(thatOrbit.period / orbitPoints);
 			var points = new List<Vector2d>();
-			for (double timePoint = start; timePoint < (start + thatVessel.orbit.period); timePoint += dTstep) {
+			for (double timePoint = startMoment; timePoint < (startMoment + thatOrbit.period); timePoint += dTstep) {
 				bool collision;
 				Vector2d coord;
-				if (GetPositionAtT(thatVessel, start, timePoint, out coord, out collision))
+				if (GetPositionAtT(thatVessel, thatOrbit, startMoment, timePoint, out coord, out collision))
 					points.Add(coord);
 				if (collision)
 					break;
 			}
-			DrawTrail(points, thatColor, Vector2d.zero, false);
+			DrawTrail(points, thatColor, Vector2d.zero);
 		}
 
-		private void DrawTrail(List<Vector2d> points, Color32 lineColor, Vector2d endPoint, bool hasEndpoint)
+		private void DrawTrail(IList<Vector2d> points, Color32 lineColor, Vector2d endPoint, bool hasEndpoint = false)
 		{
 			if (points.Count < 2)
 				return;
@@ -585,6 +625,10 @@ namespace SCANsatRPM
 				iconColorAPValue = ConfigNode.ParseColor32(iconColorAP);
 			if (!string.IsNullOrEmpty(iconColorPE))
 				iconColorPEValue = ConfigNode.ParseColor32(iconColorPE);
+			if (!string.IsNullOrEmpty(iconColorANDN))
+				iconColorANDNValue = ConfigNode.ParseColor32(iconColorANDN);
+			if (!string.IsNullOrEmpty(iconColorNode))
+				iconColorNodeValue = ConfigNode.ParseColor32(iconColorNode);
 			if (!string.IsNullOrEmpty(trailColor))
 				trailColorValue = ConfigNode.ParseColor32(trailColor);
 
