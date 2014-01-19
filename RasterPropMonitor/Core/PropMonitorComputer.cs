@@ -82,6 +82,7 @@ namespace JSI
 		private double ejectionAngle;
 		private double timeToEjectionAngle;
 		private double targetClosestApproach;
+		private double targetTimeAtClosestApproach;
 		private double moonEjectionAngle;
 		private double ejectionAltitude;
 		private double targetBodyDeltaV;
@@ -427,9 +428,17 @@ namespace JSI
 					timeToEjectionAngle = -1.0;
 				}
 
-				// MOARdV TODO: Make this not rely on CelestialBody
-				targetClosestApproach = -1.0;
-				// targetClosestApproach = GetClosestApproach(targetBody);
+				if (targetBody != null) {
+					targetClosestApproach = GetClosestApproach(targetBody, out targetTimeAtClosestApproach);
+				} else if (targetDockingNode != null) {
+					targetClosestApproach = GetClosestApproach(targetDockingNode.GetVessel().GetOrbit(), out targetTimeAtClosestApproach);
+
+				} else {
+					if (targetVessel == null) {
+						throw new ArgumentNullException("RasterPropMonitorComputer: Updating closest approach, but all appropriate targets are null");
+					}
+					targetClosestApproach = GetClosestApproach(targetOrbit, out targetTimeAtClosestApproach);
+				}
 			} else {
 				// We ain't targetin' nothin'...
 				phaseAngle = -1.0;
@@ -437,6 +446,7 @@ namespace JSI
 				ejectionAngle = -1.0;
 				timeToEjectionAngle = -1.0;
 				targetClosestApproach = -1.0;
+				targetTimeAtClosestApproach = -1.0;
 				moonEjectionAngle = -1.0;
 				ejectionAltitude = -1.0;
 				targetBodyDeltaV = -1.0;
@@ -784,35 +794,66 @@ namespace JSI
 			return vessel.orbit;
 		}
 
-		private double GetClosestApproach(CelestialBody targetCelestial)
+		private Orbit GetClosestOrbit(Orbit targetOrbit)
+		{
+			Orbit checkorbit = vessel.orbit;
+			int orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == targetOrbit.referenceBody) {
+					return checkorbit;
+				}
+
+			}
+
+			return vessel.orbit;
+		}
+
+		// Revised:
+		private double GetClosestApproach(CelestialBody targetCelestial, out double timeAtClosestApproach)
 		{
 			Orbit closestorbit = GetClosestOrbit(targetCelestial);
 			if (closestorbit.referenceBody == targetCelestial) {
+				timeAtClosestApproach =  (targetOrbit.eccentricity < 1.0) ?
+					closestorbit.timeToPe :
+					-closestorbit.meanAnomaly / (2 * Math.PI / closestorbit.period);
 				return closestorbit.PeA;
 			}
 			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
-				return MinTargetDistance(targetCelestial, closestorbit.StartUT, closestorbit.period / 10, closestorbit) - targetCelestial.Radius;
+				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
 			}
-			return MinTargetDistance(targetCelestial, Planetarium.GetUniversalTime(), closestorbit.period / 10, closestorbit) - targetCelestial.Radius;
+			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
 		}
 
-		private static double MinTargetDistance(CelestialBody target, double time, double dt, Orbit vesselorbit)
+		private double GetClosestApproach(Orbit targetOrbit, out double timeAtClosestApproach)
+		{
+			Orbit closestorbit = GetClosestOrbit(targetOrbit);
+
+			return MinTargetDistance(closestorbit, targetOrbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach);
+		}
+
+		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double time, double dt, out double timeAtClosestApproach)
 		{
 			var dist_at_int = new double[11];
 			for (int i = 0; i <= 10; i++) {
 				double step = time + i * dt;
-				dist_at_int[i] = (target.getPositionAtUT(step) - vesselorbit.getPositionAtUT(step)).magnitude;
+				dist_at_int[i] = (targetOrbit.getPositionAtUT(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
 			}
 			double mindist = dist_at_int.Min();
 			double maxdist = dist_at_int.Max();
 			int minindex = Array.IndexOf(dist_at_int, mindist);
 
 			if ((maxdist - mindist) / maxdist >= 0.00001) {
-				mindist = MinTargetDistance(target, time + ((minindex - 1) * dt), dt / 5, vesselorbit);
+				mindist = MinTargetDistance(vesselOrbit, targetOrbit, time + ((minindex - 1) * dt), dt / 5, out timeAtClosestApproach);
 			}
+
+			timeAtClosestApproach = time + minindex * dt;
 
 			return mindist;
 		}
+
 		// For going from a moon to another planet exploiting oberth effect
 		private double OberthDesiredPhase(Orbit destOrbit)
 		{
@@ -1691,11 +1732,11 @@ namespace JSI
 				case "TARGETCLOSESTAPPROACHTIME":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return double.NaN;
-					return vessel.orbit.NextClosestApproachTime(targetOrbit, time) - time;
+					return targetTimeAtClosestApproach - time;
 				case "TARGETCLOSESTAPPROACHDISTANCE":
 					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
 						return double.NaN;
-					return vessel.orbit.NextClosestApproachDistance(targetOrbit, time);
+					return targetClosestApproach;
 
 
 			// Ok, what are X, Y and Z here anyway?
