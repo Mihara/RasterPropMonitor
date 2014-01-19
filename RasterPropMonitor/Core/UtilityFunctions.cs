@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Linq;
 
 namespace JSI
 {
@@ -447,6 +448,95 @@ namespace JSI
 			ret.UpdateFromStateVectors(OrbitExtensions.SwapYZ(pos - body.position), OrbitExtensions.SwapYZ(vel), body, UT);
 			return ret;
 		}
+
+		// Closest Approach algorithms based on Protractor mod
+		public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, out double timeAtClosestApproach)
+		{
+			Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetCelestial);
+			if (closestorbit.referenceBody == targetCelestial) {
+				timeAtClosestApproach = closestorbit.StartUT + ((closestorbit.eccentricity < 1.0) ?
+					closestorbit.timeToPe :
+					-closestorbit.meanAnomaly / (2 * Math.PI / closestorbit.period));
+				return closestorbit.PeA;
+			}
+			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
+				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
+			}
+			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
+		}
+
+		public static double GetClosestApproach(Orbit vesselOrbit, Orbit targetOrbit, out double timeAtClosestApproach)
+		{
+			Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetOrbit);
+
+			return MinTargetDistance(closestorbit, targetOrbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach);
+		}
+
+		// Closest Approach support methods
+		private static Orbit GetClosestOrbit(Orbit vesselOrbit, CelestialBody targetCelestial)
+		{
+			Orbit checkorbit = vesselOrbit;
+			int orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == targetCelestial) {
+					return checkorbit;
+				}
+
+			}
+			checkorbit = vesselOrbit;
+			orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == targetCelestial.orbit.referenceBody) {
+					return checkorbit;
+				}
+			}
+
+			return vesselOrbit;
+		}
+
+		private static Orbit GetClosestOrbit(Orbit vesselOrbit, Orbit targetOrbit)
+		{
+			Orbit checkorbit = vesselOrbit;
+			int orbitcount = 0;
+
+			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
+				checkorbit = checkorbit.nextPatch;
+				orbitcount += 1;
+				if (checkorbit.referenceBody == targetOrbit.referenceBody) {
+					return checkorbit;
+				}
+
+			}
+
+			return vesselOrbit;
+		}
+
+		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double time, double dt, out double timeAtClosestApproach)
+		{
+			var dist_at_int = new double[11];
+			for (int i = 0; i <= 10; i++) {
+				double step = time + i * dt;
+				dist_at_int[i] = (targetOrbit.getPositionAtUT(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
+			}
+			double mindist = dist_at_int.Min();
+			double maxdist = dist_at_int.Max();
+			int minindex = Array.IndexOf(dist_at_int, mindist);
+
+			if ((maxdist - mindist) / maxdist >= 0.00001) {
+				mindist = MinTargetDistance(vesselOrbit, targetOrbit, time + ((minindex - 1) * dt), dt / 5, out timeAtClosestApproach);
+			} else {
+				timeAtClosestApproach = time + minindex * dt;
+			}
+
+			return mindist;
+		}
+
 		// Piling all the extension methods into the same utility class to reduce the number of classes.
 		// Because DLL size. Not really important and probably a bad practice, but one function static classes are silly.
 		public static float? GetFloat(this string source)
