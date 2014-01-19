@@ -429,15 +429,15 @@ namespace JSI
 				}
 
 				if (targetBody != null) {
-					targetClosestApproach = GetClosestApproach(targetBody, out targetTimeAtClosestApproach);
+					targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetBody, out targetTimeAtClosestApproach);
 				} else if (targetDockingNode != null) {
-					targetClosestApproach = GetClosestApproach(targetDockingNode.GetVessel().GetOrbit(), out targetTimeAtClosestApproach);
+					targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetDockingNode.GetVessel().GetOrbit(), out targetTimeAtClosestApproach);
 
 				} else {
 					if (targetVessel == null) {
 						throw new ArgumentNullException("RasterPropMonitorComputer: Updating closest approach, but all appropriate targets are null");
 					}
-					targetClosestApproach = GetClosestApproach(targetOrbit, out targetTimeAtClosestApproach);
+					targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetOrbit, out targetTimeAtClosestApproach);
 				}
 			} else {
 				// We ain't targetin' nothin'...
@@ -477,7 +477,6 @@ namespace JSI
 				newVesselOrbit = vesselOrbit;
 				newTargetOrbit = targetOrbit;
 				upshiftLevels = 0;
-				Debug.Log("vesselOrbit.referenceBody == targetOrbit.referenceBody");
 			} else if(vesselOrbit.referenceBody == Planetarium.fetch.Sun) {
 				// We orbit the sun.  We need the target's sun-orbiting
 				// parameters.
@@ -485,7 +484,6 @@ namespace JSI
 				newVesselOrbit = vesselOrbit;
 				newTargetOrbit = GetSunOrbit(targetOrbit);
 				upshiftLevels = 0;
-				Debug.Log("vesselOrbit.referenceBody == Planetarium.fetch.Sun");
 			} else {
 				// Not a simple case.
 				int vesselDistFromSun = GetDistanceFromSun(vesselOrbit);
@@ -497,13 +495,11 @@ namespace JSI
 					newVesselOrbit = GetReferencePlanet(vesselOrbit).GetOrbit();
 					newTargetOrbit = targetOrbit;
 					upshiftLevels = vesselDistFromSun;
-					Debug.Log("target orbits the sun");
 				} else if(GetReferencePlanet(vesselOrbit) != GetReferencePlanet(targetOrbit)) {
 					// Interplanetary transfer
 					newVesselOrbit = GetReferencePlanet(vesselOrbit).GetOrbit();
 					newTargetOrbit = GetReferencePlanet(targetOrbit).GetOrbit();
 					upshiftLevels = vesselDistFromSun;
-					Debug.Log("Interplanetary transfer");
 				} else {
 					// vessel and target are in the same planetary system.
 					--vesselDistFromSun;
@@ -518,13 +514,11 @@ namespace JSI
 						newVesselOrbit = vesselOrbit;
 						newTargetOrbit = targetOrbit.referenceBody.GetOrbit();
 						isSimpleTransfer = true;
-						Debug.Log("Target orbits a local moon");
 					} else {
 						// Vessel is orbiting a moon; target is either a moon,
 						// or a vessel orbiting a moon.
 						newVesselOrbit = vesselOrbit.referenceBody.GetOrbit();
 						newTargetOrbit = (targetDistFromSun == 1) ? targetOrbit.referenceBody.GetOrbit() : targetOrbit;
-						Debug.Log("Target orbits local planet");
 					}
 					upshiftLevels = vesselDistFromSun;
 				}
@@ -765,93 +759,6 @@ namespace JSI
 				phase += 360.0;
 
 			return phase % 360.0;
-		}
-
-		private Orbit GetClosestOrbit(CelestialBody targetCelestial)
-		{
-			Orbit checkorbit = vessel.orbit;
-			int orbitcount = 0;
-
-			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
-				checkorbit = checkorbit.nextPatch;
-				orbitcount += 1;
-				if (checkorbit.referenceBody == targetCelestial) {
-					return checkorbit;
-				}
-
-			}
-			checkorbit = vessel.orbit;
-			orbitcount = 0;
-
-			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
-				checkorbit = checkorbit.nextPatch;
-				orbitcount += 1;
-				if (checkorbit.referenceBody == targetCelestial.orbit.referenceBody) {
-					return checkorbit;
-				}
-			}
-
-			return vessel.orbit;
-		}
-
-		private Orbit GetClosestOrbit(Orbit targetOrbit)
-		{
-			Orbit checkorbit = vessel.orbit;
-			int orbitcount = 0;
-
-			while (checkorbit.nextPatch != null && checkorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL && orbitcount < 3) {
-				checkorbit = checkorbit.nextPatch;
-				orbitcount += 1;
-				if (checkorbit.referenceBody == targetOrbit.referenceBody) {
-					return checkorbit;
-				}
-
-			}
-
-			return vessel.orbit;
-		}
-
-		// Revised:
-		private double GetClosestApproach(CelestialBody targetCelestial, out double timeAtClosestApproach)
-		{
-			Orbit closestorbit = GetClosestOrbit(targetCelestial);
-			if (closestorbit.referenceBody == targetCelestial) {
-				timeAtClosestApproach =  (targetOrbit.eccentricity < 1.0) ?
-					closestorbit.timeToPe :
-					-closestorbit.meanAnomaly / (2 * Math.PI / closestorbit.period);
-				return closestorbit.PeA;
-			}
-			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
-				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
-			}
-			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
-		}
-
-		private double GetClosestApproach(Orbit targetOrbit, out double timeAtClosestApproach)
-		{
-			Orbit closestorbit = GetClosestOrbit(targetOrbit);
-
-			return MinTargetDistance(closestorbit, targetOrbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach);
-		}
-
-		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double time, double dt, out double timeAtClosestApproach)
-		{
-			var dist_at_int = new double[11];
-			for (int i = 0; i <= 10; i++) {
-				double step = time + i * dt;
-				dist_at_int[i] = (targetOrbit.getPositionAtUT(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
-			}
-			double mindist = dist_at_int.Min();
-			double maxdist = dist_at_int.Max();
-			int minindex = Array.IndexOf(dist_at_int, mindist);
-
-			if ((maxdist - mindist) / maxdist >= 0.00001) {
-				mindist = MinTargetDistance(vesselOrbit, targetOrbit, time + ((minindex - 1) * dt), dt / 5, out timeAtClosestApproach);
-			}
-
-			timeAtClosestApproach = time + minindex * dt;
-
-			return mindist;
 		}
 
 		// For going from a moon to another planet exploiting oberth effect
