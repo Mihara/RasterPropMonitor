@@ -197,7 +197,8 @@ namespace SCANsatRPM
 					DrawOrbit(targetVessel, targetVessel.orbit, start, iconColorTargetValue);
 					// Connect our orbit and the target orbit with a line at the point of closest approach...
 					if (JUtil.OrbitMakesSense(vessel)) {
-						double closestApproachMoment = vessel.orbit.NextClosestApproachTime(targetVessel.orbit, start);
+						double closestApproachMoment;
+						JUtil.GetClosestApproach(vessel.orbit,targetVessel.orbit, out closestApproachMoment);
 						Vector2d targetCoord, vesselCoord;
 						bool targetCollision, vesselCollision;
 						// Analysis disable once CompareOfFloatsByEqualityOperator
