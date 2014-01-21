@@ -140,12 +140,17 @@ namespace JSI
 
 			if (node.HasValue("animationName")) {
 				animationName = node.GetValue("animationName");
-				anim = thisProp.FindModelAnimators(animationName)[0];
-				anim.enabled = true;
-				anim[animationName].speed = 0;
-				anim[animationName].normalizedTime = reverse ? 1f : 0f;
-				anim.Play();
-				mode = Mode.Animation;
+				Animation[] anims = node.HasValue("animateExterior") ? thisProp.part.FindModelAnimators(animationName) : thisProp.FindModelAnimators(animationName);
+				if (anims.Length > 0) {
+					anim = anims[0];
+					anim.enabled = true;
+					anim[animationName].speed = 0;
+					anim[animationName].normalizedTime = reverse ? 1f : 0f;
+					anim.Play();
+					mode = Mode.Animation;
+				} else {
+					throw new ArgumentException("Animation could not be found.");
+				}
 			} else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject")) {
 				if (node.HasValue("colorName"))
 					colorName = node.GetValue("colorName");
