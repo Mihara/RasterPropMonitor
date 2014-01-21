@@ -1254,7 +1254,7 @@ namespace JSI
 				if (uint.TryParse(input.Substring(6), out groupID) && groupID < 10) {
 					string[] tokens;
 					if (actionGroupMemo[groupID].IndexOf('|') > 1 && (tokens = actionGroupMemo[groupID].Split('|')).Length == 2) {
-						if (FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID[groupID]])
+						if (vessel.ActionGroups.groups[actionGroupID[groupID]])
 							return tokens[0];
 						return tokens[1];
 					}
@@ -1266,7 +1266,7 @@ namespace JSI
 			if (input.StartsWith("AGSTATE", StringComparison.Ordinal)) {
 				uint groupID;
 				if (uint.TryParse(input.Substring(7), out groupID) && groupID < 10) {
-					return (FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID[groupID]]).GetHashCode();
+					return (vessel.ActionGroups.groups[actionGroupID[groupID]]).GetHashCode();
 				}
 				return input;
 			}
