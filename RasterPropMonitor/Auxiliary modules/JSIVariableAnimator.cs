@@ -11,6 +11,7 @@ namespace JSI
 		private bool startupComplete;
 		private int updateCountdown;
 		private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
+		private bool alwaysActive;
 
 		private bool UpdateCheck()
 		{
@@ -51,12 +52,17 @@ namespace JSI
 				}
 			}
 			JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+			foreach (VariableAnimationSet thatSet in variableSets) {
+				alwaysActive |= thatSet.alwaysActive;
+			}
 			startupComplete = true;
 		}
 
 		public override void OnUpdate()
 		{
-			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
+			if (!JUtil.IsActiveVessel(vessel))
+				return;
+			if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
 				return;
 
 			foreach (VariableAnimationSet unit in variableSets) {
@@ -97,6 +103,7 @@ namespace JSI
 		private bool alarmActive;
 		private bool currentState;
 		private double lastStateChange;
+		public readonly bool alwaysActive = false;
 
 		private enum Mode
 		{
@@ -148,6 +155,7 @@ namespace JSI
 					anim[animationName].normalizedTime = reverse ? 1f : 0f;
 					anim.Play();
 					mode = Mode.Animation;
+					alwaysActive = node.HasValue("animateExterior");
 				} else {
 					throw new ArgumentException("Animation could not be found.");
 				}
