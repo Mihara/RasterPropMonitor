@@ -30,6 +30,9 @@ namespace JSI
 		public string iconColorPE = string.Empty;
 		private Color iconColorPEValue = MapView.PatchColors[0];
 		[KSPField]
+		public string iconColorClosestApproach = string.Empty;
+		private Color iconColorClosestApproachValue = new Color(0.7f, 0.0f, 0.7f, 0.6f);
+		[KSPField]
 		public string orbitColorNextNode = string.Empty;
 		private Color orbitColorNextNodeValue = MapView.PatchColors[1];
 		[KSPField]
@@ -72,8 +75,41 @@ namespace JSI
 			}
 		}
 
-		private static void DrawOrbit(Orbit o, double startUT, double endUT, Matrix4x4 screenTransform, int numSegments)
+		private static void DrawOrbit(Orbit o, CelestialBody referenceBody, Matrix4x4 screenTransform, int numSegments)
 		{
+			if (o.activePatch == false) {
+				return;
+			}
+
+			// determine the time frame to render:
+			double startUT = o.StartUT;
+			double endUT = o.EndUT;
+			endUT = Math.Min(o.EndUT, startUT + o.period);
+
+			double dT = (endUT - startUT) / (double)numSegments;
+			double t = startUT;
+
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
+			for (int i = 0; i < numSegments; ++i) {
+				GL.Vertex(lastVertex);
+
+				t += dT;
+
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
+				GL.Vertex(newVertex);
+
+				lastVertex = newVertex;
+			}
+		}
+
+		// Fallback method: The orbit should be valid, but it's not showing as
+		// active.  I've encountered this when targeting a vessel.
+		private static void DrawOrbit(Orbit o, Matrix4x4 screenTransform, int numSegments)
+		{
+			// determine the time frame to render:
+			double startUT = Planetarium.GetUniversalTime();
+			double endUT = startUT + o.period;
+
 			double dT = (endUT - startUT) / (double)numSegments;
 			double t = startUT;
 
@@ -85,11 +121,21 @@ namespace JSI
 
 				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
 				GL.Vertex(newVertex);
-				// Pity LINE_STRIP isn't supported.  We have to double the
-				// number of vertices we shove at the GPU.
+
 				lastVertex = newVertex;
 			}
 		}
+
+		static private bool NextApExists(Orbit o)
+		{
+			return (o.eccentricity < 1.0 && o.NextApoapsisTime(o.StartUT) < o.EndUT);
+		}
+
+		static private bool NextPeExists(Orbit o)
+		{
+			return (o.NextPeriapsisTime(o.StartUT) < o.EndUT);
+		}
+
 		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
@@ -243,67 +289,41 @@ namespace JSI
 			// Draw the planet:
 			Vector3 focusCenter = screenTransform.MultiplyPoint3x4(new Vector3(0.0f, 0.0f, 0.0f));
 
-			// MOARdV TODO: for the sun, vessel.mainBody.orbitDriver is null.
-			// What color do we use to represent the sun?
+			// orbitDriver is null on the sun, so we'll just use white instead.
 			GL.Color((vessel.mainBody.orbitDriver == null) ? new Color(1.0f, 1.0f, 1.0f) : vessel.mainBody.orbitDriver.orbitColor);
 			DrawCircle(focusCenter.x, focusCenter.y, (float)(vessel.mainBody.Radius * pixelScalar), orbitPoints);
 			if (vessel.mainBody.atmosphere) {
-				// Use the atmospheric ambient.  Need to see how this looks
-				// on Eve, Duna, Laythe, and Jool.
+				// Use the atmospheric ambient to color the atmosphere circle.
 				GL.Color(vessel.mainBody.atmosphericAmbientColor);
-				//GL.Color(new Color(vessel.mainBody.orbitDriver.orbitColor.r * 0.5f, vessel.mainBody.orbitDriver.orbitColor.g * 0.5f, vessel.mainBody.orbitDriver.orbitColor.b * 0.5f));
 
 				DrawCircle(focusCenter.x, focusCenter.y, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
 			}
 
-			double orbitStart, orbitEnd;
 			if (targetVessel != null) {
-				double tgtPe = targetVessel.orbit.NextPeriapsisTime(now);
-				if (targetVessel.orbit.eccentricity < 1.0) {
-					orbitStart = tgtPe;
-					orbitEnd = tgtPe + targetVessel.orbit.period;
-				} else {
-					orbitStart = Math.Min(now, tgtPe);
-					orbitEnd = Math.Max(now, targetVessel.orbit.EndUT);
-				}
-
-				// MOARdV TODO: This seems to be drawing an incomplete
-				// orbit, even though it appears to work as expected for the
-				// vessel orbit below.
 				GL.Color(iconColorTargetValue);
-				DrawOrbit(targetVessel.orbit, orbitStart, orbitEnd, screenTransform, orbitPoints);
+				if (!targetVessel.orbit.activePatch && targetVessel.orbit.eccentricity < 1.0 && targetVessel.orbit.referenceBody == vessel.orbit.referenceBody) {
+					// For some reason, activePatch is false for targetVessel.
+					// If we have a stable orbit for the target, use a fallback
+					// rendering method:
+					DrawOrbit(targetVessel.orbit, screenTransform, orbitPoints);
+				} else {
+					DrawOrbit(targetVessel.orbit, vessel.orbit.referenceBody, screenTransform, orbitPoints);
+				}
 			}
 
 			if (node != null) {
-				double nodePe = node.nextPatch.NextPeriapsisTime(now);
-				if (node.nextPatch.eccentricity < 1.0) {
-					orbitStart = nodePe;
-					orbitEnd = nodePe + node.nextPatch.period;
-				} else {
-					orbitStart = Math.Min(now, nodePe);
-					orbitEnd = Math.Max(now, node.nextPatch.EndUT);
-				}
-
 				GL.Color(orbitColorNextNodeValue);
-				DrawOrbit(node.nextPatch, orbitStart, orbitEnd, screenTransform, orbitPoints);
+				DrawOrbit(node.nextPatch, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 			}
 
-			if (vessel.orbit.eccentricity < 1.0) {
-				orbitStart = timeAtPe;
-				orbitEnd = timeAtPe + vessel.orbit.period;
-			} else {
-				// MOARdV TODO: Is this sufficient?  We can query maximum
-				// true anomaly, which is the asymptote of the hyperbola.  But,
-				// if we pick a true anomaly near that value, most of the
-				// line segments will be off-screen, unless we're near the
-				// asymptote ourself.  This seems to work okay.
-				orbitStart = Math.Min(now, timeAtPe);
-				orbitEnd = Math.Max(now, vessel.orbit.EndUT);
+			if (vessel.orbit.nextPatch != null && vessel.orbit.nextPatch.activePatch) {
+				GL.Color(orbitColorNextNodeValue);
+				DrawOrbit(vessel.orbit.nextPatch, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 			}
 
 			// Draw the vessel orbit
 			GL.Color(orbitColorSelfValue);
-			DrawOrbit(vessel.orbit, orbitStart, orbitEnd, screenTransform, orbitPoints);
+			DrawOrbit(vessel.orbit, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 
 			// Done drawing lines.
 			GL.End();
@@ -311,10 +331,13 @@ namespace JSI
 			// Draw target vessel icons.
 			Vector3 transformedPosition;
 			if (targetVessel != null) {
-				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(now)));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PE);
 
-				if (targetVessel.orbit.eccentricity < 1.0) {
+				if (NextPeExists(targetVessel.orbit)) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(targetVessel.orbit.StartUT)));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PE);
+				}
+
+				if (NextApExists(targetVessel.orbit)) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextApoapsisTime(now)));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.AP);
 				}
@@ -325,12 +348,22 @@ namespace JSI
 				if (vessel.orbit.AscendingNodeExists(targetVessel.orbit)) {
 					double anTime = vessel.orbit.TimeOfAscendingNode(targetVessel.orbit, now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.AN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
 				}
 				if (vessel.orbit.DescendingNodeExists(targetVessel.orbit)) {
 					double anTime = vessel.orbit.TimeOfDescendingNode(targetVessel.orbit, now);
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.DN);
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
+				}
+
+				double tClosestApproach;
+				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetVessel.orbit, out tClosestApproach);
+				if (tClosestApproach < vessel.orbit.EndUT) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.SHIPATINTERCEPT);
+
+					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.TGTATINTERCEPT);
 				}
 			} else {
 				if (vessel.orbit.AscendingNodeEquatorialExists()) {
@@ -346,22 +379,31 @@ namespace JSI
 			}
 
 			// Draw orbital features
-			transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(timeAtPe));
-			DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, MapIcons.OtherIcon.PE);
+			if (NextPeExists(vessel.orbit)) {
+				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(timeAtPe));
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, MapIcons.OtherIcon.PE);
+			}
 
-			if (vessel.orbit.eccentricity < 1.0) {
-				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.NextApoapsisTime(now)));
+			if (NextApExists(vessel.orbit)) {
+				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.NextApoapsisTime(vessel.orbit.StartUT)));
 				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorAPValue, MapIcons.OtherIcon.AP);
 			}
 
+			if (vessel.orbit.nextPatch != null) {
+				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.EndUT));
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.EXITSOI);
+			}
+
 			if (node != null) {
-				double nodePe = node.nextPatch.NextPeriapsisTime(now);
+				double nodePe = node.nextPatch.NextPeriapsisTime(node.nextPatch.StartUT);
 
-				transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodePe));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.PE);
+				if (NextPeExists(node.nextPatch)) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodePe));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.PE);
+				}
 
-				if (node.patch.eccentricity < 1.0) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(node.nextPatch.NextApoapsisTime(now)));
+				if (NextApExists(node.nextPatch)) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(node.nextPatch.NextApoapsisTime(node.nextPatch.StartUT)));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.AP);
 				}
 
@@ -381,8 +423,6 @@ namespace JSI
 
 		private void DrawIcon(float xPos, float yPos, VesselType vt, Color iconColor, MapIcons.OtherIcon icon = MapIcons.OtherIcon.None)
 		{
-			// MOARdV TODO: These icons are all upside down, since I am using
-			// an inverted matrix.
 			var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
 				               iconPixelSize, iconPixelSize);
 
@@ -422,6 +462,9 @@ namespace JSI
 			}
 			if (!string.IsNullOrEmpty(orbitColorNextNode)) {
 				orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
+			}
+			if (!string.IsNullOrEmpty(iconColorClosestApproach)) {
+				iconColorClosestApproachValue = ConfigNode.ParseColor32(iconColorClosestApproach);
 			}
 
 			// This mess with shaders has to stop. Maybe we should have a single shader to draw EVERYTHING on the screen...
