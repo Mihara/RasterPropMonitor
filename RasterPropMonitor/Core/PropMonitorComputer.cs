@@ -879,7 +879,7 @@ namespace JSI
 				// This is kind of messy.
 				targetOrbitSensibility = false;
 				// All celestial bodies except the sun have orbits that make sense.
-				targetOrbitSensibility |= targetBody != null && targetBody != FlightGlobals.Bodies[0];
+				targetOrbitSensibility |= targetBody != null && targetBody != Planetarium.fetch.Sun;
 
 				if (targetVessel != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
