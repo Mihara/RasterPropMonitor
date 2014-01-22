@@ -18,6 +18,10 @@ namespace JSI
 			AN,
 			DN,
 			NODE,
+			SHIPATINTERCEPT,
+			TGTATINTERCEPT,
+			ENTERSOI,
+			EXITSOI,
 		}
 
 		public static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
@@ -46,6 +50,22 @@ namespace JSI
 					case OtherIcon.NODE:
 						x = 2;
 						y = 1;
+						break;
+					case OtherIcon.SHIPATINTERCEPT:
+						x = 0;
+						y = 1;
+						break;
+					case OtherIcon.TGTATINTERCEPT:
+						x = 1;
+						y = 1;
+						break;
+					case OtherIcon.ENTERSOI:
+						x = 0;
+						y = 2;
+						break;
+					case OtherIcon.EXITSOI:
+						x = 1;
+						y = 2;
 						break;
 				}
 			} else {
