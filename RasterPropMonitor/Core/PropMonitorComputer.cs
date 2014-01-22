@@ -435,6 +435,7 @@ namespace JSI
 
 				} else {
 					if (targetVessel == null) {
+						// Analysis disable once NotResolvedInText
 						throw new ArgumentNullException("RasterPropMonitorComputer: Updating closest approach, but all appropriate targets are null");
 					}
 					targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetOrbit, out targetTimeAtClosestApproach);
@@ -530,13 +531,13 @@ namespace JSI
 			if (o.referenceBody == Planetarium.fetch.Sun) {
 				// I think this shouldn't happen...
 				return o.referenceBody;
-			} else if (o.referenceBody.GetOrbit().referenceBody == Planetarium.fetch.Sun) {
+			}
+			if (o.referenceBody.GetOrbit().referenceBody == Planetarium.fetch.Sun) {
 				// Orbit is around a planet
 				return o.referenceBody;
-			} else {
-				// Orbit is around a moon
-				return o.referenceBody.GetOrbit().referenceBody;
 			}
+			// Orbit is around a moon
+			return o.referenceBody.GetOrbit().referenceBody;
 		}
 
 		/// <summary>
