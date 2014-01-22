@@ -19,7 +19,7 @@ namespace JSI
 				}
 			}
 			foreach (VariableHandler thatHandler in handlers) {
-				JUtil.LogMessage(ourComp, "Variable handler {0} is known and {1:;;\"not\"} loaded.", thatHandler.handlerName, thatHandler.active);
+				JUtil.LogMessage(ourComp, "Variable handler {0} is known and {1:;;\"not\"} loaded.", thatHandler.handlerName, thatHandler.active.GetHashCode());
 			}
 		}
 

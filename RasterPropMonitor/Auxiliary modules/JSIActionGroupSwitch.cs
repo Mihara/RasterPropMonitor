@@ -10,9 +10,13 @@ namespace JSI
 		[KSPField]
 		public string animationName = string.Empty;
 		[KSPField]
+		public bool animateExterior;
+		[KSPField]
 		public string switchTransform = string.Empty;
 		[KSPField]
 		public string actionName = "lights";
+		[KSPField]
+		public string perPodPersistenceName = string.Empty;
 		[KSPField]
 		public bool reverse;
 		[KSPField]
@@ -60,8 +64,6 @@ namespace JSI
 			{ "dummy",false },
 			{ "plugin",false },
 		};
-		private int actionGroupID;
-		private KSPActionGroup actionGroup;
 		private Animation anim;
 		private bool oldState;
 		private bool isCustomAction;
@@ -115,92 +117,90 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!groupList.ContainsKey(actionName)) {
-				if (!customGroupList.ContainsKey(actionName)) {
-					JUtil.LogErrorMessage(this, "Action \"{0}\" not known, the switch will not work correctly.", actionName);
-				} else {
-					isCustomAction = true;
-				}
+			if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName)) {
+				JUtil.LogErrorMessage(this, "Action \"{0}\" is not supported.", actionName);
+				return;
+			}
+
+			if (groupList.ContainsKey(actionName)) {
+				oldState = vessel.ActionGroups[groupList[actionName]];
 			} else {
-				actionGroup = groupList[actionName];
-				actionGroupID = BaseAction.GetGroupIndex(actionGroup);
-
-				oldState = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
-			}
-
-			// Load our state from storage...
-			if (isCustomAction) {
-				if (actionName == "intlight")
-					persistentVarName = internalLightName;
-				else
-					persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
-
-				persistence = new PersistenceAccessor(part);
-			}
-
-			// set up the toggle switch
-			SmarterButton.CreateButton(internalProp, switchTransform, Click);
-
-			// Set up the custom actions..
-			switch (actionName) {
-				case "intlight":
-					lightObjects = internalModel.FindModelComponents<Light>();
-					if (needsElectricCharge) {
-						comp = RasterPropMonitorComputer.Instantiate(internalProp);
-						comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
-						electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
-					}
-					SetInternalLights(customGroupList[actionName]);
-					break;
-				case "plugin":
-					foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
-						if (node.GetValue("name") == internalProp.propName) {
-							foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
-								if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod")) {
-									if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
-										JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
-									} else {
-										isPluginAction = true;
-										break;
+				isCustomAction = true;
+				switch (actionName) {
+					case "intlight":
+						persistentVarName = internalLightName;
+						lightObjects = internalModel.FindModelComponents<Light>();
+						if (needsElectricCharge) {
+							comp = RasterPropMonitorComputer.Instantiate(internalProp);
+							comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+							electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+						}
+						SetInternalLights(customGroupList[actionName]);
+						break;
+					case "plugin":
+						persistentVarName = string.Empty;
+						foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+							if (node.GetValue("name") == internalProp.propName) {
+								foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
+									if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod")) {
+										if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
+											JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
+										} else {
+											isPluginAction = true;
+											break;
+										}
 									}
 								}
 							}
 						}
-					}
-					if (actionHandler == null) {
-						actionName = "dummy";
-						JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
-					}
-					break;
+						if (actionHandler == null) {
+							actionName = "dummy";
+							JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
+						}
+						break;
+					default:
+						persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
+						break;
+				}
+				if (!string.IsNullOrEmpty(perPodPersistenceName)) {
+					persistentVarName = perPodPersistenceName;
+				}
+				persistence = new PersistenceAccessor(part);
+			}
+
+			// set up the toggle switch
+			if (!string.IsNullOrEmpty(switchTransform)) {
+				SmarterButton.CreateButton(internalProp, switchTransform, Click);
 			}
 
 			if (isCustomAction) {
 				if (isPluginAction && stateHandler != null) {
 					oldState = stateHandler();
 				} else {
-					oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
+					if (!string.IsNullOrEmpty(persistentVarName))
+						oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
 				}
 			}
 
 			if (!string.IsNullOrEmpty(animationName)) {
 				// Set up the animation
-				anim = internalProp.FindModelAnimators(animationName)[0];
-				if (anim != null) {
-					anim[animationName].wrapMode = WrapMode.Once;
-
+				Animation[] animators = animateExterior ? part.FindModelAnimators(animationName) : internalProp.FindModelAnimators(animationName);
+				if (animators.Length > 0) {
+					anim = animators[0];
 				} else {
-					JUtil.LogErrorMessage(this, "Animation \"{0}\" not found, the switch will not work correctly.", animationName);
+					JUtil.LogErrorMessage(this, "Could not find animation \"{0}\" on {2} \"{1}\"", 
+						animationName, animateExterior ? part.name : internalProp.name, animateExterior ? "part" : "prop");
+					return;
 				}
+				anim[animationName].wrapMode = WrapMode.Once;
 
 				if (oldState ^ reverse) {
 					anim[animationName].speed = float.MaxValue;
 					anim[animationName].normalizedTime = 0;
 
 				} else {
-
 					anim[animationName].speed = float.MinValue;
 					anim[animationName].normalizedTime = 1;
-
 				}
 				anim.Play(animationName);
 			} else if (!string.IsNullOrEmpty(coloredObject)) {
@@ -234,9 +234,10 @@ namespace JSI
 		{
 			if (isCustomAction) {
 				customGroupList[actionName] = !customGroupList[actionName];
-				persistence.SetVar(persistentVarName, customGroupList[actionName]);
+				if (!string.IsNullOrEmpty(persistentVarName))
+					persistence.SetVar(persistentVarName, customGroupList[actionName]);
 			} else
-				FlightGlobals.ActiveVessel.ActionGroups.ToggleGroup(actionGroup);
+				vessel.ActionGroups.ToggleGroup(groupList[actionName]);
 			// Now we do extra things that with regular actions can't happen.
 			switch (actionName) {
 				case "intlight":
@@ -266,9 +267,19 @@ namespace JSI
 			if (isPluginAction && stateHandler != null) {
 				state = stateHandler();
 			} else if (isCustomAction) {
-				state = customGroupList[actionName];
+				if (string.IsNullOrEmpty(switchTransform) && !string.IsNullOrEmpty(perPodPersistenceName)) { 
+					// If the switch transform is not given, and the global persistence value is, this means this is a slave module.
+					state = persistence.GetBool(persistentVarName) ?? false;
+				} else {
+					// Otherwise it's a master module. But it still might have to follow the clicks on other copies of the same prop...
+					if (!string.IsNullOrEmpty(perPodPersistenceName)) {
+						state = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
+					} else {
+						state = customGroupList[actionName];
+					}
+				}
 			} else {
-				state = FlightGlobals.ActiveVessel.ActionGroups.groups[actionGroupID];
+				state = vessel.ActionGroups[groupList[actionName]];
 			}
 
 			if (state != oldState) {
@@ -311,8 +322,11 @@ namespace JSI
 
 		public void LateUpdate()
 		{
-			if (JUtil.IsActiveVessel(vessel) && !startupComplete)
+			if (JUtil.IsActiveVessel(vessel) && !startupComplete) {
 				JUtil.AnnoyUser(this);
+				// And disable ourselves.
+				enabled = false;
+			}
 		}
 	}
 }
