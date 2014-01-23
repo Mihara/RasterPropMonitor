@@ -103,8 +103,8 @@ namespace JSI
 		}
 
 		// Fallback method: The orbit should be valid, but it's not showing as
-		// active.  I've encountered this when targeting a vessel.
-		private static void DrawOrbit(Orbit o, Matrix4x4 screenTransform, int numSegments)
+		// active.  I've encountered this when targeting a vessel or planet.
+		private static void ReallyDrawOrbit(Orbit o, CelestialBody referenceBody, Matrix4x4 screenTransform, int numSegments)
 		{
 			// determine the time frame to render:
 			double startUT = Planetarium.GetUniversalTime();
@@ -113,27 +113,67 @@ namespace JSI
 			double dT = (endUT - startUT) / (double)numSegments;
 			double t = startUT;
 
-			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
 			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex(lastVertex);
 
 				t += dT;
 
-				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t));
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
 				GL.Vertex(newVertex);
 
 				lastVertex = newVertex;
 			}
 		}
 
-		static private bool NextApExists(Orbit o)
+		private void DrawNextAp(Orbit o, CelestialBody referenceBody, double referenceTime, Color iconColor, Matrix4x4 screenTransform)
 		{
-			return (o.eccentricity < 1.0 && o.NextApoapsisTime(o.StartUT) < o.EndUT);
+			if (o.eccentricity >= 1.0) {
+				// Early return: There is no apoapsis on a hyperbolic orbit
+				return;
+			}
+			double nextApTime = o.NextApoapsisTime(referenceTime);
+
+			if (nextApTime < o.EndUT || (o.patchEndTransition == Orbit.PatchTransitionType.FINAL)) {
+				Vector3d relativePosition = o.SwappedRelativePositionAtUT(nextApTime) + o.referenceBody.getTruePositionAtUT(nextApTime) - referenceBody.getTruePositionAtUT(nextApTime);
+				var transformedPosition = screenTransform.MultiplyPoint3x4(relativePosition);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColor, MapIcons.OtherIcon.AP);
+			}
 		}
 
-		static private bool NextPeExists(Orbit o)
+		private void DrawNextPe(Orbit o, CelestialBody referenceBody, double referenceTime, Color iconColor, Matrix4x4 screenTransform)
 		{
-			return (o.NextPeriapsisTime(o.StartUT) < o.EndUT);
+			/*
+			switch (o.patchEndTransition)
+			{
+				case Orbit.PatchTransitionType.ENCOUNTER:
+					Debug.Log("ENCOUNTER patch end type");
+					break;
+				case Orbit.PatchTransitionType.ESCAPE:
+					Debug.Log("ESCAPE patch end type");
+					break;
+				// FINAL is applied to the active vessel in a stable elliptical
+				// orbit.
+				case Orbit.PatchTransitionType.FINAL:
+					Debug.Log("FINAL patch end type");
+					break;
+				// INITIAL patchEndTransition appears to be applied to inactive
+				// vessels (targeted vessels).
+				case Orbit.PatchTransitionType.INITIAL:
+					Debug.Log("INITIAL patch end type");
+					break;
+				case Orbit.PatchTransitionType.MANEUVER:
+					Debug.Log("MANEUVER patch end type");
+					break;
+			}
+			 */
+
+			double nextPeTime = o.NextPeriapsisTime(referenceTime);
+			if (nextPeTime < o.EndUT || (o.patchEndTransition == Orbit.PatchTransitionType.FINAL)) {
+				Vector3d relativePosition = o.SwappedRelativePositionAtUT(nextPeTime) + o.referenceBody.getTruePositionAtUT(nextPeTime) - referenceBody.getTruePositionAtUT(nextPeTime);
+				var transformedPosition = screenTransform.MultiplyPoint3x4(relativePosition);
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColor, MapIcons.OtherIcon.PE);
+			}
 		}
 
 		// Analysis disable once UnusedParameter
@@ -216,6 +256,7 @@ namespace JSI
 			minY = Math.Min(minY, vesselPos.y);
 
 			// Account for a target vessel
+			var targetBody = FlightGlobals.fetch.VesselTarget as CelestialBody;
 			var targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
 			if (targetVessel != null) {
 
@@ -244,6 +285,13 @@ namespace JSI
 				} else {
 					// We only care about tgtVessel if it is in the same SoI.
 					targetVessel = null;
+				}
+			}
+
+			if (targetBody != null) {
+				// Validate some values up front, so we don't need to test them later.
+				if (targetBody.GetOrbit() == null) {
+					targetBody = null;
 				}
 			}
 
@@ -305,10 +353,15 @@ namespace JSI
 					// For some reason, activePatch is false for targetVessel.
 					// If we have a stable orbit for the target, use a fallback
 					// rendering method:
-					DrawOrbit(targetVessel.orbit, screenTransform, orbitPoints);
+					ReallyDrawOrbit(targetVessel.orbit, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 				} else {
 					DrawOrbit(targetVessel.orbit, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 				}
+			}
+
+			if (targetBody != null) {
+				GL.Color(iconColorTargetValue);
+				ReallyDrawOrbit(targetBody.GetOrbit(), vessel.orbit.referenceBody, screenTransform, orbitPoints);
 			}
 
 			if (node != null) {
@@ -330,82 +383,81 @@ namespace JSI
 
 			// Draw target vessel icons.
 			Vector3 transformedPosition;
-			if (targetVessel != null) {
+			if (targetVessel != null || targetBody != null) {
+				var orbit = (targetVessel != null) ? targetVessel.GetOrbit() : targetBody.GetOrbit();
+				DrawNextPe(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
 
-				if (NextPeExists(targetVessel.orbit)) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextPeriapsisTime(targetVessel.orbit.StartUT)));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PE);
+				DrawNextAp(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
+
+				if (targetBody != null) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(targetBody.getTruePositionAtUT(now) - vessel.orbit.referenceBody.getTruePositionAtUT(now));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.PLANET);
+				} else {
+					transformedPosition = screenTransform.MultiplyPoint3x4(orbit.SwappedRelativePositionAtUT(now));
+					DrawIcon(transformedPosition.x, transformedPosition.y, targetVessel.vesselType, iconColorTargetValue);
 				}
 
-				if (NextApExists(targetVessel.orbit)) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(targetVessel.orbit.NextApoapsisTime(now)));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorTargetValue, MapIcons.OtherIcon.AP);
+				if (vessel.orbit.AscendingNodeExists(orbit)) {
+					double anTime = vessel.orbit.TimeOfAscendingNode(orbit, now);
+					if (anTime < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ENCOUNTER)) {
+						transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
+						DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
+					}
 				}
-
-				transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(now));
-				DrawIcon(transformedPosition.x, transformedPosition.y, targetVessel.vesselType, iconColorTargetValue);
-
-				if (vessel.orbit.AscendingNodeExists(targetVessel.orbit)) {
-					double anTime = vessel.orbit.TimeOfAscendingNode(targetVessel.orbit, now);
-					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
-				}
-				if (vessel.orbit.DescendingNodeExists(targetVessel.orbit)) {
-					double anTime = vessel.orbit.TimeOfDescendingNode(targetVessel.orbit, now);
-					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
+				if (vessel.orbit.DescendingNodeExists(orbit)) {
+					double dnTime = vessel.orbit.TimeOfDescendingNode(orbit, now);
+					if (dnTime < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ENCOUNTER)) {
+						transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(dnTime));
+						DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
+					}
 				}
 
 				double tClosestApproach;
-				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetVessel.orbit, out tClosestApproach);
-				if (tClosestApproach < vessel.orbit.EndUT) {
+				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, orbit, out tClosestApproach);
+				if (tClosestApproach < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ENCOUNTER)) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.SHIPATINTERCEPT);
 
-					transformedPosition = screenTransform.MultiplyPoint3x4(targetVessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
+					transformedPosition = screenTransform.MultiplyPoint3x4(orbit.SwappedRelativePositionAtUT(tClosestApproach));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.TGTATINTERCEPT);
 				}
 			} else {
 				if (vessel.orbit.AscendingNodeEquatorialExists()) {
 					double anTime = vessel.orbit.TimeOfAscendingNodeEquatorial(now);
-					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
+					if (anTime < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ENCOUNTER)) {
+						transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
+						DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.AN);
+					}
 				}
 				if (vessel.orbit.DescendingNodeEquatorialExists()) {
-					double anTime = vessel.orbit.TimeOfDescendingNodeEquatorial(now);
-					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(anTime));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
+					double dnTime = vessel.orbit.TimeOfDescendingNodeEquatorial(now);
+					if (dnTime < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition != Orbit.PatchTransitionType.ENCOUNTER)) {
+						transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(dnTime));
+						DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.DN);
+					}
 				}
 			}
 
 			// Draw orbital features
-			if (NextPeExists(vessel.orbit)) {
-				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(timeAtPe));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorPEValue, MapIcons.OtherIcon.PE);
-			}
+			DrawNextPe(vessel.orbit, vessel.orbit.referenceBody, now, iconColorPEValue, screenTransform);
 
-			if (NextApExists(vessel.orbit)) {
-				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.NextApoapsisTime(vessel.orbit.StartUT)));
-				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorAPValue, MapIcons.OtherIcon.AP);
-			}
+			DrawNextAp(vessel.orbit, vessel.orbit.referenceBody, now, iconColorAPValue, screenTransform);
 
-			if (vessel.orbit.nextPatch != null) {
+			if (vessel.orbit.nextPatch != null && vessel.orbit.nextPatch.activePatch) {
 				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.EndUT));
 				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorSelfValue, MapIcons.OtherIcon.EXITSOI);
+
+				Orbit nextPatch = vessel.orbit.nextPatch.nextPatch;
+				if (nextPatch != null && nextPatch.activePatch) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(nextPatch.SwappedRelativePositionAtUT(nextPatch.EndUT)+nextPatch.referenceBody.getTruePositionAtUT(nextPatch.EndUT) - vessel.orbit.referenceBody.getTruePositionAtUT(nextPatch.EndUT));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.EXITSOI);
+				}
 			}
 
-			if (node != null) {
-				double nodePe = node.nextPatch.NextPeriapsisTime(node.nextPatch.StartUT);
+			if (node != null && node.nextPatch.activePatch) {
+				DrawNextPe(node.nextPatch, vessel.orbit.referenceBody, now, orbitColorNextNodeValue, screenTransform);
 
-				if (NextPeExists(node.nextPatch)) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodePe));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.PE);
-				}
-
-				if (NextApExists(node.nextPatch)) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(node.nextPatch.NextApoapsisTime(node.nextPatch.StartUT)));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.AP);
-				}
+				DrawNextAp(node.nextPatch, vessel.orbit.referenceBody, now, orbitColorNextNodeValue, screenTransform);
 
 				transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(node.UT));
 				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.NODE);

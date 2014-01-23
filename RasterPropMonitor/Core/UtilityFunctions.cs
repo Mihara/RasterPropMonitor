@@ -22,6 +22,7 @@ namespace JSI
 			TGTATINTERCEPT,
 			ENTERSOI,
 			EXITSOI,
+			PLANET,
 		}
 
 		public static Rect VesselTypeIcon(VesselType type, OtherIcon icon)
@@ -66,6 +67,11 @@ namespace JSI
 					case OtherIcon.EXITSOI:
 						x = 1;
 						y = 2;
+						break;
+					case OtherIcon.PLANET:
+						// Not sure if it is (2,3) or (3,2) - both are round
+						x = 2;
+						y = 3;
 						break;
 				}
 			} else {
