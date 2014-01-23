@@ -125,7 +125,9 @@ namespace JSI
 			private readonly string variableName;
 			private readonly RasterPropMonitorComputer comp;
 			private readonly double horizontalSpan;
-			private readonly Vector2 verticalSpan;
+			// Analysis disable once FieldCanBeMadeReadOnly.Local
+			private Vector2 verticalSpan;
+			private bool floatingMax, floatingMin;
 
 			public GraphLine(ConfigNode node, double xSpan, Vector2 ySpan, double secondsBetweenSamples, RasterPropMonitorComputer compInstance)
 			{
@@ -145,12 +147,27 @@ namespace JSI
 				if (node.HasValue("color"))
 					lineColor = ConfigNode.ParseColor32(node.GetValue("color"));
 
+				floatingMax = node.HasValue("floatingMaximum");
+				floatingMin = node.HasValue("floatingMinimum");
+
 				JUtil.LogMessage(this, "Graphing {0} in color {1}", variableName, lineColor);
 			}
 
 			public void Draw(Rect screenRect, double time)
 			{
 				double mintime = time - horizontalSpan;
+				if (floatingMin && points.Count > 0) {
+					verticalSpan.x = (float)points[0].y;
+					foreach (Vector2d dataPoint in points) {
+						verticalSpan.x = (float)Math.Min(dataPoint.y, verticalSpan.x);
+					}
+				}
+				if (floatingMax && points.Count > 0) {
+					verticalSpan.y = (float)points[0].y;
+					foreach (Vector2d dataPoint in points) {
+						verticalSpan.y = (float)Math.Max(dataPoint.y, verticalSpan.y);
+					}
+				}
 				var actualXY = new List<Vector2>();
 				foreach (Vector2d dataPoint in points) {
 					if (dataPoint.x > mintime)
