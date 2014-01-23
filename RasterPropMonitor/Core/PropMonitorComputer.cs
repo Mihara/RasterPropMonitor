@@ -1048,10 +1048,7 @@ namespace JSI
 			// The sneaky bit: This way we can get at their panic and whee values!
 			vesselCrewMedical = new kerbalExpressionSystem[vesselCrew.Length];
 			for (int i = 0; i < vesselCrew.Length; i++) {
-				if (vesselCrew[i].KerbalRef != null) {
-					vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
-				} else
-					vesselCrewMedical[i] = null;
+				vesselCrewMedical[i] = vesselCrew[i].KerbalRef != null ? vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>() : null;
 			}
 
 			// Part-local list is assembled somewhat differently.
