@@ -123,6 +123,8 @@ namespace JSI
 			private readonly List<Vector2d> points = new List<Vector2d>();
 			private readonly int maxPoints;
 			private readonly string variableName;
+			private readonly double flatValue;
+			private readonly bool isFlat;
 			private readonly RasterPropMonitorComputer comp;
 			private readonly double horizontalSpan;
 			// Analysis disable once FieldCanBeMadeReadOnly.Local
@@ -138,9 +140,10 @@ namespace JSI
 				verticalSpan = ySpan;
 				if (!node.HasData)
 					throw new ArgumentException("Graph block with no data?");
-				if (node.HasValue("variableName"))
+				if (node.HasValue("variableName")) {
 					variableName = node.GetValue("variableName").Trim();
-				else
+					isFlat = double.TryParse(variableName, out flatValue);
+				} else
 					throw new ArgumentException("Draw a graph of what?");
 
 				lineColor = Color.white;
@@ -181,7 +184,11 @@ namespace JSI
 
 			public void Update(double time)
 			{
-				double value = comp.ProcessVariable(variableName).MassageToDouble();
+				double value;
+				if (isFlat)
+					value = flatValue;
+				else
+					value = comp.ProcessVariable(variableName).MassageToDouble();
 				if (double.IsNaN(value) || double.IsInfinity(value))
 					return;
 				points.Add(new Vector2d(time, value));
