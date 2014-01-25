@@ -24,7 +24,8 @@ namespace JSI
 		[KSPField]
 		public string internalLightName;
 		[KSPField]
-		public bool needsElectricCharge = true;
+		public string needsElectricCharge;
+		private bool needsElectricChargeValue;
 		[KSPField]
 		public string switchSound = "Squad/Sounds/sound_click_flick";
 		[KSPField]
@@ -122,6 +123,22 @@ namespace JSI
 				return;
 			}
 
+			// Parse the needs-electric-charge here.
+			if (!string.IsNullOrEmpty(needsElectricCharge)) {
+				switch (needsElectricCharge.ToLowerInvariant().Trim()) {
+					case "true":
+					case "yes":
+					case "1":
+						needsElectricChargeValue = true;
+						break;
+					case "false":
+					case "no":
+					case "0":
+						needsElectricChargeValue = false;
+						break;
+				}
+			}
+
 			if (groupList.ContainsKey(actionName)) {
 				oldState = vessel.ActionGroups[groupList[actionName]];
 			} else {
@@ -130,7 +147,8 @@ namespace JSI
 					case "intlight":
 						persistentVarName = internalLightName;
 						lightObjects = internalModel.FindModelComponents<Light>();
-						if (needsElectricCharge) {
+						if (string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue) {
+							needsElectricChargeValue = true;
 							comp = RasterPropMonitorComputer.Instantiate(internalProp);
 							comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
 							electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
@@ -219,8 +237,6 @@ namespace JSI
 
 		private void SetInternalLights(bool value)
 		{
-			if (needsElectricCharge && electricChargeReserve < 0.01d)
-				value = false;
 			foreach (Light lightobject in lightObjects) {
 				// I probably shouldn't filter them every time, but I am getting
 				// serously confused by this hierarchy.
@@ -282,6 +298,21 @@ namespace JSI
 				state = vessel.ActionGroups[groupList[actionName]];
 			}
 
+			// If needsElectricCharge is true and there is no charge, the state value is overridden to false and the click action is reexecuted.
+			if (needsElectricChargeValue) {
+				lightCheckCountdown--;
+				if (lightCheckCountdown <= 0) {
+					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+					lightCheckCountdown = lightCheckRate;
+				}
+				if (electricChargeReserve < 0.01d) {
+					if (oldState) {
+						Click();
+						state = false;
+					}
+				}
+			}
+
 			if (state != oldState) {
 				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
@@ -302,22 +333,6 @@ namespace JSI
 				}
 				oldState = state;
 			}
-
-			if (actionName == "intlight" && needsElectricCharge) {
-				if (!(CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
-				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
-					return;
-
-				lightCheckCountdown--;
-				if (lightCheckCountdown <= 0) {
-					lightCheckCountdown = lightCheckRate;
-					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
-					if (customGroupList["intlight"]) {
-						SetInternalLights(true);
-					}
-				}
-			}
-
 		}
 
 		public void LateUpdate()
