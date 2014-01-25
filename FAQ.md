@@ -4,7 +4,7 @@
 
 Certain buttons are reserved for future expansion, which happens pretty rapidly -- there's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
 
-It's sort of an approximation of how actual MFDs work, though they typically use interfaces even less similar to what you might expect. Version 0.13 lets you switch pages in much more creative ways, but the default package does not make use of them.
+It's sort of an approximation of how actual MFDs work, though they typically use interfaces even less similar to what you might expect. Since version 0.13, you can switch pages in much more creative ways, but the default package does not make use of them.
 
 ### The screens don't work at all!
 
@@ -41,10 +41,6 @@ RasterPropMonitor is more of an IVA makers toolkit than a standalone product, I 
 ### Can I make a maneuver node while in IVA?
 
 Not *yet*. While it is in the plans, there is the considerable question of how to make a menu-based maneuver node editor with an interface that doesn't suck.
-
-### How do I show remaining delta V?
-
-Wait for version 0.14.
 
 ### How do I perform mathematical operations within a page? 
 
