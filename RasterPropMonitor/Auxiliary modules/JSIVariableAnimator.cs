@@ -98,6 +98,9 @@ namespace JSI
 		private readonly bool longPath;
 		private readonly double flashingDelay;
 		private readonly string colorName = "_EmissiveColor";
+		private readonly Vector2 textureShiftStart, textureShiftEnd, textureScaleStart, textureScaleEnd;
+		private readonly Material affectedMaterial;
+		private readonly string textureLayer;
 		private readonly Mode mode;
 		// runtime values:
 		private bool alarmActive;
@@ -110,7 +113,9 @@ namespace JSI
 			Animation,
 			Color,
 			Rotation,
-			Translation
+			Translation,
+			TextureShift,
+			TextureScale,
 		}
 
 		public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
@@ -185,6 +190,18 @@ namespace JSI
 				vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
 				vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
 				mode = Mode.Translation;
+			} else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd")) {
+				affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).renderer.material;
+				textureLayer = node.GetValue("textureLayers");
+				textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
+				textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+				mode = Mode.TextureShift;
+			} else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureScaleStart") && node.HasValue("textureScaleEnd")) {
+				affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).renderer.material;
+				textureLayer = node.GetValue("textureLayers");
+				textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
+				textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+				mode = Mode.TextureScale;
 			} else
 				throw new ArgumentException("Cannot initiate any of the possible action modes.");
 
@@ -236,6 +253,16 @@ namespace JSI
 					case Mode.Translation:
 						controlledTransform.localPosition = initialPosition + (reverse ? vectorEnd : vectorStart);
 						break;
+					case Mode.TextureShift:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureOffset(token.Trim(), reverse ? textureShiftEnd : textureShiftStart);
+						}
+						break;
+					case Mode.TextureScale:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureScale(token.Trim(), reverse ? textureScaleEnd : textureScaleStart);
+						}
+						break;
 				}
 			}
 			currentState = true;
@@ -257,6 +284,16 @@ namespace JSI
 						break;
 					case Mode.Translation:
 						controlledTransform.localPosition = initialPosition + (reverse ? vectorStart : vectorEnd);
+						break;
+					case Mode.TextureShift:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureOffset(token.Trim(), reverse ? textureShiftStart : textureShiftEnd);
+						}
+						break;
+					case Mode.TextureScale:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureScale(token.Trim(), reverse ? textureScaleStart : textureScaleEnd);
+						}
 						break;
 				}
 			}
@@ -306,6 +343,18 @@ namespace JSI
 						break;
 					case Mode.Color:
 						colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
+						break;
+					case Mode.TextureShift:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureOffset(token.Trim(),
+								Vector2.Lerp(reverse ? textureShiftEnd : textureShiftStart, reverse ? textureShiftStart : textureShiftEnd, scaledValue));
+						}
+						break;
+					case Mode.TextureScale:
+						foreach (string token in textureLayer.Split(',')) {
+							affectedMaterial.SetTextureScale(token.Trim(),
+								Vector2.Lerp(reverse ? textureScaleEnd : textureScaleStart, reverse ? textureScaleStart : textureScaleEnd, scaledValue));
+						}
 						break;
 					case Mode.Animation:
 						float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);

@@ -86,6 +86,8 @@ namespace JSI
 		private double moonEjectionAngle;
 		private double ejectionAltitude;
 		private double targetBodyDeltaV;
+		private double lastTimePerSecond;
+		private double terrainHeight, lastTerrainHeight, terrainDelta;
 		private ExternalVariableHandlers plugins;
 		// Local data fetching variables...
 		private int gearGroupNumber;
@@ -356,7 +358,6 @@ namespace JSI
 			FetchCommonData();
 			UpdateTransferAngles();
 		}
-
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
 		private void UpdateTransferAngles()
@@ -453,7 +454,6 @@ namespace JSI
 				targetBodyDeltaV = -1.0;
 			}
 		}
-
 		//--- Protractor utility methods
 		/// <summary>
 		/// FindProtractorOrbitParameters takes the current vessel orbit, and
@@ -468,8 +468,8 @@ namespace JSI
 		/// <param name="newTargetOrbit"></param>
 		/// <param name="upshiftLevels"></param>
 		static private void FindProtractorOrbitParameters(Orbit vesselOrbit, Orbit targetOrbit,
-			out bool isSimpleTransfer, out Orbit newVesselOrbit, out Orbit newTargetOrbit,
-			out int upshiftLevels)
+		                                                  out bool isSimpleTransfer, out Orbit newVesselOrbit, out Orbit newTargetOrbit,
+		                                                  out int upshiftLevels)
 		{
 			// Test for the early out case
 			if (vesselOrbit.referenceBody == targetOrbit.referenceBody) {
@@ -478,7 +478,7 @@ namespace JSI
 				newVesselOrbit = vesselOrbit;
 				newTargetOrbit = targetOrbit;
 				upshiftLevels = 0;
-			} else if(vesselOrbit.referenceBody == Planetarium.fetch.Sun) {
+			} else if (vesselOrbit.referenceBody == Planetarium.fetch.Sun) {
 				// We orbit the sun.  We need the target's sun-orbiting
 				// parameters.
 				isSimpleTransfer = true;
@@ -496,7 +496,7 @@ namespace JSI
 					newVesselOrbit = GetReferencePlanet(vesselOrbit).GetOrbit();
 					newTargetOrbit = targetOrbit;
 					upshiftLevels = vesselDistFromSun;
-				} else if(GetReferencePlanet(vesselOrbit) != GetReferencePlanet(targetOrbit)) {
+				} else if (GetReferencePlanet(vesselOrbit) != GetReferencePlanet(targetOrbit)) {
 					// Interplanetary transfer
 					newVesselOrbit = GetReferencePlanet(vesselOrbit).GetOrbit();
 					newTargetOrbit = GetReferencePlanet(targetOrbit).GetOrbit();
@@ -585,8 +585,7 @@ namespace JSI
 				double alt = (vessel.mainBody.GetAltitude(vessel.findWorldCenterOfMass())) + radius;
 				double v = Math.Sqrt(u / alt) * (Math.Sqrt((2 * d_alt) / (alt + d_alt)) - 1);
 				return Math.Abs((Math.Sqrt(u / alt) + v) - vessel.orbit.GetVel().magnitude);
-			}
-			else {
+			} else {
 				CelestialBody orig = vessel.mainBody;
 				double d_alt = CalcMeanAlt(destOrbit);
 				double o_radius = orig.Radius;
@@ -624,7 +623,6 @@ namespace JSI
 
 			return (vessel.orbit.inclination > 90.0 && !(vessel.Landed)) ? (360.0 - eject) : eject;
 		}
-
 		// Simple phase angle: transfer from sun -> planet or planet -> moon
 		private double UpdatePhaseAngleSimple(Orbit srcOrbit, Orbit destOrbit)
 		{
@@ -642,7 +640,6 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Adjacent phase angle: transfer planet -> planet or moon -> moon
 		private double UpdatePhaseAngleAdjacent(Orbit srcOrbit, Orbit destOrbit)
 		{
@@ -659,7 +656,6 @@ namespace JSI
 
 			return phase;
 		}
-
 		// Oberth phase angle: transfer moon -> another planet
 		private double UpdatePhaseAngleOberth(Orbit srcOrbit, Orbit destOrbit)
 		{
@@ -676,7 +672,6 @@ namespace JSI
 
 			return phase;
 		}
-
 		// project two vectors to 2D plane and returns the angle between them
 		private static double Angle2d(Vector3d vector1, Vector3d vector2)
 		{
@@ -689,7 +684,6 @@ namespace JSI
 		{
 			return orbit.semiMajorAxis * (1.0 + orbit.eccentricity * orbit.eccentricity / 2.0);
 		}
-
 		// calculates angle between vessel's position and prograde of orbited body
 		// MOARdV: The parameter 'check' is always NULL in protractor.  Factored it out
 		private double CurrentEjectAngle()
@@ -729,7 +723,6 @@ namespace JSI
 
 			return vessel.orbit.inclination > 90 && !(vessel.Landed) ? 360 - eject : eject;
 		}
-
 		// Compute the current phase of the target.
 		private double CurrentPhase(Orbit originOrbit, Orbit destinationOrbit)
 		{
@@ -745,7 +738,6 @@ namespace JSI
 
 			return (phase + 360.0) % 360.0;
 		}
-
 		// Calculates phase angle for rendezvous between two bodies orbiting same parent
 		private static double DesiredPhase(double vesselAlt, double destAlt, double gravParameter)
 		{
@@ -761,7 +753,6 @@ namespace JSI
 
 			return phase % 360.0;
 		}
-
 		// For going from a moon to another planet exploiting oberth effect
 		private double OberthDesiredPhase(Orbit destOrbit)
 		{
@@ -858,6 +849,12 @@ namespace JSI
 			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
+			terrainHeight = altitudeASL - altitudeTrue;
+			if (time >= lastTimePerSecond + 1) {
+				terrainDelta = terrainHeight - lastTerrainHeight;
+				lastTerrainHeight = terrainHeight;
+				lastTimePerSecond = time;
+			}
 
 			horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
 			horzVelocityForward = Vector3d.Dot(velocityVesselSurface, forward);
@@ -1051,10 +1048,7 @@ namespace JSI
 			// The sneaky bit: This way we can get at their panic and whee values!
 			vesselCrewMedical = new kerbalExpressionSystem[vesselCrew.Length];
 			for (int i = 0; i < vesselCrew.Length; i++) {
-				if (vesselCrew[i].KerbalRef != null) {
-					vesselCrewMedical[i] = vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
-				} else
-					vesselCrewMedical[i] = null;
+				vesselCrewMedical[i] = vesselCrew[i].KerbalRef != null ? vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>() : null;
 			}
 
 			// Part-local list is assembled somewhat differently.
@@ -1353,9 +1347,11 @@ namespace JSI
 				case "ALTITUDEBOTTOMLOG10":
 					return JUtil.PseudoLog10(altitudeBottom);
 				case "TERRAINHEIGHT":
-					return altitudeASL - altitudeTrue;
+					return terrainHeight;
+				case "TERRAINDELTA":
+					return terrainDelta;
 				case "TERRAINHEIGHTLOG10":
-					return JUtil.PseudoLog10(altitudeASL - altitudeTrue);
+					return JUtil.PseudoLog10(terrainHeight);
 
 			// Atmospheric values
 				case "ATMPRESSURE":
@@ -1814,7 +1810,7 @@ namespace JSI
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
 					// Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-					return (speedVerticalRounded < 0 && !FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 100).GetHashCode();
+					return (speedVerticalRounded < 0 && !vessel.ActionGroups.groups[gearGroupNumber] && altitudeBottom < 100).GetHashCode();
 				case "GROUNDPROXIMITYALARM":
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
@@ -1853,15 +1849,15 @@ namespace JSI
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
 				case "GEAR":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
+					return vessel.ActionGroups.groups[gearGroupNumber].GetHashCode();
 				case "BRAKES":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
+					return vessel.ActionGroups.groups[brakeGroupNumber].GetHashCode();
 				case "SAS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
+					return vessel.ActionGroups.groups[sasGroupNumber].GetHashCode();
 				case "LIGHTS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
+					return vessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
-					return FlightGlobals.ActiveVessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
+					return vessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
 
 			// Database information about planetary bodies.
 				case "ORBITBODYATMOSPHERE":

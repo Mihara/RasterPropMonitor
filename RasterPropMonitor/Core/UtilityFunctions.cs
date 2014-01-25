@@ -240,7 +240,7 @@ namespace JSI
 
 		public static bool IsActiveVessel(Vessel thatVessel)
 		{
-			return (HighLogic.LoadedSceneIsFlight && (thatVessel == FlightGlobals.ActiveVessel));
+			return (HighLogic.LoadedSceneIsFlight && thatVessel.isActiveVessel);
 		}
 
 		public static bool IsInIVA()

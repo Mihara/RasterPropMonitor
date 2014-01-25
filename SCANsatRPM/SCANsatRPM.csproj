@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>SCANsatRPM</RootNamespace>
     <AssemblyName>SCANsatRPM</AssemblyName>
-    <ReleaseVersion>0.14</ReleaseVersion>
+    <ReleaseVersion>0.15</ReleaseVersion>
     <CodePage>65001</CodePage>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>

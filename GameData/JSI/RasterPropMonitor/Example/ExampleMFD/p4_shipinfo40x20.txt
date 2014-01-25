@@ -9,7 +9,7 @@ MET: {0:KDTyy:ddd:hh:mm:ss.f} $&$ METSECS
 Lat: {0:000.00000"°N";000.00000"°S"}  Lon:{1:000.00000"°E";000.00000"°W"}$&$LATITUDE LONGITUDE
 Mass(W):  {1,5:0.00}t  Mass(D): {0,4:0.00}t   $&$MASSWET MASSDRY
 G: {0,4:0.00} ACCL: {1,4:0.00}/{2,4:0.00} $&$GFORCE ACCEL MAXACCEL
-Isp: {0:0.0}s $&$ REALISP
+Stage ΔV: {1:0.0} Isp: {0:0.0}s $&$ REALISP DELTAVSTAGE
 
 Stage: {0}. Temperature: {1:0.0}°C $&$ STAGE PODTEMPERATURE 
 {0:Atmosphere depth: 00.0%;;} $&$ ATMOSPHEREDEPTH
