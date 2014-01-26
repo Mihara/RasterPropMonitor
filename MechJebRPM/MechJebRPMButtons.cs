@@ -4,7 +4,6 @@ namespace MechJebRPM
 {
 	public class MechJebRPMButtons: InternalModule
 	{
-		// Execute Node button is the only special one.
 		public void ButtonNodeExecute(bool state)
 		{
 			MechJebCore activeJeb = vessel.GetMasterMechJeb();
@@ -43,11 +42,16 @@ namespace MechJebRPM
 				return;
 			}
 
-			if (state) {
-				ap.users.Add(this);
-			} else {
-				ap.users.Remove(this);
+			var agPilot = activeJeb.GetComputerModule<MechJebModuleAscentGuidance>();
+			if (agPilot != null) {
+				if (ap.enabled) {
+					ap.users.Remove(agPilot);
+				}
+				else {
+					ap.users.Add(agPilot);
+				}
 			}
+
 		}
 
 		public bool ButtonAscentGuidanceState()
@@ -63,6 +67,217 @@ namespace MechJebRPM
 			}
 
 			return ap.enabled;
+		}
+
+		/// <summary>
+		/// Plot a Hohmann transfer to the current target.  This is an instant
+		/// fire-and-forget function, not a toggle switch
+		/// </summary>
+		/// <param name="state">unused</param>
+		public void ButtonPlotHohmannTransfer(bool state)
+		{
+			if (!ButtonPlotHohmannTransferState()) {
+				// Target is not one MechJeb can successfully plot.
+				return;
+			}
+
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+
+			Orbit o = vessel.orbit;
+			Vector3d dV = Vector3d.zero;
+			double UT = Planetarium.GetUniversalTime();
+			if (o.referenceBody == activeJeb.target.Orbit.referenceBody) {
+				// Simple transfer.
+				dV = OrbitalManeuverCalculator.DeltaVAndTimeForHohmannTransfer(o, activeJeb.target.Orbit, UT, out UT);
+			} else {
+				dV = OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection(o, UT, activeJeb.target.Orbit, true, out UT);
+			}
+			vessel.RemoveAllManeuverNodes();
+			vessel.PlaceManeuverNode(o, dV, UT);
+		}
+
+		/// <summary>
+		/// Indicate whether a Hohmann Transfer Orbit can be plotted
+		/// </summary>
+		/// <returns>true if a transfer can be plotted, false if not</returns>
+		public bool ButtonPlotHohmannTransferState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			// Most of these conditions are directly from MJ, or derived from
+			// it.
+			if (!activeJeb.target.NormalTargetExists) {
+				return false;
+			}
+
+			Orbit o = vessel.orbit;
+			if (o.eccentricity > 0.2) {
+				// Need fairly circular orbit to plot.
+				return false;
+			}
+
+			if (o.referenceBody == activeJeb.target.Orbit.referenceBody) {
+				// Target is in our SoI
+
+				if (activeJeb.target.Orbit.eccentricity >= 1.0) {
+					// can't intercept hyperbolic targets
+					return false;
+				}
+
+				if (o.RelativeInclination(activeJeb.target.Orbit) > 30.0 && o.RelativeInclination(activeJeb.target.Orbit) < 150.0) {
+					// Target is in a drastically different orbital plane.
+					return false;
+				}
+			} else {
+				// Target is not in our SoI
+				if (o.referenceBody.referenceBody == null) {
+					// Can't plot a transfer from an orbit around the sun (really?)
+					return false;
+				}
+				if (o.referenceBody.referenceBody != activeJeb.target.Orbit.referenceBody) {
+					return false;
+				}
+				if (o.referenceBody.orbit.RelativeInclination(activeJeb.target.Orbit) > 30.0) {
+					// Can't handle highly inclined targets
+					return false;
+				}
+			}
+
+			// Did we get through all the tests?  Then we can plot an orbit!
+			return true;
+		}
+
+		/// <summary>
+		/// Enables / disables landing guidance.  When a target is selected and
+		/// this mode is enabled, the ship goes into "Land at Target" mode.  If
+		/// a target is not selected, it becomes "Land Somewhere".
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonLandingGuidance(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
+
+			if (autopilot == null) {
+				return;
+			}
+
+			if (state != autopilot.enabled) {
+				if (state) {
+					var landingGuidanceAP = activeJeb.GetComputerModule<MechJebModuleLandingGuidance>();
+					if (landingGuidanceAP != null) {
+						if (activeJeb.target.PositionTargetExists) {
+							autopilot.LandAtPositionTarget(landingGuidanceAP);
+						}
+						else {
+							autopilot.LandUntargeted(landingGuidanceAP);
+						}
+					}
+				} else {
+					autopilot.StopLanding();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Returns the current state of the landing guidance feature
+		/// </summary>
+		/// <returns>true if on, false if not</returns>
+		public bool ButtonLandingGuidanceState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
+
+			if (autopilot == null) {
+				return false;
+			}
+
+			return autopilot.enabled;
+		}
+
+		/// <summary>
+		/// Toggles SmartASS Force Roll mode.
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonForceRoll(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			if (activeSmartass != null) {
+				activeSmartass.forceRol = state;
+				activeSmartass.Engage();
+			}
+		}
+
+		/// <summary>
+		/// Indicates whether SmartASS Force Roll is on or off
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonForceRollState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			return (activeSmartass!=null && activeSmartass.forceRol);
+		}
+
+		/// <summary>
+		/// The MechJeb landing prediction simulator runs on a separate thread,
+		/// and it may be costly for lower-end computers to leave it running
+		/// all the time.  This button allows the player to indicate whether
+		/// it needs to be running, or not.
+		/// </summary>
+		/// <param name="state">Enable/disable</param>
+		public void ButtonEnableLandingPrediction(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+			var predictor = activeJeb.GetComputerModule<MechJebModuleLandingPredictions>();
+			if (predictor != null) {
+				var landingGuidanceAP = activeJeb.GetComputerModule<MechJebModuleLandingGuidance>();
+				if (landingGuidanceAP != null) {
+					if (state) {
+						predictor.users.Add(landingGuidanceAP);
+					} else {
+						predictor.users.Remove(landingGuidanceAP);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Returns whether the landing prediction simulator is currently
+		/// running.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonEnableLandingPredictionState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+			var predictor = activeJeb.GetComputerModule<MechJebModuleLandingPredictions>();
+			return (predictor != null && predictor.enabled);
 		}
 
 		// All the other buttons are pretty much identical and just use different enum values.

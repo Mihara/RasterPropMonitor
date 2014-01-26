@@ -67,6 +67,8 @@ namespace MechJebRPM
 		private TextMenu.Item targetMenuItem;
 		private TextMenu.Item forceRollMenuItem;
 		private TextMenu.Item executeNodeItem;
+		private TextMenu.Item ascentGuidanceItem;
+		private TextMenu.Item landingGuidanceItem;
 		private MechJebCore activeJeb;
 		private MechJebModuleSmartASS activeSmartass;
 		private bool pageActiveState;
@@ -207,6 +209,10 @@ namespace MechJebRPM
 				topMenu.Add(forceRollMenuItem);
 				executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
 				topMenu.Add(executeNodeItem);
+				ascentGuidanceItem = new TextMenu.Item("Ascent Guidance", AscentGuidance);
+				topMenu.Add(ascentGuidanceItem);
+				landingGuidanceItem = new TextMenu.Item("Land Somewhere", LandingGuidance);
+				topMenu.Add(landingGuidanceItem);
 				// MOARdV: The following two menu items are not implemented.  I removed
 				// them to avoid confusion.
 				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
@@ -266,6 +272,25 @@ namespace MechJebRPM
 			}
 
 			forceRollMenuItem.isSelected = activeSmartass.forceRol;
+
+			var ascentAP = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
+			if(ascentAP == null) {
+				ascentGuidanceItem.isSelected = false;
+				ascentGuidanceItem.isDisabled = true;
+			} else {
+				ascentGuidanceItem.isSelected = ascentAP.enabled;
+				ascentGuidanceItem.isDisabled = false;
+			}
+
+			var landingAP = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
+			if(landingAP == null) {
+				landingGuidanceItem.isSelected = false;
+				landingGuidanceItem.isDisabled = true;
+			} else {
+				landingGuidanceItem.labelText = (activeJeb.target.PositionTargetExists) ? "Land at Target" : "Land Somewhere";
+				landingGuidanceItem.isSelected = landingAP.enabled;
+				landingGuidanceItem.isDisabled = false;
+			}
 		}
 
 		private void SmartASS_Off(int index, TextMenu.Item tmi)
@@ -352,6 +377,53 @@ namespace MechJebRPM
 				activeSmartass.Engage();
 			}
 		}
+
+		private void AscentGuidance(int index, TextMenu.Item tmi)
+		{
+			UpdateJebReferences();
+			if (activeJeb != null) {
+				MechJebModuleAscentAutopilot ap = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
+				if (ap == null) {
+					return;
+				}
+
+				var agPilot = activeJeb.GetComputerModule<MechJebModuleAscentGuidance>();
+				if (agPilot != null) {
+					if (ap.enabled) {
+						ap.users.Remove(agPilot);
+					}
+					else {
+						ap.users.Add(agPilot);
+					}
+				}
+			}
+		}
+
+		private void LandingGuidance(int index, TextMenu.Item tmi)
+		{
+			UpdateJebReferences();
+			if (activeJeb != null) {
+				var autopilot = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
+
+				if (autopilot == null) {
+					return;
+				}
+
+				if (autopilot.enabled) {
+					autopilot.StopLanding();
+				} else {
+					var landingGuidanceAP = activeJeb.GetComputerModule<MechJebModuleLandingGuidance>();
+					if (landingGuidanceAP != null) {
+						if (activeJeb.target.PositionTargetExists) {
+							autopilot.LandAtPositionTarget(landingGuidanceAP);
+						} else {
+							autopilot.LandUntargeted(landingGuidanceAP);
+						}
+					}
+				}
+			}
+		}
+
 		//--- Orbital Menu
 		private void UpdateOrbitalMenu()
 		{
