@@ -73,7 +73,6 @@ namespace JSI
 		private string persistentVarName;
 		private Light[] lightObjects;
 		private FXGroup audioOutput;
-		private double electricChargeReserve;
 		private const int lightCheckRate = 60;
 		private int lightCheckCountdown;
 		private RasterPropMonitorComputer comp;
@@ -151,7 +150,6 @@ namespace JSI
 							needsElectricChargeValue = true;
 							comp = RasterPropMonitorComputer.Instantiate(internalProp);
 							comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
-							electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 						}
 						SetInternalLights(customGroupList[actionName]);
 						break;
@@ -302,11 +300,8 @@ namespace JSI
 			if (needsElectricChargeValue) {
 				lightCheckCountdown--;
 				if (lightCheckCountdown <= 0) {
-					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
 					lightCheckCountdown = lightCheckRate;
-				}
-				if (electricChargeReserve < 0.01d) {
-					if (oldState) {
+					if (state && comp.ProcessVariable("ELECTRIC").MassageToDouble() < 0.01d) {
 						Click();
 						state = false;
 					}
