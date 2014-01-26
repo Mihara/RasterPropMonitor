@@ -146,11 +146,7 @@ namespace JSI
 					case "intlight":
 						persistentVarName = internalLightName;
 						lightObjects = internalModel.FindModelComponents<Light>();
-						if (string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue) {
-							needsElectricChargeValue = true;
-							comp = RasterPropMonitorComputer.Instantiate(internalProp);
-							comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
-						}
+						needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
 						SetInternalLights(customGroupList[actionName]);
 						break;
 					case "plugin":
@@ -182,6 +178,10 @@ namespace JSI
 					persistentVarName = perPodPersistenceName;
 				}
 				persistence = new PersistenceAccessor(part);
+				if (needsElectricChargeValue) {
+					comp = RasterPropMonitorComputer.Instantiate(internalProp);
+					comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+				}
 			}
 
 			// set up the toggle switch
