@@ -178,10 +178,10 @@ namespace JSI
 					persistentVarName = perPodPersistenceName;
 				}
 				persistence = new PersistenceAccessor(part);
-				if (needsElectricChargeValue) {
-					comp = RasterPropMonitorComputer.Instantiate(internalProp);
-					comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
-				}
+			}
+			if (needsElectricChargeValue) {
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+				comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
 			}
 
 			// set up the toggle switch
