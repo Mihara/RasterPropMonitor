@@ -10,13 +10,16 @@ namespace JSI
 		// We still need a numeric ID cause it makes persistence easier.
 		public readonly int pageNumber;
 		public readonly string name = string.Empty;
-
 		public readonly bool unlocker;
 		private readonly string text;
 
 		public string Text {
 			get {
-				return pageHandler != null ? pageHandler(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
+				// If there's a handler references method, it gets called before each text call.
+				if (pageHandlerS.getHandlerReferences != null)
+					pageHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+
+				return pageHandlerMethod != null ? pageHandlerMethod(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
 			}
 		}
 
@@ -31,20 +34,19 @@ namespace JSI
 			Texture,
 			Handler,
 		};
+
 		public readonly int screenXMin, screenYMin;
 		public readonly int pageFont = 0;
 		private readonly Texture2D overlayTexture, interlayTexture;
-
 		public readonly Color defaultColor;
-
 		private readonly BackgroundType background = BackgroundType.None;
 		private readonly float cameraFOV;
 		private readonly string camera;
 		private readonly FlyingCamera cameraObject;
 		private const float defaultFOV = 60f;
 		private readonly Texture2D backgroundTexture;
-		private readonly Func<int,int,string> pageHandler;
-		private readonly Func<RenderTexture,float,bool> backgroundHandler;
+		private readonly Func<int,int,string> pageHandlerMethod;
+		private readonly Func<RenderTexture,float,bool> backgroundHandlerMethod;
 		private readonly HandlerSupportMethods pageHandlerS, backgroundHandlerS;
 		private readonly RasterPropMonitor ourMonitor;
 		private readonly int screenWidth, screenHeight;
@@ -59,7 +61,7 @@ namespace JSI
 		private readonly List<string> disableSwitchingTo = new List<string>();
 		private readonly DefaultableDictionary<string,string> redirectPages = new DefaultableDictionary<string,string>(string.Empty);
 		private readonly DefaultableDictionary<int,int?> redirectGlobals = new DefaultableDictionary<int, int?>(null);
-
+		private readonly MonoBehaviour backgroundHandlerModule, pageHandlerModule;
 		private readonly float cameraFlickerChance;
 		private readonly int cameraFlickerRange;
 
@@ -68,6 +70,7 @@ namespace JSI
 			public Action <bool,int> activate;
 			public Action <int> buttonClick;
 			public Action <int> buttonRelease;
+			public Action <MonoBehaviour,MonoBehaviour> getHandlerReferences;
 		}
 
 		public bool SwitchingPermitted(string destination)
@@ -178,18 +181,19 @@ namespace JSI
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
 					try {
-						pageHandler = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
+						pageHandlerMethod = (Func<int,int,string>)Delegate.CreateDelegate(typeof(Func<int,int,string>), handlerModule, handlerMethod);
 					} catch {
 						JUtil.LogErrorMessage(ourMonitor, "Incorrect signature for the page handler method {0}", handlerModule.name);
 						break;
 					}
 					pageHandlerS = supportMethods;
 					isMutable = true;
+					pageHandlerModule = handlerModule;
 					break;
 				}
 			} 
 
-			if (pageHandler == null)
+			if (pageHandlerMethod == null)
 			if (node.HasValue("text")) {
 				text = JUtil.LoadPageDefinition(node.GetValue("text"));
 				isMutable |= text.IndexOf("$&$", StringComparison.Ordinal) != -1;
@@ -201,7 +205,7 @@ namespace JSI
 				MethodInfo handlerMethod = InstantiateHandler(handlerNode, ourMonitor, out handlerModule, out supportMethods);
 				if (handlerMethod != null && handlerModule != null) {
 					try {
-						backgroundHandler = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
+						backgroundHandlerMethod = (Func<RenderTexture,float,bool>)Delegate.CreateDelegate(typeof(Func<RenderTexture,float,bool>), handlerModule, handlerMethod);
 					} catch {
 						JUtil.LogErrorMessage(ourMonitor, "Incorrect signature for the background handler method {0}", handlerModule.name);
 						break;
@@ -210,6 +214,7 @@ namespace JSI
 					isMutable = true;
 					showNoSignal = node.HasValue("showNoSignal");
 					background = BackgroundType.Handler;
+					backgroundHandlerModule = handlerModule;
 					break;
 				}
 			}
@@ -276,6 +281,7 @@ namespace JSI
 			support.activate = null;
 			support.buttonClick = null;
 			support.buttonRelease = null;
+			support.getHandlerReferences = null;
 			if (node.HasValue("name") && node.HasValue("method")) {
 				string moduleName = node.GetValue("name");
 				string methodName = node.GetValue("method");
@@ -347,6 +353,17 @@ namespace JSI
 							break;
 						}
 
+				if (node.HasValue("getHandlerReferencesMethod"))
+					foreach (MethodInfo m in thatModule.GetType().GetMethods())
+						if (m.Name == node.GetValue("getHandlerReferencesMethod")) {
+							try {
+								support.getHandlerReferences = (Action<MonoBehaviour,MonoBehaviour>)Delegate.CreateDelegate(typeof(Action<MonoBehaviour,MonoBehaviour>), thatModule, m);
+							} catch {
+								JUtil.LogMessage(ourMonitor, sigError, "handler references", moduleName);
+							}
+							break;
+						}
+
 				moduleInstance = thatModule;
 				foreach (MethodInfo m in thatModule.GetType().GetMethods())
 					if (m.Name == methodName)
@@ -374,7 +391,7 @@ namespace JSI
 			if (cameraFlickerChance > 0) {
 				cameraObject.SetFlicker(cameraFlickerChance, cameraFlickerRange);
 			} else {
-				cameraObject.SetFlicker(0,0);
+				cameraObject.SetFlicker(0, 0);
 			}
 		}
 
@@ -443,7 +460,12 @@ namespace JSI
 					Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
 					break;
 				case BackgroundType.Handler:
-					if (!backgroundHandler(screen, cameraAspect)) {
+
+					// If there's a handler references method, it gets called before each render.
+					if (backgroundHandlerS.getHandlerReferences != null)
+						backgroundHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+
+					if (!backgroundHandlerMethod(screen, cameraAspect)) {
 						if (ourMonitor.noSignalTexture != null && showNoSignal)
 							Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
 						else
@@ -457,7 +479,8 @@ namespace JSI
 			}
 		}
 
-		public void RenderOverlay(RenderTexture screen) {
+		public void RenderOverlay(RenderTexture screen)
+		{
 			if (overlayTexture != null) {
 				Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), overlayTexture);
 			}
