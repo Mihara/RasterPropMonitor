@@ -1649,7 +1649,7 @@ namespace JSI
 				case "TARGETDISTANCEY":
 					return Vector3d.Dot(targetSeparation, vessel.GetTransform().forward);
 				case "TARGETDISTANCEZ":
-					return Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
+					return -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
 
 			// TODO: I probably should return something else for vessels. But not sure what exactly right now.
 				case "TARGETANGLEX":
