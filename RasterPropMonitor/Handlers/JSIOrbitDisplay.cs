@@ -222,7 +222,8 @@ namespace JSI
 			screenTransform.SetRow(2, new Vector4d(forward.x, forward.y, forward.z, 0.0));
 
 			// Figure out our bounds.  First, make sure the entire planet
-			// fits on the screen.
+			// fits on the screen.  We define the center of the vessel.mainBody
+			// as the origin of our coodinate system.
 			double maxX = vessel.mainBody.Radius;
 			double minX = -maxX;
 			double maxY = maxX;
@@ -236,6 +237,7 @@ namespace JSI
 			}
 
 			// Now make sure the entire orbit fits on the screen.
+			Vector3 vesselPos;
 			// The PeR, ApR, and semiMinorAxis are all one dimensional, so we
 			// can just apply them directly to these values.
 			maxX = Math.Max(maxX, vessel.orbit.PeR);
@@ -244,12 +246,19 @@ namespace JSI
 
 				maxY = Math.Max(maxY, vessel.orbit.semiMinorAxis);
 				minY = Math.Min(minY, -vessel.orbit.semiMinorAxis);
+			} else if(vessel.orbit.EndUT > 0.0) {
+				// If we're hyperbolic, let's get the SoI transition
+				vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.EndUT));
+				maxX = Math.Max(maxX, vesselPos.x);
+				minX = Math.Min(minX, vesselPos.x);
+				maxY = Math.Max(maxY, vesselPos.y);
+				minY = Math.Min(minY, vesselPos.y);
 			}
 
 			// Make sure the vessel shows up on-screen.  Since a hyperbolic
 			// orbit doesn't have a meaningful ApR, we use this as a proxy for
 			// how far we need to extend the bounds to show the vessel.
-			Vector3 vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(now));
+			vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(now));
 			maxX = Math.Max(maxX, vesselPos.x);
 			minX = Math.Min(minX, vesselPos.x);
 			maxY = Math.Max(maxY, vesselPos.y);
@@ -292,6 +301,14 @@ namespace JSI
 				// Validate some values up front, so we don't need to test them later.
 				if (targetBody.GetOrbit() == null) {
 					targetBody = null;
+				} else if(targetBody.orbit.referenceBody == vessel.orbit.referenceBody) {
+					// If the target body orbits our current world, let's at
+					// least make sure the body's location is visible.
+					vesselPos = screenTransform.MultiplyPoint3x4(targetBody.GetOrbit().SwappedRelativePositionAtUT(now));
+					maxX = Math.Max(maxX, vesselPos.x);
+					minX = Math.Min(minX, vesselPos.x);
+					maxY = Math.Max(maxY, vesselPos.y);
+					minY = Math.Min(minY, vesselPos.y);
 				}
 			}
 
@@ -307,6 +324,13 @@ namespace JSI
 				if (node.nextPatch.eccentricity < 1.0) {
 					double nodeAp = node.nextPatch.NextApoapsisTime(now);
 					vesselPos = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodeAp));
+					maxX = Math.Max(maxX, vesselPos.x);
+					minX = Math.Min(minX, vesselPos.x);
+					maxY = Math.Max(maxY, vesselPos.y);
+					minY = Math.Min(minY, vesselPos.y);
+				} else if(node.nextPatch.EndUT > 0.0) {
+					// If the next patch is hyperbolic, include the endpoint.
+					vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(node.nextPatch.EndUT));
 					maxX = Math.Max(maxX, vesselPos.x);
 					minX = Math.Min(minX, vesselPos.x);
 					maxY = Math.Max(maxY, vesselPos.y);
@@ -414,13 +438,17 @@ namespace JSI
 
 				double tClosestApproach;
 				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, orbit, out tClosestApproach);
+				// MOARdV TODO: Add a little bit more smarts here so if the
+				// closest approach is on nextPath, we can draw it.
 				if (tClosestApproach < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ENCOUNTER)) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.SHIPATINTERCEPT);
-
-					transformedPosition = screenTransform.MultiplyPoint3x4(orbit.SwappedRelativePositionAtUT(tClosestApproach));
-					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.TGTATINTERCEPT);
 				}
+
+				// Unconditionally try to draw the closest approach point on
+				// the target orbit.
+				transformedPosition = screenTransform.MultiplyPoint3x4(orbit.SwappedRelativePositionAtUT(tClosestApproach));
+				DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.TGTATINTERCEPT);
 			} else {
 				if (vessel.orbit.AscendingNodeEquatorialExists()) {
 					double anTime = vessel.orbit.TimeOfAscendingNodeEquatorial(now);
