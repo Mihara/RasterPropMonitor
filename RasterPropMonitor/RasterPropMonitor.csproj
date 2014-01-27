@@ -89,6 +89,7 @@
     <Compile Include="Auxiliary modules\JSISwitchableVariableLabel.cs" />
     <Compile Include="Core\ResourceDataStorage.cs" />
     <Compile Include="Core\VariableHandler.cs" />
+    <Compile Include="Handlers\JSIInternalRPMButtons.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
