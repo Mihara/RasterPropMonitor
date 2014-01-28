@@ -84,7 +84,7 @@ namespace JSI
 			// determine the time frame to render:
 			double startUT = o.StartUT;
 			double endUT = o.EndUT;
-			endUT = Math.Min(o.EndUT, startUT + o.period);
+			endUT = Math.Max(o.EndUT, startUT + o.period);
 
 			double dT = (endUT - startUT) / (double)numSegments;
 			double t = startUT;
@@ -383,6 +383,13 @@ namespace JSI
 				}
 			}
 
+			foreach (CelestialBody moon in vessel.orbit.referenceBody.orbitingBodies) {
+				if (moon != targetBody) {
+					GL.Color(moon.orbitDriver.orbitColor);
+					ReallyDrawOrbit(moon.GetOrbit(), vessel.orbit.referenceBody, screenTransform, orbitPoints);
+				}
+			}
+
 			if (targetBody != null) {
 				GL.Color(iconColorTargetValue);
 				ReallyDrawOrbit(targetBody.GetOrbit(), vessel.orbit.referenceBody, screenTransform, orbitPoints);
@@ -407,6 +414,13 @@ namespace JSI
 
 			// Draw target vessel icons.
 			Vector3 transformedPosition;
+			foreach (CelestialBody moon in vessel.orbit.referenceBody.orbitingBodies) {
+				if (moon != targetBody) {
+					transformedPosition = screenTransform.MultiplyPoint3x4(moon.getTruePositionAtUT(now) - vessel.orbit.referenceBody.getTruePositionAtUT(now));
+					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, moon.orbitDriver.orbitColor, MapIcons.OtherIcon.PLANET);
+				}
+			}
+
 			if (targetVessel != null || targetBody != null) {
 				var orbit = (targetVessel != null) ? targetVessel.GetOrbit() : targetBody.GetOrbit();
 				DrawNextPe(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
