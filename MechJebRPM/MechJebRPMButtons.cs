@@ -240,6 +240,150 @@ namespace MechJebRPM
 		}
 
 		/// <summary>
+		/// Force the roll to zero degrees.
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonForceRoll0(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			if (activeSmartass != null) {
+				if (state) {
+					activeSmartass.rol = 0.0;
+				}
+				activeSmartass.forceRol = state;
+				activeSmartass.Engage();
+			}
+		}
+
+		/// <summary>
+		/// Returns true when Force Roll is on, and the roll is set to 0.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonForceRoll0State()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			return (activeSmartass != null && activeSmartass.forceRol && (double)activeSmartass.rol == 0.0);
+		}
+
+		/// <summary>
+		/// Force the roll to +90 degrees.
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonForceRoll90(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			if (activeSmartass != null) {
+				if (state) {
+					activeSmartass.rol = 90.0;
+				}
+				activeSmartass.forceRol = state;
+				activeSmartass.Engage();
+			}
+		}
+
+		/// <summary>
+		/// Returns true when Force Roll is on, and the roll is set to 90.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonForceRoll90State()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			return (activeSmartass != null && activeSmartass.forceRol && (double)activeSmartass.rol == 90.0);
+		}
+
+		/// <summary>
+		/// Force the roll to 180 degrees.
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonForceRoll180(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			if (activeSmartass != null) {
+				if (state) {
+					activeSmartass.rol = 180.0;
+				}
+				activeSmartass.forceRol = state;
+				activeSmartass.Engage();
+			}
+		}
+
+		/// <summary>
+		/// Returns true when Force Roll is on, and the roll is set to 180.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonForceRoll180State()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			return (activeSmartass != null && activeSmartass.forceRol && (double)activeSmartass.rol == 180.0);
+		}
+
+		/// <summary>
+		/// Force the roll to -90 degrees.
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonForceRoll270(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			if (activeSmartass != null) {
+				if (state) {
+					activeSmartass.rol = -90.0;
+				}
+				activeSmartass.forceRol = state;
+				activeSmartass.Engage();
+			}
+		}
+
+		/// <summary>
+		/// Returns true when Force Roll is on, and the roll is set to -90.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonForceRoll270State()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+
+			// MOARdV TODO: normalize values before testing.
+			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
+			return (activeSmartass != null && activeSmartass.forceRol && (double)activeSmartass.rol == -90.0);
+		}
+
+		/// <summary>
 		/// The MechJeb landing prediction simulator runs on a separate thread,
 		/// and it may be costly for lower-end computers to leave it running
 		/// all the time.  This button allows the player to indicate whether
@@ -278,6 +422,50 @@ namespace MechJebRPM
 			}
 			var predictor = activeJeb.GetComputerModule<MechJebModuleLandingPredictions>();
 			return (predictor != null && predictor.enabled);
+		}
+
+		/// <summary>
+		/// Engages / disengages Rendezvous Autopilot
+		/// </summary>
+		/// <param name="state"></param>
+		public void ButtonRendezvousAutopilot(bool state)
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return;
+			}
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+			if (autopilot != null) {
+				var autopilotController = activeJeb.GetComputerModule<MechJebModuleDockingGuidance>();
+				if (autopilotController != null && autopilot.enabled != state) {
+					// Do some cursory validation like the "real" controller:
+					if (!(activeJeb.target.Target is ModuleDockingNode)) {
+						return; // Must target docking port
+					}
+					if (autopilot.speedLimit < 0) {
+						autopilot.speedLimit = 0;
+					}
+					if (state) {
+						autopilot.users.Add(autopilotController);
+					} else {
+						autopilot.users.Remove(autopilotController);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Indicates whether the Rendezvous Autopilot is engaged.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonRendezvousAutopilotState()
+		{
+			MechJebCore activeJeb = vessel.GetMasterMechJeb();
+			if (activeJeb == null) {
+				return false;
+			}
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+			return (autopilot != null && autopilot.enabled);
 		}
 
 		// All the other buttons are pretty much identical and just use different enum values.
