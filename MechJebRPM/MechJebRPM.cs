@@ -69,6 +69,7 @@ namespace MechJebRPM
 		private TextMenu.Item executeNodeItem;
 		private TextMenu.Item ascentGuidanceItem;
 		private TextMenu.Item landingGuidanceItem;
+		private TextMenu.Item dockingGuidanceItem;
 		private MechJebCore activeJeb;
 		private MechJebModuleSmartASS activeSmartass;
 		private bool pageActiveState;
@@ -213,6 +214,8 @@ namespace MechJebRPM
 				topMenu.Add(ascentGuidanceItem);
 				landingGuidanceItem = new TextMenu.Item("Land Somewhere", LandingGuidance);
 				topMenu.Add(landingGuidanceItem);
+				dockingGuidanceItem = new TextMenu.Item("Docking Guidance", DockingGuidance);
+				topMenu.Add(dockingGuidanceItem);
 				// MOARdV: The following two menu items are not implemented.  I removed
 				// them to avoid confusion.
 				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
@@ -290,6 +293,15 @@ namespace MechJebRPM
 				landingGuidanceItem.labelText = (activeJeb.target.PositionTargetExists) ? "Land at Target" : "Land Somewhere";
 				landingGuidanceItem.isSelected = landingAP.enabled;
 				landingGuidanceItem.isDisabled = false;
+			}
+
+			var dockingAP = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+			if (dockingAP == null) {
+				dockingGuidanceItem.isSelected = false;
+				dockingGuidanceItem.isDisabled = true;
+			} else {
+				dockingGuidanceItem.isSelected = dockingAP.enabled;
+				dockingGuidanceItem.isDisabled = !(activeJeb.target.Target is ModuleDockingNode);
 			}
 		}
 
@@ -418,6 +430,27 @@ namespace MechJebRPM
 							autopilot.LandAtPositionTarget(landingGuidanceAP);
 						} else {
 							autopilot.LandUntargeted(landingGuidanceAP);
+						}
+					}
+				}
+			}
+		}
+
+		private void DockingGuidance(int index, TextMenu.Item tmi)
+		{
+			UpdateJebReferences();
+			if (activeJeb != null) {
+				var autopilot = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+				if (autopilot != null) {
+					var autopilotController = activeJeb.GetComputerModule<MechJebModuleDockingGuidance>();
+					if (autopilotController != null) {
+						if (autopilot.enabled) {
+							autopilot.users.Remove(autopilotController);
+						} else if (activeJeb.target.Target is ModuleDockingNode) {
+							if (autopilot.speedLimit < 0) {
+								autopilot.speedLimit = 0;
+							}
+							autopilot.users.Add(autopilotController);
 						}
 					}
 				}
