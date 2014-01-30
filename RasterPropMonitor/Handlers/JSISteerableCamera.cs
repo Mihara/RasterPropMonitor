@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace JSI
@@ -60,17 +61,23 @@ namespace JSI
 		[KSPField]
 		public int toggleTargetIcon = -1;
 		[KSPField]
-		public Vector2 fovLimits = new Vector2(60.0f, 60.0f);
+		public int nextCamera = -1;
 		[KSPField]
-		public Vector2 yawLimits = new Vector2(0.0f, 0.0f);
+		public int prevCamera = -1;
 		[KSPField]
-		public Vector2 pitchLimits = new Vector2(0.0f, 0.0f);
+		public int seekHome = -1;
 		[KSPField]
-		public float zoomRate;
+		public string fovLimits = string.Empty;
 		[KSPField]
-		public float yawRate;
+		public string yawLimits = string.Empty;
 		[KSPField]
-		public float pitchRate;
+		public string pitchLimits = string.Empty;
+		[KSPField]
+		public string zoomRate = string.Empty;
+		[KSPField]
+		public string yawRate = string.Empty;
+		[KSPField]
+		public string pitchRate = string.Empty;
 		[KSPField]
 		public string cameraTransform = string.Empty;
 		[KSPField]
@@ -89,9 +96,6 @@ namespace JSI
 		public int flickerRange;
 		private Material homeCrosshairMaterial;
 		private FlyingCamera cameraObject;
-		private float currentFoV;
-		private float currentYaw;
-		private float currentPitch;
 		private float zoomDirection;
 		private float yawDirection;
 		private float pitchDirection;
@@ -100,17 +104,22 @@ namespace JSI
 		private Texture2D gizmoTexture;
 		private Material iconMaterial;
 
+		private int currentCamera = 0;
+		private List<SteerableCameraParameters> cameras = new List<SteerableCameraParameters>();
+
+		private readonly Vector2 defaultFovLimits = new Vector2(60.0f, 60.0f);
+		private readonly Vector2 defaultYawLimits = new Vector2(0.0f, 0.0f);
+		private readonly Vector2 defaultPitchLimits = new Vector2(0.0f, 0.0f);
+
 		private static Vector2 ClampToEdge(Vector2 position)
 		{
 			return position / (Math.Abs(position.x) > Math.Abs(position.y) ? Math.Abs(position.x) : Math.Abs(position.y));
 		}
-		// Mihara: Why are they unused anyway?
-		// Analysis disable UnusedParameter
-		private Vector2 GetNormalizedScreenPosition(Vector3 directionVector, float yawOffset, float pitchOffset, float cameraAspect)
-		// Analysis restore UnusedParameter
+
+		private Vector2 GetNormalizedScreenPosition(SteerableCameraParameters activeCamera, Vector3 directionVector, float cameraAspect)
 		{
 			// Transform direction using the active camera's rotation.
-			var targetTransformed = cameraObject.CameraRotation(currentYaw, -currentPitch).Inverse() * directionVector;
+			var targetTransformed = cameraObject.CameraRotation(activeCamera.currentYaw, -activeCamera.currentPitch).Inverse() * directionVector;
 
 			// (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
 			var targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
@@ -122,7 +131,7 @@ namespace JSI
 			// (tan scales a little too much, sin a little too
 			// little).  It may simply be an artifact of the camera
 			// perspective divide.
-			var fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f));
+			var fovScale = new Vector2(cameraAspect * Mathf.Tan(Mathf.Deg2Rad * activeCamera.currentFoV * 0.5f), Mathf.Tan(Mathf.Deg2Rad * activeCamera.currentFoV * 0.5f));
 			//Vector2 fovScale = new Vector2(cameraAspect * Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f), Mathf.Sin(Mathf.Deg2Rad * currentFoV * 0.5f));
 
 			// MOARdV: Are there no overloaded operators for vector math?
@@ -160,20 +169,24 @@ namespace JSI
 				return false;
 			}
 
-			if (string.IsNullOrEmpty(cameraTransform)) {
+			if(cameras.Count < 1) {
+				return false;
+			}
+
+			var activeCamera = cameras[currentCamera];
+			if (string.IsNullOrEmpty(activeCamera.cameraTransform)) {
 				return false;
 			}
 
 			if (cameraObject == null) {
 				cameraObject = new FlyingCamera(part, screen, cameraAspect);
-				currentFoV = fovLimits.y;
-				cameraObject.PointCamera(cameraTransform, currentFoV);
+				cameraObject.PointCamera(activeCamera.cameraTransform, activeCamera.currentFoV);
 			}
 
-			cameraObject.FOV = currentFoV;
+			cameraObject.FOV = activeCamera.currentFoV;
 
 			// Negate pitch - the camera object treats a negative pitch as "up"
-			if (cameraObject.Render(currentYaw, -currentPitch)) {
+			if (cameraObject.Render(activeCamera.currentYaw, -activeCamera.currentPitch)) {
 				ITargetable target = FlightGlobals.fetch.VesselTarget;
 
 				bool drawSomething = ((gizmoTexture != null && target != null && showTargetIcon) || homeCrosshairMaterial.color.a > 0);
@@ -189,7 +202,7 @@ namespace JSI
 					targetDisplacement.Normalize();
 
 					// Transform it using the active camera's rotation.
-					var targetDisp = GetNormalizedScreenPosition(targetDisplacement, currentYaw, -currentPitch, cameraAspect);
+					var targetDisp = GetNormalizedScreenPosition(activeCamera, targetDisplacement, cameraAspect);
 
 					var iconCenter = new Vector2(screen.width * targetDisp.x, screen.height * targetDisp.y);
 
@@ -209,7 +222,7 @@ namespace JSI
 				if (homeCrosshairMaterial.color.a > 0) {
 					// Mihara: Reference point cameras are different enough to warrant it.
 					var cameraForward = cameraObject.GetTransformForward();
-					var crossHairCenter = GetNormalizedScreenPosition(cameraForward, 0.0f, 0.0f, cameraAspect);
+					var crossHairCenter = GetNormalizedScreenPosition(activeCamera, cameraForward, cameraAspect);
 					crossHairCenter.x *= screen.width;
 					crossHairCenter.y *= screen.height;
 					crossHairCenter.x = Math.Max(iconPixelSize * 0.5f, crossHairCenter.x);
@@ -217,7 +230,7 @@ namespace JSI
 					crossHairCenter.y = Math.Max(iconPixelSize * 0.5f, crossHairCenter.y);
 					crossHairCenter.y = Math.Min(screen.height - iconPixelSize * 0.5f, crossHairCenter.y);
 
-					float zoomAdjustedIconSize = iconPixelSize * Mathf.Tan(Mathf.Deg2Rad * fovLimits.y * 0.5f) / Mathf.Tan(Mathf.Deg2Rad * currentFoV * 0.5f); 
+					float zoomAdjustedIconSize = iconPixelSize * Mathf.Tan(Mathf.Deg2Rad * activeCamera.fovLimits.y * 0.5f) / Mathf.Tan(Mathf.Deg2Rad * activeCamera.currentFoV * 0.5f); 
 
 					homeCrosshairMaterial.SetPass(0);
 					GL.Begin(GL.LINES);
@@ -243,14 +256,27 @@ namespace JSI
 				return;
 			}
 
+			if (cameras.Count < 1) {
+				return;
+			}
+
+			var activeCamera = cameras[currentCamera];
+
 			double thisUpdateTime = Planetarium.GetUniversalTime();
 
 			// Just to be safe, never allow negative values.
 			float dT = Math.Max(0.0f, (float)(thisUpdateTime - lastUpdateTime));
 
-			currentFoV = Math.Max(fovLimits.x, Math.Min(fovLimits.y, currentFoV + dT * zoomRate * zoomDirection));
-			currentYaw = Math.Max(yawLimits.x, Math.Min(yawLimits.y, currentYaw + dT * yawRate * yawDirection));
-			currentPitch = Math.Max(pitchLimits.x, Math.Min(pitchLimits.y, currentPitch + dT * pitchRate * pitchDirection));
+			activeCamera.currentFoV = Math.Max(activeCamera.fovLimits.x, Math.Min(activeCamera.fovLimits.y, activeCamera.currentFoV + dT * activeCamera.zoomRate * zoomDirection));
+			if (activeCamera.seekHome) {
+				float deltaYaw = Math.Min(Math.Abs(activeCamera.currentYaw), dT * activeCamera.yawRate);
+				float deltaPitch = Math.Min(Math.Abs(activeCamera.currentPitch), dT*activeCamera.pitchRate);
+				activeCamera.currentYaw -= deltaYaw * Math.Sign(activeCamera.currentYaw);
+				activeCamera.currentPitch -= deltaPitch * Math.Sign(activeCamera.currentPitch);
+			} else {
+				activeCamera.currentYaw = Math.Max(activeCamera.yawLimits.x, Math.Min(activeCamera.yawLimits.y, activeCamera.currentYaw + dT * activeCamera.yawRate * yawDirection));
+				activeCamera.currentPitch = Math.Max(activeCamera.pitchLimits.x, Math.Min(activeCamera.pitchLimits.y, activeCamera.currentPitch + dT * activeCamera.pitchRate * pitchDirection));
+			}
 
 			lastUpdateTime = thisUpdateTime;
 		}
@@ -258,6 +284,10 @@ namespace JSI
 		public void ClickProcessor(int buttonID)
 		{
 			if (cameraObject == null) {
+				return;
+			}
+
+			if (cameras.Count < 1) {
 				return;
 			}
 
@@ -273,20 +303,45 @@ namespace JSI
 				zoomDirection = 0.0f;
 				yawDirection = -1.0f;
 				pitchDirection = 0.0f;
+				cameras[currentCamera].seekHome = false;
 			} else if (buttonID == yawRight) {
 				zoomDirection = 0.0f;
 				yawDirection = 1.0f;
 				pitchDirection = 0.0f;
+				cameras[currentCamera].seekHome = false;
 			} else if (buttonID == pitchUp) {
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = 1.0f;
+				cameras[currentCamera].seekHome = false;
 			} else if (buttonID == pitchDown) {
 				zoomDirection = 0.0f;
 				yawDirection = 0.0f;
 				pitchDirection = -1.0f;
+				cameras[currentCamera].seekHome = false;
 			} else if (buttonID == toggleTargetIcon) {
 				showTargetIcon = !showTargetIcon;
+			} else if (buttonID == nextCamera) {
+				// Stop current camera motion, since we're not going to update it.
+				cameras[currentCamera].seekHome = false;
+				++currentCamera;
+				if (currentCamera == cameras.Count) {
+					currentCamera = 0;
+				}
+				cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+
+			} else if (buttonID == prevCamera) {
+				// Stop current camera motion, since we're not going to update it.
+				cameras[currentCamera].seekHome = false;
+				if (currentCamera == 0) {
+					currentCamera = cameras.Count - 1;
+				} else {
+					--currentCamera;
+				}
+				cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+
+			} else if (buttonID == seekHome) {
+				cameras[currentCamera].seekHome = true;
 			}
 
 			// Always reset the lastUpdateTime on a button click, in case it
@@ -304,34 +359,39 @@ namespace JSI
 
 		public void Start()
 		{
-			// canonicalize the limits
-			if (fovLimits.x > fovLimits.y) {
-				//std::swap(fovLimits.x, fovLimits.y);
-				float f = fovLimits.x;
-				fovLimits.x = fovLimits.y;
-				fovLimits.y = f;
+			if (string.IsNullOrEmpty(cameraTransform)) {
+				// Nothing to do if there're no camera transforms.
+				return;
 			}
 
-			if (yawLimits.x > yawLimits.y) {
-				//std::swap(yawLimits.x, yawLimits.y);
-				float f = yawLimits.x;
-				yawLimits.x = yawLimits.y;
-				yawLimits.y = f;
-			}
+			string[] cameraTransformList = cameraTransform.Split('|');
 
-			if (pitchLimits.x > pitchLimits.y) {
-				//std::swap(pitchLimits.x, pitchLimits.y);
-				float f = pitchLimits.x;
-				pitchLimits.x = pitchLimits.y;
-				pitchLimits.y = f;
-			}
+			// I'm sure this and the loop can be done a little differently to
+			// make it clearer, but this works.
+			string[] fovLimitsList = (string.IsNullOrEmpty(fovLimits)) ? null : fovLimits.Split('|');
+			string[] yawLimitsList = (string.IsNullOrEmpty(yawLimits)) ? null : yawLimits.Split('|');
+			string[] pitchLimitsList = (string.IsNullOrEmpty(pitchLimits)) ? null : pitchLimits.Split('|');
+			string[] zoomRateList = (string.IsNullOrEmpty(zoomRate)) ? null : zoomRate.Split('|');
+			string[] yawRateList = (string.IsNullOrEmpty(yawRate)) ? null : yawRate.Split('|');
+			string[] pitchRateList = (string.IsNullOrEmpty(pitchRate)) ? null : pitchRate.Split('|');
 
-			// Always requiure 0.0 to be within the legal range of yuaw
-			// and pitch.
-			yawLimits.x = Math.Min(0.0f, yawLimits.x);
-			yawLimits.y = Math.Max(0.0f, yawLimits.y);
-			pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
-			pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
+			// cameraTransformList controls the number of cameras instantiated.
+			// Every other value has a default, so if it's not specified, we
+			// will use that default.
+			for (int i = 0; i < cameraTransformList.Length; ++i)
+			{
+				Vector2 thisFovLimit = (fovLimitsList != null && i < fovLimitsList.Length) ? (Vector2)ConfigNode.ParseVector2(fovLimitsList[i]) : defaultFovLimits;
+				Vector2 thisYawLimit = (yawLimitsList != null && i < yawLimitsList.Length) ? (Vector2)ConfigNode.ParseVector2(yawLimitsList[i]) : defaultYawLimits;
+				Vector2 thisPitchLimit = (pitchLimitsList != null && i < pitchLimitsList.Length) ? (Vector2)ConfigNode.ParseVector2(pitchLimitsList[i]) : defaultPitchLimits;
+				float thisZoomRate = (zoomRateList != null && i < zoomRateList.Length) ? JUtil.GetFloat(zoomRateList[i]) ?? 0.0f : 0.0f;
+				float thisYawRate = (yawRateList != null && i < yawRateList.Length) ? JUtil.GetFloat(yawRateList[i]) ?? 0.0f : 0.0f;
+				float thisPitchRate = (pitchRateList != null && i < pitchRateList.Length) ? JUtil.GetFloat(pitchRateList[i]) ?? 0.0f : 0.0f;
+
+				var camera = new SteerableCameraParameters(cameraTransformList[i],
+					thisFovLimit, thisYawLimit, thisPitchLimit,
+					thisZoomRate, thisYawRate, thisPitchRate);
+				cameras.Add(camera);
+			}
 
 			gizmoTexture = JUtil.GetGizmoTexture();
 
@@ -347,6 +407,67 @@ namespace JSI
 
 			homeCrosshairMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
 			homeCrosshairMaterial.color = ConfigNode.ParseColor32(homeCrosshairColor);
+		}
+	}
+
+	// Prep for switchable steerable cameras.
+	public class SteerableCameraParameters
+	{
+		public readonly string cameraTransform;
+		public readonly Vector2 fovLimits;
+		public readonly Vector2 yawLimits;
+		public readonly Vector2 pitchLimits;
+		public readonly float zoomRate;
+		public readonly float yawRate;
+		public readonly float pitchRate;
+		public float currentFoV;
+		public float currentYaw;
+		public float currentPitch;
+		public bool seekHome;
+
+		public SteerableCameraParameters(string _cameraTransform,
+			Vector2 _fovLimits, Vector2 _yawLimits, Vector2 _pitchLimits,
+			float _zoomRate, float _yawRate, float _pitchRate)
+		{
+			cameraTransform = _cameraTransform;
+
+			// canonicalize the limits
+			fovLimits = _fovLimits;
+			if (fovLimits.x > fovLimits.y) {
+				float f = fovLimits.x;
+				fovLimits.x = fovLimits.y;
+				fovLimits.y = f;
+			}
+
+			yawLimits = _yawLimits ;
+			if (yawLimits.x > yawLimits.y) {
+				float f = yawLimits.x;
+				yawLimits.x = yawLimits.y;
+				yawLimits.y = f;
+			}
+
+			pitchLimits = _pitchLimits;
+			if (pitchLimits.x > pitchLimits.y) {
+				float f = pitchLimits.x;
+				pitchLimits.x = pitchLimits.y;
+				pitchLimits.y = f;
+			}
+
+			// Always requiure 0.0 to be within the legal range of yuaw
+			// and pitch.
+			yawLimits.x = Math.Min(0.0f, yawLimits.x);
+			yawLimits.y = Math.Max(0.0f, yawLimits.y);
+			pitchLimits.x = Math.Min(0.0f, pitchLimits.x);
+			pitchLimits.y = Math.Max(0.0f, pitchLimits.y);
+
+			zoomRate = _zoomRate;
+			yawRate = _yawRate;
+			pitchRate = _pitchRate;
+
+			currentFoV = fovLimits.y;
+			currentYaw = 0.0f;
+			currentPitch = 0.0f;
+			seekHome = false;
 		}
 	}
 }
