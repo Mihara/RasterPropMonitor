@@ -176,6 +176,25 @@ namespace JSI
 			}
 		}
 
+		private static Orbit GetPatchAtUT(Orbit startOrbit, double UT)
+		{
+			Orbit o = startOrbit;
+			while (o.patchEndTransition != Orbit.PatchTransitionType.FINAL) {
+				if (o.EndUT >= UT) {
+					// EndUT for this patch is later than what we're looking for.  Exit.
+					break;
+				}
+				if (o.nextPatch == null || o.nextPatch.activePatch == false) {
+					// There is no valid next patch.  Exit.
+					break;
+				}
+
+				// Check the next one.
+				o = o.nextPatch;
+			}
+			return o;
+		}
+
 		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
@@ -452,10 +471,10 @@ namespace JSI
 
 				double tClosestApproach;
 				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, orbit, out tClosestApproach);
-				// MOARdV TODO: Add a little bit more smarts here so if the
-				// closest approach is on nextPath, we can draw it.
-				if (tClosestApproach < vessel.orbit.EndUT || (vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ESCAPE && vessel.orbit.patchEndTransition!=Orbit.PatchTransitionType.ENCOUNTER)) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(tClosestApproach));
+				Orbit o = GetPatchAtUT(vessel.orbit, tClosestApproach);
+				if (o != null) {
+					Vector3d encounterPosition = o.SwappedRelativePositionAtUT(tClosestApproach) + o.referenceBody.getTruePositionAtUT(tClosestApproach) - vessel.orbit.referenceBody.getTruePositionAtUT(tClosestApproach);
+					transformedPosition = screenTransform.MultiplyPoint3x4(encounterPosition);
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, iconColorClosestApproachValue, MapIcons.OtherIcon.SHIPATINTERCEPT);
 				}
 
