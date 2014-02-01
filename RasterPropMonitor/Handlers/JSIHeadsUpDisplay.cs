@@ -67,11 +67,19 @@ namespace JSI
 		public bool vertBar2UseLog10 = true;
 		[KSPField]
 		public string staticOverlay = string.Empty;
+		[KSPField]
+		public string progradeColor = string.Empty;
+		private Color progradeColorValue = new Color(0.84f, 0.98f, 0);
+		[KSPField]
+		public float iconPixelSize = 64f;
+
 		private Material ladderMaterial;
 		private Material headingMaterial;
 		private Material overlayMaterial;
 		private Material vertBar1Material;
 		private Material vertBar2Material;
+		private Material iconMaterial;
+		private Texture2D gizmoTexture;
 		private RasterPropMonitorComputer comp;
 		private bool startupComplete;
 
@@ -102,20 +110,6 @@ namespace JSI
 				cameraObject.Render();
 			}
 
-			// Figure out the texture coordinate scaling for the ladder.
-			float ladderTextureOffset;
-			/*
-			float ladderHeightRatio = horizonSize.y / screen.height;
-			float ladderHalfHeightDegrees = hudFov * 0.5f * ladderHeightRatio;
-			if (use360horizon) {
-				ladderTextureOffset = ladderHalfHeightDegrees / 180.0f;
-
-			} else {
-				ladderTextureOffset = ladderHalfHeightDegrees / 90.0f;
-			}
-			*/
-			ladderTextureOffset = horizonTextureSize.y / ladderMaterial.mainTexture.height;
-
 			// Configure the matrix so that the origin is the center of the screen.
 			GL.PushMatrix();
 
@@ -130,7 +124,13 @@ namespace JSI
 			Vector3 top = Vector3.Cross(right, forward);
 			Vector3 north = Vector3.Exclude(up, (vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM).normalized;
 
+			Vector3d velocityVesselSurface = vessel.orbit.GetVel() - vessel.mainBody.getRFrmVel(coM);
+			Vector3 velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
+
 			if (ladderMaterial) {
+				// Figure out the texture coordinate scaling for the ladder.
+				float ladderTextureOffset = horizonTextureSize.y / ladderMaterial.mainTexture.height;
+
 				float cosUp = Vector3.Dot(forward, up);
 				float cosRoll = Vector3.Dot(top, up);
 				float sinRoll = Vector3.Dot(right, up);
@@ -180,6 +180,26 @@ namespace JSI
 				GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
 				GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 				GL.End();
+
+				float AoA = velocityVesselSurfaceUnit.AngleInPlane(right, forward);
+				float AoATC;
+				if (use360horizon) {
+					// Straight up is texture coord 0.75;
+					// Straight down is TC 0.25;
+					AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch+AoA);
+				} else {
+					// Straight up is texture coord 1.0;
+					// Straight down is TC 0.0;
+					AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch+AoA);
+				}
+
+				float Ypos = JUtil.DualLerp(
+					-horizonSize.y, horizonSize.y,
+					ladderMidpointCoord - ladderTextureOffset, ladderMidpointCoord + ladderTextureOffset, 
+					AoATC);
+
+				// Placing the icon on the (0, Ypos) location, so simplify the transform.
+				DrawIcon(-sinRoll * Ypos, cosRoll * Ypos, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
 			}
 
 			// Draw the rest of the HUD stuff (0,0) is the top left corner of the screen.
@@ -190,18 +210,6 @@ namespace JSI
 				Quaternion rotationSurface = Quaternion.LookRotation(north, up);
 				Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 				float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y);
-				// MOARdV: While we can use the comp to get these values, the
-				// HUD update stutters if the computation refresh rate is too
-				// low.  We can switch this back with a caveat to implementers
-				// that they must keep the refresh rate high for smooth
-				// performance.
-				//float heading = comp.ProcessVariable("HEADING").MassageToFloat();
-				//float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, heading);
-
-				//float headingTextureOffset;
-				//float headingHeightRatio = headingBarPosition.z / screen.width;
-				//float headingHalfHeightDegrees = hudFov * 0.5f * headingHeightRatio;
-				//headingTextureOffset = headingHalfHeightDegrees / 180.0f;
 				float headingTextureOffset = (headingBarWidth / headingMaterial.mainTexture.width) / 2;
 
 				headingMaterial.SetPass(0);
@@ -215,6 +223,11 @@ namespace JSI
 				GL.TexCoord2(headingTexture - headingTextureOffset, 0.0f);
 				GL.Vertex3(headingBarPosition.x, headingBarPosition.y + headingBarPosition.w, 0.0f);
 				GL.End();
+
+				float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(up, forward);
+				float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
+				float slipIconX = JUtil.DualLerp(headingBarPosition.x, headingBarPosition.x + headingBarPosition.z, headingTexture - headingTextureOffset, headingTexture + headingTextureOffset, slipTC);
+				DrawIcon(slipIconX, headingBarPosition.y + headingBarPosition.w * 0.5f, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
 			}
 
 			if (vertBar1Material != null) {
@@ -349,9 +362,26 @@ namespace JSI
 				vertBar2Limit.y = JUtil.PseudoLog10(vertBar2Limit.y);
 			}
 
+			if (!string.IsNullOrEmpty(progradeColor)) {
+				progradeColorValue = ConfigNode.ParseColor32(progradeColor);
+			}
+
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 
+			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+			gizmoTexture = JUtil.GetGizmoTexture();
+
 			startupComplete = true;
+		}
+
+		private void DrawIcon(float xPos, float yPos, Rect texCoord, Color iconColor)
+		{
+			var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
+							   iconPixelSize, iconPixelSize);
+
+			iconMaterial.color = iconColor;
+			Graphics.DrawTexture(position, gizmoTexture, texCoord, 0, 0, 0, 0, iconMaterial);
 		}
 	}
 }
