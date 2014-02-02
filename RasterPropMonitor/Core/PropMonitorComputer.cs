@@ -7,6 +7,9 @@ namespace JSI
 {
 	public class RasterPropMonitorComputer: PartModule
 	{
+		// The only public configuration variable.
+		[KSPField]
+		public bool debugLogging = true;
 		// Persistence for internal modules.
 		[KSPField(isPersistant = true)]
 		public string data = "";
@@ -237,6 +240,8 @@ namespace JSI
 		// Damnit, looks like this needs a separate start.
 		public void Start()
 		{
+			JUtil.logQuiet = debugLogging;
+
 			if (!HighLogic.LoadedSceneIsEditor) {
 
 				gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);

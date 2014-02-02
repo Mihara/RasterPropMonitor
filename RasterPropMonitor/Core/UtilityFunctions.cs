@@ -202,6 +202,7 @@ namespace JSI
 		public static readonly string[] VariableListSeparator = { "$&$" };
 		public static readonly string[] VariableSeparator = { };
 		public static readonly string[] LineSeparator = { Environment.NewLine };
+		public static bool logQuiet;
 
 		public static void MakeReferencePart(this Part thatPart)
 		{
@@ -317,13 +318,15 @@ namespace JSI
 
 		public static void LogMessage(object caller, string line, params object[] list)
 		{
-			Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+			if (!logQuiet) 
+				Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
 		}
 
 		public static void LogErrorMessage(object caller, string line, params object[] list)
 		{
 			Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
 		}
+
 		// Working in a generic to make that a generic function for all numbers is too much work
 		// and we only need these two anyway.
 		public static float DualLerp(float from, float to, float from2, float to2, float value)
