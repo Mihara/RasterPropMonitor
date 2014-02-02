@@ -81,22 +81,30 @@ namespace JSI
 				return;
 			}
 
-			// determine the time frame to render:
-			double startUT = o.StartUT;
-			double endUT = o.EndUT;
-			endUT = Math.Max(o.EndUT, startUT + o.period);
-
-			double dT = (endUT - startUT) / (double)numSegments;
-			double t = startUT;
-
-			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
+			double startTA;
+			double endTA;
+			double now = Planetarium.GetUniversalTime();
+			if (o.patchEndTransition != Orbit.PatchTransitionType.FINAL) {
+				startTA = o.TrueAnomalyAtUT(o.StartUT);
+				endTA = o.TrueAnomalyAtUT(o.EndUT);
+				if (endTA < startTA) {
+					endTA += 2.0*Math.PI;
+				}
+			} else {
+				startTA = o.GetUTforTrueAnomaly(0.0, now);
+				endTA = startTA + 2.0*Math.PI;
+			}
+			double dTheta = (endTA - startTA) / (double)numSegments;
+			double theta = startTA;
+			double timeAtTA = o.GetUTforTrueAnomaly(theta, now);
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 			for (int i = 0; i < numSegments; ++i) {
-				GL.Vertex(lastVertex);
+				GL.Vertex3(lastVertex.x, lastVertex.y, 0.0f);
+				theta += dTheta;
+				timeAtTA = o.GetUTforTrueAnomaly(theta, now);
 
-				t += dT;
-
-				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
-				GL.Vertex(newVertex);
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+				GL.Vertex3(newVertex.x, newVertex.y, 0.0f);
 
 				lastVertex = newVertex;
 			}
@@ -106,21 +114,23 @@ namespace JSI
 		// active.  I've encountered this when targeting a vessel or planet.
 		private static void ReallyDrawOrbit(Orbit o, CelestialBody referenceBody, Matrix4x4 screenTransform, int numSegments)
 		{
-			// determine the time frame to render:
-			double startUT = Planetarium.GetUniversalTime();
-			double endUT = startUT + o.period;
+			if (o.eccentricity >= 1.0) {
+				Debug.Log("JSIOrbitDisplay.ReallyDrawOrbit(): I can't draw an orbit with e >= 1.0");
+				return;
+			}
 
-			double dT = (endUT - startUT) / (double)numSegments;
-			double t = startUT;
-
-			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
+			double dTheta = 2.0 * Math.PI / (double)numSegments;
+			double theta = 0.0;
+			double now = Planetarium.GetUniversalTime();
+			double timeAtTA = o.GetUTforTrueAnomaly(theta, now);
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 			for (int i = 0; i < numSegments; ++i) {
-				GL.Vertex(lastVertex);
+				GL.Vertex3(lastVertex.x, lastVertex.y, 0.0f);
+				theta += dTheta;
+				timeAtTA = o.GetUTforTrueAnomaly(theta, now);
 
-				t += dT;
-
-				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.SwappedRelativePositionAtUT(t) + (o.referenceBody.getTruePositionAtUT(t)) - (referenceBody.getTruePositionAtUT(t)));
-				GL.Vertex(newVertex);
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+				GL.Vertex3(newVertex.x, newVertex.y, 0.0f);
 
 				lastVertex = newVertex;
 			}
