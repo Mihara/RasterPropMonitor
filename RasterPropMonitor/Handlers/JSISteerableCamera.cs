@@ -213,10 +213,8 @@ namespace JSI
 					iconCenter.y = Math.Min(screen.height - iconPixelSize * 0.5f, iconCenter.y);
 
 					var position = new Rect(iconCenter.x - iconPixelSize * 0.5f, iconCenter.y - iconPixelSize * 0.5f, iconPixelSize, iconPixelSize);
-					// TGT+ is at (2/3, 2/3).
-					var srcRect = new Rect(2.0f / 3.0f, 2.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f);
 
-					Graphics.DrawTexture(position, gizmoTexture, srcRect, 0, 0, 0, 0, iconMaterial);
+					Graphics.DrawTexture(position, gizmoTexture, GizmoIcons.GetIconLocation(GizmoIcons.IconType.TARGETPLUS), 0, 0, 0, 0, iconMaterial);
 				}
 
 				if (homeCrosshairMaterial.color.a > 0) {

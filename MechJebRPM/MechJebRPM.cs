@@ -1,8 +1,12 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
-using JSI;
 using MuMech;
+// I had to add these as explicit "using" instead of pulling in all of JSI
+// because JSI.OrbitExtensions clashes with MuMech.OrbitExtensions, and this
+// resulted in the least disruptive way to get around that.
+using TextMenu = JSI.TextMenu;
+using JUtil = JSI.JUtil;
 using UnityEngine;
 
 namespace MechJebRPM
@@ -39,7 +43,12 @@ namespace MechJebRPM
 			OrbitMenu,
 			SurfaceMenu,
 			TargetMenu,
-			AdvancedMenu,
+			ExecuteNodeMenu,
+			AscentGuidanceMenu,
+			LandingGuidanceMenu,
+			DockingGuidanceMenu,
+			CircularizeMenu,
+			//SpacePlaneMenu,
 		};
 
 		private readonly List<MechJebModuleSmartASS.Target> orbitalTargets = new List<MechJebModuleSmartASS.Target> {
@@ -66,10 +75,6 @@ namespace MechJebRPM
 		private TextMenu.Item nodeMenuItem;
 		private TextMenu.Item targetMenuItem;
 		private TextMenu.Item forceRollMenuItem;
-		private TextMenu.Item executeNodeItem;
-		private TextMenu.Item ascentGuidanceItem;
-		private TextMenu.Item landingGuidanceItem;
-		private TextMenu.Item dockingGuidanceItem;
 		private MechJebCore activeJeb;
 		private MechJebModuleSmartASS activeSmartass;
 		private bool pageActiveState;
@@ -111,8 +116,8 @@ namespace MechJebRPM
 					case MJMenu.TargetMenu:
 						UpdateTargetMenu();
 						break;
-					case MJMenu.AdvancedMenu:
-						activeMenu.menuTitle = "== " + MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED] + " Menu: " + GetActiveMode();
+					case MJMenu.CircularizeMenu:
+						UpdateCircularizeMenu();
 						break;
 				}
 
@@ -180,7 +185,7 @@ namespace MechJebRPM
 
 			// I guess I shouldn't have expected Squad to actually do something nice for a modder like that.
 			// In 0.23, loading in non-alphabetical order is still broken.
-			InstallationPathWarning.Warn("MechJeb2RPM");
+			JSI.InstallationPathWarning.Warn("MechJeb2RPM");
 
 			if (!string.IsNullOrEmpty(itemColor))
 				itemColorValue = ConfigNode.ParseColor32(itemColor);
@@ -208,18 +213,12 @@ namespace MechJebRPM
 				// Analysis disable once RedundantCast
 				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
 				topMenu.Add(forceRollMenuItem);
-				executeNodeItem = new TextMenu.Item("Execute Next Node", ExecuteNode);
-				topMenu.Add(executeNodeItem);
-				ascentGuidanceItem = new TextMenu.Item("Ascent Guidance", AscentGuidance);
-				topMenu.Add(ascentGuidanceItem);
-				landingGuidanceItem = new TextMenu.Item("Land Somewhere", LandingGuidance);
-				topMenu.Add(landingGuidanceItem);
-				dockingGuidanceItem = new TextMenu.Item("Docking Guidance", DockingGuidance);
-				topMenu.Add(dockingGuidanceItem);
-				// MOARdV: The following two menu items are not implemented.  I removed
-				// them to avoid confusion.
-				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.SURFACE], null, false, "", true));
-				//topMenu.Add(new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ADVANCED], null, false, "", true));
+				topMenu.Add(new TextMenu.Item("Execute Next Node", ExecuteNode, (int)MJMenu.ExecuteNodeMenu));
+				topMenu.Add(new TextMenu.Item("Ascent Guidance", AscentGuidance, (int)MJMenu.AscentGuidanceMenu));
+				topMenu.Add(new TextMenu.Item("Land Somewhere", LandingGuidance, (int)MJMenu.LandingGuidanceMenu));
+				topMenu.Add(new TextMenu.Item("Docking Guidance", DockingGuidance, (int)MJMenu.DockingGuidanceMenu));
+				//topMenu.Add(new TextMenu.Item("Hold Alt & Heading", SpaceplaneGuidance, (int)MJMenu.SpacePlaneMenu));
+				topMenu.Add(new TextMenu.Item("Circularize", CircularizeMenu, (int)MJMenu.CircularizeMenu));
 			}
 			activeMenu = topMenu;
 		}
@@ -232,15 +231,6 @@ namespace MechJebRPM
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
 			// Analysis disable once RedundantCast
 			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", (double)activeSmartass.rol);
-
-			MechJebModuleManeuverPlanner mp = null;
-			if (activeJeb != null) {
-				mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
-				executeNodeItem.labelText = (activeJeb.node.enabled) ? "Abort Node Execution" : "Execute Next Node";
-			} else {
-				executeNodeItem.labelText = "Execute Next Node";
-			}
-			executeNodeItem.isDisabled = (mp == null || vessel.patchedConicSolver.maneuverNodes.Count == 0);
 
 			// MOARdV:
 			// This is a little messy, since SmartASS can be updated
@@ -276,32 +266,74 @@ namespace MechJebRPM
 
 			forceRollMenuItem.isSelected = activeSmartass.forceRol;
 
-			var ascentAP = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
-			if(ascentAP == null) {
-				ascentGuidanceItem.isSelected = false;
-				ascentGuidanceItem.isDisabled = true;
-			} else {
-				ascentGuidanceItem.isSelected = ascentAP.enabled;
-				ascentGuidanceItem.isDisabled = false;
+			TextMenu.Item item;
+
+			item = activeMenu.Find(x => x.id == (int)MJMenu.ExecuteNodeMenu);
+			if (item != null) {
+				var mp = activeJeb.GetComputerModule<MechJebModuleManeuverPlanner>();
+				if (mp != null) {
+					item.isSelected = false;
+					item.labelText = (activeJeb.node.enabled) ? "Abort Node Execution" : "Execute Next Node";
+					item.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+				} else {
+					item.isSelected = false;
+					item.labelText = "Execute Next Node";
+					item.isDisabled = true;
+				}
 			}
 
-			var landingAP = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
-			if(landingAP == null) {
-				landingGuidanceItem.isSelected = false;
-				landingGuidanceItem.isDisabled = true;
-			} else {
-				landingGuidanceItem.labelText = (activeJeb.target.PositionTargetExists) ? "Land at Target" : "Land Somewhere";
-				landingGuidanceItem.isSelected = landingAP.enabled;
-				landingGuidanceItem.isDisabled = false;
+			item = activeMenu.Find(x => x.id == (int)MJMenu.AscentGuidanceMenu);
+			if (item != null) {
+				var ascentAP = activeJeb.GetComputerModule<MechJebModuleAscentAutopilot>();
+				if (ascentAP == null) {
+					item.isSelected = false;
+					item.isDisabled = true;
+				} else {
+					item.isSelected = ascentAP.enabled;
+					item.isDisabled = false;
+				}
 			}
 
-			var dockingAP = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
-			if (dockingAP == null) {
-				dockingGuidanceItem.isSelected = false;
-				dockingGuidanceItem.isDisabled = true;
-			} else {
-				dockingGuidanceItem.isSelected = dockingAP.enabled;
-				dockingGuidanceItem.isDisabled = !(activeJeb.target.Target is ModuleDockingNode);
+			item = activeMenu.Find(x => x.id == (int)MJMenu.LandingGuidanceMenu);
+			if (item != null) {
+				var landingAP = activeJeb.GetComputerModule<MechJebModuleLandingAutopilot>();
+				if (landingAP == null) {
+					item.isSelected = false;
+					item.isDisabled = true;
+				} else {
+					item.labelText = (activeJeb.target.PositionTargetExists) ? "Land at Target" : "Land Somewhere";
+					item.isSelected = landingAP.enabled;
+					item.isDisabled = false;
+				}
+			}
+
+			item = activeMenu.Find(x => x.id == (int)MJMenu.DockingGuidanceMenu);
+			if (item != null) {
+				var dockingAP = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+				if (dockingAP == null) {
+					item.isSelected = false;
+					item.isDisabled = true;
+				} else {
+					item.isSelected = dockingAP.enabled;
+					item.isDisabled = !(activeJeb.target.Target is ModuleDockingNode);
+				}
+			}
+
+			//item = activeMenu.Find(x => x.id == (int)MJMenu.SpacePlaneMenu);
+			//if (item != null) {
+			//	var headingAP = activeJeb.GetComputerModule<MechJebModuleSpaceplaneAutopilot>();
+			//	if (headingAP == null) {
+			//		item.isSelected = false;
+			//		item.isDisabled = true;
+			//	} else {
+			//		item.isSelected = (headingAP.enabled && headingAP.mode == MechJebModuleSpaceplaneAutopilot.Mode.HOLD);
+			//		item.isDisabled = (headingAP.mode == MechJebModuleSpaceplaneAutopilot.Mode.AUTOLAND);
+			//	}
+			//}
+
+			item = activeMenu.Find(x => x.id == (int)MJMenu.CircularizeMenu);
+			if (item != null) {
+				item.isDisabled = vessel.LandedOrSplashed;
 			}
 		}
 
@@ -457,6 +489,49 @@ namespace MechJebRPM
 			}
 		}
 
+		// MOARdV: Spaceplane Guidance can not be implemented cleanly, because
+		// MJ's MechJebModuleSpaceplaneGuidance is missing the 'public'
+		// keyword.  We could use another controller (like ourself), but that
+		// means one is forced to use our menu to turn it off (the MJ GUI is
+		// not able to change the setting), and vice versa.  Since every other
+		// place where we interface with MJ, we use MJ's objects as the
+		// controller, this breaks our design model.  If/when MJ makes the
+		// module public, all of the commented code here related to it can be
+		// uncommented, and this missive can be deleted.
+		//private void SpaceplaneGuidance(int index, TextMenu.Item tmi)
+		//{
+		//	UpdateJebReferences();
+		//	if (activeJeb != null) {
+		//		var autopilot = activeJeb.GetComputerModule<MechJebModuleSpaceplaneAutopilot>();
+		//		if (autopilot != null) {
+		//			MechJebModuleSpaceplaneGuidance is not currently public.  Can't use it.
+		//			var autopilotController = activeJeb.GetComputerModule<MechJebModuleSpaceplaneGuidance>();
+		//			if (autopilotController != null) {
+		//				if (autopilot.enabled && autopilot.mode == MechJebModuleSpaceplaneAutopilot.Mode.HOLD) {
+		//					autopilot.AutopilotOff();
+		//				} else if (!autopilot.enabled) {
+		//					autopilot.HoldHeadingAndAltitude(autopilotController);
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
+
+		private void CircularizeMenu(int index, TextMenu.Item tmi)
+		{
+			currentMenu = MJMenu.CircularizeMenu;
+
+			activeMenu = new TextMenu();
+			activeMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
+			activeMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
+			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
+			activeMenu.menuTitle = "== Circularize Menu:";
+
+			activeMenu.Add(new TextMenu.Item("At Next Ap", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS));
+			activeMenu.Add(new TextMenu.Item("At Next Pe", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.PERIAPSIS));
+			activeMenu.Add(new TextMenu.Item("In 15s", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.X_FROM_NOW));
+		}
+
 		//--- Orbital Menu
 		private void UpdateOrbitalMenu()
 		{
@@ -477,6 +552,44 @@ namespace MechJebRPM
 				activeMenu.SetSelected(idx, true);
 			}
 		}
+		//--- Circularize Menu
+		private void UpdateCircularizeMenu()
+		{
+			// If the menu works, the only thing we won't allow is
+			// "circularize at Ap" when we're hyperbolic.
+
+			var AtAp = activeMenu.Find(x => x.id == (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS);
+			if (AtAp != null) {
+				AtAp.isDisabled = (vessel.orbit.eccentricity >= 1.0);
+			}
+		}
+
+		private void DoCircularize(int index, TextMenu.Item tmi)
+		{
+			double UT = 0.0;
+			Vector3d dV = Vector3d.zero;
+			Orbit o = vessel.orbit;
+
+			switch (tmi.id)
+			{
+				case (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS:
+					UT = o.NextApoapsisTime(Planetarium.GetUniversalTime());
+					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
+					break;
+				case (int)MechJebModuleManeuverPlanner.TimeReference.PERIAPSIS:
+					UT = o.NextPeriapsisTime(Planetarium.GetUniversalTime());
+					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
+					break;
+				case (int)MechJebModuleManeuverPlanner.TimeReference.X_FROM_NOW:
+					UT = Planetarium.GetUniversalTime() + 15.0;
+					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
+					break;
+			}
+
+			if (UT > 0.0) {
+				vessel.PlaceManeuverNode(o, dV, UT);
+			}
+		}
 
 		private void SelectTarget(int index, TextMenu.Item tmi)
 		{
@@ -489,8 +602,6 @@ namespace MechJebRPM
 					break;
 				case MJMenu.TargetMenu:
 					activeTargets = targetTargets;
-					break;
-				case MJMenu.AdvancedMenu:
 					break;
 			}
 

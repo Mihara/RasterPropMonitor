@@ -130,6 +130,73 @@ namespace JSI
 		}
 	}
 
+	public static class GizmoIcons
+	{
+		public enum IconType
+		{
+			PROGRADE,
+			RETROGRADE,
+			MANEUVERPLUS,
+			MANEUVERMINUS,
+			TARGETPLUS,
+			TARGETMINUS,
+			NORMALPLUS,
+			NORMALMINUS,
+			RADIALPLUS,
+			RADIALMINUS,
+		};
+
+		public static Rect GetIconLocation(IconType type)
+		{
+			Rect loc = new Rect(0.0f, 0.0f, 1.0f/3.0f, 1.0f/3.0f);
+			switch(type)
+			{
+				case IconType.PROGRADE:
+					loc.x = 0.0f / 3.0f;
+					loc.y = 2.0f / 3.0f;
+					break;
+				case IconType.RETROGRADE:
+					loc.x = 1.0f / 3.0f;
+					loc.y = 2.0f / 3.0f;
+					break;
+				case IconType.MANEUVERPLUS:
+					loc.x = 2.0f / 3.0f;
+					loc.y = 0.0f / 3.0f;
+					break;
+				case IconType.MANEUVERMINUS:
+					loc.x = 1.0f / 3.0f;
+					loc.y = 2.0f / 3.0f;
+					break;
+				case IconType.TARGETPLUS:
+					loc.x = 2.0f / 3.0f;
+					loc.y = 2.0f / 3.0f;
+					break;
+				case IconType.TARGETMINUS:
+					loc.x = 2.0f / 3.0f;
+					loc.y = 1.0f / 3.0f;
+					break;
+				case IconType.NORMALPLUS:
+					loc.x = 0.0f / 3.0f;
+					loc.y = 0.0f / 3.0f;
+					break;
+				case IconType.NORMALMINUS:
+					loc.x = 1.0f / 3.0f;
+					loc.y = 0.0f / 3.0f;
+					break;
+				case IconType.RADIALPLUS:
+					loc.x = 1.0f / 3.0f;
+					loc.y = 1.0f / 3.0f;
+					break;
+				case IconType.RADIALMINUS:
+					loc.x = 0.0f / 3.0f;
+					loc.y = 1.0f / 3.0f;
+					break;
+			}
+
+			return loc;
+		}
+	}
+
 	public static class JUtil
 	{
 		public static readonly string[] VariableListSeparator = { "$&$" };

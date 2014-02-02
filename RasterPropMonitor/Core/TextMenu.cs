@@ -133,6 +133,7 @@ namespace JSI
 		{
 			public string labelText = string.Empty;
 			public string rightText = string.Empty;
+			public int id;
 			public bool isDisabled;
 			public bool isSelected;
 			public Action<int, Item> action;
@@ -145,6 +146,18 @@ namespace JSI
 				this.action = action;
 				this.isDisabled = isDisabled;
 				this.isSelected = isSelected;
+				this.id = -1;
+			}
+			// Consolidated/simple constructor - set most things to their
+			// defaults, and require three fields to be supplied.
+			public Item(string labelText, Action<int, Item> action, int id)
+			{
+				this.labelText = labelText;
+				this.rightText = "";
+				this.action = action;
+				this.isDisabled = false;
+				this.isSelected = false;
+				this.id = id;
 			}
 		}
 	}
