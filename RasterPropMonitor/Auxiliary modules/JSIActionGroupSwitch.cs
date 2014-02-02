@@ -147,7 +147,6 @@ namespace JSI
 						persistentVarName = internalLightName;
 						lightObjects = internalModel.FindModelComponents<Light>();
 						needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
-						SetInternalLights(customGroupList[actionName]);
 						break;
 					case "plugin":
 						persistentVarName = string.Empty;
@@ -193,8 +192,14 @@ namespace JSI
 				if (isPluginAction && stateHandler != null) {
 					oldState = stateHandler();
 				} else {
-					if (!string.IsNullOrEmpty(persistentVarName))
+					if (!string.IsNullOrEmpty(persistentVarName)) {
 						oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
+						if (actionName == "intlight") {
+							// We have to restore lighting after reading the
+							// persistent variable.
+							SetInternalLights(customGroupList[actionName]);
+						}
+					}
 				}
 			}
 
