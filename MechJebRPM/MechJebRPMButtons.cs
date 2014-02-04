@@ -434,23 +434,18 @@ namespace MechJebRPM
 			if (activeJeb == null) {
 				return;
 			}
-			var autopilot = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
-			if (autopilot != null) {
-				var autopilotController = activeJeb.GetComputerModule<MechJebModuleDockingGuidance>();
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleRendezvousAutopilot>();
+			if (autopilot != null && activeJeb.target.NormalTargetExists && activeJeb.target.Orbit.referenceBody == vessel.orbit.referenceBody) {
+				/*
+				var autopilotController = activeJeb.GetComputerModule<MechJebModuleRendezvousAutopilotWindow>();
 				if (autopilotController != null && autopilot.enabled != state) {
-					// Do some cursory validation like the "real" controller:
-					if (!(activeJeb.target.Target is ModuleDockingNode)) {
-						return; // Must target docking port
-					}
-					if (autopilot.speedLimit < 0) {
-						autopilot.speedLimit = 0;
-					}
 					if (state) {
 						autopilot.users.Add(autopilotController);
 					} else {
 						autopilot.users.Remove(autopilotController);
 					}
 				}
+				 */
 			}
 		}
 
@@ -464,7 +459,7 @@ namespace MechJebRPM
 			if (activeJeb == null) {
 				return false;
 			}
-			var autopilot = activeJeb.GetComputerModule<MechJebModuleDockingAutopilot>();
+			var autopilot = activeJeb.GetComputerModule<MechJebModuleRendezvousAutopilot>();
 			return (autopilot != null && autopilot.enabled);
 		}
 
