@@ -53,6 +53,7 @@ namespace JSI
 				RenderPart(vesselPart);
 			}
 			GL.PopMatrix();
+			GL.Viewport(new Rect(0, 0, screen.width, screen.height));
 
 			return true;
 		}
