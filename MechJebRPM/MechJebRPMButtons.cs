@@ -478,9 +478,9 @@ namespace MechJebRPM
 		// NODE button
 		public void ButtonNode(bool state)
 		{
-			if (state)
+			if (state == true && vessel.patchedConicSolver.maneuverNodes.Count > 0)
 				EnactTargetAction(MechJebModuleSmartASS.Target.NODE, vessel);
-			else
+			else if(state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 		}
 
@@ -583,12 +583,10 @@ namespace MechJebRPM
 		// TGT+ button
 		public void ButtonTargetPlus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_PLUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_PLUS, vessel);
 		}
 
 		public bool ButtonTargetPlusState()
@@ -598,12 +596,10 @@ namespace MechJebRPM
 		// TGT- button
 		public void ButtonTargetMinus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_MINUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_MINUS, vessel);
 		}
 
 		public bool ButtonTargetMinusState()
@@ -613,12 +609,10 @@ namespace MechJebRPM
 		// RVEL+ button
 		public void ButtonRvelPlus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_PLUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_PLUS, vessel);
 		}
 
 		public bool ButtonRvelPlusState()
@@ -628,12 +622,10 @@ namespace MechJebRPM
 		// RVEL- button
 		public void ButtonRvelMinus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_MINUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_MINUS, vessel);
 		}
 
 		public bool ButtonRvelMinusState()
@@ -643,12 +635,10 @@ namespace MechJebRPM
 		// PAR+ button
 		public void ButtonParPlus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_PLUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_PLUS, vessel);
 		}
 
 		public bool ButtonParPlusState()
@@ -658,12 +648,10 @@ namespace MechJebRPM
 		// PAR- button
 		public void ButtonParMinus(bool state)
 		{
-			if (FlightGlobals.fetch.VesselTarget == null)
-				return;
-			if (state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_MINUS, vessel);
-			else
+			if (state == false)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			else if (FlightGlobals.fetch.VesselTarget != null)
+				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_MINUS, vessel);
 		}
 
 		public bool ButtonParMinusState()
