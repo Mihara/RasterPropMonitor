@@ -542,7 +542,7 @@ namespace JSI
 		public static Orbit OrbitFromStateVectors(Vector3d pos, Vector3d vel, CelestialBody body, double UT)
 		{
 			Orbit ret = new Orbit();
-			ret.UpdateFromStateVectors(OrbitExtensions.SwapYZ(pos - body.position), OrbitExtensions.SwapYZ(vel), body, UT);
+			ret.UpdateFromStateVectors((pos - body.position).xzy, vel.xzy, body, UT);
 			return ret;
 		}
 

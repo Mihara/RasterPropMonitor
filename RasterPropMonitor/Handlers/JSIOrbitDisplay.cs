@@ -97,13 +97,13 @@ namespace JSI
 			double dTheta = (endTA - startTA) / (double)numSegments;
 			double theta = startTA;
 			double timeAtTA = o.GetUTforTrueAnomaly(theta, now);
-			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.getRelativePositionFromTrueAnomaly(theta).xzy + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex3(lastVertex.x, lastVertex.y, 0.0f);
 				theta += dTheta;
 				timeAtTA = o.GetUTforTrueAnomaly(theta, now);
 
-				Vector3 newVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.getRelativePositionFromTrueAnomaly(theta).xzy + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 				GL.Vertex3(newVertex.x, newVertex.y, 0.0f);
 
 				lastVertex = newVertex;
@@ -123,13 +123,13 @@ namespace JSI
 			double theta = 0.0;
 			double now = Planetarium.GetUniversalTime();
 			double timeAtTA = o.GetUTforTrueAnomaly(theta, now);
-			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+			Vector3 lastVertex = screenTransform.MultiplyPoint3x4(o.getRelativePositionFromTrueAnomaly(theta).xzy + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 			for (int i = 0; i < numSegments; ++i) {
 				GL.Vertex3(lastVertex.x, lastVertex.y, 0.0f);
 				theta += dTheta;
 				timeAtTA = o.GetUTforTrueAnomaly(theta, now);
 
-				Vector3 newVertex = screenTransform.MultiplyPoint3x4(OrbitExtensions.SwapYZ(o.getRelativePositionFromTrueAnomaly(theta)) + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
+				Vector3 newVertex = screenTransform.MultiplyPoint3x4(o.getRelativePositionFromTrueAnomaly(theta).xzy + (o.referenceBody.getTruePositionAtUT(timeAtTA)) - (referenceBody.getTruePositionAtUT(timeAtTA)));
 				GL.Vertex3(newVertex.x, newVertex.y, 0.0f);
 
 				lastVertex = newVertex;

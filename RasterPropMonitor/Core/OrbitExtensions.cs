@@ -5,24 +5,18 @@ namespace JSI
 	// This entire class is imported wholesale from MechJeb.
 	public static class OrbitExtensions
 	{
-		//can probably be replaced with Vector3d.xzy?
-		public static Vector3d SwapYZ(Vector3d v)
-		{
-			return v.Reorder(132);
-		}
-		//
 		// These "Swapped" functions translate preexisting Orbit class functions into world
 		// space. For some reason, Orbit class functions seem to use a coordinate system
 		// in which the Y and Z coordinates are swapped.
 		//
 		public static Vector3d SwappedOrbitalVelocityAtUT(this Orbit o, double UT)
 		{
-			return SwapYZ(o.getOrbitalVelocityAtUT(UT));
+			return o.getOrbitalVelocityAtUT(UT).xzy;
 		}
 		//position relative to the primary
 		public static Vector3d SwappedRelativePositionAtUT(this Orbit o, double UT)
 		{
-			return SwapYZ(o.getRelativePositionAtUT(UT));
+			return o.getRelativePositionAtUT(UT).xzy;
 		}
 		//position in world space
 		public static Vector3d SwappedAbsolutePositionAtUT(this Orbit o, double UT)
@@ -33,7 +27,7 @@ namespace JSI
 		//convention: as you look down along the orbit normal, the satellite revolves counterclockwise
 		public static Vector3d SwappedOrbitNormal(this Orbit o)
 		{
-			return -SwapYZ(o.GetOrbitNormal()).normalized;
+			return -(o.GetOrbitNormal().xzy).normalized;
 		}
 		//normalized vector along the orbital velocity
 		public static Vector3d Prograde(this Orbit o, double UT)
@@ -246,7 +240,7 @@ namespace JSI
 		public static double TrueAnomalyFromVector(this Orbit o, Vector3d vec)
 		{
 			Vector3d projected = Vector3d.Exclude(o.SwappedOrbitNormal(), vec);
-			Vector3d vectorToPe = SwapYZ(o.eccVec);
+			Vector3d vectorToPe = o.eccVec.xzy;
 			double angleFromPe = Math.Abs(Vector3d.Angle(vectorToPe, projected));
 
 			//If the vector points to the infalling part of the orbit then we need to do 360 minus the
