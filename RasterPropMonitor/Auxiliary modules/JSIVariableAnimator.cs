@@ -230,6 +230,7 @@ namespace JSI
 					if (node.HasValue("alarmSoundLooping")) {
 						if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
 							throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+						audioOutput.audio.loop = alarmSoundLooping;
 					}
 				}
 				TurnOff();
