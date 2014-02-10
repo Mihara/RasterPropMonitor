@@ -11,7 +11,7 @@ namespace JSI
 			return new Vector3d(Math.Sign(vector.x), Math.Sign(vector.y), Math.Sign(vector.z));
 		}
 
-		public static Vector3d Reorder(this Vector3d vector, int order)
+		/*public static Vector3d Reorder(this Vector3d vector, int order)
 		{
 			switch (order) {
 				case 123:
@@ -28,7 +28,7 @@ namespace JSI
 					return new Vector3d(vector.z, vector.y, vector.x);
 			}
 			throw new ArgumentException("Invalid order", "order");
-		}
+		}*/
 
 		public static Vector3d Invert(this Vector3d vector)
 		{

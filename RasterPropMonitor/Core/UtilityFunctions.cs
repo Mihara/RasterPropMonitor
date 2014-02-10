@@ -203,6 +203,7 @@ namespace JSI
 		public static readonly string[] VariableSeparator = { };
 		public static readonly string[] LineSeparator = { Environment.NewLine };
 		public static bool logQuiet;
+		private static readonly int ClosestApproachRefinementInterval = 16;
 
 		public static void MakeReferencePart(this Part thatPart)
 		{
@@ -541,7 +542,7 @@ namespace JSI
 		public static Orbit OrbitFromStateVectors(Vector3d pos, Vector3d vel, CelestialBody body, double UT)
 		{
 			Orbit ret = new Orbit();
-			ret.UpdateFromStateVectors(OrbitExtensions.SwapYZ(pos - body.position), OrbitExtensions.SwapYZ(vel), body, UT);
+			ret.UpdateFromStateVectors((pos - body.position).xzy, vel.xzy, body, UT);
 			return ret;
 		}
 
@@ -556,16 +557,24 @@ namespace JSI
 				return closestorbit.PeA;
 			}
 			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
-				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
+				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.EndUT, out timeAtClosestApproach) - targetCelestial.Radius;
 			}
-			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach) - targetCelestial.Radius;
+			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), Planetarium.GetUniversalTime()+closestorbit.period, out timeAtClosestApproach) - targetCelestial.Radius;
 		}
 
 		public static double GetClosestApproach(Orbit vesselOrbit, Orbit targetOrbit, out double timeAtClosestApproach)
 		{
 			Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetOrbit);
 
-			return MinTargetDistance(closestorbit, targetOrbit, Planetarium.GetUniversalTime(), closestorbit.period / 10, out timeAtClosestApproach);
+			double startTime = Planetarium.GetUniversalTime();
+			double endTime;
+			if(closestorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL) {
+				endTime = closestorbit.EndUT;
+			} else {
+				endTime = startTime + Math.Max(closestorbit.period, targetOrbit.period);
+			}
+
+			return MinTargetDistance(closestorbit, targetOrbit, startTime, endTime, out timeAtClosestApproach);
 		}
 
 		// Closest Approach support methods
@@ -613,21 +622,23 @@ namespace JSI
 			return vesselOrbit;
 		}
 
-		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double time, double dt, out double timeAtClosestApproach)
+		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double startTime, double endTime, out double timeAtClosestApproach)
 		{
-			var dist_at_int = new double[11];
-			for (int i = 0; i <= 10; i++) {
-				double step = time + i * dt;
+			var dist_at_int = new double[ClosestApproachRefinementInterval+1];
+			double step = startTime;
+			double dt = (endTime - startTime) / (double)ClosestApproachRefinementInterval;
+			for (int i = 0; i <= ClosestApproachRefinementInterval; i++) {
 				dist_at_int[i] = (targetOrbit.getPositionAtUT(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
+				step += dt;
 			}
 			double mindist = dist_at_int.Min();
 			double maxdist = dist_at_int.Max();
 			int minindex = Array.IndexOf(dist_at_int, mindist);
-
 			if ((maxdist - mindist) / maxdist >= 0.00001) {
-				mindist = MinTargetDistance(vesselOrbit, targetOrbit, time + ((minindex - 1) * dt), dt / 5, out timeAtClosestApproach);
+				// Don't allow negative times.  Clamp the startTime to the current startTime.
+				mindist = MinTargetDistance(vesselOrbit, targetOrbit, startTime + (Math.Max(minindex-1, 0) * dt), startTime + ((minindex + 1) * dt), out timeAtClosestApproach);
 			} else {
-				timeAtClosestApproach = time + minindex * dt;
+				timeAtClosestApproach = startTime + minindex * dt;
 			}
 
 			return mindist;
