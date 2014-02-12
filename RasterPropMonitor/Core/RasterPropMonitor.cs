@@ -52,6 +52,8 @@ namespace JSI
 		public string noSignalTextureURL = string.Empty;
 		[KSPField]
 		public string fontDefinition = string.Empty;
+		[KSPField]
+		public bool doScreenshots = true;
 		// This needs to be public so that pages can point it.
 		public FlyingCamera cameraStructure;
 		// Internal stuff.
@@ -512,7 +514,7 @@ namespace JSI
 				return; 
 
 			// Screenshots need to happen in at this moment, because otherwise they may miss.
-			if (GameSettings.TAKE_SCREENSHOT.GetKeyDown() && part.ActiveKerbalIsLocal()) {
+			if (doScreenshots && GameSettings.TAKE_SCREENSHOT.GetKeyDown() && part.ActiveKerbalIsLocal()) {
 				// Let's try to save a screenshot.
 				JUtil.LogMessage(this, "SCREENSHOT!");
 
