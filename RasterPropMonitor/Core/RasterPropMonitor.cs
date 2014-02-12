@@ -310,7 +310,7 @@ namespace JSI
 			} else {
 				if (!characterWarnings[letter]) {
 					JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" (u{1}) not present in the font.",
-						letter.ToString(),letter);
+						letter.ToString(), letter);
 					characterWarnings[letter] = true;
 				}
 			}
@@ -338,6 +338,116 @@ namespace JSI
 			return false;
 		}
 
+		private void RenderText(string[] textBuffer)
+		{
+			float yCursor = activePage.screenYMin * fontLetterHeight;
+			for (int lineIndex = 0; lineIndex < textBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
+				if (!string.IsNullOrEmpty(textBuffer[lineIndex])) {
+					Color fontColor = activePage.defaultColor;
+					float xOffset = 0;
+					float yOffset = 0;
+					Script scriptType = Script.Normal;
+					Width fontWidth = Width.Normal;
+					fontTextureIndex = 0;
+					if (activePage.pageFont < fontTexture.Count)
+						fontTextureIndex = activePage.pageFont;
+					float xCursor = activePage.screenXMin * fontLetterWidth;
+					for (int charIndex = 0; charIndex < textBuffer[lineIndex].Length; charIndex++) {
+						bool escapedBracket = false;
+						// We will continue parsing bracket pairs until we're out of bracket pairs,
+						// since all of them -- except the escaped bracket tag --
+						// consume characters and change state without actually generating any output.
+						while (charIndex < textBuffer[lineIndex].Length && textBuffer[lineIndex][charIndex] == '[') {
+							// If there's no closing bracket, we stop parsing and go on to printing.
+							int nextBracket = textBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
+							if (nextBracket < 1)
+								break;
+							// Much easier to parse it this way, although I suppose more expensive.
+							string tagText = textBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
+							if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#') {
+								// Valid color tags are [#rrggbbaa] or [#rrggbb].
+								fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
+								charIndex += nextBracket + 1;
+							} else if (tagText.Length > 2 && tagText[0] == '@') {
+								// Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
+								// the next symbol is @ and there are at least three, one designating the axis.
+								float coord;
+								if (float.TryParse(tagText.Substring(2), out coord)) {
+									switch (tagText[1]) {
+										case 'X':
+										case 'x':
+											xOffset = coord;
+											break;
+										case 'Y':
+										case 'y':
+											yOffset = coord;
+											break;
+									}
+									// We only consume the symbols if they did parse correctly.
+									charIndex += nextBracket + 1;
+								} else //If it didn't parse, skip over it.
+									break;
+							} else if (tagText == "sup") {
+								// Superscript!
+								scriptType = Script.Superscript;
+								charIndex += nextBracket + 1;
+							} else if (tagText == "sub") {
+								// Subscript!
+								scriptType = Script.Subscript;
+								charIndex += nextBracket + 1;
+							} else if (tagText == "/sup" || tagText == "/sub") {
+								// And back...
+								scriptType = Script.Normal;
+								charIndex += nextBracket + 1;
+							} else if (tagText == "hw") {
+								fontWidth = Width.Half;
+								charIndex += nextBracket + 1;
+							} else if (tagText == "dw") {
+								fontWidth = Width.Double;
+								charIndex += nextBracket + 1;
+							} else if (tagText == "/hw" || tagText == "/dw") {
+								// And back...
+								fontWidth = Width.Normal;
+								charIndex += nextBracket + 1;
+							} else if (tagText.StartsWith("font", StringComparison.Ordinal)) {
+								uint newFontID;
+								if (uint.TryParse(tagText.Substring(4), out newFontID) && newFontID < fontTexture.Count) {
+									fontTextureIndex = (int)newFontID;
+								}
+								charIndex += nextBracket + 1;
+							} else if (tagText == "[") {
+								// We got a "[[]" which means an escaped opening bracket.
+								escapedBracket = true;
+								charIndex += nextBracket;
+								break;
+							} else // Else we didn't recognise anything so it's not a tag.
+								break;
+						}
+						float xPos = xCursor + xOffset;
+						float yPos = yCursor + yOffset;
+						if (charIndex < textBuffer[lineIndex].Length &&
+						    xPos < screenPixelWidth &&
+						    xPos > -(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)) &&
+						    yPos < screenPixelHeight &&
+						    yPos > -fontLetterHeight)
+							DrawChar(escapedBracket ? '[' : textBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth);
+						switch (fontWidth) {
+							case Width.Normal:
+								xCursor += fontLetterWidth;
+								break;
+							case Width.Half:
+								xCursor += fontLetterHalfWidth;
+								break;
+							case Width.Double:
+								xCursor += fontLetterDoubleWidth;
+								break;
+
+						}
+					}
+				}
+			}
+		}
+
 		private void RenderScreen()
 		{
 			RenderTexture backupRenderTexture = RenderTexture.active;
@@ -363,112 +473,12 @@ namespace JSI
 			activePage.RenderBackground(screenTexture);
 
 			if (!string.IsNullOrEmpty(activePage.Text)) {
-				float yCursor = activePage.screenYMin * fontLetterHeight;
-				for (int lineIndex = 0; lineIndex < screenBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
-					if (!string.IsNullOrEmpty(screenBuffer[lineIndex])) {
-						Color fontColor = activePage.defaultColor;
-						float xOffset = 0;
-						float yOffset = 0;
-						Script scriptType = Script.Normal;
-						Width fontWidth = Width.Normal;
-						fontTextureIndex = 0;
-						if (activePage.pageFont < fontTexture.Count)
-							fontTextureIndex = activePage.pageFont;
-						float xCursor = activePage.screenXMin * fontLetterWidth;
-						for (int charIndex = 0; charIndex < screenBuffer[lineIndex].Length; charIndex++) {
-							bool escapedBracket = false;
-							// We will continue parsing bracket pairs until we're out of bracket pairs,
-							// since all of them -- except the escaped bracket tag --
-							// consume characters and change state without actually generating any output.
-							while (charIndex < screenBuffer[lineIndex].Length && screenBuffer[lineIndex][charIndex] == '[') {
-								// If there's no closing bracket, we stop parsing and go on to printing.
-								int nextBracket = screenBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
-								if (nextBracket < 1)
-									break;
-								// Much easier to parse it this way, although I suppose more expensive.
-								string tagText = screenBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
-								if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#') {
-									// Valid color tags are [#rrggbbaa] or [#rrggbb].
-									fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
-									charIndex += nextBracket + 1;
-								} else if (tagText.Length > 2 && tagText[0] == '@') {
-									// Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
-									// the next symbol is @ and there are at least three, one designating the axis.
-									float coord;
-									if (float.TryParse(tagText.Substring(2), out coord)) {
-										switch (tagText[1]) {
-											case 'X':
-											case 'x':
-												xOffset = coord;
-												break;
-											case 'Y':
-											case 'y':
-												yOffset = coord;
-												break;
-										}
-										// We only consume the symbols if they did parse correctly.
-										charIndex += nextBracket + 1;
-									} else //If it didn't parse, skip over it.
-										break;
-								} else if (tagText == "sup") {
-									// Superscript!
-									scriptType = Script.Superscript;
-									charIndex += nextBracket + 1;
-								} else if (tagText == "sub") {
-									// Subscript!
-									scriptType = Script.Subscript;
-									charIndex += nextBracket + 1;
-								} else if (tagText == "/sup" || tagText == "/sub") {
-									// And back...
-									scriptType = Script.Normal;
-									charIndex += nextBracket + 1;
-								} else if (tagText == "hw") {
-									fontWidth = Width.Half;
-									charIndex += nextBracket + 1;
-								} else if (tagText == "dw") {
-									fontWidth = Width.Double;
-									charIndex += nextBracket + 1;
-								} else if (tagText == "/hw" || tagText == "/dw") {
-									// And back...
-									fontWidth = Width.Normal;
-									charIndex += nextBracket + 1;
-								} else if (tagText.StartsWith("font", StringComparison.Ordinal)) {
-									uint newFontID;
-									if (uint.TryParse(tagText.Substring(4), out newFontID) && newFontID < fontTexture.Count) {
-										fontTextureIndex = (int)newFontID;
-									}
-									charIndex += nextBracket + 1;
-								} else if (tagText == "[") {
-									// We got a "[[]" which means an escaped opening bracket.
-									escapedBracket = true;
-									charIndex += nextBracket;
-									break;
-								} else // Else we didn't recognise anything so it's not a tag.
-									break;
-							}
-							float xPos = xCursor + xOffset;
-							float yPos = yCursor + yOffset;
-							if (charIndex < screenBuffer[lineIndex].Length &&
-							    xPos < screenPixelWidth &&
-							    xPos > -(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)) &&
-							    yPos < screenPixelHeight &&
-							    yPos > -fontLetterHeight)
-								DrawChar(escapedBracket ? '[' : screenBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth);
-							switch (fontWidth) {
-								case Width.Normal:
-									xCursor += fontLetterWidth;
-									break;
-								case Width.Half:
-									xCursor += fontLetterHalfWidth;
-									break;
-								case Width.Double:
-									xCursor += fontLetterDoubleWidth;
-									break;
+				RenderText(screenBuffer);
+			}
 
-							}
-						}
-					}
-				}
+			// If we have a text overlay, that's where we print it.
+			if (activePage.textOverlayBuffer.Length > 0) {
+				RenderText(activePage.textOverlayBuffer);
 			}
 
 			activePage.RenderOverlay(screenTexture);

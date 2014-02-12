@@ -23,6 +23,7 @@ namespace JSI
 			}
 		}
 
+		public readonly string[] textOverlayBuffer = new string[0];
 		public bool isDefault;
 		// A page is immutable if and only if it has only unchanging text and unchanging background and no handlers.
 		public bool isMutable;
@@ -193,10 +194,15 @@ namespace JSI
 				}
 			} 
 
-			if (pageHandlerMethod == null)
-			if (node.HasValue("text")) {
-				text = JUtil.LoadPageDefinition(node.GetValue("text"));
-				isMutable |= text.IndexOf("$&$", StringComparison.Ordinal) != -1;
+			if (pageHandlerMethod == null) {
+				if (node.HasValue("text")) {
+					text = JUtil.LoadPageDefinition(node.GetValue("text"));
+					isMutable |= text.IndexOf("$&$", StringComparison.Ordinal) != -1;
+				}
+			}
+
+			if (node.HasValue("textOverlay")) {
+				textOverlayBuffer = JUtil.LoadPageDefinition(node.GetValue("textOverlay")).Split(JUtil.LineSeparator, StringSplitOptions.None);
 			}
 
 			foreach (ConfigNode handlerNode in node.GetNodes("BACKGROUNDHANDLER")) {
