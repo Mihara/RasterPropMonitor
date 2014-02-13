@@ -93,7 +93,7 @@ namespace JSI
 		private readonly Color passiveColor, activeColor;
 		private readonly Renderer colorShiftRenderer;
 		private readonly Transform controlledTransform;
-		private readonly Vector3 initialPosition, vectorStart, vectorEnd;
+		private readonly Vector3 initialPosition, initialScale, vectorStart, vectorEnd;
 		private readonly Quaternion initialRotation, rotationStart, rotationEnd;
 		private readonly bool longPath;
 		private readonly double flashingDelay;
@@ -114,6 +114,7 @@ namespace JSI
 			Color,
 			Rotation,
 			Translation,
+			Scale,
 			TextureShift,
 			TextureScale,
 		}
@@ -190,6 +191,12 @@ namespace JSI
 				vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
 				vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
 				mode = Mode.Translation;
+			} else if (node.HasValue("controlledTransform") && node.HasValue("localScaleStart") && node.HasValue("localScaleEnd")) {
+				controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+				initialScale = controlledTransform.localScale;
+				vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
+				vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+				mode = Mode.Scale;
 			} else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd")) {
 				affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).renderer.material;
 				textureLayer = node.GetValue("textureLayers");
@@ -254,6 +261,9 @@ namespace JSI
 					case Mode.Translation:
 						controlledTransform.localPosition = initialPosition + (reverse ? vectorEnd : vectorStart);
 						break;
+					case Mode.Scale:
+						controlledTransform.localScale = initialScale + (reverse ? vectorEnd : vectorStart);
+						break;
 					case Mode.TextureShift:
 						foreach (string token in textureLayer.Split(',')) {
 							affectedMaterial.SetTextureOffset(token.Trim(), reverse ? textureShiftEnd : textureShiftStart);
@@ -285,6 +295,9 @@ namespace JSI
 						break;
 					case Mode.Translation:
 						controlledTransform.localPosition = initialPosition + (reverse ? vectorStart : vectorEnd);
+						break;
+					case Mode.Scale:
+						controlledTransform.localScale = initialScale + (reverse ? vectorStart : vectorEnd);
 						break;
 					case Mode.TextureShift:
 						foreach (string token in textureLayer.Split(',')) {
@@ -341,6 +354,9 @@ namespace JSI
 						break;
 					case Mode.Translation:
 						controlledTransform.localPosition = initialPosition + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
+						break;
+					case Mode.Scale:
+						controlledTransform.localScale = initialScale + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
 						break;
 					case Mode.Color:
 						colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
