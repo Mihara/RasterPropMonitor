@@ -230,7 +230,7 @@ namespace MechJebRPM
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
 			// Analysis disable once RedundantCast
-			forceRollMenuItem.labelText = String.Format("Force Roll - {0:f0}", (double)activeSmartass.rol);
+			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (double)activeSmartass.rol);
 
 			// MOARdV:
 			// This is a little messy, since SmartASS can be updated
