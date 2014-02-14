@@ -54,6 +54,8 @@ namespace JSI
 		public string fontDefinition = string.Empty;
 		[KSPField]
 		public bool doScreenshots = true;
+		[KSPField]
+		public bool oneshot = false;
 		// This needs to be public so that pages can point it.
 		public FlyingCamera cameraStructure;
 		// Internal stuff.
@@ -82,6 +84,7 @@ namespace JSI
 		private float fontLetterHalfHeight;
 		private float fontLetterHalfWidth;
 		private float fontLetterDoubleWidth;
+		private Material screenMat;
 		private bool startupComplete;
 		private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
 
@@ -164,7 +167,7 @@ namespace JSI
 			// Now that is done, proceed to setting up the screen.
 
 			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
-			Material screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+			screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
 			foreach (string layerID in textureLayerID.Split())
 				screenMat.SetTexture(layerID.Trim(), screenTexture);
 
@@ -548,9 +551,21 @@ namespace JSI
 				if (textRefreshRequired)
 					FillScreenBuffer();
 				RenderScreen();
-				firstRenderComplete = false;
+				firstRenderComplete = true;
 			}
 
+			// Oneshot screens: We create a permanent texture from our RenderTexture if the first pass of the render is complete,
+			// set it in place of the rendertexture -- and then we selfdestruct.
+			if (oneshot && firstRenderComplete) {
+				var frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
+				RenderTexture backupRenderTexture = RenderTexture.active;
+				RenderTexture.active = screenTexture;
+				frozenScreen.ReadPixels(new Rect(0, 0, screenTexture.width, screenTexture.height), 0, 0);
+				RenderTexture.active = backupRenderTexture;
+				foreach (string layerID in textureLayerID.Split())
+					screenMat.SetTexture(layerID.Trim(), frozenScreen);
+				Destroy(this);
+			}
 		}
 
 		public void LateUpdate()
