@@ -212,7 +212,7 @@ Global
 		$0.TextStylePolicy = $34
 		$34.FileWidth = 120
 		$34.TabsToSpaces = False
-		$34.EolMarker = Unix
+		$34.EolMarker = Windows
 		$34.inheritsSet = VisualStudio
 		$34.inheritsScope = text/plain
 		$34.scope = text/x-csharp
