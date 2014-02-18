@@ -12,6 +12,8 @@ namespace JSI
 		[KSPField]
 		public int maximum = 8;
 		[KSPField]
+		public bool showRay = true;
+		[KSPField]
 		public Vector3 rotateCamera = Vector3.zero;
 		[KSPField]
 		public Vector3 translateCamera = Vector3.zero;
@@ -88,7 +90,8 @@ namespace JSI
 					CreateLightCone();
 				}
 				part.OnEditorAttach += new Callback(DestroyLightCone);
-				part.OnEditorDetach += new Callback(PickupCamera);
+				if (showRay)
+					part.OnEditorDetach += new Callback(PickupCamera);
 				part.OnEditorDestroy += new Callback(DestroyLightCone);
 			} else
 				DestroyLightCone();
