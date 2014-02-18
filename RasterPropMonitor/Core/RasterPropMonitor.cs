@@ -568,6 +568,11 @@ namespace JSI
 			}
 		}
 
+		public void OnApplicationPause(bool pause)
+		{
+			firstRenderComplete &= pause;
+		}
+
 		public void LateUpdate()
 		{
 			if (JUtil.VesselIsInIVA(vessel) && !startupComplete) {
