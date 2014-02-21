@@ -1416,7 +1416,7 @@ namespace JSI
 				case "HOVERPOINTEXISTS":
 					return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1 ? -1d : 1d;
 				case "EFFECTIVETHROTTLE":
-					return totalCurrentThrust / totalMaximumThrust;
+					return (totalMaximumThrust > 0.0) ? (totalCurrentThrust / totalMaximumThrust) : 0.0;
 
 			// Maneuvers
 				case "MNODETIMESECS":
