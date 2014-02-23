@@ -77,5 +77,61 @@ namespace JSI
 		{
 			return (FlightGlobals.fetch.VesselTarget != null);
 		}
+
+		/// <summary>
+		/// Toggles engines on the current stage (on/off)
+		/// </summary>
+		/// <param name="state">"true" for on, "false" for off</param>
+		public void ButtonEnableEngines(bool state)
+		{
+			foreach (Part thatPart in vessel.parts) {
+				// We accept "state == false" to allow engines that are
+				// activated outside of the current staging to be shut off by
+				// this function.
+				if (thatPart.inverseStage == Staging.CurrentStage || state == false) {
+					foreach (PartModule pm in thatPart.Modules) {
+						var engine = pm as ModuleEngines;
+						if (engine != null && engine.EngineIgnited != state) {
+							if (state && engine.allowRestart) {
+								engine.Activate();
+							} else if (engine.allowShutdown) {
+								engine.Shutdown();
+							}
+						}
+						var engineFX = pm as ModuleEnginesFX;
+						if (engineFX != null && engineFX.EngineIgnited != state) {
+							if (state && engineFX.allowRestart) {
+								engineFX.Activate();
+							} else if(engineFX.allowShutdown) {
+								engineFX.Shutdown();
+							}
+						}
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Indicates whether at least one engine is enabled.
+		/// </summary>
+		/// <returns></returns>
+		public bool ButtonEnableEnginesState()
+		{
+			foreach (Part thatPart in vessel.parts) {
+				foreach (PartModule pm in thatPart.Modules) {
+					var engine = pm as ModuleEngines;
+					if (engine != null && engine.allowShutdown && engine.getIgnitionState) {
+						// early out: at least one engine is enabled.
+						return true;
+					}
+					var engineFX = pm as ModuleEnginesFX;
+					if (engineFX != null && engineFX.allowShutdown && engineFX.getIgnitionState) {
+						// early out: at least one engine is enabled.
+						return true;
+					}
+				}
+			}
+			return false;
+		}
 	}
 }
