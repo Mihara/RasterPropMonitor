@@ -133,5 +133,21 @@ namespace JSI
 			}
 			return false;
 		}
+
+		/**
+		 * Cycle speed modes (between orbital/surface/target)
+		 */
+		public void ButtonSpeedMode(bool ignored)
+		{
+			FlightUIController.fetch.cycleSpdModes();
+		}
+
+		/**
+		 * Returns true (really, nothing makes sense for the return value).
+		 */
+		public bool ButtonSpeedModeState()
+		{
+			return true;
+		}
 	}
 }
