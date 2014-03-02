@@ -1087,8 +1087,8 @@ namespace JSI
 				Vector3d.right) - vessel.mainBody.pqsController.radius);
 			} else
 				altitudeTrue = vessel.mainBody.GetAltitude(coM);
-			altitudeBottom = altitudeTrue;
-			if (altitudeTrue < 500d) {
+			altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
+			if (altitudeBottom < 500d) {
 				double lowestPoint = altitudeASL;
 				foreach (Part p in vessel.parts) {
 					if (p.collider != null) {
@@ -1097,8 +1097,10 @@ namespace JSI
 						lowestPoint = Math.Min(lowestPoint, partBottomAlt);
 					}
 				}
-				altitudeBottom = (altitudeTrue - altitudeASL) + lowestPoint;
+				lowestPoint -= altitudeASL;
+				altitudeBottom += lowestPoint;
 			}
+
 			if (altitudeBottom < 0)
 				altitudeBottom = 0;
 		}
@@ -1820,9 +1822,9 @@ namespace JSI
 					// Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
 					return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
 				case "TUMBLEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100 && horzVelocity > 5).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeBottom < 100 && horzVelocity > 5).GetHashCode();
 				case "SLOPEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 100 && slopeAngle > 15).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeBottom < 100 && slopeAngle > 15).GetHashCode();
 				case "DOCKINGANGLEALARM":
 					return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
 					(Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
@@ -1830,7 +1832,7 @@ namespace JSI
 				case "DOCKINGSPEEDALARM":
 					return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
 				case "ALTITUDEALARM":
-					return (speedVerticalRounded < 0 && altitudeTrue < 150).GetHashCode();
+					return (speedVerticalRounded < 0 && altitudeBottom < 150).GetHashCode();
 				case "PODTEMPERATUREALARM":
 					double tempRatio = part.temperature / part.maxTemp;
 					if (tempRatio > 0.85d)
