@@ -266,7 +266,9 @@ namespace JSI
 					actionHandler((stateHandler != null) ? !stateHandler() : customGroupList[actionName]);
 					break;
 				case "stage":
-					Staging.ActivateNextStage();
+					if (InputLockManager.IsUnlocked(ControlTypes.STAGING)) {
+						Staging.ActivateNextStage();
+					}
 					break;
 			}
 		}
