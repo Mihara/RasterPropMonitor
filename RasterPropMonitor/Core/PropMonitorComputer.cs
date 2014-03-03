@@ -1773,7 +1773,7 @@ namespace JSI
 				case "STAGE":
 					return Staging.CurrentStage;
 				case "STAGEREADY":
-					return Staging.separate_ready.GetHashCode();
+					return (Staging.separate_ready && InputLockManager.IsUnlocked(ControlTypes.STAGING)).GetHashCode();
 				case "SITUATION":
 					return SituationString(vessel.situation);
 				case "RANDOM":
