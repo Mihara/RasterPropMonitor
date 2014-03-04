@@ -149,5 +149,29 @@ namespace JSI
 		{
 			return true;
 		}
+
+		/**
+		 * Toggles the staging lock.
+		 *
+		 * WARNING: We are using the same string as KSP, so that our lock will
+		 * interact with the game's lock (alt-L); if an update to KSP changes
+		 * the name they use, we will have to be updated.
+		 */
+		public void ButtonStageLock(bool state)
+		{
+			if (state) {
+				InputLockManager.SetControlLock(ControlTypes.STAGING, "manualStageLock");
+			} else {
+				InputLockManager.RemoveControlLock("manualStageLock");
+			}
+		}
+
+		/**
+		 * Returns whether staging is locked (disabled).
+		 */
+		public bool ButtonStageLockState()
+		{
+			return InputLockManager.IsLocked(ControlTypes.STAGING);
+		}
 	}
 }
