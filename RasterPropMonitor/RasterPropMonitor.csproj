@@ -90,6 +90,7 @@
     <Compile Include="Core\ResourceDataStorage.cs" />
     <Compile Include="Core\VariableHandler.cs" />
     <Compile Include="Handlers\JSIInternalRPMButtons.cs" />
+    <Compile Include="Handlers\JSIOdometer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
