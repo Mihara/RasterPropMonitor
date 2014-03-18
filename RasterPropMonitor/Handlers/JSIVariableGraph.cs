@@ -208,6 +208,8 @@ namespace JSI
 					GL.Vertex(end);
 					start = end;
 				}
+				// Reset color to white.
+				GL.Color(Color.white);
 				GL.End();
 			}
 		}

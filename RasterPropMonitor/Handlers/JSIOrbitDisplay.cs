@@ -438,7 +438,8 @@ namespace JSI
 			GL.Color(orbitColorSelfValue);
 			DrawOrbit(vessel.orbit, vessel.orbit.referenceBody, screenTransform, orbitPoints);
 
-			// Done drawing lines.
+			// Done drawing lines.  Reset color to white, so we don't mess up anyone else.
+			GL.Color(Color.white);
 			GL.End();
 
 			// Draw target vessel icons.
