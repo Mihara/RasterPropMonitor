@@ -1210,6 +1210,22 @@ namespace JSI
 
 		}
 
+		private double NextApsisType()
+		{
+			if (orbitSensibility) {
+				if (vessel.orbit.eccentricity < 1.0) {
+					// Which one will we reach first?
+					return (vessel.orbit.timeToPe < vessel.orbit.timeToAp) ? -1.0 : 1.0;
+				} else {
+					// Ship is hyperbolic.  There is no Ap.  Have we already
+					// passed Pe?
+					return (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period) > 0.0) ? -1.0 : 0.0;
+				}
+			}
+
+			return 0.0;
+		}
+
 		private object VariableToObject(string input, out bool cacheable)
 		{
 
@@ -1478,6 +1494,30 @@ namespace JSI
 					if (orbitSensibility)
 						return vessel.orbit.period - (vessel.orbit.eccentricity < 1 ? vessel.orbit.timeToPe : -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
 					return double.NaN;
+				case "TIMETONEXTAPSIS":
+					if (orbitSensibility) {
+						double apsisType = NextApsisType();
+						if (apsisType < 0.0) {
+							return vessel.orbit.eccentricity < 1 ?
+								vessel.orbit.timeToPe :
+								-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
+						} else {
+							return vessel.orbit.timeToAp;
+						}
+					}
+					return double.NaN;
+				case "NEXTAPSIS":
+					if (orbitSensibility) {
+						double apsisType = NextApsisType();
+						if (apsisType < 0.0) {
+							return vessel.orbit.PeA;
+						} else if(apsisType > 0.0) {
+							return vessel.orbit.ApA;
+						}
+					}
+					return double.NaN;
+				case "NEXTAPSISTYPE":
+					return NextApsisType();
 				case "ORBITMAKESSENSE":
 					if (orbitSensibility)
 						return 1d;
