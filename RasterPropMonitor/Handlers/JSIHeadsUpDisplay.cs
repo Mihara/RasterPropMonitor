@@ -36,6 +36,8 @@ namespace JSI
 		[KSPField] // x,y, width, height in pixels
 		public Vector4 headingBarPosition = new Vector4(0f, 0f, 64f, 32f);
 		[KSPField]
+		public bool showHeadingBarPrograde = true;
+		[KSPField]
 		public float headingBarWidth = 64;
 		[KSPField] // Texture to use
 		public string vertBar1Texture = string.Empty;
@@ -114,7 +116,9 @@ namespace JSI
 			GL.PushMatrix();
 
 			// Draw the HUD ladder
-			GL.LoadPixelMatrix(-horizonSize.x * 0.5f, horizonSize.x * 0.5f, -horizonSize.y * 0.5f, horizonSize.y * 0.5f);
+			// MOARdV note, 2014/03/19: swapping the y values, to invert the
+			// coordinates so the prograde icon is right-side up.
+			GL.LoadPixelMatrix(-horizonSize.x * 0.5f, horizonSize.x * 0.5f, horizonSize.y * 0.5f, -horizonSize.y * 0.5f);
 			GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
 
 			Vector3 coM = vessel.findWorldCenterOfMass();
@@ -166,19 +170,19 @@ namespace JSI
 
 				// transform -x -y
 				GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
-				GL.Vertex3(cosRoll * horizonSize.x + sinRoll * horizonSize.y, sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
+				GL.Vertex3(cosRoll * horizonSize.x + sinRoll * horizonSize.y, -sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x -y
 				GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
-				GL.Vertex3(-cosRoll * horizonSize.x + sinRoll * horizonSize.y, -sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
+				GL.Vertex3(-cosRoll * horizonSize.x + sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
 
 				// transform +x +y
 				GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
-				GL.Vertex3(-cosRoll * horizonSize.x - sinRoll * horizonSize.y, -sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
+				GL.Vertex3(-cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 
 				// transform -x +y
 				GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
-				GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
+				GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, -sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
 				GL.End();
 
 				float AoA = velocityVesselSurfaceUnit.AngleInPlane(right, forward);
@@ -199,7 +203,7 @@ namespace JSI
 					AoATC);
 
 				// Placing the icon on the (0, Ypos) location, so simplify the transform.
-				DrawIcon(-sinRoll * Ypos, cosRoll * Ypos, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
+				DrawIcon(-sinRoll * Ypos, -cosRoll * Ypos, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
 			}
 
 			// Draw the rest of the HUD stuff (0,0) is the top left corner of the screen.
@@ -224,10 +228,12 @@ namespace JSI
 				GL.Vertex3(headingBarPosition.x, headingBarPosition.y + headingBarPosition.w, 0.0f);
 				GL.End();
 
-				float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(up, forward);
-				float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
-				float slipIconX = JUtil.DualLerp(headingBarPosition.x, headingBarPosition.x + headingBarPosition.z, headingTexture - headingTextureOffset, headingTexture + headingTextureOffset, slipTC);
-				DrawIcon(slipIconX, headingBarPosition.y + headingBarPosition.w * 0.5f, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
+				if (showHeadingBarPrograde) {
+					float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(up, forward);
+					float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
+					float slipIconX = JUtil.DualLerp(headingBarPosition.x, headingBarPosition.x + headingBarPosition.z, headingTexture - headingTextureOffset, headingTexture + headingTextureOffset, slipTC);
+					DrawIcon(slipIconX, headingBarPosition.y + headingBarPosition.w * 0.5f, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
+				}
 			}
 
 			if (vertBar1Material != null) {
@@ -368,7 +374,7 @@ namespace JSI
 
 			comp = RasterPropMonitorComputer.Instantiate(internalProp);
 
-			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+			iconMaterial = new Material(unlit);
 			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 			gizmoTexture = JUtil.GetGizmoTexture();
 
@@ -380,8 +386,7 @@ namespace JSI
 			var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
 							   iconPixelSize, iconPixelSize);
 
-			iconMaterial.color = iconColor;
-			Graphics.DrawTexture(position, gizmoTexture, texCoord, 0, 0, 0, 0, iconMaterial);
+			Graphics.DrawTexture(position, gizmoTexture, texCoord, 0, 0, 0, 0, iconColor, iconMaterial);
 		}
 	}
 }
