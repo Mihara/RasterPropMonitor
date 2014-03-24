@@ -90,6 +90,7 @@ namespace JSI
 		private readonly bool reverse;
 		private readonly string animationName;
 		private readonly bool alarmSoundLooping;
+		private readonly bool alarmMustPlayOnce;
 		private readonly Color passiveColor, activeColor;
 		private readonly Renderer colorShiftRenderer;
 		private readonly Transform controlledTransform;
@@ -232,6 +233,10 @@ namespace JSI
 					if (node.HasValue("alarmSoundVolume"))
 						alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
 					audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
+					if (node.HasValue("alarmMustPlayOnce")) {
+						if (!bool.TryParse(node.GetValue("alarmMustPlayOnce"), out alarmMustPlayOnce))
+							throw new ArgumentException("So is 'alarmMustPlayOnce' true or false?");
+					}
 					if (node.HasValue("alarmShutdownButton"))
 						SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
 					if (node.HasValue("alarmSoundLooping")) {
@@ -340,7 +345,8 @@ namespace JSI
 				} else {
 					TurnOff();
 					if (audioOutput != null) {
-						audioOutput.audio.Stop();
+						if (!alarmMustPlayOnce) 
+							audioOutput.audio.Stop();
 						alarmActive = false;
 					}
 				}
