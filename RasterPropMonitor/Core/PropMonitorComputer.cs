@@ -457,6 +457,10 @@ namespace JSI
 				moonEjectionAngle = -1.0;
 				ejectionAltitude = -1.0;
 				targetBodyDeltaV = -1.0;
+
+				// unless maybe a landed vessel
+				if (orbitSensibility && targetVessel != null && targetVessel.LandedOrSplashed)
+					targetOrbit = JUtil.ClosestApproachSrfOrbit(vessel.orbit, targetVessel, out targetTimeAtClosestApproach, out targetClosestApproach);
 			}
 		}
 		//--- Protractor utility methods
@@ -890,6 +894,8 @@ namespace JSI
 
 				if (targetOrbitSensibility)
 					targetOrbit = target.GetOrbit();
+				else
+					targetOrbit = null;
 
 				// TODO: Actually, there's a lot of nonsensical cases here that need more reasonable handling.
 				// Like what if we're targeting a vessel landed on a moon of another planet?...
@@ -1673,19 +1679,19 @@ namespace JSI
 					}
 					return -1d;
 				case "TIMETOANWITHTARGETSECS":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return double.NaN;
 					return vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time;
 				case "TIMETODNWITHTARGETSECS":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return double.NaN;
 					return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
 				case "TARGETCLOSESTAPPROACHTIME":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return double.NaN;
 					return targetTimeAtClosestApproach - time;
 				case "TARGETCLOSESTAPPROACHDISTANCE":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return double.NaN;
 					return targetClosestApproach;
 
@@ -2055,11 +2061,11 @@ namespace JSI
 				case "MET":
 					return string.Format(fp, "{0:KDTyy:ddd:hh:mm:ss.f}", vessel.missionTime);
 				case "TIMETOANWITHTARGET":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return string.Empty;
 					return string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time);
 				case "TIMETODNWITHTARGET":
-					if (target == null || targetOrbit == null || (target is Vessel && !targetOrbitSensibility))
+					if (target == null || targetOrbit == null)
 						return string.Empty;
 					return string.Format(fp, "{0:KDT-yy:ddd:hh:mm:ss.f}", vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time);
 				case "TARGETTIMETOAP":

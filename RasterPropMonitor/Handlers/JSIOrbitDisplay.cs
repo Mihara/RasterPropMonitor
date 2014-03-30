@@ -296,8 +296,11 @@ namespace JSI
 			// Account for a target vessel
 			var targetBody = FlightGlobals.fetch.VesselTarget as CelestialBody;
 			var targetVessel = FlightGlobals.fetch.VesselTarget as Vessel;
-			if (targetVessel != null) {
-
+			if (targetVessel != null && targetVessel.mainBody != vessel.mainBody) {
+				// We only care about tgtVessel if it is in the same SoI.
+				targetVessel = null;
+			}
+			if (targetVessel != null && !targetVessel.LandedOrSplashed) {
 				if (targetVessel.mainBody == vessel.mainBody) {
 					double tgtPe = targetVessel.orbit.NextPeriapsisTime(now);
 
@@ -320,9 +323,6 @@ namespace JSI
 					minX = Math.Min(minX, vesselPos.x);
 					maxY = Math.Max(maxY, vesselPos.y);
 					minY = Math.Min(minY, vesselPos.y);
-				} else {
-					// We only care about tgtVessel if it is in the same SoI.
-					targetVessel = null;
 				}
 			}
 
@@ -400,7 +400,7 @@ namespace JSI
 				DrawCircle(focusCenter.x, focusCenter.y, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
 			}
 
-			if (targetVessel != null) {
+			if (targetVessel != null && !targetVessel.LandedOrSplashed) {
 				GL.Color(iconColorTargetValue);
 				if (!targetVessel.orbit.activePatch && targetVessel.orbit.eccentricity < 1.0 && targetVessel.orbit.referenceBody == vessel.orbit.referenceBody) {
 					// For some reason, activePatch is false for targetVessel.
@@ -453,9 +453,17 @@ namespace JSI
 
 			if (targetVessel != null || targetBody != null) {
 				var orbit = (targetVessel != null) ? targetVessel.GetOrbit() : targetBody.GetOrbit();
-				DrawNextPe(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
 
-				DrawNextAp(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
+				double tClosestApproach, dClosestApproach;
+
+				if (targetVessel != null && targetVessel.LandedOrSplashed) {
+					orbit = JUtil.ClosestApproachSrfOrbit(vessel.orbit, targetVessel, out tClosestApproach, out dClosestApproach);
+				} else {
+					dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, orbit, out tClosestApproach);
+
+					DrawNextPe(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
+					DrawNextAp(orbit, vessel.orbit.referenceBody, now, iconColorTargetValue, screenTransform);
+				}
 
 				if (targetBody != null) {
 					transformedPosition = screenTransform.MultiplyPoint3x4(targetBody.getTruePositionAtUT(now) - vessel.orbit.referenceBody.getTruePositionAtUT(now));
@@ -480,8 +488,6 @@ namespace JSI
 					}
 				}
 
-				double tClosestApproach;
-				double dClosestApproach = JUtil.GetClosestApproach(vessel.orbit, orbit, out tClosestApproach);
 				Orbit o = GetPatchAtUT(vessel.orbit, tClosestApproach);
 				if (o != null) {
 					Vector3d encounterPosition = o.SwappedRelativePositionAtUT(tClosestApproach) + o.referenceBody.getTruePositionAtUT(tClosestApproach) - vessel.orbit.referenceBody.getTruePositionAtUT(tClosestApproach);

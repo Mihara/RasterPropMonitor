@@ -546,6 +546,42 @@ namespace JSI
 			return ret;
 		}
 
+		// Pseudo-orbit for closest approach to a landed object
+		public static Orbit OrbitFromSurfacePos(CelestialBody body, double lat, double lon, double alt, double UT)
+		{
+			double t0 = Planetarium.GetUniversalTime();
+			double angle = body.rotates ? (UT-t0)*360.0/body.rotationPeriod : 0;
+
+			double LAN = (lon + body.rotationAngle + angle - 90.0) % 360.0;
+			Orbit orbit = new Orbit(lat, 0, body.Radius + alt, LAN, 90.0, 0, UT, body);
+
+			orbit.pos = orbit.getRelativePositionAtT(0);
+			if (body.rotates)
+				orbit.vel = Vector3d.Cross(body.zUpAngularVelocity,-orbit.pos);
+			else
+				orbit.vel = orbit.getOrbitalVelocityAtObT(Time.fixedDeltaTime);
+			orbit.h = Vector3d.Cross(orbit.pos, orbit.vel);
+
+			orbit.StartUT = t0;
+			orbit.EndUT = UT + orbit.period;
+			if (body.rotates)
+				orbit.period = body.rotationPeriod;
+			orbit.patchEndTransition = Orbit.PatchTransitionType.FINAL;
+			return orbit;
+		}
+
+		public static Orbit ClosestApproachSrfOrbit(Orbit vesselOrbit, Vessel target, out double UT, out double distance)
+		{
+			return ClosestApproachSrfOrbit(vesselOrbit, target.mainBody, target.latitude, target.longitude, target.altitude, out UT, out distance);
+		}
+
+		public static Orbit ClosestApproachSrfOrbit(Orbit vesselOrbit, CelestialBody body, double lat, double lon, double alt, out double UT, out double distance)
+		{
+			Vector3d pos = body.GetRelSurfacePosition(lat, lon, alt);
+			distance = GetClosestApproach(vesselOrbit, body, pos, out UT);
+			return OrbitFromSurfacePos(body, lat, lon, alt, UT);
+		}
+
 		// Closest Approach algorithms based on Protractor mod
 		public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, out double timeAtClosestApproach)
 		{
@@ -560,6 +596,26 @@ namespace JSI
 				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.EndUT, out timeAtClosestApproach) - targetCelestial.Radius;
 			}
 			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), Planetarium.GetUniversalTime()+closestorbit.period, out timeAtClosestApproach) - targetCelestial.Radius;
+		}
+
+		public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, Vector3d srfTarget, out double timeAtClosestApproach)
+		{
+			Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetCelestial);
+			if (closestorbit.referenceBody == targetCelestial) {
+				double t0 = Planetarium.GetUniversalTime();
+				Func<double,Vector3d> fn = delegate(double t) {
+					double angle = targetCelestial.rotates ? (t-t0)*360.0/targetCelestial.rotationPeriod : 0;
+					return targetCelestial.position + QuaternionD.AngleAxis(angle, Vector3d.down) * srfTarget;
+				};
+				double d = MinTargetDistance(closestorbit, fn, closestorbit.StartUT, closestorbit.EndUT, out timeAtClosestApproach);
+				// When just passed over the target, some look ahead may be needed
+				if ((timeAtClosestApproach <= closestorbit.StartUT || timeAtClosestApproach >= closestorbit.EndUT) &&
+					closestorbit.eccentricity < 1 && closestorbit.patchEndTransition == Orbit.PatchTransitionType.FINAL) {
+					d = MinTargetDistance(closestorbit, fn, closestorbit.EndUT, closestorbit.EndUT+closestorbit.period/2, out timeAtClosestApproach);
+				}
+				return d;
+			}
+			return GetClosestApproach(vesselOrbit, targetCelestial, out timeAtClosestApproach);
 		}
 
 		public static double GetClosestApproach(Orbit vesselOrbit, Orbit targetOrbit, out double timeAtClosestApproach)
@@ -624,11 +680,16 @@ namespace JSI
 
 		private static double MinTargetDistance(Orbit vesselOrbit, Orbit targetOrbit, double startTime, double endTime, out double timeAtClosestApproach)
 		{
+			return MinTargetDistance(vesselOrbit, t => targetOrbit.getPositionAtUT(t), startTime, endTime, out timeAtClosestApproach);
+		}
+
+		private static double MinTargetDistance(Orbit vesselOrbit, Func<double,Vector3d> targetOrbit, double startTime, double endTime, out double timeAtClosestApproach)
+		{
 			var dist_at_int = new double[ClosestApproachRefinementInterval+1];
 			double step = startTime;
 			double dt = (endTime - startTime) / (double)ClosestApproachRefinementInterval;
 			for (int i = 0; i <= ClosestApproachRefinementInterval; i++) {
-				dist_at_int[i] = (targetOrbit.getPositionAtUT(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
+				dist_at_int[i] = (targetOrbit(step) - vesselOrbit.getPositionAtUT(step)).magnitude;
 				step += dt;
 			}
 			double mindist = dist_at_int.Min();

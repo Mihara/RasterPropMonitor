@@ -302,7 +302,7 @@ namespace SCANsatRPM
 			for (double timePoint = startMoment; timePoint < (startMoment + thatOrbit.period); timePoint += dTstep) {
 				bool collision;
 				Vector2d coord;
-				if (GetPositionAtT(thatVessel, thatOrbit, startMoment, timePoint, out coord, out collision))
+				if (GetPositionAtT(thatVessel, thatOrbit, start, timePoint, out coord, out collision))
 					points.Add(coord);
 				if (collision)
 					break;
