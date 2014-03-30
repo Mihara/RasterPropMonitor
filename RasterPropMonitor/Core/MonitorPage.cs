@@ -276,7 +276,7 @@ namespace JSI
 				if (GameDatabase.Instance.ExistsTexture(textureURL)) {
 					overlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
 				} else
-					JUtil.LogErrorMessage(ourMonitor, "Overlay texture could not be loaded.");
+					JUtil.LogErrorMessage(ourMonitor, "Overlay texture {0} could not be loaded.", textureURL);
 			}
 
 		}
