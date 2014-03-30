@@ -81,15 +81,19 @@ namespace MechJebRPM
 
 		private string GetActiveMode()
 		{
-			// It appears the SmartASS module does not know if MJ is in
-			// automatic pilot mode (like Ascent Guidance or Landing
-			// Guidance) without querying indirectly like this.
-			// MOARdV BUG: This doesn't seem to work if any of the
-			// attitude settings are active (like "Prograde").
-			if (activeJeb.attitude.enabled && !activeJeb.attitude.users.Contains(activeSmartass)) {
-				return MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.AUTO].Replace('\n', ' ');
+			if (activeSmartass != null) {
+				// It appears the SmartASS module does not know if MJ is in
+				// automatic pilot mode (like Ascent Guidance or Landing
+				// Guidance) without querying indirectly like this.
+				// MOARdV BUG: This doesn't seem to work if any of the
+				// attitude settings are active (like "Prograde").
+				if (activeJeb.attitude.enabled && !activeJeb.attitude.users.Contains(activeSmartass)) {
+					return MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.AUTO].Replace('\n', ' ');
+				}
+				return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target]] + " " + MechJebModuleSmartASS.TargetTexts[(int)activeSmartass.target].Replace('\n', ' ');
+			} else {
+				return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target.OFF];
 			}
-			return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target]] + " " + MechJebModuleSmartASS.TargetTexts[(int)activeSmartass.target].Replace('\n', ' ');
 		}
 
 		public string ShowMenu(int width, int height)
@@ -153,7 +157,7 @@ namespace MechJebRPM
 				currentMenu = MJMenu.RootMenu;
 			}
 			if (buttonID == buttonHome) {
-				if (currentMenu == MJMenu.RootMenu && activeMenu.currentSelection == 5) {
+				if (currentMenu == MJMenu.RootMenu && activeMenu.currentSelection == 5 && activeSmartass!=null) {
 					// If Force Roll is highlighted, the Home key will increment the
 					// roll value.
 					double currentRoll = (double)activeSmartass.rol + forceRollStep;
@@ -194,7 +198,6 @@ namespace MechJebRPM
 			if (!string.IsNullOrEmpty(unavailableColor))
 				unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
 
-
 			UpdateJebReferences();
 
 			topMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
@@ -211,7 +214,7 @@ namespace MechJebRPM
 				targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
 				topMenu.Add(targetMenuItem);
 				// Analysis disable once RedundantCast
-				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (double)activeSmartass.rol), ToggleForceRoll);
+				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (activeSmartass!=null) ? (double)activeSmartass.rol : 0.0), ToggleForceRoll);
 				topMenu.Add(forceRollMenuItem);
 				topMenu.Add(new TextMenu.Item("Execute Next Node", ExecuteNode, (int)MJMenu.ExecuteNodeMenu));
 				topMenu.Add(new TextMenu.Item("Ascent Guidance", AscentGuidance, (int)MJMenu.AscentGuidanceMenu));
@@ -230,7 +233,7 @@ namespace MechJebRPM
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
 			// Analysis disable once RedundantCast
-			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (double)activeSmartass.rol);
+			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (activeSmartass!=null) ? (double)activeSmartass.rol : 0.0);
 
 			// MOARdV:
 			// This is a little messy, since SmartASS can be updated
@@ -244,27 +247,32 @@ namespace MechJebRPM
 			// It is also fragile because I am using hard-coded numbers here
 			// and I have to hope that no one rearranges the root menu.  This
 			// will be addressed in a future iteration of the code.
-			if (activeSmartass.target == MechJebModuleSmartASS.Target.OFF) {
-				activeMenu.SetSelected(0, true);
-			} else if (activeSmartass.target == MechJebModuleSmartASS.Target.KILLROT) {
-				activeMenu.SetSelected(1, true);
-			} else if (activeSmartass.target == MechJebModuleSmartASS.Target.NODE) {
-				activeMenu.SetSelected(2, true);
-			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ORBITAL) {
-				activeMenu.SetSelected(3, true);
-			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.TARGET) {
-				activeMenu.SetSelected(4, true);
-			}
-			// 5 is Force Roll.  State is controlled below, and is independent
-			// of the rest of these
-			// 6 is Execute Next Node.
-			else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.SURFACE) {
-				activeMenu.SetSelected(7, true);
-			} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ADVANCED) {
-				activeMenu.SetSelected(8, true);
-			}
+			if (activeSmartass != null) {
+				if (activeSmartass.target == MechJebModuleSmartASS.Target.OFF) {
+					activeMenu.SetSelected(0, true);
+				} else if (activeSmartass.target == MechJebModuleSmartASS.Target.KILLROT) {
+					activeMenu.SetSelected(1, true);
+				} else if (activeSmartass.target == MechJebModuleSmartASS.Target.NODE) {
+					activeMenu.SetSelected(2, true);
+				} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ORBITAL) {
+					activeMenu.SetSelected(3, true);
+				} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.TARGET) {
+					activeMenu.SetSelected(4, true);
+				}
+				// 5 is Force Roll.  State is controlled below, and is independent
+				// of the rest of these
+				// 6 is Execute Next Node.
+				else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.SURFACE) {
+					activeMenu.SetSelected(7, true);
+				} else if (MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target] == MechJebModuleSmartASS.Mode.ADVANCED) {
+					activeMenu.SetSelected(8, true);
+				}
 
-			forceRollMenuItem.isSelected = activeSmartass.forceRol;
+				forceRollMenuItem.isSelected = activeSmartass.forceRol;
+			} else {
+				activeMenu.SetSelected(0, true);
+				forceRollMenuItem.isSelected = false;
+			}
 
 			TextMenu.Item item;
 
@@ -537,9 +545,11 @@ namespace MechJebRPM
 		{
 			activeMenu.menuTitle = "== " + MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.ORBITAL] + " Menu: " + GetActiveMode();
 
-			int idx = orbitalTargets.FindIndex(x => x == activeSmartass.target);
-			if (idx >= 0 && idx < orbitalTargets.Count) {
-				activeMenu.SetSelected(idx, true);
+			if (activeSmartass != null) {
+				int idx = orbitalTargets.FindIndex(x => x == activeSmartass.target);
+				if (idx >= 0 && idx < orbitalTargets.Count) {
+					activeMenu.SetSelected(idx, true);
+				}
 			}
 		}
 		//--- Target Menu
@@ -547,9 +557,11 @@ namespace MechJebRPM
 		{
 			activeMenu.menuTitle = "== " + MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET] + " Menu: " + GetActiveMode();
 
-			int idx = targetTargets.FindIndex(x => x == activeSmartass.target);
-			if (idx >= 0 && idx < targetTargets.Count) {
-				activeMenu.SetSelected(idx, true);
+			if (activeSmartass != null) {
+				int idx = targetTargets.FindIndex(x => x == activeSmartass.target);
+				if (idx >= 0 && idx < targetTargets.Count) {
+					activeMenu.SetSelected(idx, true);
+				}
 			}
 		}
 		//--- Circularize Menu
