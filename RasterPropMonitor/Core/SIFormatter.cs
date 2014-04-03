@@ -193,8 +193,13 @@ namespace JSI
 
 			const int minuteLength = 60;
 			const int hourLength = 60 * minuteLength;
-			const int dayLength = 24 * hourLength;
-			const int yearLength = 365 * dayLength;
+			int dayLength = 24 * hourLength;
+			int yearLength = 365 * dayLength;
+
+			if (GameSettings.KERBIN_TIME) {
+				dayLength = 6 * hourLength;
+				yearLength = 426 * hourLength;
+			}
 
 			int years = (int)Math.Floor(seconds / yearLength);
 			int wholeDays = (int)Math.Floor(seconds / dayLength);
