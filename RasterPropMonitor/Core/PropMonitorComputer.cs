@@ -1859,6 +1859,16 @@ namespace JSI
 					if (thatClaw != null)
 						return 1d;
 					return 0d;
+				case "ISREMOTEREFERENCE":
+					ModuleCommand thatPod = null;
+					foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+						thatPod = thatModule as ModuleCommand;
+						if (thatPod != null)
+							break;
+					}
+					if (thatPod == null)
+						return 1d;
+					return 0d;
 				case "FLIGHTUIMODE":
 					switch (FlightUIModeController.Instance.Mode) {
 						case FlightUIMode.DOCKING:
