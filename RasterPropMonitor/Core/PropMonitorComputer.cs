@@ -1839,6 +1839,8 @@ namespace JSI
 							return -1d;
 					}
 					return double.NaN;
+				case "ISONKERBINTIME":
+					return GameSettings.KERBIN_TIME.GetHashCode();
 				case "ISDOCKINGPORTREFERENCE":
 					ModuleDockingNode thatPort = null;
 					foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
