@@ -98,10 +98,11 @@ namespace JSI
 		private ITargetable currentTarget;
 		private Vessel selectedVessel;
 		private ModuleDockingNode selectedPort;
+		private ModuleGrappleNode selectedClaw;
 		private CelestialBody selectedCelestial;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
-		private readonly List<ModuleDockingNode> undockablesList = new List<ModuleDockingNode>();
+		private readonly List<MonoBehaviour> undockablesList = new List<MonoBehaviour>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private readonly List<PartModule> referencePoints = new List<PartModule>();
 		private int partCount;
@@ -208,6 +209,7 @@ namespace JSI
 			for (int i = 0; i < 2; i++) {
 				foreach (Part thatPart in thatVessel.parts) {
 					foreach (PartModule thatModule in thatPart.Modules) {
+						// Mihara: Note that ModuleDockingNode is ITargetable but ModuleGrapplingNode is not.
 						var thatPort = thatModule as ModuleDockingNode;
 						if (thatPort != null) {
 							if (i == 0) {
@@ -290,8 +292,11 @@ namespace JSI
 			selectedCelestial = currentTarget as CelestialBody;
 			selectedVessel = currentTarget as Vessel;
 			selectedPort = currentTarget as ModuleDockingNode;
+			selectedClaw = currentTarget as ModuleGrappleNode;
 			if (selectedPort != null)
 				selectedVessel = selectedPort.vessel;
+			if (selectedClaw != null)
+				selectedVessel = selectedClaw.vessel;
 			if (vessel.parts.Count != partCount) {
 				FindReferencePoints();
 				UpdateUndockablesList();
@@ -323,13 +328,21 @@ namespace JSI
 		// Decouple port menu...
 		private void DecouplePort(int index, TextMenu.Item ti)
 		{
-			switch (undockablesList[index].state) {
-				case "Docked (docker)":
-					undockablesList[index].Undock();
-					break;
-				case "PreAttached":
-					undockablesList[index].Decouple();
-					break;
+			var thatPort = undockablesList[index] as ModuleDockingNode;
+			var thatClaw = undockablesList[index] as ModuleGrappleNode;
+			if (thatPort != null) {
+				switch (thatPort.state) {
+					case "Docked (docker)":
+						thatPort.Undock();
+						break;
+					case "PreAttached":
+						thatPort.Decouple();
+						break;
+				}
+			}
+			// Mihara: I don't think claws require multiple different calls depending on state, thankfully.
+			if (thatClaw != null) {
+				thatClaw.Release();
 			}
 			UpdateUndockablesList();
 			activeMenu = topMenu;
@@ -347,6 +360,13 @@ namespace JSI
 						JUtil.LogMessage(this, "port state: \"{0}\", portinfo: \"{1}\"", thatPort.state, thatPort.vesselInfo);
 						if (thatPort.state == "Docked (docker)" || thatPort.state == "PreAttached") {
 							undockablesList.Add(thatPort);
+						}
+					}
+					var thatClaw = thatModule as ModuleGrappleNode;
+					if (thatClaw != null) {
+						// FIXME: Mihara: Once again, we need thorough testing to determine which claw states are undockable and which actually exist.
+						if (thatClaw.state == "UNDOCKABLE") {
+							undockablesList.Add(thatClaw);
 						}
 					}
 				}
@@ -414,11 +434,18 @@ namespace JSI
 						var tmi = new TextMenu.Item();
 						tmi.action = SetReferencePoint;
 						var thatPort = referencePoint as ModuleDockingNode;
-						if (thatPort == null)
-							tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
-						else
+						var thatClaw = referencePoint as ModuleGrappleNode;
+
+						if (thatPort != null) {
 							tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, referencePoint.part.name,
 								PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
+						} else if (thatClaw != null) {
+							// FIXME: Mihara: Needs further research into internals of the claws to make this line neater, but will do for the moment.
+							tmi.labelText = string.Format("{0}. {1} (claw)", activeMenu.Count + 1, referencePoint.part.name);
+						} else {
+							tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
+						}
+					
 						tmi.isSelected = (currentReference == referencePoint.part);
 						activeMenu.Add(tmi);
 					}
@@ -485,7 +512,8 @@ namespace JSI
 				foreach (PartModule thatModule in thatPart.Modules) {
 					var thatNode = thatModule as ModuleDockingNode;
 					var thatCommand = thatModule as ModuleCommand;
-					if (thatNode != null || thatCommand != null)
+					var thatClaw = thatModule as ModuleGrappleNode;
+					if (thatNode != null || thatCommand != null || thatClaw != null)
 						referencePoints.Add(thatModule);
 				}
 			}

@@ -1849,6 +1849,16 @@ namespace JSI
 					if (thatPort != null)
 						return 1d;
 					return 0d;
+				case "ISCLAWREFERENCE":
+					ModuleGrappleNode thatClaw = null;
+					foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+						thatClaw = thatModule as ModuleGrappleNode;
+						if (thatClaw != null)
+							break;
+					}
+					if (thatClaw != null)
+						return 1d;
+					return 0d;
 				case "FLIGHTUIMODE":
 					switch (FlightUIModeController.Instance.Mode) {
 						case FlightUIMode.DOCKING:

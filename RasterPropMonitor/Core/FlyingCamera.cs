@@ -56,13 +56,18 @@ namespace JSI
 		{
 			isReferenceCamera = true;
 			ModuleDockingNode thatPort = null;
+			ModuleGrappleNode thatClaw = null;
 			foreach (PartModule thatModule in ourVessel.GetReferenceTransformPart().Modules) {
 				thatPort = thatModule as ModuleDockingNode;
-				if (thatPort != null)
+				thatClaw = thatModule as ModuleGrappleNode;
+				if (thatPort != null || thatClaw != null)
 					break;
 			}
-			if (thatPort != null) {
-				cameraPart = thatPort.part;
+			if (thatPort != null || thatClaw != null) {
+				if (thatPort != null) 
+					cameraPart = thatPort.part;
+				if (thatClaw != null)
+					cameraPart = thatClaw.part;
 				cameraTransform = ourVessel.ReferenceTransform.gameObject;
 				CreateCameraObjects();
 			}

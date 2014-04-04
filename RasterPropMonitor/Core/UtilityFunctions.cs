@@ -211,6 +211,7 @@ namespace JSI
 				foreach (PartModule thatModule in thatPart.Modules) {
 					var thatNode = thatModule as ModuleDockingNode;
 					var thatPod = thatModule as ModuleCommand;
+					var thatClaw = thatModule as ModuleGrappleNode;
 					if (thatNode != null) {
 						thatNode.MakeReferenceTransform();
 						break;
@@ -218,6 +219,9 @@ namespace JSI
 					if (thatPod != null) {
 						thatPod.MakeReference();
 						break;
+					}
+					if (thatClaw != null) {
+						thatClaw.MakeReferenceTransform();
 					}
 				}
 			}
