@@ -60,6 +60,7 @@ namespace JSI
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
+			"Space Objects",
 			"Reference part",
 			undockItemText,
 			"Filters",
@@ -83,6 +84,7 @@ namespace JSI
 			Root,
 			Celestials,
 			Vessels,
+			SpaceObjects,
 			Reference,
 			Ports,
 			Undock,
@@ -101,6 +103,7 @@ namespace JSI
 		private ModuleGrappleNode selectedClaw;
 		private CelestialBody selectedCelestial;
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
+		private readonly List<TargetableVessel> spaceObjectsList = new List<TargetableVessel>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
 		private readonly List<MonoBehaviour> undockablesList = new List<MonoBehaviour>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
@@ -130,6 +133,9 @@ namespace JSI
 					break;
 				case MenuList.Celestials:
 					activeMenu.menuTitle = MakeMenuTitle("Celestial bodies", width);
+					break;
+				case MenuList.SpaceObjects:
+					activeMenu.menuTitle = MakeMenuTitle("Space Objects", width);
 					break;
 				case MenuList.Vessels:
 					activeMenu.menuTitle = MakeMenuTitle("Vessels", width);
@@ -482,6 +488,40 @@ namespace JSI
 						activeMenu.Add(tmi);
 					}
 					break;
+				case MenuList.SpaceObjects:
+					spaceObjectsList.Clear();
+					foreach (Vessel thatVessel in FlightGlobals.fetch.vessels) {
+						if (vessel != thatVessel) {
+							// MOARdV:
+							// Assuming DiscoveryLevels.StateVectors = "tracked object"
+							// DL.Name is set true as well, but I suspect it
+							// remains true after tracking ceases (not confirmed).
+							// Note that all asteroids are VesselType.SpaceObject.
+							if (thatVessel.vesselType == VesselType.SpaceObject && thatVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.StateVectors)) {
+								spaceObjectsList.Add(new TargetableVessel(thatVessel, vessel.transform.position));
+							}
+						}
+					}
+
+					switch (sortMode) {
+						case SortMode.Alphabetic:
+							spaceObjectsList.Sort(TargetableVessel.AlphabeticSort);
+							break;
+						case SortMode.Distance:
+							spaceObjectsList.Sort(TargetableVessel.DistanceSort);
+							break;
+					}
+					activeMenu.Clear();
+
+					foreach (TargetableVessel targetableVessel in spaceObjectsList) {
+						var tmi = new TextMenu.Item();
+						tmi.action = TargetSpaceObject;
+						tmi.labelText = targetableVessel.name;
+						tmi.rightText = String.Format(fp, distanceFormatString.UnMangleConfigText(), targetableVessel.distance);
+						tmi.isSelected = (selectedVessel == targetableVessel.vessel);
+						activeMenu.Add(tmi);
+					}
+					break;
 				case MenuList.Ports:
 					UpdatePortsList(); 
 
@@ -564,6 +604,7 @@ namespace JSI
 			var menuActions = new List<Action<int, TextMenu.Item>>();
 			menuActions.Add(ShowCelestialMenu);
 			menuActions.Add(ShowVesselMenu);
+			menuActions.Add(ShowSpaceObjectMenu);
 			menuActions.Add(ShowReferenceMenu);
 			menuActions.Add(ShowUndockMenu);
 			menuActions.Add(ShowFiltersMenu);
@@ -679,6 +720,26 @@ namespace JSI
 			}
 		}
 
+		private void ShowSpaceObjectMenu(int index, TextMenu.Item ti)
+		{
+			currentMenu = MenuList.SpaceObjects;
+
+			activeMenu = new TextMenu();
+			activeMenu.rightColumnWidth = distanceColumnWidth;
+
+			activeMenu.labelColor = nameColorTag;
+			activeMenu.selectedColor = selectedColorTag;
+			activeMenu.disabledColor = unavailableColorTag;
+			activeMenu.rightTextColor = distanceColorTag;
+
+			UpdateLists();
+
+			if (selectedVessel != null) {
+				int idx = spaceObjectsList.FindIndex(x => x.vessel == selectedVessel);
+				activeMenu.currentSelection = idx;
+			}
+		}
+
 		private void ShowReferenceMenu(int index, TextMenu.Item ti)
 		{
 			currentMenu = MenuList.Reference;
@@ -771,6 +832,15 @@ namespace JSI
 
 				activeMenu.SetSelected(index, true);
 			}
+		}
+		// Space Object Menu
+		private void TargetSpaceObject(int index, TextMenu.Item ti)
+		{
+			spaceObjectsList[index].SetTarget();
+			selectedCelestial = null;
+			selectedPort = null;
+
+			activeMenu.SetSelected(index, true);
 		}
 		// Reference Menu
 		private void SetReferencePoint(int index, TextMenu.Item ti)
