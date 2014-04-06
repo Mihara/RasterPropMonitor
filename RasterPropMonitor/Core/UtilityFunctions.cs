@@ -116,6 +116,10 @@ namespace JSI
 						x = 3;
 						y = 3;
 						break;
+					case VesselType.SpaceObject:
+						x = 4;
+						y = 1;
+						break;
 					default:
 						x = 3;
 						y = 2;
