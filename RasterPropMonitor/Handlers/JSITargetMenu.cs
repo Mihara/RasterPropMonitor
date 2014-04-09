@@ -105,7 +105,7 @@ namespace JSI
 		private readonly List<Celestial> celestialsList = new List<Celestial>();
 		private readonly List<TargetableVessel> spaceObjectsList = new List<TargetableVessel>();
 		private readonly List<TargetableVessel> vesselsList = new List<TargetableVessel>();
-		private readonly List<MonoBehaviour> undockablesList = new List<MonoBehaviour>();
+		private readonly List<PartModule> undockablesList = new List<PartModule>();
 		private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
 		private readonly List<PartModule> referencePoints = new List<PartModule>();
 		private int partCount;
@@ -363,16 +363,17 @@ namespace JSI
 				foreach (PartModule thatModule in thatPart.Modules) {
 					var thatPort = thatModule as ModuleDockingNode;
 					if (thatPort != null) {
-						JUtil.LogMessage(this, "port state: \"{0}\", portinfo: \"{1}\"", thatPort.state, thatPort.vesselInfo);
+						// Mihara: We have that one sorted out, don't we? No need to keep that in...
+						// JUtil.LogMessage(this, "port state: \"{0}\", portinfo: \"{1}\"", thatPort.state, thatPort.vesselInfo);
 						if (thatPort.state == "Docked (docker)" || thatPort.state == "PreAttached") {
-							undockablesList.Add(thatPort);
+							undockablesList.Add(thatModule);
 						}
 					}
 					var thatClaw = thatModule as ModuleGrappleNode;
 					if (thatClaw != null) {
-						// FIXME: Mihara: Once again, we need thorough testing to determine which claw states are undockable and which actually exist.
-						if (thatClaw.state == "UNDOCKABLE") {
-							undockablesList.Add(thatClaw);
+						// Mihara: Before first activation: "Disabled", open: "Ready", attached: "Grappled", after release: "Disengage".
+						if (thatClaw.state == "Grappled") {
+							undockablesList.Add(thatModule);
 						}
 					}
 				}
@@ -388,17 +389,24 @@ namespace JSI
 					UpdateUndockablesList();
 
 					activeMenu.Clear();
-					foreach (ModuleDockingNode thatPort in undockablesList) {
+					foreach (PartModule thatUndockable in undockablesList) {
 						var tmi = new TextMenu.Item();
 						tmi.action = DecouplePort;
-						switch (thatPort.state) {
-							case "Docked (docker)":
-								tmi.labelText = "Undock " + thatPort.vesselInfo.name;
-								break;
-							case "PreAttached":
-								tmi.labelText = string.Format("Detach {0} ({1})", thatPort.part.name,
-									PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
-								break;
+						var thatClaw = thatUndockable as ModuleGrappleNode;
+						var thatPort = thatUndockable as ModuleDockingNode;
+						if (thatPort != null) {
+							switch (thatPort.state) {
+								case "Docked (docker)":
+									tmi.labelText = "Undock " + thatPort.vesselInfo.name;
+									break;
+								case "PreAttached":
+									tmi.labelText = string.Format("Detach {0} ({1})", thatPort.part.name,
+										PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
+									break;
+							}
+						}
+						if (thatClaw != null) {
+							tmi.labelText = "Claw (" + thatClaw.otherVesselInfo.name + ")";
 						}
 						activeMenu.Add(tmi);
 					}
@@ -446,8 +454,8 @@ namespace JSI
 							tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, referencePoint.part.name,
 								PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
 						} else if (thatClaw != null) {
-							// FIXME: Mihara: Needs further research into internals of the claws to make this line neater, but will do for the moment.
-							tmi.labelText = string.Format("{0}. {1} (claw)", activeMenu.Count + 1, referencePoint.part.name);
+							tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, referencePoint.part.name,
+								PortOrientationText(part.GetReferenceTransform(), thatClaw.controlTransform));
 						} else {
 							tmi.labelText = string.Format("{0}. {1}", activeMenu.Count + 1, referencePoint.part.name);
 						}
