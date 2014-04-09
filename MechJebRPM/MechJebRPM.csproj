@@ -43,8 +43,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="MechJeb2">
-      <HintPath>..\..\..\..\..\..\KSP\Testing\0.23\GameData\MechJeb2\Plugins\MechJeb2.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\..\..\..\KSP\Testing\0.23.5\GameData\MechJeb2\Plugins\MechJeb2.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
