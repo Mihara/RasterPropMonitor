@@ -3,7 +3,6 @@ using System;
 using UnityEngine;
 
 // FIXME: This module turned into total spaghetti by now and needs some serious rethinking.
-
 namespace JSI
 {
 	public class FlyingCamera
@@ -17,6 +16,7 @@ namespace JSI
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
 		private bool isReferenceCamera, isReferenceClawCamera;
+		private ModuleGrappleNode clawModule;
 		private Part referencePart;
 		private const string referenceCamera = "CurrentReferenceDockingPortCamera";
 		private readonly Quaternion referencePointRotation = Quaternion.Euler(-90, 0, 0);
@@ -34,7 +34,8 @@ namespace JSI
 			cameraAspect = aspect;
 		}
 
-		public void SetFlicker(float flicker, int flickerTime) {
+		public void SetFlicker(float flicker, int flickerTime)
+		{
 			flickerChance = flicker;
 			flickerMaxTime = flickerTime;
 			flickerCounter = 0;
@@ -74,6 +75,7 @@ namespace JSI
 					cameraTransform = ourVessel.ReferenceTransform.gameObject;
 					isReferenceClawCamera = false;
 				} else if (thatClaw != null) {
+					clawModule = thatClaw;
 					JUtil.LogMessage(this, "Reference camera is a grappling claw. Let's hope it's a stock part, cause this won't work with a non-stock one...");
 					cameraPart = thatClaw.part;
 					// Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
@@ -189,8 +191,12 @@ namespace JSI
 		{
 
 			if (isReferenceCamera && ourVessel.GetReferenceTransformPart() != referencePart) {
-					CleanupCameraObjects();
-					PointToReferenceCamera();
+				CleanupCameraObjects();
+				PointToReferenceCamera();
+			}
+
+			if (isReferenceCamera && isReferenceClawCamera && clawModule.state == "Grappled") {
+				return false;
 			}
 
 			if (!enabled)
