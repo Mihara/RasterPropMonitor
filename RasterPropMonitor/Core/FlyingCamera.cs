@@ -2,6 +2,8 @@
 using System;
 using UnityEngine;
 
+// FIXME: This module turned into total spaghetti by now and needs some serious rethinking.
+
 namespace JSI
 {
 	public class FlyingCamera
@@ -14,7 +16,8 @@ namespace JSI
 		private readonly float cameraAspect;
 		private bool enabled;
 		private readonly RenderTexture screenTexture;
-		private bool isReferenceCamera;
+		private bool isReferenceCamera, isReferenceClawCamera;
+		private Part referencePart;
 		private const string referenceCamera = "CurrentReferenceDockingPortCamera";
 		private readonly Quaternion referencePointRotation = Quaternion.Euler(-90, 0, 0);
 		private float flickerChance;
@@ -47,6 +50,7 @@ namespace JSI
 					PointToReferenceCamera();
 					JUtil.LogMessage(this, "Tracking reference point docking port camera.");
 				} else {
+					isReferenceClawCamera = false;
 					CreateCameraObjects(newCameraName);
 				}
 			}
@@ -55,6 +59,7 @@ namespace JSI
 		private void PointToReferenceCamera()
 		{
 			isReferenceCamera = true;
+			referencePart = ourVessel.GetReferenceTransformPart();
 			ModuleDockingNode thatPort = null;
 			ModuleGrappleNode thatClaw = null;
 			foreach (PartModule thatModule in ourVessel.GetReferenceTransformPart().Modules) {
@@ -64,11 +69,16 @@ namespace JSI
 					break;
 			}
 			if (thatPort != null || thatClaw != null) {
-				if (thatPort != null) 
+				if (thatPort != null) {
 					cameraPart = thatPort.part;
-				if (thatClaw != null)
+					cameraTransform = ourVessel.ReferenceTransform.gameObject;
+					isReferenceClawCamera = false;
+				} else if (thatClaw != null) {
+					JUtil.LogMessage(this, "Reference camera is a grappling claw. Let's hope it's a stock part, cause this won't work with a non-stock one...");
 					cameraPart = thatClaw.part;
-				cameraTransform = ourVessel.ReferenceTransform.gameObject;
+					// Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
+					isReferenceClawCamera |= LocateCamera(ourVessel.GetReferenceTransformPart(), "ArticulatedCap");
+				}
 				CreateCameraObjects();
 			}
 		}
@@ -76,8 +86,8 @@ namespace JSI
 		private void CreateCameraObjects(string newCameraName = null)
 		{
 
-			if (!string.IsNullOrEmpty(newCameraName)) {
-				isReferenceCamera = false;
+			if (!isReferenceClawCamera && !string.IsNullOrEmpty(newCameraName)) {
+				isReferenceCamera = false; 
 				// First, we search our own part for this camera transform,
 				// only then we search all other parts of the vessel.
 				if (!LocateCamera(ourPart, newCameraName)) {
@@ -172,17 +182,15 @@ namespace JSI
 
 		public Vector3 GetTransformForward()
 		{
-			return isReferenceCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
+			return (isReferenceCamera && !isReferenceClawCamera) ? cameraTransform.transform.up : cameraTransform.transform.forward;
 		}
 
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
 		{
 
-			if (isReferenceCamera) {
-				if (cameraTransform != ourVessel.ReferenceTransform.gameObject) {
+			if (isReferenceCamera && ourVessel.GetReferenceTransformPart() != referencePart) {
 					CleanupCameraObjects();
 					PointToReferenceCamera();
-				}
 			}
 
 			if (!enabled)
@@ -206,7 +214,7 @@ namespace JSI
 
 			Quaternion rotation = cameraTransform.transform.rotation;
 
-			if (isReferenceCamera) {
+			if (isReferenceCamera && !isReferenceClawCamera) {
 				// Reference transforms of docking ports have the wrong orientation, so need an extra rotation applied before that.
 				rotation *= referencePointRotation;
 			}
