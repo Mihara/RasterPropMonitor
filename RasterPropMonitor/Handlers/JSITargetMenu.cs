@@ -283,6 +283,13 @@ namespace JSI
 			refreshMenuCountdown--;
 			if (refreshMenuCountdown <= 0) {
 				refreshMenuCountdown = refreshMenuRate;
+
+				// Mihara: Apparently, number of parts changes much later when a claw grapples something,
+				// so this cycles too late.
+				// I don't particularly like it, but this is the quickest way to get claws into undock menu for now.
+				// FIXME: Find out what exactly happens to vessel structure when a claw grapples a part.
+				UpdateUndockablesList();
+
 				return true;
 			}
 
@@ -305,7 +312,7 @@ namespace JSI
 				selectedVessel = selectedClaw.vessel;
 			if (vessel.parts.Count != partCount) {
 				FindReferencePoints();
-				UpdateUndockablesList();
+				//UpdateUndockablesList();
 			}
 			if (!UpdateCheck())
 				return;
@@ -346,7 +353,9 @@ namespace JSI
 						break;
 				}
 			}
-			// Mihara: I don't think claws require multiple different calls depending on state, thankfully.
+			// Mihara: Claws require multiple different calls depending on state --
+			// Release releases the claw that grabbed something else, while Decouple releases the claw that grabbed your own vessel.
+			// FIXME: This needs further research.
 			if (thatClaw != null) {
 				thatClaw.Release();
 			}
