@@ -43,8 +43,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="SCANsat">
-      <HintPath>..\..\..\..\..\..\KSP\Testing\0.23\GameData\SCANsat\SCANsat.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>..\..\..\..\..\..\KSP\Testing\0.23.5\GameData\SCANsat\SCANsat.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
