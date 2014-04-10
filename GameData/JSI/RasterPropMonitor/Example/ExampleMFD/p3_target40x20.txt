@@ -1,8 +1,8 @@
 {1:"Target: ";"";""}{0}{1:;"Target: [#ffffff30]NO TARGET";""} $&$ TARGETNAME TARGETEXISTS
 {2:;"                                        ";""}Dist: {0:SIP_6.3}m   Vel: {1:SIP_6.3}m/s $&$ TARGETDISTANCE APPROACHSPEED TARGETEXISTS
 {3:;"                                        ";""}R.Ang X: {0,6:0.00}° Y:{1,6:0.00}° Z: {2,6:0.00}° $&$TARGETANGLEX TARGETANGLEY TARGETANGLEZ TARGETEXISTS
-{0:"    Please select a reference part ";;} $&$ ISREMOTEREFERENCE
-{0:"      in target management menu. ";;} $&$ ISREMOTEREFERENCE
+{0:;;"    Please select a reference part "} $&$ ISREMOTEREFERENCE
+{0:;;"      in target management menu. "} $&$ ISREMOTEREFERENCE
 
 
 
