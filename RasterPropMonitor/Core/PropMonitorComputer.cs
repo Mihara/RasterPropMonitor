@@ -1604,8 +1604,8 @@ namespace JSI
 					if (target == null || target is CelestialBody)
 						return double.NaN;
 					if (target is Vessel || target is ModuleDockingNode)
-						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLatitude(target.GetTransform().position));
-					return vessel.mainBody.GetLatitude(target.GetTransform().position);
+						return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetTransform().position));
+					return vessel.mainBody.GetLongitude(target.GetTransform().position);
 
 			// Orientation
 				case "HEADING":
