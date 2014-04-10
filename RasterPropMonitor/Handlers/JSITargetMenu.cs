@@ -372,6 +372,8 @@ namespace JSI
 					var thatClaw = thatModule as ModuleGrappleNode;
 					if (thatClaw != null) {
 						// Mihara: Before first activation: "Disabled", open: "Ready", attached: "Grappled", after release: "Disengage".
+						// I have a suspicion that grappled-on-same-vessel is some other string and needs a "Decouple" rather than "Release" call to release.
+						// But it's pretty annoying to test for.
 						if (thatClaw.state == "Grappled") {
 							undockablesList.Add(thatModule);
 						}
