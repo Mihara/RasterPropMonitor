@@ -75,11 +75,15 @@ namespace JSI
 					cameraTransform = ourVessel.ReferenceTransform.gameObject;
 					isReferenceClawCamera = false;
 				} else if (thatClaw != null) {
-					clawModule = thatClaw;
-					JUtil.LogMessage(this, "Reference camera is a grappling claw. Let's hope it's a stock part, cause this won't work with a non-stock one...");
-					cameraPart = thatClaw.part;
 					// Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
-					isReferenceClawCamera |= LocateCamera(ourVessel.GetReferenceTransformPart(), "ArticulatedCap");
+					if (LocateCamera(ourVessel.GetReferenceTransformPart(), "ArticulatedCap")) {
+						isReferenceClawCamera = true;
+						clawModule = thatClaw;
+					} else {
+						JUtil.LogMessage(this, "Claw was not a stock part. Falling back to reference transform position...");
+						cameraPart = thatClaw.part;
+						cameraTransform = ourVessel.ReferenceTransform.gameObject;
+					}
 				}
 				CreateCameraObjects();
 			}
@@ -88,8 +92,9 @@ namespace JSI
 		private void CreateCameraObjects(string newCameraName = null)
 		{
 
-			if (!isReferenceClawCamera && !string.IsNullOrEmpty(newCameraName)) {
-				isReferenceCamera = false; 
+			if (!string.IsNullOrEmpty(newCameraName)) {
+				isReferenceCamera = false;
+				isReferenceClawCamera = false; clawModule = null;
 				// First, we search our own part for this camera transform,
 				// only then we search all other parts of the vessel.
 				if (!LocateCamera(ourPart, newCameraName)) {
@@ -184,7 +189,7 @@ namespace JSI
 
 		public Vector3 GetTransformForward()
 		{
-			return (isReferenceCamera && !isReferenceClawCamera) ? cameraTransform.transform.up : cameraTransform.transform.forward;
+			return isReferenceCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
 		}
 
 		public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
@@ -195,7 +200,7 @@ namespace JSI
 				PointToReferenceCamera();
 			}
 
-			if (isReferenceCamera && isReferenceClawCamera && clawModule.state == "Grappled") {
+			if (isReferenceClawCamera && clawModule.state != "Ready") {
 				return false;
 			}
 
