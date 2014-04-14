@@ -42,6 +42,8 @@ namespace JSI
 		public int distanceColumnWidth = 8;
 		[KSPField]
 		public string menuTitleFormatString = "== {0}";
+		[KSPField]
+		public int defaultFilter = 15;
 		// MOARdV: Really, there is no reason to instantiate the topMenu and
 		// keep it around.  If anything, it is less expensive to construct than
 		// the other menus.  Although leaving it here means the "current item"
@@ -597,7 +599,7 @@ namespace JSI
 			persistentVarName = "targetfilter" + internalProp.propID;
 			persistence = new PersistenceAccessor(part);
 			// 7 is the bitmask for ship-station-probe;
-			VesselFilterFromBitmask(persistence.GetVar(persistentVarName) ?? 7);
+			VesselFilterFromBitmask(persistence.GetVar(persistentVarName) ?? defaultFilter);
 
 			nameColorTag = JUtil.ColorToColorTag(nameColorValue);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
