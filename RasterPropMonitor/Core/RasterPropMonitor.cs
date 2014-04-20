@@ -343,9 +343,9 @@ namespace JSI
 			return false;
 		}
 
-		private void RenderText(string[] textBuffer)
+		private void RenderText(string[] textBuffer, bool drawingOverlay = false)
 		{
-			float yCursor = activePage.screenYMin * fontLetterHeight;
+			float yCursor = drawingOverlay ? 0 : (activePage.screenYMin * fontLetterHeight);
 			for (int lineIndex = 0; lineIndex < textBuffer.Length; yCursor += fontLetterHeight, lineIndex++) {
 				if (!string.IsNullOrEmpty(textBuffer[lineIndex])) {
 					Color fontColor = activePage.defaultColor;
@@ -356,7 +356,7 @@ namespace JSI
 					fontTextureIndex = 0;
 					if (activePage.pageFont < fontTexture.Count)
 						fontTextureIndex = activePage.pageFont;
-					float xCursor = activePage.screenXMin * fontLetterWidth;
+					float xCursor = drawingOverlay ? 0 : (activePage.screenXMin * fontLetterWidth);
 					for (int charIndex = 0; charIndex < textBuffer[lineIndex].Length; charIndex++) {
 						bool escapedBracket = false;
 						// We will continue parsing bracket pairs until we're out of bracket pairs,
@@ -483,7 +483,7 @@ namespace JSI
 
 			// If we have a text overlay, that's where we print it.
 			if (activePage.textOverlayBuffer.Length > 0) {
-				RenderText(activePage.textOverlayBuffer);
+				RenderText(activePage.textOverlayBuffer, true);
 			}
 
 			activePage.RenderOverlay(screenTexture);
