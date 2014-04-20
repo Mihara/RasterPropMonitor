@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>FormatterTests</RootNamespace>
     <AssemblyName>FormatterTests</AssemblyName>
-    <ReleaseVersion>0.16</ReleaseVersion>
+    <ReleaseVersion>0.17</ReleaseVersion>
     <UseMSBuildEngine>True</UseMSBuildEngine>
     <CodePage>65001</CodePage>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
