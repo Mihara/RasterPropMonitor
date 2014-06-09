@@ -111,11 +111,11 @@ namespace JSI
 			"AG8",
 			"AG9",
 		};
-		// This is only here to support the deprecated DMS and KDT variables.
-		// These should be gone as soon as possible along with this class instance.
-		private static readonly SIFormatProvider fp = new SIFormatProvider();
+
 		// Some constant things...
 		private const double gee = 9.81d;
+
+		// Now this whole mess can get deprecated.
 		private readonly Dictionary<string,string> namedResources = new Dictionary<string,string> {
 			// Stock resources...
 			{ "ELECTRIC", "ElectricCharge" },
@@ -181,6 +181,10 @@ namespace JSI
 			{ "NFURANIUM","EnrichedUranium" },
 			{ "NFDEPLETEDURANIUM","DepletedUranium" },
 		};
+
+		// Ok, this is to deprecate the named resources mechanic entirely...
+		private static SortedDictionary<string,string> systemNamedResources;
+
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 		// Public functions:
@@ -240,7 +244,7 @@ namespace JSI
 		// Damnit, looks like this needs a separate start.
 		public void Start()
 		{
-			JUtil.logQuiet = debugLogging;
+			JUtil.debugLoggingEnabled = debugLogging;
 
 			if (!HighLogic.LoadedSceneIsEditor) {
 
@@ -269,6 +273,15 @@ namespace JSI
 
 				FetchPerPartData();
 				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+
+				// Let's deal with the system resource library.
+				// This dictionary is sorted so that longer names go first to prevent false identification - they're compared in order.
+				systemNamedResources = new SortedDictionary<string,string>(new ResourceNameLengthComparer());
+				foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions) {
+					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-');
+					systemNamedResources.Add(varname, thatResource.name);
+					JUtil.LogMessage(this,"Remembering system resource {1} as SYSR_{0}",varname,thatResource.name);
+				}
 
 				// We instantiate plugins late.
 				plugins = new ExternalVariableHandlers(this);
@@ -1243,6 +1256,21 @@ namespace JSI
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
 				string[] tokens = input.Split('_');
 
+				// If input starts with SYSR, this is a named system resource which we should recognise and return.
+				// The qualifier rules did not change since individually named resources got deprecated.
+				if (tokens.Length == 2 && tokens[0] == "SYSR") {
+					foreach (KeyValuePair<string, string> resourceType in systemNamedResources) {
+						if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal)) {
+							string argument = tokens[1].Substring(resourceType.Key.Length);
+							if (argument.StartsWith("STAGE", StringComparison.Ordinal)) {
+								argument = argument.Substring("STAGE".Length);
+								return resources.ListElement(resourceType.Value, argument, true);
+							}
+							return resources.ListElement(resourceType.Value, argument, false);
+						}
+					}
+				}
+
 				// If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
 				// The variables are named like LISTR_<number>_<NAME|VAL|MAX>
 				if (tokens.Length == 3 && tokens[0] == "LISTR") {
@@ -2034,7 +2062,7 @@ namespace JSI
 					return -1d;
 			}
 
-			// Named resources are all the same and better off processed like this:
+			// Individually named resources are deprecated, but still in.
 			foreach (KeyValuePair<string, string> resourceType in namedResources) {
 				if (input.StartsWith(resourceType.Key, StringComparison.Ordinal)) {
 					string argument = input.Substring(resourceType.Key.Length);
@@ -2049,6 +2077,19 @@ namespace JSI
 			// Didn't recognise anything so we return the string we got, that helps debugging.
 			return input;
 		}
+
+		private class ResourceNameLengthComparer : IComparer<String>
+		{
+			public int Compare(string x, string y)
+			{
+				// Note that we need longer strings first so we invert numbers.
+				int lengthComparison = -x.Length.CompareTo(y.Length);
+				return lengthComparison == 0 ? -string.Compare(x, y, StringComparison.Ordinal) : lengthComparison;
+			}
+		}
+
+
 	}
+
 }
 
