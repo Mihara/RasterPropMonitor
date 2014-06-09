@@ -157,7 +157,7 @@ namespace JSI
 				if (tokens.Length == 3) {
 					consumeOnToggleName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null && Double.TryParse(tokens[1], out consumeOnToggleAmount))) {
-						JUtil.LogErrorMessage(this,"Could not parse \"{0}\"",consumeOnToggle);
+						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
 					}
 					switch (tokens[2].Trim().ToLower()) {
 						case "on":
