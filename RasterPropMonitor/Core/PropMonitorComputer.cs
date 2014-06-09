@@ -287,7 +287,7 @@ namespace JSI
 				// This dictionary is sorted so that longer names go first to prevent false identification - they're compared in order.
 				systemNamedResources = new SortedDictionary<string,string>(new ResourceNameLengthComparer());
 				foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions) {
-					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-');
+					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_','-');
 					systemNamedResources.Add(varname, thatResource.name);
 					JUtil.LogMessage(this,"Remembering system resource {1} as SYSR_{0}",varname,thatResource.name);
 				}
