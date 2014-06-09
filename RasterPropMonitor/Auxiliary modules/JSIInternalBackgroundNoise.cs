@@ -22,7 +22,7 @@ namespace JSI
 			if (needsElectricCharge) {
 				comp = RasterPropMonitorComputer.Instantiate(internalProp);
 				comp.UpdateRefreshRates(soundCheckRate, soundCheckRate);
-				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+				electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
 			}
 			audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);
 			audioOutput.audio = internalModel.gameObject.AddComponent<AudioSource>();
@@ -67,7 +67,7 @@ namespace JSI
 				soundCheckCountdown--;
 				if (soundCheckCountdown <= 0) {
 					soundCheckCountdown = soundCheckRate;
-					electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+					electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
 					if (electricChargeReserve < 0.01)
 						StopPlaying();
 				}

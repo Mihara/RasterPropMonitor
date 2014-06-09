@@ -308,7 +308,7 @@ namespace JSI
 				lightCheckCountdown--;
 				if (lightCheckCountdown <= 0) {
 					lightCheckCountdown = lightCheckRate;
-					if (state && comp.ProcessVariable("ELECTRIC").MassageToDouble() < 0.01d) {
+					if (state && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d) {
 						Click();
 						state = false;
 					}

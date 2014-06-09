@@ -507,7 +507,7 @@ namespace JSI
 		private void CheckForElectricCharge()
 		{
 			if (needsElectricCharge)
-				electricChargeReserve = (double)comp.ProcessVariable("ELECTRIC");
+				electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
 		}
 
 		public override void OnUpdate()
