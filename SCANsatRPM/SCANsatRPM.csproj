@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{E7E75333-EE44-4F51-A14D-CFB075525D7D}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -44,6 +44,7 @@
     </Reference>
     <Reference Include="SCANsat">
       <HintPath>..\..\..\..\..\..\KSP\Testing\0.23.5\GameData\SCANsat\SCANsat.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>

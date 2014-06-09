@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{272BB11D-C8A8-4CA8-8C18-58324670C68C}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -44,6 +44,7 @@
     </Reference>
     <Reference Include="MechJeb2">
       <HintPath>..\..\..\..\..\..\KSP\Testing\0.23.5\GameData\MechJeb2\Plugins\MechJeb2.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
