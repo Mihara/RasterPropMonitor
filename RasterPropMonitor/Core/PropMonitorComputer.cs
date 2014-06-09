@@ -185,6 +185,8 @@ namespace JSI
 		// Ok, this is to deprecate the named resources mechanic entirely...
 		private static SortedDictionary<string,string> systemNamedResources;
 
+		private static List<string> knownLoadedAssemblies;
+
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 		// Public functions:
@@ -281,6 +283,15 @@ namespace JSI
 					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-');
 					systemNamedResources.Add(varname, thatResource.name);
 					JUtil.LogMessage(this,"Remembering system resource {1} as SYSR_{0}",varname,thatResource.name);
+				}
+
+				// Now let's collect a list of all assemblies loaded on the system.
+
+				knownLoadedAssemblies = new List<string>();
+				foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies) {
+					string thatName = thatAssembly.assembly.GetName().Name;
+					knownLoadedAssemblies.Add(thatName.ToUpper());
+					JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
 				}
 
 				// We instantiate plugins late.
@@ -1255,6 +1266,12 @@ namespace JSI
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
 				string[] tokens = input.Split('_');
+
+				// If input starts with ISLOADED, this is a query on whether a specific DLL has been loaded into the system.
+				// So we look it up in our list.
+				if (tokens.Length == 2 && tokens[0] == "ISLOADED") {
+					return knownLoadedAssemblies.Contains(tokens[1]) ? 1d : 0d;
+				}
 
 				// If input starts with SYSR, this is a named system resource which we should recognise and return.
 				// The qualifier rules did not change since individually named resources got deprecated.
