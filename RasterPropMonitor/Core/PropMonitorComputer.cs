@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using System.Reflection;
 
@@ -287,9 +286,9 @@ namespace JSI
 				// This dictionary is sorted so that longer names go first to prevent false identification - they're compared in order.
 				systemNamedResources = new SortedDictionary<string,string>(new ResourceNameLengthComparer());
 				foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions) {
-					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_','-');
+					string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
 					systemNamedResources.Add(varname, thatResource.name);
-					JUtil.LogMessage(this,"Remembering system resource {1} as SYSR_{0}",varname,thatResource.name);
+					JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
 				}
 
 				// Now let's collect a list of all assemblies loaded on the system.
@@ -378,11 +377,9 @@ namespace JSI
 		{
 			if (HighLogic.LoadedSceneIsEditor) {
 				// well, it looks sometimes it might become null..
-				if (EditorLogic.fetch.shipDescriptionField != null) {
-					// For some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
-					vesselDescription = EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$");
-				} else
-					vesselDescription = string.Empty;
+
+				// For some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
+				vesselDescription = EditorLogic.fetch.shipDescriptionField != null ? EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$") : string.Empty;
 			}
 		}
 
@@ -578,12 +575,8 @@ namespace JSI
 				// I think this shouldn't happen...
 				return o.referenceBody;
 			}
-			if (o.referenceBody.GetOrbit().referenceBody == Planetarium.fetch.Sun) {
-				// Orbit is around a planet
-				return o.referenceBody;
-			}
-			// Orbit is around a moon
-			return o.referenceBody.GetOrbit().referenceBody;
+			// Orbit is around a planet or a moon?
+			return o.referenceBody.GetOrbit().referenceBody == Planetarium.fetch.Sun ? o.referenceBody : o.referenceBody.GetOrbit().referenceBody;
 		}
 
 		/// <summary>
@@ -929,10 +922,7 @@ namespace JSI
 				if (targetDockingNode != null)
 					targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
 
-				if (targetOrbitSensibility)
-					targetOrbit = target.GetOrbit();
-				else
-					targetOrbit = null;
+				targetOrbit = targetOrbitSensibility ? target.GetOrbit() : null;
 
 				// TODO: Actually, there's a lot of nonsensical cases here that need more reasonable handling.
 				// Like what if we're targeting a vessel landed on a moon of another planet?...
@@ -1259,11 +1249,9 @@ namespace JSI
 				if (vessel.orbit.eccentricity < 1.0) {
 					// Which one will we reach first?
 					return (vessel.orbit.timeToPe < vessel.orbit.timeToAp) ? -1.0 : 1.0;
-				} else {
-					// Ship is hyperbolic.  There is no Ap.  Have we already
-					// passed Pe?
-					return (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period) > 0.0) ? -1.0 : 0.0;
-				}
+				} 	// Ship is hyperbolic.  There is no Ap.  Have we already
+				// passed Pe?
+				return (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period) > 0.0) ? -1.0 : 0.0;
 			}
 
 			return 0.0;
@@ -1573,9 +1561,8 @@ namespace JSI
 							return vessel.orbit.eccentricity < 1 ?
 								vessel.orbit.timeToPe :
 								-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
-						} else {
-							return vessel.orbit.timeToAp;
 						}
+						return vessel.orbit.timeToAp;
 					}
 					return double.NaN;
 				case "NEXTAPSIS":
@@ -1583,7 +1570,8 @@ namespace JSI
 						double apsisType = NextApsisType();
 						if (apsisType < 0.0) {
 							return vessel.orbit.PeA;
-						} else if(apsisType > 0.0) {
+						}
+						if (apsisType > 0.0) {
 							return vessel.orbit.ApA;
 						}
 					}
