@@ -206,7 +206,7 @@ namespace JSI
 		public static readonly string[] VariableListSeparator = { "$&$" };
 		public static readonly string[] VariableSeparator = { };
 		public static readonly string[] LineSeparator = { Environment.NewLine };
-		public static bool logQuiet;
+		public static bool debugLoggingEnabled = true;
 		private static readonly int ClosestApproachRefinementInterval = 16;
 
 		public static void MakeReferencePart(this Part thatPart)
@@ -327,7 +327,7 @@ namespace JSI
 
 		public static void LogMessage(object caller, string line, params object[] list)
 		{
-			if (!logQuiet) 
+			if (debugLoggingEnabled) 
 				Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
 		}
 
