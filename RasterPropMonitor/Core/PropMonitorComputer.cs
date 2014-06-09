@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using System.Reflection;
 
 namespace JSI
 {
@@ -1926,6 +1927,10 @@ namespace JSI
 							return 0d;
 					}
 					return double.NaN;
+			
+			// Meta.
+				case "RPMVERSION": 
+					return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
