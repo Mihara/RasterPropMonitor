@@ -11,6 +11,10 @@ namespace JSI
 		// The only public configuration variable.
 		[KSPField]
 		public bool debugLogging = true;
+		// The OTHER public configuration variable.
+		[KSPField]
+		public string storedStrings = string.Empty;
+
 		// Persistence for internal modules.
 		[KSPField(isPersistant = true)]
 		public string data = "";
@@ -188,6 +192,8 @@ namespace JSI
 
 		private static List<string> knownLoadedAssemblies;
 
+		private string[] storedStringsArray;
+
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 		// Public functions:
@@ -293,6 +299,12 @@ namespace JSI
 					string thatName = thatAssembly.assembly.GetName().Name;
 					knownLoadedAssemblies.Add(thatName.ToUpper());
 					JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
+				}
+
+				// Now let's parse our stored strings...
+
+				if (!string.IsNullOrEmpty(storedStrings)) {
+					storedStringsArray = storedStrings.Split('|');
 				}
 
 				// We instantiate plugins late.
@@ -1267,6 +1279,14 @@ namespace JSI
 			// It's slightly more optimal if we take care of that before the main switch body.
 			if (input.IndexOf("_", StringComparison.Ordinal) > -1) {
 				string[] tokens = input.Split('_');
+
+				// Strings stored in module configuration.
+				if (tokens.Length == 2 && tokens[0] == "STOREDSTRING") {
+					int storedStringNumber;
+					if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber > 0 && storedStringsArray.Length > storedStringNumber)
+						return storedStringsArray[storedStringNumber];
+					return "";
+				}
 
 				// If input starts with ISLOADED, this is a query on whether a specific DLL has been loaded into the system.
 				// So we look it up in our list.
