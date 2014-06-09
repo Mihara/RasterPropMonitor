@@ -35,6 +35,10 @@ namespace JSI
 		[KSPField]
 		public string colorName = "_EmissiveColor";
 		[KSPField]
+		public string consumeOnToggle = string.Empty;
+		[KSPField]
+		public string consumeWhileActive = string.Empty;
+		[KSPField]
 		public string disabledColor = string.Empty;
 		private Color disabledColorValue;
 		[KSPField]
@@ -81,6 +85,15 @@ namespace JSI
 		private Func<bool> stateHandler;
 		private Action<bool> actionHandler;
 		private bool isPluginAction;
+
+		// Consume-on-toggle and consume-while-active
+		private bool consumingOnToggleUp, consumingOnToggleDown;
+		private string consumeOnToggleName = string.Empty;
+		private double consumeOnToggleAmount;
+		private bool consumingWhileActive;
+		private string consumeWhileActiveName = string.Empty;
+		private double consumeWhileActiveAmount;
+		private bool forcedShutdown;
 
 		private static bool InstantiateHandler(ConfigNode node, InternalModule ourSwitch, out Action<bool> actionCall, out Func<bool> stateCall)
 		{
@@ -135,6 +148,43 @@ namespace JSI
 					case "0":
 						needsElectricChargeValue = false;
 						break;
+				}
+			}
+
+			// Now parse consumeOnToggle and consumeWhileActive...
+			if (!string.IsNullOrEmpty(consumeOnToggle)) {
+				string[] tokens = consumeOnToggle.Split(',');
+				if (tokens.Length == 3) {
+					consumeOnToggleName = tokens[0].Trim();
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null && Double.TryParse(tokens[1], out consumeOnToggleAmount))) {
+						JUtil.LogErrorMessage(this,"Could not parse \"{0}\"",consumeOnToggle);
+					}
+					switch (tokens[2].Trim().ToLower()) {
+						case "on":
+							consumingOnToggleUp = true;
+							break;
+						case "off":
+							consumingOnToggleDown = true;
+							break;
+						case "both":
+							consumingOnToggleUp = true;
+							consumingOnToggleDown = true;
+							break;
+						default:
+							JUtil.LogErrorMessage(this, "So should I consume resources when turning on, turning off, or both in \"{0}\"?", consumeOnToggle);
+							break;
+					}
+				}
+			}
+
+			if (!string.IsNullOrEmpty(consumeWhileActive)) {
+				string[] tokens = consumeWhileActive.Split(',');
+				if (tokens.Length == 2) {
+					consumeWhileActiveName = tokens[0].Trim();
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null && Double.TryParse(tokens[1], out consumeWhileActiveAmount))) {
+						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
+					} else
+						consumingWhileActive = true;
 				}
 			}
 
@@ -315,7 +365,21 @@ namespace JSI
 				}
 			}
 
+			if (forcedShutdown && state) {
+				Click();
+				state = false;
+				forcedShutdown = false;
+			}
+
 			if (state != oldState) {
+				// If we're consuming resources on toggle, do that now.
+				if ((consumingOnToggleUp && state) || consumingOnToggleDown && !state) {
+					double extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
+					if (extracted < consumeOnToggleAmount) {
+						// We don't have enough of the resource, so we should fail, right?
+						return;
+					}
+				}
 				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
 				    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)) {
 					audioOutput.audio.Play();
@@ -334,6 +398,17 @@ namespace JSI
 					colorShiftRenderer.material.SetColor(colorName, (state ^ reverse ? enabledColorValue : disabledColorValue));
 				}
 				oldState = state;
+			}
+		}
+
+		public override void OnFixedUpdate()
+		{
+			if (consumingWhileActive) {
+				double extracted = part.RequestResource(consumeWhileActiveName, consumeWhileActiveAmount);
+				if (extracted < consumeWhileActiveAmount) {
+					// We don't have enough of the resource, so we should shut down...
+					forcedShutdown = true;
+				}
 			}
 		}
 
