@@ -401,11 +401,12 @@ namespace JSI
 			}
 		}
 
-		public override void OnFixedUpdate()
+		public void Update()
 		{
-			if (consumingWhileActive) {
-				double extracted = part.RequestResource(consumeWhileActiveName, consumeWhileActiveAmount);
-				if (extracted < consumeWhileActiveAmount) {
+			if (consumingWhileActive && oldState) {
+				double requesting = consumeWhileActiveAmount * TimeWarp.deltaTime;
+				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
+				if (extracted < requesting) {
 					// We don't have enough of the resource, so we should shut down...
 					forcedShutdown = true;
 				}
