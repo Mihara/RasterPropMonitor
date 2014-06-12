@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace JSI
 {
@@ -13,6 +14,8 @@ namespace JSI
 		public string transparentTransforms = string.Empty;
 		[KSPField]
 		public string transparentShaderName = "Transparent/Specular";
+		[KSPField]
+		public bool restoreShadersOnIVA = true;
 
 		// I would love to know what exactly possessed Squad to have the IVA space use it's own coordinate system.
 		// This rotation adjusts IVA space to match the 'real' space...
@@ -22,16 +25,24 @@ namespace JSI
 		private Transform originalParent;
 		private Vector3 originalPosition;
 
+		private Shader transparentShader;
+		private Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
+
 		public override void OnAwake()
 		{
 			// Apply shaders to transforms just in case the user needs us to apply shaders to ready-made models.
 			if (!string.IsNullOrEmpty(transparentTransforms)) {
 
-				Shader transparentShader = Shader.Find(transparentShaderName);
+				transparentShader = Shader.Find(transparentShaderName);
 
 				foreach (string transformName in transparentTransforms.Split('|')) {
 					try {
-						part.FindModelTransform(transformName).renderer.material.shader = transparentShader;
+						Transform tr = part.FindModelTransform(transformName);
+						if (tr != null) {
+							Shader backupShader = tr.renderer.material.shader;
+							tr.renderer.material.shader = transparentShader;
+							shadersBackup.Add(tr,backupShader);
+						}
 					} catch (Exception e) {
 						Debug.LogException(e, this);
 					}
@@ -124,10 +135,10 @@ namespace JSI
 					part.internalModel.SetVisible(true);
 				// I don't get why the kerbal heads are flickering...
 
-				// If the user is IVA in our vessel, we undo moving the internals
-				if (JUtil.VesselIsInIVA(part.vessel)) {
+				// If the user is IVA, we undo moving the internals
+				if (JUtil.IsInIVA()) {
 					if (JUtil.UserIsInPod(part)) {
-						// If we're running in the pod the user is currently in, move internal back.
+						// For the pod the user is actually in, we undo everthing.
 						part.internalModel.transform.parent = originalParent;
 						part.internalModel.transform.localRotation = originalRotation;
 						part.internalModel.transform.localPosition = originalPosition;
@@ -138,14 +149,26 @@ namespace JSI
 					}
 					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see himself doubled,
 					// both through the InternalCamera (which I can't modify) and the Camera 00.
-					// So we have to also undo the culling mask change.
+					// So we have to also undo the culling mask change as well.
 					SetCameraCullingMask("Camera 00", false);
+					// We also undo the shaders to conceal the fact that we did anything.
+					if (restoreShadersOnIVA) {
+						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
+							backup.Key.renderer.material.shader = backup.Value;
+						}
+					}
 				} else {
 					SetCameraCullingMask("Camera 00", true);
 					// In all other cases we attach the IVA directly into the pod and rotate it.
 					part.internalModel.transform.parent = part.transform;
 					part.internalModel.transform.localRotation = MagicalVoodooRotation;
 					part.internalModel.transform.localPosition = Vector3.zero;
+					// And for a good measure we restore the shaders we changed.
+					if (restoreShadersOnIVA) {
+						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
+							backup.Key.renderer.material.shader = transparentShader;
+						}
+					}
 				}
 
 			}
