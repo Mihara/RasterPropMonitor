@@ -1271,7 +1271,7 @@ namespace JSI
 				// Strings stored in module configuration.
 				if (tokens.Length == 2 && tokens[0] == "STOREDSTRING") {
 					int storedStringNumber;
-					if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber > 0 && storedStringsArray.Length > storedStringNumber)
+					if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0 && storedStringsArray.Length > storedStringNumber)
 						return storedStringsArray[storedStringNumber];
 					return "";
 				}
