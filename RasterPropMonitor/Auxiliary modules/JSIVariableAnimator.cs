@@ -72,7 +72,7 @@ namespace JSI
 
 		public void LateUpdate()
 		{
-			if (JUtil.VesselIsInIVA(vessel) && !startupComplete) {
+			if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete) {
 				JUtil.AnnoyUser(this);
 				enabled = false;
 			}
