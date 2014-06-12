@@ -209,6 +209,13 @@ namespace JSI
 		public static bool debugLoggingEnabled = true;
 		private static readonly int ClosestApproachRefinementInterval = 16;
 
+		public static void SetLayer(this Transform trans, int layer) 
+		{
+			trans.gameObject.layer = layer;
+			foreach(Transform child in trans)
+				child.SetLayer( layer);
+		}
+
 		public static void MakeReferencePart(this Part thatPart)
 		{
 			if (thatPart != null) {
@@ -281,6 +288,15 @@ namespace JSI
 			return thatKerbal;
 		}
 
+		public static Camera GetCameraByName(string name) {
+			foreach (Camera cam in Camera.allCameras) {
+				if (cam.name == name) {
+					return cam;
+				}
+			}
+			return null;
+		}
+
 		public static Material DrawLineMaterial()
 		{
 			var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
@@ -311,13 +327,44 @@ namespace JSI
 
 		public static bool VesselIsInIVA(Vessel thatVessel)
 		{
-			// TODO: Inactive IVAs are renderer.enabled = false, this can and should be used;
+			// Inactive IVAs are renderer.enabled = false, this can and should be used...
+			// ... but now it can't because we're doing transparent pods, so we need a more complicated way to find which pod the player is in.
 			return IsActiveVessel(thatVessel) && IsInIVA();
+		}
+
+		public static bool UserIsInPod(Part thisPart) {
+
+			// If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
+			if (thisPart.internalModel == null || !VesselIsInIVA(thisPart.vessel))
+				return false;
+
+			// Now that we got that out of the way, we know that the user is in SOME pod on our ship. We just don't know which.
+			// Let's see if he's controlling a kerbal in our pod.
+			if (ActiveKerbalIsLocal(thisPart))
+				return true;
+
+			// There still remains an option of InternalCamera which we will now sort out.
+			if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal) {
+				// So we're watching through an InternalCamera. Which doesn't record which pod we're in anywhere, like with kerbals.
+				// But we know that if the camera's transform parent is somewhere in our pod, it's us.
+				// InternalCamera.Instance.transform.parent is the transform the camera is attached to that is on either a prop or the internal itself.
+				// The problem is figuring out if it's in our pod, or in an identical other pod.
+				// Unfortunately I don't have anything smarter right now than get a list of all transforms in the internal and cycle through it.
+				// This is a more annoying computation than looking through every kerbal in a pod (there's only a few of those,
+				// but potentially hundreds of transforms) and might not even be working as I expect. It needs testing.
+				foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>()) 
+				{
+					if (thisTransform == InternalCamera.Instance.transform.parent)
+						return true;
+				}
+			}
+
+			return false;
 		}
 
 		public static bool IsActiveVessel(Vessel thatVessel)
 		{
-			return (HighLogic.LoadedSceneIsFlight && thatVessel.isActiveVessel);
+			return (HighLogic.LoadedSceneIsFlight && thatVessel != null	&& thatVessel.isActiveVessel);
 		}
 
 		public static bool IsInIVA()

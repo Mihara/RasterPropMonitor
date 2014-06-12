@@ -153,13 +153,7 @@ namespace JSI
 
 		private void CameraSetup(int index, string sourceName)
 		{
-			Camera sourceCam = null;
-			foreach (Camera cam in Camera.allCameras) {
-				if (cam.name == sourceName) {
-					sourceCam = cam;
-					break;
-				}
-			}
+			Camera sourceCam = JUtil.GetCameraByName(sourceName);
 
 			if (sourceCam != null) {
 				var cameraBody = new GameObject();
