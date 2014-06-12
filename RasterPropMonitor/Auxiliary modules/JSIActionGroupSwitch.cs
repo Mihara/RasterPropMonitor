@@ -70,7 +70,7 @@ namespace JSI
 			{ "plugin",false },
 		};
 		private Animation anim;
-		private bool oldState;
+		private bool currentState;
 		private bool isCustomAction;
 		// Persistence for current state variable.
 		private PersistenceAccessor persistence;
@@ -189,7 +189,7 @@ namespace JSI
 			}
 
 			if (groupList.ContainsKey(actionName)) {
-				oldState = vessel.ActionGroups[groupList[actionName]];
+				currentState = vessel.ActionGroups[groupList[actionName]];
 			} else {
 				isCustomAction = true;
 				switch (actionName) {
@@ -240,10 +240,10 @@ namespace JSI
 
 			if (isCustomAction) {
 				if (isPluginAction && stateHandler != null) {
-					oldState = stateHandler();
+					currentState = stateHandler();
 				} else {
 					if (!string.IsNullOrEmpty(persistentVarName)) {
-						oldState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? oldState);
+						currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? currentState);
 						if (actionName == "intlight") {
 							// We have to restore lighting after reading the
 							// persistent variable.
@@ -265,7 +265,7 @@ namespace JSI
 				}
 				anim[animationName].wrapMode = WrapMode.Once;
 
-				if (oldState ^ reverse) {
+				if (currentState ^ reverse) {
 					anim[animationName].speed = float.MaxValue;
 					anim[animationName].normalizedTime = 0;
 
@@ -279,7 +279,7 @@ namespace JSI
 				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
 				disabledColorValue = ConfigNode.ParseColor32(disabledColor);
 				enabledColorValue = ConfigNode.ParseColor32(enabledColor);
-				colorShiftRenderer.material.SetColor(colorName, (oldState ^ reverse ? enabledColorValue : disabledColorValue));
+				colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
 			} else
 				JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
 
@@ -334,23 +334,29 @@ namespace JSI
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
 			// So there's no check for internal cameras.
 
-			bool state;
+			if (forcedShutdown && currentState) {
+				Click();
+				currentState = false;
+				forcedShutdown = false;
+			}
+
+			bool newState;
 			if (isPluginAction && stateHandler != null) {
-				state = stateHandler();
+				newState = stateHandler();
 			} else if (isCustomAction) {
 				if (string.IsNullOrEmpty(switchTransform) && !string.IsNullOrEmpty(perPodPersistenceName)) { 
 					// If the switch transform is not given, and the global persistence value is, this means this is a slave module.
-					state = persistence.GetBool(persistentVarName) ?? false;
+					newState = persistence.GetBool(persistentVarName) ?? false;
 				} else {
 					// Otherwise it's a master module. But it still might have to follow the clicks on other copies of the same prop...
 					if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-						state = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
+						newState = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
 					} else {
-						state = customGroupList[actionName];
+						newState = customGroupList[actionName];
 					}
 				}
 			} else {
-				state = vessel.ActionGroups[groupList[actionName]];
+				newState = vessel.ActionGroups[groupList[actionName]];
 			}
 
 			// If needsElectricCharge is true and there is no charge, the state value is overridden to false and the click action is reexecuted.
@@ -358,22 +364,16 @@ namespace JSI
 				lightCheckCountdown--;
 				if (lightCheckCountdown <= 0) {
 					lightCheckCountdown = lightCheckRate;
-					if (state && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d) {
+					if (currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d) {
 						Click();
-						state = false;
+						newState = false;
 					}
 				}
 			}
 
-			if (forcedShutdown && state) {
-				Click();
-				state = false;
-				forcedShutdown = false;
-			}
-
-			if (state != oldState) {
+			if (newState != currentState) {
 				// If we're consuming resources on toggle, do that now.
-				if ((consumingOnToggleUp && state) || consumingOnToggleDown && !state) {
+				if ((consumingOnToggleUp && newState) || consumingOnToggleDown && !newState) {
 					double extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
 					if (extracted < consumeOnToggleAmount) {
 						// We don't have enough of the resource, so we should fail, right?
@@ -385,7 +385,7 @@ namespace JSI
 					audioOutput.audio.Play();
 				}
 				if (anim != null) {
-					if (state ^ reverse) {
+					if (newState ^ reverse) {
 						anim[animationName].normalizedTime = 0;
 						anim[animationName].speed = 1f * customSpeed;
 						anim.Play(animationName);
@@ -395,15 +395,15 @@ namespace JSI
 						anim.Play(animationName);
 					}
 				} else if (colorShiftRenderer != null) {
-					colorShiftRenderer.material.SetColor(colorName, (state ^ reverse ? enabledColorValue : disabledColorValue));
+					colorShiftRenderer.material.SetColor(colorName, (newState ^ reverse ? enabledColorValue : disabledColorValue));
 				}
-				oldState = state;
+				currentState = newState;
 			}
 		}
 
 		public void Update()
 		{
-			if (consumingWhileActive && oldState) {
+			if (consumingWhileActive && currentState) {
 				double requesting = consumeWhileActiveAmount * TimeWarp.deltaTime;
 				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
 				if (extracted < requesting) {
