@@ -160,6 +160,9 @@ namespace JSI
 				cameraBody.name = typeof(RasterPropMonitor).Name + index + cameraBody.GetInstanceID();
 				cameraObject[index] = cameraBody.AddComponent<Camera>();
 
+				// Just in case to support JSITransparentPod.
+				cameraObject[index].cullingMask &= ~(1 << 16 | 1 << 20);
+
 				cameraObject[index].CopyFrom(sourceCam);
 				cameraObject[index].enabled = false;
 				cameraObject[index].targetTexture = screenTexture;
