@@ -91,6 +91,7 @@
     <Compile Include="Core\VariableHandler.cs" />
     <Compile Include="Handlers\JSIInternalRPMButtons.cs" />
     <Compile Include="Handlers\JSIOdometer.cs" />
+    <Compile Include="Auxiliary modules\JSITransparentPod.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
