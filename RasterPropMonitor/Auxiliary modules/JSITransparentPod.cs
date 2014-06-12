@@ -26,7 +26,7 @@ namespace JSI
 		private Vector3 originalPosition;
 
 		private Shader transparentShader;
-		private Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
+		private readonly Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
 		public override void OnAwake()
 		{
@@ -41,7 +41,7 @@ namespace JSI
 						if (tr != null) {
 							Shader backupShader = tr.renderer.material.shader;
 							tr.renderer.material.shader = transparentShader;
-							shadersBackup.Add(tr,backupShader);
+							shadersBackup.Add(tr, backupShader);
 						}
 					} catch (Exception e) {
 						Debug.LogException(e, this);
