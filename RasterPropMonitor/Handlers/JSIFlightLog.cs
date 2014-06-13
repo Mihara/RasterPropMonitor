@@ -56,6 +56,9 @@ namespace JSI
 		public void Start()
 		{
 			if (!string.IsNullOrEmpty(pageTitle))
+				// Notice that UnMangleConfigText is an extension method defined in JUtil class.
+				// To your module, it won't be available without hardlinking to RPM, which is what you want to avoid.
+				// It's nothing you couldn't replace with .Replace("<=", "{").Replace("=>", "}").Replace("$$$", Environment.NewLine); though
 				pageTitle = pageTitle.UnMangleConfigText();
 		}
 		// You can have an OnUpdate in this module, this particular one doesn't need it.
