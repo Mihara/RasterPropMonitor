@@ -39,7 +39,7 @@ namespace JSI
 
 				foreach (string transformName in transparentTransforms.Split('|')) {
 					try {
-						Transform tr = part.FindModelTransform(transformName);
+						Transform tr = part.FindModelTransform(transformName.Trim());
 						if (tr != null) {
 							// We both change the shader and backup the original shader so we can undo it later.
 							Shader backupShader = tr.renderer.material.shader;
