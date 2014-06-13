@@ -290,6 +290,9 @@ namespace JSI
 
 		public static void HideShowProp(InternalProp thatProp, bool visibility)
 		{
+			foreach (Renderer thatRenderer in thatProp.FindModelComponents<MeshRenderer>()) {
+				thatRenderer.enabled = visibility;
+			}
 			foreach (Renderer thatRenderer in thatProp.FindModelComponents<SkinnedMeshRenderer>()) {
 				thatRenderer.enabled = visibility;
 			}

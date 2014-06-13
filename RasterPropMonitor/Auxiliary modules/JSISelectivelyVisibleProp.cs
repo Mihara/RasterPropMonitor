@@ -9,8 +9,6 @@ namespace JSI
 
 		private readonly List<int> seatNumbers = new List<int>();
 
-		private bool currentlyVisible = false;
-
 		public void Start()
 		{
 			foreach (string seatNumberString in visibleFromSeats.Split(',')) {
@@ -19,19 +17,14 @@ namespace JSI
 					JUtil.LogMessage(this, "Running in prop '{2}' with ID {1}, will be visible from seat {0}", result, internalProp.propID, internalProp.name);
 					seatNumbers.Add(result);
 				}
-				JUtil.HideShowProp(internalProp, currentlyVisible);
+				JUtil.HideShowProp(internalProp, false);
 			}
 		}
 
 		public override void OnUpdate()
 		{
 			if (JUtil.UserIsInPod(part)) {
-				bool visibility = false;
-				visibility |= seatNumbers.Contains(part.CurrentActiveSeat());
-				if (visibility != currentlyVisible) {
-					JUtil.HideShowProp(internalProp, visibility);
-					currentlyVisible = visibility;
-				}
+				JUtil.HideShowProp(internalProp,seatNumbers.Contains(part.CurrentActiveSeat()));
 			}
 		}
 	}
