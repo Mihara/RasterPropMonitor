@@ -32,7 +32,7 @@ namespace JSI
 
 		public override void OnAwake()
 		{
-			// Apply shaders to transforms just in case the user needs us to apply shaders to ready-made models.
+			// Apply shaders to transforms on startup.
 			if (!string.IsNullOrEmpty(transparentTransforms)) {
 
 				transparentShader = Shader.Find(transparentShaderName);
@@ -41,6 +41,7 @@ namespace JSI
 					try {
 						Transform tr = part.FindModelTransform(transformName);
 						if (tr != null) {
+							// We both change the shader and backup the original shader so we can undo it later.
 							Shader backupShader = tr.renderer.material.shader;
 							tr.renderer.material.shader = transparentShader;
 							shadersBackup.Add(tr, backupShader);
@@ -102,6 +103,10 @@ namespace JSI
 					originalPosition = part.internalModel.transform.localPosition;
 					originalRotation = part.internalModel.transform.localRotation;
 				}
+			} else {
+				// Some error-proofing. I won't bother doing this every frame, because one error message
+				// should suffice, this module is not supposed to be attached to parts that have no internals in the first place.
+				JUtil.LogErrorMessage(this, "Wait, where's my internal model?");
 			}
 		}
 
@@ -137,22 +142,25 @@ namespace JSI
 			if (part.internalModel != null) {
 
 				if (JUtil.IsInIVA()) {
-					// If the user is IVA, we undo moving the internals
+					// If the user is IVA, we move the internals to the original position,
+					// so that they show up correctly on InternalCamera. This particularly concerns
+					// the pod the user is inside of.
 					part.internalModel.transform.parent = originalParent;
 					part.internalModel.transform.localRotation = originalRotation;
 					part.internalModel.transform.localPosition = originalPosition;
 
 					if (!JUtil.UserIsInPod(part)) {
-						// If the user is in some other pod, the IVAs also go back to invisible to prevent them from showing up twice.
+						// If the user is in some other pod than this one, we also hide our IVA to prevent them from being drawn above
+						// everything else.
 						part.internalModel.SetVisible(false);
 					}
 
-					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see himself doubled,
-					// both through the InternalCamera (which I can't modify) and the Camera 00.
+					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see his own IVA twice in two different orientations,
+					// one time through the InternalCamera (which I can't modify) and another through the Camera 00.
 					// So we have to also undo the culling mask change as well.
 					SetCameraCullingMask("Camera 00", false);
 
-					// We also undo the shaders to conceal the fact that we did anything.
+					// So once everything is hidden again, we undo the change in shaders to conceal the fact that you can't see other internals.
 					if (restoreShadersOnIVA & shadersAreTransparent) {
 						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
 							backup.Key.renderer.material.shader = backup.Value;
@@ -168,7 +176,7 @@ namespace JSI
 					// Make the internal model visible...
 					part.internalModel.SetVisible(true);
 
-					// And for a good measure we reapply the shaders we changed.
+					// And for a good measure we make sure the shader change has been applied.
 					if (restoreShadersOnIVA && !shadersAreTransparent) {
 						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
 							backup.Key.renderer.material.shader = transparentShader;
