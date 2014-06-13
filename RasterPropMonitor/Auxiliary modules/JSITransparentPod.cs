@@ -156,8 +156,8 @@ namespace JSI
 					if (restoreShadersOnIVA & shadersAreTransparent) {
 						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
 							backup.Key.renderer.material.shader = backup.Value;
-							shadersAreTransparent = false;
 						}
+						shadersAreTransparent = false;
 					}
 
 				} else {
