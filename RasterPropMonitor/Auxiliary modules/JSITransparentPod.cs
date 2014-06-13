@@ -28,6 +28,8 @@ namespace JSI
 		private Shader transparentShader;
 		private readonly Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
+		private bool shadersAreTransparent;
+
 		public override void OnAwake()
 		{
 			// Apply shaders to transforms just in case the user needs us to apply shaders to ready-made models.
@@ -47,6 +49,7 @@ namespace JSI
 						Debug.LogException(e, this);
 					}
 				}
+				shadersAreTransparent = true;
 			}
 		}
 
@@ -77,8 +80,6 @@ namespace JSI
 				// I'm not sure if this change is actually needed, even. Main Camera's culling mask seems to already include IVA objects,
 				// they just don't normally spawn them.
 				SetCameraCullingMask("Main Camera", true);
-			} else {
-				SetCameraCullingMask("Camera 00", true);
 			}
 
 			// If the internal model has not yet been created, try creating it and log the exception if we fail.
@@ -102,7 +103,6 @@ namespace JSI
 					originalRotation = part.internalModel.transform.localRotation;
 				}
 			}
-
 		}
 
 		public override void OnUpdate()
@@ -112,63 +112,76 @@ namespace JSI
 			if (HighLogic.LoadedSceneIsEditor)
 				return;
 
-			// If the internal does not exist somehow, make sure it does by force-creating it.
+			// If the internal does not exist, for example, because the vessel was switched, make sure it does by force-creating it.
 			if (part.internalModel == null) {
 				part.CreateInternalModel();
+				// Notice that spawning crew also causes the internal to go invisible...
+				part.SpawnCrew();
 			}
+
+			// Now we need to make sure that the list of portraits in the GUI conforms to what actually is in the active vessel.
+			// This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
+			// that I can't readily debug, and it shouldn't happen anyway.
+			foreach (InternalSeat seat in part.internalModel.seats) {
+				if (vessel.isActiveVessel) {
+					if (!KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef)) {
+						KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
+					}
+				} else {
+					KerbalGUIManager.RemoveActiveCrew(seat.kerbalRef);
+				}
+			}
+
 
 			// So we do have an internal model, right?
 			if (part.internalModel != null) {
 
-				// Check every seat in the part, if it's taken, but the kerbal model isn't spawned, respawn them all.
-				if (part.protoModuleCrew.Count > 0) {
-					foreach (InternalSeat seat in part.internalModel.seats) {
-						if (seat.taken && seat.kerbalRef == null) {
-							seat.SpawnCrew();
-							break;
-						}
-					}
-				}
-
-				// If the internal model isn't visible, make it visible.
-				if (part.internalModel.renderer == null || !part.internalModel.renderer.enabled)
-					part.internalModel.SetVisible(true);
-				// I don't get why the kerbal heads are flickering...
-
-				// If the user is IVA, we undo moving the internals
 				if (JUtil.IsInIVA()) {
-					if (JUtil.UserIsInPod(part)) {
-						// For the pod the user is actually in, we undo everthing.
-						part.internalModel.transform.parent = originalParent;
-						part.internalModel.transform.localRotation = originalRotation;
-						part.internalModel.transform.localPosition = originalPosition;
-					} else {
-						// If the user is NOT in our pod but in our vessel, the IVAs go back to invisible to prevent them from showing up twice.
-						if (part.internalModel.renderer == null || part.internalModel.renderer.enabled)
-							part.internalModel.SetVisible(false);
+					// If the user is IVA, we undo moving the internals
+					part.internalModel.transform.parent = originalParent;
+					part.internalModel.transform.localRotation = originalRotation;
+					part.internalModel.transform.localPosition = originalPosition;
+
+					if (!JUtil.UserIsInPod(part)) {
+						// If the user is in some other pod, the IVAs also go back to invisible to prevent them from showing up twice.
+						part.internalModel.SetVisible(false);
 					}
+
 					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see himself doubled,
 					// both through the InternalCamera (which I can't modify) and the Camera 00.
 					// So we have to also undo the culling mask change as well.
 					SetCameraCullingMask("Camera 00", false);
+
 					// We also undo the shaders to conceal the fact that we did anything.
-					if (restoreShadersOnIVA) {
+					if (restoreShadersOnIVA & shadersAreTransparent) {
 						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
 							backup.Key.renderer.material.shader = backup.Value;
+							shadersAreTransparent = false;
 						}
 					}
+
 				} else {
+					// Otherwise, we're out of IVA, so we can proceed with setting up the pods for exterior view.
+
 					SetCameraCullingMask("Camera 00", true);
-					// In all other cases we attach the IVA directly into the pod and rotate it.
-					part.internalModel.transform.parent = part.transform;
-					part.internalModel.transform.localRotation = MagicalVoodooRotation;
-					part.internalModel.transform.localPosition = Vector3.zero;
-					// And for a good measure we restore the shaders we changed.
-					if (restoreShadersOnIVA) {
+
+					// Make the internal model visible...
+					part.internalModel.SetVisible(true);
+
+					// And for a good measure we reapply the shaders we changed.
+					if (restoreShadersOnIVA && !shadersAreTransparent) {
 						foreach (KeyValuePair<Transform,Shader> backup in shadersBackup) {
 							backup.Key.renderer.material.shader = transparentShader;
 						}
+						shadersAreTransparent = true;
 					}
+
+					// Now we attach the restored IVA directly into the pod at zero local coordinates and rotate it,
+					// so that it shows up on the main outer view camera in the correct location.
+					part.internalModel.transform.parent = part.transform;
+					part.internalModel.transform.localRotation = MagicalVoodooRotation;
+					part.internalModel.transform.localPosition = Vector3.zero;
+
 				}
 
 			}
