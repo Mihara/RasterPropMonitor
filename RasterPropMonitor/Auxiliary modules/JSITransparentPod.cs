@@ -128,12 +128,14 @@ namespace JSI
 			// This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
 			// that I can't readily debug, and it shouldn't happen anyway.
 			foreach (InternalSeat seat in part.internalModel.seats) {
-				if (vessel.isActiveVessel) {
-					if (!KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef)) {
-						KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
+				if (seat.kerbalRef != null) {
+					if (vessel.isActiveVessel) {
+						if (!KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef)) {
+							KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
+						}
+					} else {
+						KerbalGUIManager.RemoveActiveCrew(seat.kerbalRef);
 					}
-				} else {
-					KerbalGUIManager.RemoveActiveCrew(seat.kerbalRef);
 				}
 			}
 
