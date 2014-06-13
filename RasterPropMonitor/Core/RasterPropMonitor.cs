@@ -513,7 +513,7 @@ namespace JSI
 		public override void OnUpdate()
 		{
 
-			if (!JUtil.VesselIsInIVA(vessel))
+			if (!JUtil.UserIsInPod(part))
 				return; 
 
 			// Screenshots need to happen in at this moment, because otherwise they may miss.

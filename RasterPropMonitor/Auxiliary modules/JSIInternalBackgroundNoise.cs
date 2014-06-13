@@ -58,7 +58,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!JUtil.VesselIsInIVA(vessel)) {
+			if (!JUtil.UserIsInPod(part)) {
 				StopPlaying();
 				return;
 			}

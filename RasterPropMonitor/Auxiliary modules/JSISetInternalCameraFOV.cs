@@ -51,7 +51,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (JUtil.VesselIsInIVA(vessel) && InternalCamera.Instance != null && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
+			if (JUtil.UserIsInPod(part) && InternalCamera.Instance != null && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA) {
 				int seatID = part.CurrentActiveSeat();
 				if (seatID < 0)
 					seatID = seats.Count - 1;
