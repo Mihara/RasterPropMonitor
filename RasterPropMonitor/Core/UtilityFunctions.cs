@@ -288,6 +288,13 @@ namespace JSI
 			return thatKerbal;
 		}
 
+		public static void HideShowProp(InternalProp thatProp, bool visibility)
+		{
+			foreach (Renderer thatRenderer in thatProp.FindModelComponents<SkinnedMeshRenderer>()) {
+				thatRenderer.enabled = visibility;
+			}
+		}
+
 		public static Camera GetCameraByName(string name) {
 			foreach (Camera cam in Camera.allCameras) {
 				if (cam.name == name) {
