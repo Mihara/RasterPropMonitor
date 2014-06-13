@@ -102,6 +102,8 @@ namespace JSI
 					originalParent = part.internalModel.transform.parent;
 					originalPosition = part.internalModel.transform.localPosition;
 					originalRotation = part.internalModel.transform.localRotation;
+					// In case we're starting up because the ship just got unpacked, we also make sure to spawn the crew.
+					part.SpawnCrew();
 				}
 			} else {
 				// Some error-proofing. I won't bother doing this every frame, because one error message
