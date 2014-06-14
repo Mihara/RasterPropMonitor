@@ -136,6 +136,13 @@ namespace JSI
 				// Now the cruical bit.
 				// If the root part changed, we actually need to recreate the IVA forcibly even if it still exists.
 				if (vessel.rootPart != knownRootPart) {
+					// In this case we also need to kick the user out of IVA if they're currently in our pod,
+					// otherwise lots of things screw up in a bizarre fashion.
+					if (JUtil.UserIsInPod(part)) {
+						CameraManager.Instance.SetCameraFlight();
+					}
+					// This call not just reinitialises the IVA, but also destroys the existing one, if any,
+					// and reloads all the props and modules.
 					part.CreateInternalModel();
 				}
 				// But otherwise the existing one will serve.
@@ -145,8 +152,8 @@ namespace JSI
 				// and populate it with crew, which is what we want.
 				part.SpawnCrew();
 
-				// Once that happens, the internal will have the correct location for viewing from IVA.
-				// So we make note of it.
+				// Once that happens, the internal will have the correct location for viewing from IVA relative to the 
+				// current active vessel. (Yeah, internal space is bizarre like that.) So we make note of it.
 				originalParent = part.internalModel.transform.parent;
 				originalPosition = part.internalModel.transform.localPosition;
 				originalRotation = part.internalModel.transform.localRotation;
@@ -155,8 +162,6 @@ namespace JSI
 				knownRootPart = vessel.rootPart;
 				lastActiveVessel = FlightGlobals.ActiveVessel;
 
-				// And just in case, set shaders to opaque state...
-				SetShaders(false);
 			}
 		}
 
