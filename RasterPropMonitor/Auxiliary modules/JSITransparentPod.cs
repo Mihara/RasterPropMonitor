@@ -131,7 +131,7 @@ namespace JSI
 		{
 
 			if (HighLogic.LoadedSceneIsFlight) {
-				JUtil.LogMessage(this, "Resetting IVA because vessel state changed...");
+				JUtil.LogMessage(this, "Need to reset IVA in part ", part.partName);
 
 				// Now the cruical bit.
 				// If the root part changed, we actually need to recreate the IVA forcibly even if it still exists.
@@ -139,10 +139,12 @@ namespace JSI
 					// In this case we also need to kick the user out of IVA if they're currently in our pod,
 					// otherwise lots of things screw up in a bizarre fashion.
 					if (JUtil.UserIsInPod(part)) {
+						JUtil.LogMessage(this, "The user is in pod {0} and I need to kick them out.", part.partName);
 						CameraManager.Instance.SetCameraFlight();
 					}
 					// This call not just reinitialises the IVA, but also destroys the existing one, if any,
 					// and reloads all the props and modules.
+					JUtil.LogMessage(this, "Need to actually respawn the IVA model in part {0}", part.partName);
 					part.CreateInternalModel();
 				}
 				// But otherwise the existing one will serve.
@@ -161,7 +163,6 @@ namespace JSI
 				// And then we remember the root part and the active vessel these coordinates refer to.
 				knownRootPart = vessel.rootPart;
 				lastActiveVessel = FlightGlobals.ActiveVessel;
-
 			}
 		}
 
