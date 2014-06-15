@@ -4,9 +4,7 @@ For things already in the pipeline, see [project issues page](https://github.com
 
 ## Minor new features
 
-* Is it possible to make a menu of all science experiments available on the ship which one could select to bring up their windows and do science from the inside? They're action-buttonable, so it's possible in theory, but it's only worth it if there's a general enough mechanism I could trigger.
 * BobCat wants markers on graph lines denoting things like staging events, but I'm not clear on how to set this up nicely.
-* On high G, place a green polygon in front of the IVA camera to simulate G blackout. Speed of blackin/blackout depends on the courage of the currently active IVA kerbal. :) Possibly other camera effects? Camera shake?
 * A key combination to reseat the current kerbal in the same pod so that he can take the pilot's seat if the pilot went out. (This is proving to be difficult...)
 
 ## Major new features
