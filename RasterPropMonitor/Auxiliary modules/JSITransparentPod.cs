@@ -257,6 +257,9 @@ namespace JSI
 	public class JSINonTransparentPod: PartModule
 	{
 
+		/* Correction. You can actually do this, so this method is unnecessary.
+		 * So much the better.
+
 		// Since apparently, current versions of ModuleManager do not allow multiple
 		// "HAS" directives, the easier course of action to only apply this module to
 		// pods that are not transparent is to apply it to every pod,
@@ -271,6 +274,8 @@ namespace JSI
 				}
 			}
 		}
+
+        */
 
 		// During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
 		// so that portraits show up correctly.
