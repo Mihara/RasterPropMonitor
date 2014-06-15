@@ -90,10 +90,10 @@ namespace JSI
 		// Consume-on-toggle and consume-while-active
 		private bool consumingOnToggleUp, consumingOnToggleDown;
 		private string consumeOnToggleName = string.Empty;
-		private double consumeOnToggleAmount;
+		private float consumeOnToggleAmount;
 		private bool consumingWhileActive;
 		private string consumeWhileActiveName = string.Empty;
-		private double consumeWhileActiveAmount;
+		private float consumeWhileActiveAmount;
 		private bool forcedShutdown;
 
 		private static bool InstantiateHandler(ConfigNode node, InternalModule ourSwitch, out Action<bool> actionCall, out Func<bool> stateCall)
@@ -158,7 +158,7 @@ namespace JSI
 				if (tokens.Length == 3) {
 					consumeOnToggleName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null &&
-						double.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
+						float.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
 						    out consumeOnToggleAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
 					}
@@ -185,7 +185,7 @@ namespace JSI
 				if (tokens.Length == 2) {
 					consumeWhileActiveName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null &&
-						double.TryParse(tokens[1].Trim(), 
+						float.TryParse(tokens[1].Trim(), 
 						    NumberStyles.Any, CultureInfo.InvariantCulture,
 						    out consumeWhileActiveAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
@@ -338,12 +338,13 @@ namespace JSI
 			if (!startupComplete)
 				return;
 
-			if (consumingWhileActive && currentState) {
-				double requesting = consumeWhileActiveAmount * TimeWarp.deltaTime;
-				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
-				if (extracted < requesting) {
-					// We don't have enough of the resource, so we should shut down...
+			if (consumingWhileActive && currentState && ! forcedShutdown) {
+				float requesting = (float)(consumeWhileActiveAmount * TimeWarp.deltaTime);
+				float extracted = part.RequestResource(consumeWhileActiveName, requesting);
+				if (Math.Abs(extracted - requesting) > 0) {
+					// We don't have enough of the resource or can't produce more negative resource, so we should shut down...
 					forcedShutdown = true;
+					JUtil.LogMessage(this, "Could not consume {0}, shutting switch down.", consumeWhileActiveName);
 				}
 			}
 
@@ -392,7 +393,7 @@ namespace JSI
 			if (newState != currentState) {
 				// If we're consuming resources on toggle, do that now.
 				if ((consumingOnToggleUp && newState) || (consumingOnToggleDown && !newState)) {
-					double extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
+					float extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
 					if (extracted < consumeOnToggleAmount) {
 						// We don't have enough of the resource, so we force a shutdown on the next loop.
 						// This ensures the animations will play at least once.
