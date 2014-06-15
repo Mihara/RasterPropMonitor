@@ -339,12 +339,12 @@ namespace JSI
 				return;
 
 			if (consumingWhileActive && currentState && ! forcedShutdown) {
-				float requesting = (float)(consumeWhileActiveAmount * TimeWarp.deltaTime);
+				float requesting = (consumeWhileActiveAmount * TimeWarp.deltaTime);
 				float extracted = part.RequestResource(consumeWhileActiveName, requesting);
 				if (Math.Abs(extracted - requesting) > Math.Abs(requesting/2)) {
 					// We don't have enough of the resource or can't produce more negative resource, so we should shut down...
 					forcedShutdown = true;
-					JUtil.LogMessage(this, "Could not consume {0}, shutting switch down.", consumeWhileActiveName);
+					JUtil.LogMessage(this, "Could not consume {0}, asked for {1}, got {2} shutting switch down.", consumeWhileActiveName, requesting, extracted);
 				}
 			}
 
