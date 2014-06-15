@@ -341,7 +341,7 @@ namespace JSI
 			if (consumingWhileActive && currentState && ! forcedShutdown) {
 				float requesting = (float)(consumeWhileActiveAmount * TimeWarp.deltaTime);
 				float extracted = part.RequestResource(consumeWhileActiveName, requesting);
-				if (Math.Abs(extracted - requesting) > 0) {
+				if (Math.Abs(extracted - requesting) > Math.Abs(requesting/2)) {
 					// We don't have enough of the resource or can't produce more negative resource, so we should shut down...
 					forcedShutdown = true;
 					JUtil.LogMessage(this, "Could not consume {0}, shutting switch down.", consumeWhileActiveName);
@@ -394,7 +394,7 @@ namespace JSI
 				// If we're consuming resources on toggle, do that now.
 				if ((consumingOnToggleUp && newState) || (consumingOnToggleDown && !newState)) {
 					float extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
-					if (extracted < consumeOnToggleAmount) {
+					if (Math.Abs(extracted - consumeOnToggleAmount) > Math.Abs(consumeOnToggleAmount/2)) {
 						// We don't have enough of the resource, so we force a shutdown on the next loop.
 						// This ensures the animations will play at least once.
 						forcedShutdown = true;
