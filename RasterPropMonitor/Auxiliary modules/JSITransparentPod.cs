@@ -151,6 +151,11 @@ namespace JSI
 			}
 		}
 
+		// When our part is destroyed, we need to be sure to undo the culling mask change before we leave.
+		public void OnDestroy() {
+			JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+		}
+
 		public override void OnUpdate()
 		{
 
