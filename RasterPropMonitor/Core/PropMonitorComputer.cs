@@ -331,6 +331,9 @@ namespace JSI
 
 				// Dirty hack: To improve interoperability with JSITransparentPod, we need to reset the camera culling mask somewhere
 				// in case it was left open. This place will do.
+				// TODO: In theory I should get the game events mechanic to work and figure out the correct way to turn it off.
+				// Or maybe make a JSINonTransparentPod and ModuleManager it into every OTHER pod with IVA
+				// that would take care of the IVA not being visible until you're IVA.
 				JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
 
 			}
