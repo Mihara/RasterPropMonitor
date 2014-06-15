@@ -183,8 +183,11 @@ namespace JSI
 					consumeWhileActiveName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null && Double.TryParse(tokens[1], out consumeWhileActiveAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
-					} else
+					} else {
 						consumingWhileActive = true;
+						JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName, 
+							internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
+					}
 				}
 			}
 
@@ -334,12 +337,6 @@ namespace JSI
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
 			// So there's no check for internal cameras.
 
-			if (forcedShutdown && currentState) {
-				Click();
-				currentState = false;
-				forcedShutdown = false;
-			}
-
 			bool newState;
 			if (isPluginAction && stateHandler != null) {
 				newState = stateHandler();
@@ -369,6 +366,12 @@ namespace JSI
 						newState = false;
 					}
 				}
+			}
+
+			if (forcedShutdown && currentState) {
+				Click();
+				newState = false;
+				forcedShutdown = false;
 			}
 
 			if (newState != currentState) {
