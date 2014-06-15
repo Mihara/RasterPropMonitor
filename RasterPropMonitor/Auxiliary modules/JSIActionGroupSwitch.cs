@@ -375,19 +375,22 @@ namespace JSI
 				}
 			}
 
-			if (forcedShutdown && currentState) {
-				Click();
+			if (forcedShutdown) {
+				if (currentState) {
+					Click();
+				}
 				newState = false;
 				forcedShutdown = false;
 			}
 
 			if (newState != currentState) {
 				// If we're consuming resources on toggle, do that now.
-				if ((consumingOnToggleUp && newState) || consumingOnToggleDown && !newState) {
+				if ((consumingOnToggleUp && newState) || (consumingOnToggleDown && !newState)) {
 					double extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
 					if (extracted < consumeOnToggleAmount) {
-						// We don't have enough of the resource, so we should fail, right?
-						return;
+						// We don't have enough of the resource, so we force a shutdown on the next loop.
+						// This ensures the animations will play at least once.
+						forcedShutdown = true;
 					}
 				}
 				if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
