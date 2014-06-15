@@ -152,13 +152,15 @@ namespace JSI
 		}
 
 		// When our part is destroyed, we need to be sure to undo the culling mask change before we leave.
-		public void OnDestroy() {
-			JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+		public void OnDestroy()
+		{
+			JUtil.SetMainCameraCullingMaskForIVA(false);
 		}
 
-		// We also do the same if the part is packed, just in case. 
-		public virtual void OnPartPack() {
-			JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+		// We also do the same if the part is packed, just in case.
+		public virtual void OnPartPack()
+		{
+			JUtil.SetMainCameraCullingMaskForIVA(false);
 		}
 
 		public override void OnUpdate()
@@ -209,15 +211,14 @@ namespace JSI
 					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see his own IVA twice in two different orientations,
 					// one time through the InternalCamera (which I can't modify) and another through the Camera 00.
 					// So we have to also undo the culling mask change as well.
-					JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+					JUtil.SetMainCameraCullingMaskForIVA(false);
 
 					// So once everything is hidden again, we undo the change in shaders to conceal the fact that you can't see other internals.
 					SetShaders(false);
 
 				} else {
 					// Otherwise, we're out of IVA, so we can proceed with setting up the pods for exterior view.
-
-					JUtil.SetCameraCullingMaskForIVA("Camera 00", true);
+					JUtil.SetMainCameraCullingMaskForIVA(true);
 
 					// Make the internal model visible...
 					part.internalModel.SetVisible(true);
@@ -235,7 +236,51 @@ namespace JSI
 
 			}
 		}
+	}
 
+	// And this is a stop gap measure.
+	// In the particular case where the user is controlling a vessel where the root pod is not
+	// a transparent pod, but a transparent pod is within physics range,
+	// the IVA of the non-transparent pod will be visible while the user is out of it.
+	// And it won't be in the correct position either.
+
+	// Which is why this module need to be added to every non-transparent pod with IVA
+	// that does not have a JSITransparentPod module on it with ModuleManager to hide the IVA
+	// in the case that happens.
+
+	public class JSINonTransparentPod: PartModule
+	{
+
+		// Since apparently, current versions of ModuleManager do not allow multiple 
+		// "HAS" directives, the easier course of action to only apply this module to
+		// pods that are not transparent is to apply it to every pod,
+		// and then make it self-destruct if the pod is in fact transparent.
+		public override void OnStart(StartState state) {
+			if (state != StartState.Editor) {
+				foreach (PartModule thatModule in part.Modules) {
+					if (thatModule is JSITransparentPod) {
+						Destroy(this);
+					}
+				}
+			}
+		}
+
+		// During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
+		// so that portraits show up correctly.
+		public void OnGUI() {
+			if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null) {
+				part.internalModel.SetVisible(true);
+			}
+		}
+
+		// But before the rest of the world is to be drawn, if the internal exists and is the active internal,
+		// it should become invisible.
+		public void LateUpdate()
+		{
+			if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null && !JUtil.UserIsInPod(part)) {
+				part.internalModel.SetVisible(false);
+			}
+		}
 
 	}
 }

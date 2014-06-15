@@ -208,6 +208,7 @@ namespace JSI
 		public static readonly string[] LineSeparator = { Environment.NewLine };
 		public static bool debugLoggingEnabled = true;
 		private static readonly int ClosestApproachRefinementInterval = 16;
+		public static bool cameraMaskShowsIVA = false;
 
 		public static void SetLayer(this Transform trans, int layer) 
 		{
@@ -229,6 +230,12 @@ namespace JSI
 			} else
 				Debug.Log("Could not find camera \"" + cameraName + "\" to change it's culling mask, check your code.");
 
+		}
+
+		public static void SetMainCameraCullingMaskForIVA(bool flag)
+		{
+			SetCameraCullingMaskForIVA("Camera 00", flag);
+			cameraMaskShowsIVA = flag;
 		}
 
 		public static void MakeReferencePart(this Part thatPart)
@@ -360,7 +367,7 @@ namespace JSI
 		public static bool UserIsInPod(Part thisPart) {
 
 			// If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
-			if (thisPart.internalModel == null || !VesselIsInIVA(thisPart.vessel))
+			if (!VesselIsInIVA(thisPart.vessel) || thisPart.internalModel == null)
 				return false;
 
 			// Now that we got that out of the way, we know that the user is in SOME pod on our ship. We just don't know which.
