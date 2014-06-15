@@ -156,7 +156,7 @@ namespace JSI
 				string[] tokens = consumeOnToggle.Split(',');
 				if (tokens.Length == 3) {
 					consumeOnToggleName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null && Double.TryParse(tokens[1], out consumeOnToggleAmount))) {
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null && Double.TryParse(tokens[1].Trim(), out consumeOnToggleAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
 					}
 					switch (tokens[2].Trim().ToLower()) {
@@ -181,7 +181,7 @@ namespace JSI
 				string[] tokens = consumeWhileActive.Split(',');
 				if (tokens.Length == 2) {
 					consumeWhileActiveName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null && Double.TryParse(tokens[1], out consumeWhileActiveAmount))) {
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null && Double.TryParse(tokens[1].Trim(), out consumeWhileActiveAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
 					} else {
 						consumingWhileActive = true;
@@ -361,10 +361,7 @@ namespace JSI
 				lightCheckCountdown--;
 				if (lightCheckCountdown <= 0) {
 					lightCheckCountdown = lightCheckRate;
-					if (currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d) {
-						Click();
-						newState = false;
-					}
+					forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d;
 				}
 			}
 
@@ -404,10 +401,10 @@ namespace JSI
 			}
 		}
 
-		public void Update()
+		public override void OnFixedUpdate()
 		{
 			if (consumingWhileActive && currentState) {
-				double requesting = consumeWhileActiveAmount * TimeWarp.deltaTime;
+				double requesting = consumeWhileActiveAmount * TimeWarp.fixedDeltaTime;
 				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
 				if (extracted < requesting) {
 					// We don't have enough of the resource, so we should shut down...
