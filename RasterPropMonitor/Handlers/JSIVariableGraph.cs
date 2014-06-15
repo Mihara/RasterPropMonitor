@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace JSI
 {
@@ -142,7 +143,7 @@ namespace JSI
 					throw new ArgumentException("Graph block with no data?");
 				if (node.HasValue("variableName")) {
 					variableName = node.GetValue("variableName").Trim();
-					isFlat = double.TryParse(variableName, out flatValue);
+					isFlat = double.TryParse(variableName, NumberStyles.Any, CultureInfo.InvariantCulture, out flatValue);
 				} else
 					throw new ArgumentException("Draw a graph of what?");
 

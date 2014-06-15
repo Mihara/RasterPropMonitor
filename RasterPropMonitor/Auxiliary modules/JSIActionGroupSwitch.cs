@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
+using System.Globalization;
 
 namespace JSI
 {
@@ -156,7 +157,9 @@ namespace JSI
 				string[] tokens = consumeOnToggle.Split(',');
 				if (tokens.Length == 3) {
 					consumeOnToggleName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null && Double.TryParse(tokens[1].Trim(), out consumeOnToggleAmount))) {
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null &&
+					    Double.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
+						    out consumeOnToggleAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
 					}
 					switch (tokens[2].Trim().ToLower()) {
@@ -181,7 +184,10 @@ namespace JSI
 				string[] tokens = consumeWhileActive.Split(',');
 				if (tokens.Length == 2) {
 					consumeWhileActiveName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null && Double.TryParse(tokens[1].Trim(), out consumeWhileActiveAmount))) {
+					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null &&
+					    Double.TryParse(tokens[1].Trim(), 
+						    NumberStyles.Any, CultureInfo.InvariantCulture,
+						    out consumeWhileActiveAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
 					} else {
 						consumingWhileActive = true;

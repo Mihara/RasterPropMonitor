@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace JSI
 {
@@ -80,7 +81,7 @@ namespace JSI
 					string[] tokens = variableRecord.Split(',');
 					if (tokens.Length >= 2) {
 						double defaultDouble;
-						if (double.TryParse(tokens[1], out defaultDouble)) {
+						if (double.TryParse(tokens[1], NumberStyles.Any, CultureInfo.InvariantCulture, out defaultDouble)) {
 							record.defaultValue = defaultDouble;
 						} else {
 							if (tokens[1].Trim() == "fallback") {
