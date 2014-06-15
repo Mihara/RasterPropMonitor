@@ -328,10 +328,20 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-			if (!JUtil.IsActiveVessel(vessel))
-				return;
 
 			if (!startupComplete)
+				return;
+
+			if (consumingWhileActive && currentState) {
+				double requesting = consumeWhileActiveAmount * TimeWarp.deltaTime;
+				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
+				if (extracted < requesting) {
+					// We don't have enough of the resource, so we should shut down...
+					forcedShutdown = true;
+				}
+			}
+
+			if (!JUtil.IsActiveVessel(vessel))
 				return;
 
 			// Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
@@ -398,18 +408,6 @@ namespace JSI
 					colorShiftRenderer.material.SetColor(colorName, (newState ^ reverse ? enabledColorValue : disabledColorValue));
 				}
 				currentState = newState;
-			}
-		}
-
-		public override void OnFixedUpdate()
-		{
-			if (consumingWhileActive && currentState) {
-				double requesting = consumeWhileActiveAmount * TimeWarp.fixedDeltaTime;
-				double extracted = part.RequestResource(consumeWhileActiveName, requesting);
-				if (extracted < requesting) {
-					// We don't have enough of the resource, so we should shut down...
-					forcedShutdown = true;
-				}
 			}
 		}
 
