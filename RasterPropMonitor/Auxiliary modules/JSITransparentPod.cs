@@ -156,6 +156,11 @@ namespace JSI
 			JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
 		}
 
+		// We also do the same if the part is packed, just in case. 
+		public virtual void OnPartPack() {
+			JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+		}
+
 		public override void OnUpdate()
 		{
 
