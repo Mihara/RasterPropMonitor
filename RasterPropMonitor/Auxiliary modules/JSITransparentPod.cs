@@ -33,6 +33,12 @@ namespace JSI
 		private bool hasOpaqueShader;
 		private readonly Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
+
+		public override string GetInfo()
+		{
+			return "The windows of this capsule have been carefully cleaned.";
+		}
+
 		public override void OnStart(StartState state)
 		{
 
@@ -251,11 +257,12 @@ namespace JSI
 	public class JSINonTransparentPod: PartModule
 	{
 
-		// Since apparently, current versions of ModuleManager do not allow multiple 
+		// Since apparently, current versions of ModuleManager do not allow multiple
 		// "HAS" directives, the easier course of action to only apply this module to
 		// pods that are not transparent is to apply it to every pod,
 		// and then make it self-destruct if the pod is in fact transparent.
-		public override void OnStart(StartState state) {
+		public override void OnStart(StartState state)
+		{
 			if (state != StartState.Editor) {
 				foreach (PartModule thatModule in part.Modules) {
 					if (thatModule is JSITransparentPod) {
@@ -267,7 +274,8 @@ namespace JSI
 
 		// During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
 		// so that portraits show up correctly.
-		public void OnGUI() {
+		public void OnGUI()
+		{
 			if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null) {
 				part.internalModel.SetVisible(true);
 			}
