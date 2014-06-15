@@ -1,4 +1,4 @@
-[hw]      ATT    |  GRAPH  |   TRGT   |   AUTO  |
+[hw]      ATT    |  GRAPH  |   TRGT   |   AUTO  |  VESSEL
 
 
 
