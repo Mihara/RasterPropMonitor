@@ -158,7 +158,7 @@ namespace JSI
 				if (tokens.Length == 3) {
 					consumeOnToggleName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null &&
-					    Double.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
+						double.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
 						    out consumeOnToggleAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
 					}
@@ -185,7 +185,7 @@ namespace JSI
 				if (tokens.Length == 2) {
 					consumeWhileActiveName = tokens[0].Trim();
 					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null &&
-					    Double.TryParse(tokens[1].Trim(), 
+						double.TryParse(tokens[1].Trim(), 
 						    NumberStyles.Any, CultureInfo.InvariantCulture,
 						    out consumeWhileActiveAmount))) {
 						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
