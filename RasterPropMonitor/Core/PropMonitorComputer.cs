@@ -329,6 +329,10 @@ namespace JSI
 				}
 				vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
 
+				// Dirty hack: To improve interoperability with JSITransparentPod, we need to reset the camera culling mask somewhere
+				// in case it was left open. This place will do.
+				JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
+
 			}
 		}
 

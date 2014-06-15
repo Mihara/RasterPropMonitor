@@ -33,21 +33,6 @@ namespace JSI
 		private bool hasOpaqueShader;
 		private readonly Dictionary<Transform,Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
-		private static void SetCameraCullingMask(string cameraName, bool flag)
-		{
-			Camera thatCamera = JUtil.GetCameraByName(cameraName);
-
-			if (thatCamera != null) {
-				if (flag) {
-					thatCamera.cullingMask |= 1 << 16 | 1 << 20;
-				} else {
-					thatCamera.cullingMask &= ~(1 << 16 | 1 << 20);
-				}
-			} else
-				Debug.Log("Could not find camera \"" + cameraName + "\" to change it's culling mask, check your code.");
-
-		}
-
 		public override void OnStart(StartState state)
 		{
 
@@ -84,7 +69,7 @@ namespace JSI
 			if (state == StartState.Editor) {
 				// I'm not sure if this change is actually needed, even. Main Camera's culling mask seems to already include IVA objects,
 				// they just don't normally spawn them.
-				SetCameraCullingMask("Main Camera", true);
+				JUtil.SetCameraCullingMaskForIVA("Main Camera", true);
 			}
 
 			// If the internal model has not yet been created, try creating it and log the exception if we fail.
@@ -214,7 +199,7 @@ namespace JSI
 					// Unfortunately even if I do that, it means that at least one kerbal on the ship will see his own IVA twice in two different orientations,
 					// one time through the InternalCamera (which I can't modify) and another through the Camera 00.
 					// So we have to also undo the culling mask change as well.
-					SetCameraCullingMask("Camera 00", false);
+					JUtil.SetCameraCullingMaskForIVA("Camera 00", false);
 
 					// So once everything is hidden again, we undo the change in shaders to conceal the fact that you can't see other internals.
 					SetShaders(false);
@@ -222,7 +207,7 @@ namespace JSI
 				} else {
 					// Otherwise, we're out of IVA, so we can proceed with setting up the pods for exterior view.
 
-					SetCameraCullingMask("Camera 00", true);
+					JUtil.SetCameraCullingMaskForIVA("Camera 00", true);
 
 					// Make the internal model visible...
 					part.internalModel.SetVisible(true);

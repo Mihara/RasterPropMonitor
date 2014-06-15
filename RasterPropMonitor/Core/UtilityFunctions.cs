@@ -216,6 +216,21 @@ namespace JSI
 				child.SetLayer( layer);
 		}
 
+		public static void SetCameraCullingMaskForIVA(string cameraName, bool flag)
+		{
+			Camera thatCamera = JUtil.GetCameraByName(cameraName);
+
+			if (thatCamera != null) {
+				if (flag) {
+					thatCamera.cullingMask |= 1 << 16 | 1 << 20;
+				} else {
+					thatCamera.cullingMask &= ~(1 << 16 | 1 << 20);
+				}
+			} else
+				Debug.Log("Could not find camera \"" + cameraName + "\" to change it's culling mask, check your code.");
+
+		}
+
 		public static void MakeReferencePart(this Part thatPart)
 		{
 			if (thatPart != null) {
