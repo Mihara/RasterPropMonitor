@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace JSI
 {
@@ -65,6 +66,9 @@ namespace JSI
 		private readonly MonoBehaviour backgroundHandlerModule, pageHandlerModule;
 		private readonly float cameraFlickerChance;
 		private readonly int cameraFlickerRange;
+		private readonly List<string> techsRequired = new List<string>();
+		private readonly string fallbackPageName = string.Empty;
+
 
 		private struct HandlerSupportMethods
 		{
@@ -76,11 +80,19 @@ namespace JSI
 
 		public bool SwitchingPermitted(string destination)
 		{
+			if (string.IsNullOrEmpty(destination))
+				return false;
 			return !simpleLockingPage && !disableSwitchingTo.Contains(destination);
 		}
 
 		public string ContextRedirect(string destination)
 		{
+			foreach (string techName in techsRequired) {
+				if (ResearchAndDevelopment.GetTechnologyState(techName) == RDTech.State.Unavailable) {
+					return fallbackPageName;
+				}
+			}
+
 			return redirectPages[destination];
 		}
 
@@ -148,6 +160,14 @@ namespace JSI
 
 			if (node.HasValue("defaultFontTint")) {
 				defaultColor = ConfigNode.ParseColor32(node.GetValue("defaultFontTint"));
+			}
+
+			if (node.HasValue("techsRequired")) {
+				techsRequired = node.GetValue("techsRequired").Split(new [] { ' ', ',', ';', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+			}
+
+			if (node.HasValue("fallbackOnNoTech")) {
+				fallbackPageName = node.GetValue("fallbackOnNoTech").Trim();
 			}
 
 			if (node.HasNode("CONTEXTREDIRECT")) {
