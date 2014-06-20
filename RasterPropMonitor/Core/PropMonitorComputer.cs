@@ -1538,7 +1538,11 @@ namespace JSI
 					if (orbitSensibility)
 						return vessel.orbit.eccentricity;
 					return double.NaN;
-			
+				case "SEMIMAJORAXIS":
+					if (orbitSensibility)
+						return vessel.orbit.semiMajorAxis;
+					return double.NaN;
+
 				case "ORBPERIODSECS":
 					if (orbitSensibility)
 						return vessel.orbit.period;
@@ -1739,6 +1743,12 @@ namespace JSI
 						return targetOrbit.altitude;
 					}
 					return -1d;
+				case "TARGETSEMIMAJORAXIS":
+					if (target == null)
+						return double.NaN;
+					if (targetOrbit != null)
+						return targetOrbit.semiMajorAxis;
+					return double.NaN;
 				case "TIMETOANWITHTARGETSECS":
 					if (target == null || targetOrbit == null)
 						return double.NaN;
