@@ -8,9 +8,9 @@ namespace JSI
 		[KSPField]
 		public int drawingLayer = 17;
 		[KSPField]
-		public string horizonTexture;
+		public string horizonTexture = "RasterPropMonitor/Library/Components/NavBall/NavBall000";
 		[KSPField]
-		public string navBallModel;
+		public string navBallModel = "RasterPropMonitor/Library/Components/NavBall/NavBall";
 		[KSPField]
 		public string staticOverlay;
 		[KSPField]
