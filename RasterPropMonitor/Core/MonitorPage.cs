@@ -336,8 +336,13 @@ namespace JSI
 
 				}
 
-				if (thatModule == null && !node.HasValue("isPartModule"))
-					thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
+				if (thatModule == null && !node.HasValue("isPartModule")) {
+					try {
+						thatModule = ourMonitor.internalProp.AddModule(handlerConfiguration);
+					} catch {
+						JUtil.LogErrorMessage(ourMonitor, "Caught exception when trying to instantiate module '{0}'. Something's fishy here", moduleName);
+					}
+				}
 
 				if (thatModule == null) {
 					JUtil.LogMessage(ourMonitor, "Warning, handler module \"{0}\" could not be loaded. This could be perfectly normal.", moduleName);
@@ -352,7 +357,7 @@ namespace JSI
 							try {
 								support.activate = (Action<bool,int>)Delegate.CreateDelegate(typeof(Action<bool,int>), thatModule, m);
 							} catch {
-								JUtil.LogMessage(ourMonitor, sigError, "page activation", moduleName);
+								JUtil.LogErrorMessage(ourMonitor, sigError, "page activation", moduleName);
 							}
 							break;
 						}
@@ -363,7 +368,7 @@ namespace JSI
 							try {
 								support.buttonClick = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
 							} catch {
-								JUtil.LogMessage(ourMonitor, sigError, "button click", moduleName);
+								JUtil.LogErrorMessage(ourMonitor, sigError, "button click", moduleName);
 							}
 							break;
 						}
@@ -374,7 +379,7 @@ namespace JSI
 							try {
 								support.buttonRelease = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), thatModule, m);
 							} catch {
-								JUtil.LogMessage(ourMonitor, sigError, "button release", moduleName);
+								JUtil.LogErrorMessage(ourMonitor, sigError, "button release", moduleName);
 							}
 							break;
 						}
@@ -385,7 +390,7 @@ namespace JSI
 							try {
 								support.getHandlerReferences = (Action<MonoBehaviour,MonoBehaviour>)Delegate.CreateDelegate(typeof(Action<MonoBehaviour,MonoBehaviour>), thatModule, m);
 							} catch {
-								JUtil.LogMessage(ourMonitor, sigError, "handler references", moduleName);
+								JUtil.LogErrorMessage(ourMonitor, sigError, "handler references", moduleName);
 							}
 							break;
 						}
