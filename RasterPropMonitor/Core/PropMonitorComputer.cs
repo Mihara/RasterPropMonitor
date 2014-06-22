@@ -1605,6 +1605,9 @@ namespace JSI
 
 			// Time
 				case "UTSECS":
+					if (GameSettings.KERBIN_TIME) {
+						return time + 426 * 6 * 60 * 60;
+					}
 					return time + 365 * 24 * 60 * 60;
 				case "METSECS":
 					return vessel.missionTime;
