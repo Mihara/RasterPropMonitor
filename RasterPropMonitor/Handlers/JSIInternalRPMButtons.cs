@@ -30,7 +30,7 @@ namespace JSI
 		{
 			foreach (Part thatPart in vessel.parts) {
 				foreach (PartResource resource in thatPart.Resources) {
-					if (resource.flowState == false) {
+					if (!resource.flowState) {
 						// Early return: At least one resource is flagged as a
 						// reserve.
 						return true;
@@ -44,6 +44,7 @@ namespace JSI
 		/// Clear all maneuver nodes
 		/// </summary>
 		/// <param name="state"></param>
+		// Analysis disable once UnusedParameter
 		public void ButtonClearNodes(bool state)
 		{
 			while (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
@@ -88,7 +89,7 @@ namespace JSI
 				// We accept "state == false" to allow engines that are
 				// activated outside of the current staging to be shut off by
 				// this function.
-				if (thatPart.inverseStage == Staging.CurrentStage || state == false) {
+				if (thatPart.inverseStage == Staging.CurrentStage || !state) {
 					foreach (PartModule pm in thatPart.Modules) {
 						var engine = pm as ModuleEngines;
 						if (engine != null && engine.EngineIgnited != state) {
@@ -102,7 +103,7 @@ namespace JSI
 						if (engineFX != null && engineFX.EngineIgnited != state) {
 							if (state && engineFX.allowRestart) {
 								engineFX.Activate();
-							} else if(engineFX.allowShutdown) {
+							} else if (engineFX.allowShutdown) {
 								engineFX.Shutdown();
 							}
 						}

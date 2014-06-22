@@ -77,7 +77,7 @@ namespace JSI
 
 		private static void DrawOrbit(Orbit o, CelestialBody referenceBody, Matrix4x4 screenTransform, int numSegments)
 		{
-			if (o.activePatch == false) {
+			if (!o.activePatch) {
 				return;
 			}
 
@@ -88,11 +88,11 @@ namespace JSI
 				startTA = o.TrueAnomalyAtUT(o.StartUT);
 				endTA = o.TrueAnomalyAtUT(o.EndUT);
 				if (endTA < startTA) {
-					endTA += 2.0*Math.PI;
+					endTA += 2.0 * Math.PI;
 				}
 			} else {
 				startTA = o.GetUTforTrueAnomaly(0.0, now);
-				endTA = startTA + 2.0*Math.PI;
+				endTA = startTA + 2.0 * Math.PI;
 			}
 			double dTheta = (endTA - startTA) / (double)numSegments;
 			double theta = startTA;
@@ -194,7 +194,7 @@ namespace JSI
 					// EndUT for this patch is later than what we're looking for.  Exit.
 					break;
 				}
-				if (o.nextPatch == null || o.nextPatch.activePatch == false) {
+				if (o.nextPatch == null || !o.nextPatch.activePatch) {
 					// There is no valid next patch.  Exit.
 					break;
 				}
@@ -275,7 +275,7 @@ namespace JSI
 
 				maxY = Math.Max(maxY, vessel.orbit.semiMinorAxis);
 				minY = Math.Min(minY, -vessel.orbit.semiMinorAxis);
-			} else if(vessel.orbit.EndUT > 0.0) {
+			} else if (vessel.orbit.EndUT > 0.0) {
 				// If we're hyperbolic, let's get the SoI transition
 				vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(vessel.orbit.EndUT));
 				maxX = Math.Max(maxX, vesselPos.x);
@@ -330,7 +330,7 @@ namespace JSI
 				// Validate some values up front, so we don't need to test them later.
 				if (targetBody.GetOrbit() == null) {
 					targetBody = null;
-				} else if(targetBody.orbit.referenceBody == vessel.orbit.referenceBody) {
+				} else if (targetBody.orbit.referenceBody == vessel.orbit.referenceBody) {
 					// If the target body orbits our current world, let's at
 					// least make sure the body's location is visible.
 					vesselPos = screenTransform.MultiplyPoint3x4(targetBody.GetOrbit().SwappedRelativePositionAtUT(now));
@@ -357,7 +357,7 @@ namespace JSI
 					minX = Math.Min(minX, vesselPos.x);
 					maxY = Math.Max(maxY, vesselPos.y);
 					minY = Math.Min(minY, vesselPos.y);
-				} else if(node.nextPatch.EndUT > 0.0) {
+				} else if (node.nextPatch.EndUT > 0.0) {
 					// If the next patch is hyperbolic, include the endpoint.
 					vesselPos = screenTransform.MultiplyPoint3x4(vessel.orbit.SwappedRelativePositionAtUT(node.nextPatch.EndUT));
 					maxX = Math.Max(maxX, vesselPos.x);
@@ -527,7 +527,7 @@ namespace JSI
 
 				Orbit nextPatch = vessel.orbit.nextPatch.nextPatch;
 				if (nextPatch != null && nextPatch.activePatch) {
-					transformedPosition = screenTransform.MultiplyPoint3x4(nextPatch.SwappedRelativePositionAtUT(nextPatch.EndUT)+nextPatch.referenceBody.getTruePositionAtUT(nextPatch.EndUT) - vessel.orbit.referenceBody.getTruePositionAtUT(nextPatch.EndUT));
+					transformedPosition = screenTransform.MultiplyPoint3x4(nextPatch.SwappedRelativePositionAtUT(nextPatch.EndUT) + nextPatch.referenceBody.getTruePositionAtUT(nextPatch.EndUT) - vessel.orbit.referenceBody.getTruePositionAtUT(nextPatch.EndUT));
 					DrawIcon(transformedPosition.x, transformedPosition.y, VesselType.Unknown, orbitColorNextNodeValue, MapIcons.OtherIcon.EXITSOI);
 				}
 			}

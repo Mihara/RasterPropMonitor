@@ -385,10 +385,10 @@ namespace JSI
 				float thisYawRate = (yawRateList != null && i < yawRateList.Length) ? JUtil.GetFloat(yawRateList[i]) ?? 0.0f : 0.0f;
 				float thisPitchRate = (pitchRateList != null && i < pitchRateList.Length) ? JUtil.GetFloat(pitchRateList[i]) ?? 0.0f : 0.0f;
 
-				var camera = new SteerableCameraParameters(cameraTransformList[i],
+				var thatCamera = new SteerableCameraParameters(cameraTransformList[i],
 					thisFovLimit, thisYawLimit, thisPitchLimit,
 					thisZoomRate, thisYawRate, thisPitchRate);
-				cameras.Add(camera);
+				cameras.Add(thatCamera);
 			}
 
 			gizmoTexture = JUtil.GetGizmoTexture();

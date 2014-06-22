@@ -46,8 +46,8 @@ namespace JSI
 		[KSPField]
 		public float odometerRotationScalar = 10.0f;
 
-		private float[] goalCoordinate = new float[8] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-		private float[] currentCoordinate = new float[8] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+		private float[] goalCoordinate = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+		private float[] currentCoordinate = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 		private float signGoalCoord = 0.75f;
 		private float signCurrentCoord = 0.75f;
 		private float prefixGoalCoord = 0.125f;
