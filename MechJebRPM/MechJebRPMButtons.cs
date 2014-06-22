@@ -46,8 +46,7 @@ namespace MechJebRPM
 			if (agPilot != null) {
 				if (ap.enabled) {
 					ap.users.Remove(agPilot);
-				}
-				else {
+				} else {
 					ap.users.Add(agPilot);
 				}
 			}
@@ -84,14 +83,11 @@ namespace MechJebRPM
 			MechJebCore activeJeb = vessel.GetMasterMechJeb();
 
 			Orbit o = vessel.orbit;
-			Vector3d dV = Vector3d.zero;
+			Vector3d dV;
 			double UT = Planetarium.GetUniversalTime();
-			if (o.referenceBody == activeJeb.target.TargetOrbit.referenceBody) {
-				// Simple transfer.
-				dV = OrbitalManeuverCalculator.DeltaVAndTimeForHohmannTransfer(o, activeJeb.target.TargetOrbit, UT, out UT);
-			} else {
-				dV = OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection(o, UT, activeJeb.target.TargetOrbit, true, out UT);
-			}
+			dV = (o.referenceBody == activeJeb.target.TargetOrbit.referenceBody) ?
+				OrbitalManeuverCalculator.DeltaVAndTimeForHohmannTransfer(o, activeJeb.target.TargetOrbit, UT, out UT) :
+				OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection(o, UT, activeJeb.target.TargetOrbit, true, out UT);
 			vessel.RemoveAllManeuverNodes();
 			vessel.PlaceManeuverNode(o, dV, UT);
 		}
@@ -175,8 +171,7 @@ namespace MechJebRPM
 					if (landingGuidanceAP != null) {
 						if (activeJeb.target.PositionTargetExists) {
 							autopilot.LandAtPositionTarget(landingGuidanceAP);
-						}
-						else {
+						} else {
 							autopilot.LandUntargeted(landingGuidanceAP);
 						}
 					}
@@ -236,7 +231,7 @@ namespace MechJebRPM
 			}
 
 			MechJebModuleSmartASS activeSmartass = activeJeb.GetComputerModule<MechJebModuleSmartASS>();
-			return (activeSmartass!=null && activeSmartass.forceRol);
+			return (activeSmartass != null && activeSmartass.forceRol);
 		}
 
 		/// <summary>
@@ -478,9 +473,9 @@ namespace MechJebRPM
 		// NODE button
 		public void ButtonNode(bool state)
 		{
-			if (state == true && vessel.patchedConicSolver.maneuverNodes.Count > 0)
+			if (state && vessel.patchedConicSolver.maneuverNodes.Count > 0)
 				EnactTargetAction(MechJebModuleSmartASS.Target.NODE, vessel);
-			else if(state == false)
+			else if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 		}
 
@@ -583,7 +578,7 @@ namespace MechJebRPM
 		// TGT+ button
 		public void ButtonTargetPlus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_PLUS, vessel);
@@ -596,7 +591,7 @@ namespace MechJebRPM
 		// TGT- button
 		public void ButtonTargetMinus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.TARGET_MINUS, vessel);
@@ -609,7 +604,7 @@ namespace MechJebRPM
 		// RVEL+ button
 		public void ButtonRvelPlus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_PLUS, vessel);
@@ -622,7 +617,7 @@ namespace MechJebRPM
 		// RVEL- button
 		public void ButtonRvelMinus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.RELATIVE_MINUS, vessel);
@@ -635,7 +630,7 @@ namespace MechJebRPM
 		// PAR+ button
 		public void ButtonParPlus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_PLUS, vessel);
@@ -648,7 +643,7 @@ namespace MechJebRPM
 		// PAR- button
 		public void ButtonParMinus(bool state)
 		{
-			if (state == false)
+			if (!state)
 				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
 			else if (FlightGlobals.fetch.VesselTarget != null)
 				EnactTargetAction(MechJebModuleSmartASS.Target.PARALLEL_MINUS, vessel);

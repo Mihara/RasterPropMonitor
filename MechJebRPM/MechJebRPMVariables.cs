@@ -42,7 +42,7 @@ namespace MechJebRPM
 							if (result != null && result.outcome == ReentrySimulation.Outcome.LANDED) {
 								// We're going to hit something!
 								double error = Vector3d.Distance(vessel.mainBody.GetRelSurfacePosition(result.endPosition.latitude, result.endPosition.longitude, 0),
-																	vessel.mainBody.GetRelSurfacePosition(activeJeb.target.targetLatitude, activeJeb.target.targetLongitude, 0));
+									               vessel.mainBody.GetRelSurfacePosition(activeJeb.target.targetLatitude, activeJeb.target.targetLongitude, 0));
 								return error;
 							}
 						}

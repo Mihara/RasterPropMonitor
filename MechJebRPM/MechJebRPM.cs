@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using MuMech;
+
 // I had to add these as explicit "using" instead of pulling in all of JSI
 // because JSI.OrbitExtensions clashes with MuMech.OrbitExtensions, and this
 // resulted in the least disruptive way to get around that.
@@ -91,9 +92,8 @@ namespace MechJebRPM
 					return MechJebModuleSmartASS.TargetTexts[(int)MechJebModuleSmartASS.Target.AUTO].Replace('\n', ' ');
 				}
 				return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target2Mode[(int)activeSmartass.target]] + " " + MechJebModuleSmartASS.TargetTexts[(int)activeSmartass.target].Replace('\n', ' ');
-			} else {
-				return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target.OFF];
 			}
+			return MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Target.OFF];
 		}
 
 		public string ShowMenu(int width, int height)
@@ -157,7 +157,7 @@ namespace MechJebRPM
 				currentMenu = MJMenu.RootMenu;
 			}
 			if (buttonID == buttonHome) {
-				if (currentMenu == MJMenu.RootMenu && activeMenu.currentSelection == 5 && activeSmartass!=null) {
+				if (currentMenu == MJMenu.RootMenu && activeMenu.currentSelection == 5 && activeSmartass != null) {
 					// If Force Roll is highlighted, the Home key will increment the
 					// roll value.
 					double currentRoll = (double)activeSmartass.rol + forceRollStep;
@@ -214,7 +214,7 @@ namespace MechJebRPM
 				targetMenuItem = new TextMenu.Item(MechJebModuleSmartASS.ModeTexts[(int)MechJebModuleSmartASS.Mode.TARGET], TargetMenu);
 				topMenu.Add(targetMenuItem);
 				// Analysis disable once RedundantCast
-				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (activeSmartass!=null) ? (double)activeSmartass.rol : 0.0), ToggleForceRoll);
+				forceRollMenuItem = new TextMenu.Item(String.Format("Force Roll: {0:f0}", (activeSmartass != null) ? (double)activeSmartass.rol : 0.0), ToggleForceRoll);
 				topMenu.Add(forceRollMenuItem);
 				topMenu.Add(new TextMenu.Item("Execute Next Node", ExecuteNode, (int)MJMenu.ExecuteNodeMenu));
 				topMenu.Add(new TextMenu.Item("Ascent Guidance", AscentGuidance, (int)MJMenu.AscentGuidanceMenu));
@@ -233,7 +233,7 @@ namespace MechJebRPM
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
 			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
 			// Analysis disable once RedundantCast
-			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (activeSmartass!=null) ? (double)activeSmartass.rol : 0.0);
+			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (activeSmartass != null) ? (double)activeSmartass.rol : 0.0);
 
 			// MOARdV:
 			// This is a little messy, since SmartASS can be updated
@@ -443,8 +443,7 @@ namespace MechJebRPM
 				if (agPilot != null) {
 					if (ap.enabled) {
 						ap.users.Remove(agPilot);
-					}
-					else {
+					} else {
 						ap.users.Add(agPilot);
 					}
 				}
@@ -582,8 +581,7 @@ namespace MechJebRPM
 			Vector3d dV = Vector3d.zero;
 			Orbit o = vessel.orbit;
 
-			switch (tmi.id)
-			{
+			switch (tmi.id) {
 				case (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS:
 					UT = o.NextApoapsisTime(Planetarium.GetUniversalTime());
 					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
