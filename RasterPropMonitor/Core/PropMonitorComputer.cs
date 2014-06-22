@@ -1168,34 +1168,7 @@ namespace JSI
 			}
 			return "??!";
 		}
-		// Another MechJeb import.
-		private string CurrentBiome()
-		{
-			if (vessel.landedAt != string.Empty)
-				return vessel.landedAt;
-			string biome = JUtil.CBAttributeMapGetAtt(vessel.mainBody.BiomeMap, vessel.latitude * Math.PI / 180d, vessel.longitude * Math.PI / 180d).name;
-			switch (vessel.situation) {
-			//ExperimentSituations.SrfLanded
-				case Vessel.Situations.LANDED:
-				case Vessel.Situations.PRELAUNCH:
-					return vessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
-			//ExperimentSituations.SrfSplashed
-				case Vessel.Situations.SPLASHED:
-					return vessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
-				case Vessel.Situations.FLYING:
-					if (vessel.altitude < vessel.mainBody.scienceValues.flyingAltitudeThreshold)                        
-						//ExperimentSituations.FlyingLow
-						return "Flying over " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);                
-						//ExperimentSituations.FlyingHigh
-					return "Upper atmosphere of " + vessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
-				default:
-					if (vessel.altitude < vessel.mainBody.scienceValues.spaceAltitudeThreshold)
-						//ExperimentSituations.InSpaceLow
-						return "Space just above " + vessel.mainBody.theName;
-						// ExperimentSituations.InSpaceHigh
-					return "Space high over " + vessel.mainBody.theName;
-			}
-		}
+
 		// This intermediary will cache the results so that multiple variable requests within the frame would not result in duplicated code.
 		// If I actually break down and decide to do expressions, however primitive, this will also be the function responsible.
 		public object ProcessVariable(string input)
@@ -1992,9 +1965,9 @@ namespace JSI
 				case "SCIENCEDATA":
 					return totalDataAmount;
 				case "BIOMENAME":
-					return CurrentBiome();
+					return vessel.CurrentBiome();
 				case "BIOMEID":
-					return JUtil.CBAttributeMapGetAtt(vessel.mainBody.BiomeMap, vessel.latitude * Math.PI / 180d, vessel.longitude * Math.PI / 180d).name;
+					return ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude);
 
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}

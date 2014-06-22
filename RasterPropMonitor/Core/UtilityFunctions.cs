@@ -152,9 +152,8 @@ namespace JSI
 
 		public static Rect GetIconLocation(IconType type)
 		{
-			Rect loc = new Rect(0.0f, 0.0f, 1.0f/3.0f, 1.0f/3.0f);
-			switch(type)
-			{
+			Rect loc = new Rect(0.0f, 0.0f, 1.0f / 3.0f, 1.0f / 3.0f);
+			switch (type) {
 				case IconType.PROGRADE:
 					loc.x = 0.0f / 3.0f;
 					loc.y = 2.0f / 3.0f;
@@ -210,11 +209,11 @@ namespace JSI
 		private static readonly int ClosestApproachRefinementInterval = 16;
 		public static bool cameraMaskShowsIVA = false;
 
-		public static void SetLayer(this Transform trans, int layer) 
+		public static void SetLayer(this Transform trans, int layer)
 		{
 			trans.gameObject.layer = layer;
-			foreach(Transform child in trans)
-				child.SetLayer( layer);
+			foreach (Transform child in trans)
+				child.SetLayer(layer);
 		}
 
 		public static void SetCameraCullingMaskForIVA(string cameraName, bool flag)
@@ -320,7 +319,8 @@ namespace JSI
 			}
 		}
 
-		public static Camera GetCameraByName(string name) {
+		public static Camera GetCameraByName(string name)
+		{
 			foreach (Camera cam in Camera.allCameras) {
 				if (cam.name == name) {
 					return cam;
@@ -364,7 +364,8 @@ namespace JSI
 			return IsActiveVessel(thatVessel) && IsInIVA();
 		}
 
-		public static bool UserIsInPod(Part thisPart) {
+		public static bool UserIsInPod(Part thisPart)
+		{
 
 			// If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
 			if (!VesselIsInIVA(thisPart.vessel) || thisPart.internalModel == null)
@@ -384,8 +385,7 @@ namespace JSI
 				// Unfortunately I don't have anything smarter right now than get a list of all transforms in the internal and cycle through it.
 				// This is a more annoying computation than looking through every kerbal in a pod (there's only a few of those,
 				// but potentially hundreds of transforms) and might not even be working as I expect. It needs testing.
-				foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>()) 
-				{
+				foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>()) {
 					if (thisTransform == InternalCamera.Instance.transform.parent)
 						return true;
 				}
@@ -406,7 +406,7 @@ namespace JSI
 
 		public static void LogMessage(object caller, string line, params object[] list)
 		{
-			if (debugLoggingEnabled) 
+			if (debugLoggingEnabled)
 				Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
 		}
 
@@ -589,42 +589,6 @@ namespace JSI
 		{
 			return Vector3.Dot(Vector3.Cross(v1, v2), up) < 0 ? -Vector3.Angle(v1, v2) : Vector3.Angle(v1, v2);
 		}
-		//Another MechJeb function I have very little understanding of.
-		public static CBAttributeMap.MapAttribute CBAttributeMapGetAtt(CBAttributeMap cbmap, double lat, double lon)
-		{
-			if (cbmap.Map == null) {
-				return cbmap.defaultAttribute;
-			}
-
-			lon -= Math.PI / 2d;
-			if (lon < 0d) {
-				lon += 2d * Math.PI;
-			}
-
-			float v = (float)(lat / Math.PI) + 0.5f;
-			float u = (float)(lon / (2d * Math.PI));
-
-			Color pixelBilinear = cbmap.Map.GetPixelBilinear(u, v);
-			CBAttributeMap.MapAttribute defaultAttribute = cbmap.defaultAttribute;
-			if (!cbmap.exactSearch) {
-				float maxValue = float.MaxValue;
-				for (int i = 0; i < cbmap.Attributes.Length; i++) {
-					var vector = (Vector4)(cbmap.Attributes[i].mapColor - pixelBilinear);
-					float sqrMagnitude = vector.sqrMagnitude;
-					// Analysis disable once CompareOfFloatsByEqualityOperator
-					if ((sqrMagnitude < maxValue) && ((cbmap.nonExactThreshold == -1f) || (sqrMagnitude < cbmap.nonExactThreshold))) {
-						defaultAttribute = cbmap.Attributes[i];
-						maxValue = sqrMagnitude;
-					}
-				}
-			} else
-				for (int j = 0; j < cbmap.Attributes.Length; j++)
-					if (pixelBilinear == cbmap.Attributes[j].mapColor) {
-						defaultAttribute = cbmap.Attributes[j];
-						break;
-					}
-			return defaultAttribute;
-		}
 
 		public static Orbit OrbitFromStateVectors(Vector3d pos, Vector3d vel, CelestialBody body, double UT)
 		{
@@ -633,18 +597,51 @@ namespace JSI
 			return ret;
 		}
 
+		// Another MechJeb import.
+		public static string CurrentBiome(this Vessel thatVessel)
+		{
+			if (thatVessel.landedAt != string.Empty) {
+				return thatVessel.landedAt;
+			}
+			string biome = thatVessel.mainBody.BiomeMap.GetAtt(thatVessel.latitude * Math.PI / 180d, thatVessel.longitude * Math.PI / 180d).name;
+			switch (thatVessel.situation) {
+			//ExperimentSituations.SrfLanded
+				case Vessel.Situations.LANDED:
+				case Vessel.Situations.PRELAUNCH:
+					return thatVessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
+			//ExperimentSituations.SrfSplashed
+				case Vessel.Situations.SPLASHED:
+					return thatVessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
+				case Vessel.Situations.FLYING:
+					if (thatVessel.altitude < thatVessel.mainBody.scienceValues.flyingAltitudeThreshold) {
+						//ExperimentSituations.FlyingLow
+						return "Flying over " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+					}
+					//ExperimentSituations.FlyingHigh
+					return "Upper atmosphere of " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+				default:
+					if (thatVessel.altitude < thatVessel.mainBody.scienceValues.spaceAltitudeThreshold) {
+						//ExperimentSituations.InSpaceLow
+						return "Space just above " + thatVessel.mainBody.theName;
+					}
+					// ExperimentSituations.InSpaceHigh
+					return "Space high over " + thatVessel.mainBody.theName;
+			}
+		}
+
+
 		// Pseudo-orbit for closest approach to a landed object
 		public static Orbit OrbitFromSurfacePos(CelestialBody body, double lat, double lon, double alt, double UT)
 		{
 			double t0 = Planetarium.GetUniversalTime();
-			double angle = body.rotates ? (UT-t0)*360.0/body.rotationPeriod : 0;
+			double angle = body.rotates ? (UT - t0) * 360.0 / body.rotationPeriod : 0;
 
 			double LAN = (lon + body.rotationAngle + angle - 90.0) % 360.0;
 			Orbit orbit = new Orbit(lat, 0, body.Radius + alt, LAN, 90.0, 0, UT, body);
 
 			orbit.pos = orbit.getRelativePositionAtT(0);
 			if (body.rotates)
-				orbit.vel = Vector3d.Cross(body.zUpAngularVelocity,-orbit.pos);
+				orbit.vel = Vector3d.Cross(body.zUpAngularVelocity, -orbit.pos);
 			else
 				orbit.vel = orbit.getOrbitalVelocityAtObT(Time.fixedDeltaTime);
 			orbit.h = Vector3d.Cross(orbit.pos, orbit.vel);
@@ -682,7 +679,7 @@ namespace JSI
 			if (closestorbit.referenceBody == targetCelestial.referenceBody) {
 				return MinTargetDistance(closestorbit, targetCelestial.orbit, closestorbit.StartUT, closestorbit.EndUT, out timeAtClosestApproach) - targetCelestial.Radius;
 			}
-			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), Planetarium.GetUniversalTime()+closestorbit.period, out timeAtClosestApproach) - targetCelestial.Radius;
+			return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), Planetarium.GetUniversalTime() + closestorbit.period, out timeAtClosestApproach) - targetCelestial.Radius;
 		}
 
 		public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, Vector3d srfTarget, out double timeAtClosestApproach)
@@ -691,14 +688,14 @@ namespace JSI
 			if (closestorbit.referenceBody == targetCelestial) {
 				double t0 = Planetarium.GetUniversalTime();
 				Func<double,Vector3d> fn = delegate(double t) {
-					double angle = targetCelestial.rotates ? (t-t0)*360.0/targetCelestial.rotationPeriod : 0;
+					double angle = targetCelestial.rotates ? (t - t0) * 360.0 / targetCelestial.rotationPeriod : 0;
 					return targetCelestial.position + QuaternionD.AngleAxis(angle, Vector3d.down) * srfTarget;
 				};
 				double d = MinTargetDistance(closestorbit, fn, closestorbit.StartUT, closestorbit.EndUT, out timeAtClosestApproach);
 				// When just passed over the target, some look ahead may be needed
 				if ((timeAtClosestApproach <= closestorbit.StartUT || timeAtClosestApproach >= closestorbit.EndUT) &&
-					closestorbit.eccentricity < 1 && closestorbit.patchEndTransition == Orbit.PatchTransitionType.FINAL) {
-					d = MinTargetDistance(closestorbit, fn, closestorbit.EndUT, closestorbit.EndUT+closestorbit.period/2, out timeAtClosestApproach);
+				    closestorbit.eccentricity < 1 && closestorbit.patchEndTransition == Orbit.PatchTransitionType.FINAL) {
+					d = MinTargetDistance(closestorbit, fn, closestorbit.EndUT, closestorbit.EndUT + closestorbit.period / 2, out timeAtClosestApproach);
 				}
 				return d;
 			}
@@ -711,7 +708,7 @@ namespace JSI
 
 			double startTime = Planetarium.GetUniversalTime();
 			double endTime;
-			if(closestorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL) {
+			if (closestorbit.patchEndTransition != Orbit.PatchTransitionType.FINAL) {
 				endTime = closestorbit.EndUT;
 			} else {
 				endTime = startTime + Math.Max(closestorbit.period, targetOrbit.period);
@@ -772,7 +769,7 @@ namespace JSI
 
 		private static double MinTargetDistance(Orbit vesselOrbit, Func<double,Vector3d> targetOrbit, double startTime, double endTime, out double timeAtClosestApproach)
 		{
-			var dist_at_int = new double[ClosestApproachRefinementInterval+1];
+			var dist_at_int = new double[ClosestApproachRefinementInterval + 1];
 			double step = startTime;
 			double dt = (endTime - startTime) / (double)ClosestApproachRefinementInterval;
 			for (int i = 0; i <= ClosestApproachRefinementInterval; i++) {
@@ -784,7 +781,7 @@ namespace JSI
 			int minindex = Array.IndexOf(dist_at_int, mindist);
 			if ((maxdist - mindist) / maxdist >= 0.00001) {
 				// Don't allow negative times.  Clamp the startTime to the current startTime.
-				mindist = MinTargetDistance(vesselOrbit, targetOrbit, startTime + (Math.Max(minindex-1, 0) * dt), startTime + ((minindex + 1) * dt), out timeAtClosestApproach);
+				mindist = MinTargetDistance(vesselOrbit, targetOrbit, startTime + (Math.Max(minindex - 1, 0) * dt), startTime + ((minindex + 1) * dt), out timeAtClosestApproach);
 			} else {
 				timeAtClosestApproach = startTime + minindex * dt;
 			}
