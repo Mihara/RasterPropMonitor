@@ -118,7 +118,11 @@ namespace JSI
 					}
 				}
 				if (thatModule == null) {
-					thatModule = ourComp.part.AddModule(handlerConfiguration);
+					try {
+						thatModule = ourComp.part.AddModule(handlerConfiguration);
+					} catch {
+						JUtil.LogErrorMessage(ourComp, "Caught exception when trying to instantiate module '{0}'. Something's fishy here", moduleName);
+					}
 				}
 				if (thatModule == null) {
 					JUtil.LogMessage(ourComp, "Warning, variable handler module \"{0}\" could not be loaded. This could be perfectly normal.", moduleName);
