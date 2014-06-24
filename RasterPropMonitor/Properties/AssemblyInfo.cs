@@ -5,3 +5,6 @@ using System.Runtime.CompilerServices;
 // Change them to the values specific to your project.
 [assembly: AssemblyTitle ("RasterPropMonitor")]
 [assembly: AssemblyDescription ("RasterPropMonitor plugin for Kerbal Space Program")]
+
+// This supposedly helps avoid plugin depencency problems.
+[assembly: KSPAssembly("RasterPropMonitor", 0, 17)]
