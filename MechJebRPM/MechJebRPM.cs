@@ -189,7 +189,10 @@ namespace MechJebRPM
 
 			// I guess I shouldn't have expected Squad to actually do something nice for a modder like that.
 			// In 0.23, loading in non-alphabetical order is still broken.
-			JSI.InstallationPathWarning.Warn("MechJeb2RPM");
+
+			// But now we have KSPAssembly and KSPAssemblyDependency, which actually sidestep the issue, and finally
+			// Mu told someone about it and now I can avoid this path hardlinking.
+			//JSI.InstallationPathWarning.Warn("MechJeb2RPM");
 
 			if (!string.IsNullOrEmpty(itemColor))
 				itemColorValue = ConfigNode.ParseColor32(itemColor);
