@@ -9,12 +9,12 @@
            Junk Systems Inc.
       Advanced flight instruments
      for every conceivable occasion
-
+          
 
 
 
      
              
--[hw] HOME[/hw]
+-[hw] HOME[/hw] RPM v{0} $&$ RPMVERSION
              
 [hw]      NAV    |   ORB   |   DOCK   |   DATA   |   CREW   |   RSRC   |   EXT
