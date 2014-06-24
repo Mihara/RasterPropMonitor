@@ -15,10 +15,11 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyVersion("0.17.0.0")]
 
 // Now this is the actual version number with build number.
-// As I release newer ones, I'll bump them. Unfortunately I can't make automatic build number bumping
-// without jumping through a lot of hoops.
-// The 8888 is temporary here.
-[assembly: AssemblyFileVersion("0.17.8888.0")]
+// As I release newer ones, I'll bump them manually.
+// The 8888 is temporary here to distinguish this from the last built dev build packet, 
+// as I release 0.17, I'll switch the version to 0.17.
+// Build number is altered automatically.
+[assembly: AssemblyFileVersion("0.17.8888.3")]
 
 // The following attributes are used to specify the signing key for the assembly,
 // if desired. See the Mono documentation for more information about signing.

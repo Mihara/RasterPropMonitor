@@ -17,12 +17,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FormatterTests", "Formatter
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MechJebRPM", "MechJebRPM\MechJebRPM.csproj", "{272BB11D-C8A8-4CA8-8C18-58324670C68C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BumpBuildNumber", "BumpBuildNumber\BumpBuildNumber.csproj", "{059C7AF3-35D8-4F54-B1C9-8914E59CB5A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{059C7AF3-35D8-4F54-B1C9-8914E59CB5A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{059C7AF3-35D8-4F54-B1C9-8914E59CB5A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{059C7AF3-35D8-4F54-B1C9-8914E59CB5A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{059C7AF3-35D8-4F54-B1C9-8914E59CB5A6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{272BB11D-C8A8-4CA8-8C18-58324670C68C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{272BB11D-C8A8-4CA8-8C18-58324670C68C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{272BB11D-C8A8-4CA8-8C18-58324670C68C}.Release|Any CPU.ActiveCfg = Release|Any CPU
