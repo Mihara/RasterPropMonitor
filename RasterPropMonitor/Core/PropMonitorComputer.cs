@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Reflection;
+using System.Diagnostics;
 
 namespace JSI
 {
@@ -1923,7 +1924,10 @@ namespace JSI
 			
 			// Meta.
 				case "RPMVERSION": 
-					return Assembly.GetExecutingAssembly().GetName().Version.ToString();
+					return FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
+					// That would return only the "AssemblyVersion" version which in our case does not change anymore.
+					// We use "AsssemblyFileVersion" for actual version numbers now to facilitate hardlinking.
+					// return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
 			// Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
 				case "GEARALARM":
