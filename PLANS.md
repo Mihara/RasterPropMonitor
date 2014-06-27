@@ -12,7 +12,7 @@ For things already in the pipeline, see [project issues page](https://github.com
 * Moving-in-IVA:
     * Make an InternalModule that detects doubleclicks on a transform. Place that collider over an internal hatch.
     * When in IVA player clicks on that hatch, search the rest of the ship for a habitable capsule with IVA in the direction of the click (Somewhat non-trivial as it will require intelligently navigating the part tree).
-    * Locate a part which has an IVA and a free InternalSeat.
+    * Locate a part which has an IVA and a free InternalSeat. (That can be handed off to ConnectedLivingSpaces now that it exists and is widely supported.)
     * Detect which kerbal we're currently looking with. (Well, that is now it's own static function)
     * Move that kerbal to the seat found. (Despawn/spawn should work, but somehow the entire internal is getting borked in the attempt.)
       Voila, we have moving-in-iva, or at least as close as it ever gets.
