@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 		SharedAssemblyInfo.cs = SharedAssemblyInfo.cs
 		PLANS.md = PLANS.md
+		distribution_README.TXT = distribution_README.TXT
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SCANsatRPM", "SCANsatRPM\SCANsatRPM.csproj", "{E7E75333-EE44-4F51-A14D-CFB075525D7D}"

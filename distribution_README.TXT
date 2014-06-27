@@ -1,9 +1,11 @@
 This is a showcase mod for RasterPropMonitor which adds a useful information 
 display to certain stock and mod capsules. This is also the canonical source of
-RasterPropMonitor.dll plugin and associated files. If you just need the plugin
-for something else, the "JSI/RPMPodPatches" directory may be safely deleted.
-Every capsule being modified has it's own pair of patch config files -- you can
-safely delete those you don't want.
+RasterPropMonitor.dll plugin and associated files.
+
+If the plugin was listed as a dependency by some other mod author, the 
+"JSI/RPMPodPatches" directory may be safely deleted. Every capsule being
+modified has it's own pair of patch config files -- you can
+safely delete only those you don't want.
 
 Source code and full license information available at
 https://github.com/Mihara/RasterPropMonitor/
