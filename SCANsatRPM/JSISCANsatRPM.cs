@@ -564,7 +564,7 @@ namespace SCANsatRPM
 				mapCenterLat = 0;
 			map.centerAround(mapCenterLong, mapCenterLat);
 			// Are there any other maptypes yet?
-			map.resetMap(mapMode,0);
+			map.resetMap(mapMode,1);
 
 			// Compute and store the map scale factors in mapSizeScale.  We
 			// use these values for every segment when drawing trails, so it
