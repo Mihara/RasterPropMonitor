@@ -199,6 +199,8 @@ dist/
 build/
 eggs/
 parts/
+# Mihara: Well damn. GameData contains Parts...
+!GameData/**/*
 var/
 sdist/
 develop-eggs/
