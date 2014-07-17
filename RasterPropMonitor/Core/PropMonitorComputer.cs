@@ -1968,6 +1968,12 @@ namespace JSI
 				case "BIOMEID":
 					return ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude);
 
+			// Some of the new goodies in 0.24.
+				case "REPUTATION":
+					return Reputation.Instance != null ? (double)Reputation.CurrentRep : 0;
+				case "FUNDS":
+					return Funding.Instance != null ? Funding.Instance.Funds : 0;
+
 			// Action group flags. To properly format those, use this format:
 			// {0:on;0;OFF}
 				case "GEAR":
