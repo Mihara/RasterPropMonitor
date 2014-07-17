@@ -61,6 +61,7 @@
     <ProjectReference Include="..\RasterPropMonitor\RasterPropMonitor.csproj">
       <Project>{F19C7AB4-50C2-4378-9673-CC039CA12E10}</Project>
       <Name>RasterPropMonitor</Name>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
 </Project>
