@@ -62,6 +62,13 @@ namespace JSI
 		{
 			if (!JUtil.IsActiveVessel(vessel))
 				return;
+
+			if (!JUtil.VesselIsInIVA(vessel)) {
+				foreach (VariableAnimationSet unit in variableSets) {
+					unit.MuteSoundWhileOutOfIVA();
+				}
+			}
+
 			if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
 				return;
 
@@ -86,6 +93,7 @@ namespace JSI
 		private readonly Animation anim;
 		private readonly bool thresholdMode;
 		private readonly FXGroup audioOutput;
+		private readonly float alarmSoundVolume;
 		private readonly Vector2 threshold = Vector2.zero;
 		private readonly bool reverse;
 		private readonly string animationName;
@@ -229,7 +237,7 @@ namespace JSI
 				}
 
 				if (node.HasValue("alarmSound")) {
-					float alarmSoundVolume = 0.5f;
+					alarmSoundVolume = 0.5f;
 					if (node.HasValue("alarmSoundVolume"))
 						alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
 					audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
@@ -345,12 +353,15 @@ namespace JSI
 				} else {
 					TurnOff();
 					if (audioOutput != null) {
-						if (!alarmMustPlayOnce) 
+						if (!alarmMustPlayOnce)
 							audioOutput.audio.Stop();
 						alarmActive = false;
 					}
 				}
-
+				// Resetting the audio volume in case it was muted while the ship was out of IVA.
+				if (alarmActive && audioOutput != null) {
+					audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+				}
 			} else {
 				switch (mode) {
 					case Mode.Rotation:
@@ -389,6 +400,13 @@ namespace JSI
 				}
 			}
 
+		}
+
+		public void MuteSoundWhileOutOfIVA()
+		{
+			if (audioOutput != null && alarmActive) {
+				audioOutput.audio.volume = 0;
+			}
 		}
 
 		public void AlarmShutdown()
