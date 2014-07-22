@@ -184,18 +184,26 @@ namespace JSI
 			// Now we need to make sure that the list of portraits in the GUI conforms to what actually is in the active vessel.
 			// This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
 			// that I can't readily debug, and it shouldn't happen anyway.
-			foreach (InternalSeat seat in part.internalModel.seats) {
-				if (seat.kerbalRef != null) {
-					if (vessel.isActiveVessel) {
-						if (!KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef)) {
-							KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
-						}
-					} else {
-						KerbalGUIManager.RemoveActiveCrew(seat.kerbalRef);
+
+			// Only the pods in the active vessel should be doing it since the list refers to them.
+			if (vessel.isActiveVessel) {
+				// First, every pod should check through the list of portaits and remove everyone who is from some other vessel.
+				var stowaways = new List<Kerbal>();
+				foreach (Kerbal thatKerbal in KerbalGUIManager.ActiveCrew) {
+					if (thatKerbal.InVessel != vessel) {
+						stowaways.Add(thatKerbal);
+					}
+				}
+				foreach (Kerbal thatKerbal in stowaways) {
+					KerbalGUIManager.RemoveActiveCrew(thatKerbal);
+				}
+				// Then, every pod should check the list of seats in itself and see if anyone is missing who should be present.
+				foreach (InternalSeat seat in part.internalModel.seats) {
+					if (seat.kerbalRef != null && !KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef)) {
+						KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
 					}
 				}
 			}
-
 
 			// So we do have an internal model, right?
 			if (part.internalModel != null) {
