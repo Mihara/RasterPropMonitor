@@ -122,121 +122,127 @@ namespace JSI
 		{
 			InstallationPathWarning.Warn();
 
-			// Install the calculator module.
-			comp = RasterPropMonitorComputer.Instantiate(internalProp);
-			comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
+			try {
 
-			// Loading the font...
-			fontTexture.Add(LoadFont(this, internalProp, fontTransform, false));
+				// Install the calculator module.
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+				comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
-			// Damn KSP's config parser!!!
-			if (!string.IsNullOrEmpty(emptyColor))
-				emptyColorValue = ConfigNode.ParseColor32(emptyColor);
-			if (!string.IsNullOrEmpty(defaultFontTint))
-				defaultFontTintValue = ConfigNode.ParseColor32(defaultFontTint);
+				// Loading the font...
+				fontTexture.Add(LoadFont(this, internalProp, fontTransform, false));
 
-			if (!string.IsNullOrEmpty(fontDefinition)) {
-				JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
-				fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
-			}
+				// Damn KSP's config parser!!!
+				if (!string.IsNullOrEmpty(emptyColor))
+					emptyColorValue = ConfigNode.ParseColor32(emptyColor);
+				if (!string.IsNullOrEmpty(defaultFontTint))
+					defaultFontTintValue = ConfigNode.ParseColor32(defaultFontTint);
 
-			// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
-			// although I'm not sure I'm not seeing things by this point.
-			int fontLettersX = (fontTexture[0].width / fontLetterWidth);
-			int fontLettersY = (fontTexture[0].height / fontLetterHeight);
-			float letterSpanX = 1f / fontLettersX;
-			float letterSpanY = 1f / fontLettersY;
-			int lastCharacter = fontLettersX * fontLettersY;
+				if (!string.IsNullOrEmpty(fontDefinition)) {
+					JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
+					fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
+				}
 
-			if (lastCharacter != fontDefinitionString.Length) {
-				JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
-			}
+				// We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
+				// although I'm not sure I'm not seeing things by this point.
+				int fontLettersX = (fontTexture[0].width / fontLetterWidth);
+				int fontLettersY = (fontTexture[0].height / fontLetterHeight);
+				float letterSpanX = 1f / fontLettersX;
+				float letterSpanY = 1f / fontLettersY;
+				int lastCharacter = fontLettersX * fontLettersY;
 
-			for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++) {
-				int xSource = i % fontLettersX;
-				int ySource = (i - xSource) / fontLettersX;
-				if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
-					fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
-			}
+				if (lastCharacter != fontDefinitionString.Length) {
+					JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
+				}
 
-			// And a little optimisation for superscript/subscript:
-			fontLetterHalfHeight = fontLetterHeight / 2f;
-			fontLetterHalfWidth = fontLetterWidth / 2f;
-			fontLetterDoubleWidth = fontLetterWidth * 2f;
+				for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++) {
+					int xSource = i % fontLettersX;
+					int ySource = (i - xSource) / fontLettersX;
+					if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
+						fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
+				}
 
-			// Now that is done, proceed to setting up the screen.
+				// And a little optimisation for superscript/subscript:
+				fontLetterHalfHeight = fontLetterHeight / 2f;
+				fontLetterHalfWidth = fontLetterWidth / 2f;
+				fontLetterDoubleWidth = fontLetterWidth * 2f;
 
-			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
-			screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
-			foreach (string layerID in textureLayerID.Split())
-				screenMat.SetTexture(layerID.Trim(), screenTexture);
+				// Now that is done, proceed to setting up the screen.
 
-			if (GameDatabase.Instance.ExistsTexture(noSignalTextureURL.EnforceSlashes())) {
-				noSignalTexture = GameDatabase.Instance.GetTexture(noSignalTextureURL.EnforceSlashes(), false);
-			}
+				screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
+				screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+				foreach (string layerID in textureLayerID.Split())
+					screenMat.SetTexture(layerID.Trim(), screenTexture);
 
-			// Create camera instance...
-			cameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
+				if (GameDatabase.Instance.ExistsTexture(noSignalTextureURL.EnforceSlashes())) {
+					noSignalTexture = GameDatabase.Instance.GetTexture(noSignalTextureURL.EnforceSlashes(), false);
+				}
 
-			// The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
-			// Well, we don't need it. GameDatabase, gimme config nodes for all props!
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
-				// Now, we know our own prop name.
-				if (node.GetValue("name") == internalProp.propName) {
-					// So this is the configuration of our prop in memory. Nice place.
-					// We know it contains at least one MODULE node, us.
-					// And we know our moduleID, which is the number in order of being listed in the prop.
-					// Therefore the module by that number is our module's own config node.
+				// Create camera instance...
+				cameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
 
-					ConfigNode moduleConfig = node.GetNodes("MODULE")[moduleID];
-					ConfigNode[] pageNodes = moduleConfig.GetNodes("PAGE");
+				// The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
+				// Well, we don't need it. GameDatabase, gimme config nodes for all props!
+				foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+					// Now, we know our own prop name.
+					if (node.GetValue("name") == internalProp.propName) {
+						// So this is the configuration of our prop in memory. Nice place.
+						// We know it contains at least one MODULE node, us.
+						// And we know our moduleID, which is the number in order of being listed in the prop.
+						// Therefore the module by that number is our module's own config node.
 
-					// Which we can now parse for page definitions.
-					for (int i = 0; i < pageNodes.Length; i++) {
-						// Mwahahaha.
-						try {
-							var newPage = new MonitorPage(i, pageNodes[i], this);
-							activePage = activePage ?? newPage;
-							if (newPage.isDefault)
-								activePage = newPage;
-							pages.Add(newPage);
-						} catch (ArgumentException e) {
-							JUtil.LogMessage(this, "Warning - {0}", e);
-						}
+						ConfigNode moduleConfig = node.GetNodes("MODULE")[moduleID];
+						ConfigNode[] pageNodes = moduleConfig.GetNodes("PAGE");
+
+						// Which we can now parse for page definitions.
+						for (int i = 0; i < pageNodes.Length; i++) {
+							// Mwahahaha.
+							try {
+								var newPage = new MonitorPage(i, pageNodes[i], this);
+								activePage = activePage ?? newPage;
+								if (newPage.isDefault)
+									activePage = newPage;
+								pages.Add(newPage);
+							} catch (ArgumentException e) {
+								JUtil.LogMessage(this, "Warning - {0}", e);
+							}
 							
+						}
+
+						// Now that all pages are loaded, we can use the moment in the loop to suck in all the extra fonts.
+						foreach (string value in moduleConfig.GetValues("extraFont")) {
+							fontTexture.Add(LoadFont(this, internalProp, value, true));
+						}
+
+						break;
 					}
+				}
+				JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
-					// Now that all pages are loaded, we can use the moment in the loop to suck in all the extra fonts.
-					foreach (string value in moduleConfig.GetValues("extraFont")) {
-						fontTexture.Add(LoadFont(this, internalProp, value, true));
+				// Load our state from storage...
+				persistentVarName = "activePage" + internalProp.propID;
+				persistence = new PersistenceAccessor(part);
+				int? activePageID = persistence.GetVar(persistentVarName);
+				if (activePageID != null && activePageID.Value < pages.Count) {
+					activePage = pages[activePageID.Value];
+				}
+				activePage.Active(true);
+
+				// If we have global buttons, set them up.
+				if (!string.IsNullOrEmpty(globalButtons)) {
+					string[] tokens = globalButtons.Split(',');
+					for (int i = 0; i < tokens.Length; i++) {
+						string buttonName = tokens[i].Trim();
+						// Notice that holes in the global button list ARE legal.
+						if (!string.IsNullOrEmpty(buttonName))
+							SmarterButton.CreateButton(internalProp, buttonName, i, GlobalButtonClick, GlobalButtonRelease);
 					}
-
-					break;
 				}
-			}
-			JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
-			// Load our state from storage...
-			persistentVarName = "activePage" + internalProp.propID;
-			persistence = new PersistenceAccessor(part);
-			int? activePageID = persistence.GetVar(persistentVarName);
-			if (activePageID != null && activePageID.Value < pages.Count) {
-				activePage = pages[activePageID.Value];
-			}
-			activePage.Active(true);
+				audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 
-			// If we have global buttons, set them up.
-			if (!string.IsNullOrEmpty(globalButtons)) {
-				string[] tokens = globalButtons.Split(',');
-				for (int i = 0; i < tokens.Length; i++) {
-					string buttonName = tokens[i].Trim();
-					// Notice that holes in the global button list ARE legal.
-					if (!string.IsNullOrEmpty(buttonName))
-						SmarterButton.CreateButton(internalProp, buttonName, i, GlobalButtonClick, GlobalButtonRelease);
-				}
+			} catch {
+				JUtil.AnnoyUser(this);
 			}
-
-			audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 			startupComplete = true;
 		}
 
@@ -513,6 +519,9 @@ namespace JSI
 		public override void OnUpdate()
 		{
 
+			if (!startupComplete)
+				return;
+
 			if (!JUtil.UserIsInPod(part))
 				return; 
 
@@ -573,13 +582,6 @@ namespace JSI
 			firstRenderComplete &= pause;
 		}
 
-		public void LateUpdate()
-		{
-			if (JUtil.VesselIsInIVA(vessel) && !startupComplete) {
-				JUtil.AnnoyUser(this);
-				enabled = false;
-			}
-		}
 	}
 }
 
