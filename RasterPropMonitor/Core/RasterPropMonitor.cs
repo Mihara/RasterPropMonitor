@@ -120,7 +120,8 @@ namespace JSI
 
 		public void Start()
 		{
-			InstallationPathWarning.Warn();
+			if (!InstallationPathWarning.Warn())
+				return;
 
 			try {
 
@@ -240,10 +241,12 @@ namespace JSI
 
 				audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 
+				// And if the try block never completed, startupComplete will never be true.
+				startupComplete = true;
 			} catch {
 				JUtil.AnnoyUser(this);
 			}
-			startupComplete = true;
+
 		}
 
 		private static void PlayClickSound(FXGroup audioOutput)
@@ -519,6 +522,9 @@ namespace JSI
 		public override void OnUpdate()
 		{
 
+			// If we didn't complete startup, we can't do anything anyway.
+			// The only trouble is that situations where update happens before startup is complete do happen sometimes,
+			// particularly when docking, so we can't use it to detect being broken by a third party plugin.
 			if (!startupComplete)
 				return;
 

@@ -866,19 +866,22 @@ namespace JSI
 		private const string gameData = "GameData";
 		private static readonly string[] pathSep = { gameData };
 
-		public static void Warn(string path = "JSI/RasterPropMonitor/Plugins")
+		public static bool Warn(string path = "JSI/RasterPropMonitor/Plugins")
 		{
 			string assemblyPath = Assembly.GetCallingAssembly().Location;
 			string fileName = Path.GetFileName(assemblyPath);
+			bool wrongpath = false;
 			if (!warnedList.Contains(fileName)) {
 				string installedLocation = Path.GetDirectoryName(assemblyPath).Split(pathSep, StringSplitOptions.None)[1].TrimStart('/').TrimStart('\\').EnforceSlashes();
 				if (installedLocation != path) {
 					ScreenMessages.PostScreenMessage(string.Format("ERROR: {0} must be in GameData/{1} but it's in GameData/{2}", fileName, path, installedLocation),
 						120, ScreenMessageStyle.UPPER_CENTER);
 					Debug.LogError("RasterPropMonitor components are incorrectly installed. I should stop working and make you fix it, but KSP won't let me.");
+					wrongpath = true;
 				}
 				warnedList.Add(fileName);
 			}
+			return !wrongpath;
 		}
 	}
 	// This handy class is also from MechJeb.
