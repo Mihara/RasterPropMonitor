@@ -88,6 +88,9 @@ namespace JSI
 		private bool startupComplete;
 		private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
 
+		private int loopsWithoutInitCounter = 0;
+		private bool startupFailed = false;
+
 		private enum Script
 		{
 			Normal,
@@ -247,6 +250,7 @@ namespace JSI
 				startupComplete = true;
 			} catch {
 				JUtil.AnnoyUser(this);
+				startupFailed = true;
 				// And now that we notified the user that config is borked, we rethrow the exception so that
 				// it gets logged and we can debug.
 				throw;
@@ -530,8 +534,10 @@ namespace JSI
 			// If we didn't complete startup, we can't do anything anyway.
 			// The only trouble is that situations where update happens before startup is complete do happen sometimes,
 			// particularly when docking, so we can't use it to detect being broken by a third party plugin.
-			if (!startupComplete)
+			if (!startupComplete) {
+				loopsWithoutInitCounter++;
 				return;
+			}
 
 			if (!JUtil.UserIsInPod(part))
 				return; 
@@ -591,6 +597,16 @@ namespace JSI
 		public void OnApplicationPause(bool pause)
 		{
 			firstRenderComplete &= pause;
+		}
+
+		public void LateUpdate() {
+			// If we reached a set number of update loops and startup still didn't happen, we're getting killed by a third party module.
+			// We might STILL be getting killed by a third party module even during update, but I hope this will catch at least some cases.
+			if (!startupFailed && loopsWithoutInitCounter > 600) {
+				ScreenMessages.PostScreenMessage("RasterPropMonitor cannot complete initialization.", 120, ScreenMessageStyle.UPPER_CENTER);
+				ScreenMessages.PostScreenMessage("The cause is usually some OTHER broken mod.", 120, ScreenMessageStyle.UPPER_CENTER);
+				loopsWithoutInitCounter = 0;
+			}
 		}
 
 	}
