@@ -87,11 +87,8 @@ namespace JSI
 
 		public bool RenderHUD(RenderTexture screen, float cameraAspect)
 		{
-			if (screen == null)
+			if (screen == null || !startupComplete)
 				return false;
-
-			if (!startupComplete)
-				JUtil.AnnoyUser(this);
 
 			// Clear the background, if configured.
 			GL.Clear(true, true, backgroundColorValue);
@@ -190,17 +187,17 @@ namespace JSI
 				if (use360horizon) {
 					// Straight up is texture coord 0.75;
 					// Straight down is TC 0.25;
-					AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch+AoA);
+					AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch + AoA);
 				} else {
 					// Straight up is texture coord 1.0;
 					// Straight down is TC 0.0;
-					AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch+AoA);
+					AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch + AoA);
 				}
 
 				float Ypos = JUtil.DualLerp(
-					-horizonSize.y, horizonSize.y,
-					ladderMidpointCoord - ladderTextureOffset, ladderMidpointCoord + ladderTextureOffset, 
-					AoATC);
+					             -horizonSize.y, horizonSize.y,
+					             ladderMidpointCoord - ladderTextureOffset, ladderMidpointCoord + ladderTextureOffset, 
+					             AoATC);
 
 				// Placing the icon on the (0, Ypos) location, so simplify the transform.
 				DrawIcon(-sinRoll * Ypos, -cosRoll * Ypos, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
@@ -307,84 +304,89 @@ namespace JSI
 
 		public void Start()
 		{
-			backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+			try {
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
-			Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
-			ladderMaterial = new Material(unlit);
-			ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-			if (!String.IsNullOrEmpty(horizonTexture)) {
-				ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
-				if (ladderMaterial.mainTexture != null) {
-					horizonTextureSize.x = horizonTextureSize.x / ladderMaterial.mainTexture.width;
-					ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
+				ladderMaterial = new Material(unlit);
+				ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				if (!String.IsNullOrEmpty(horizonTexture)) {
+					ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
+					if (ladderMaterial.mainTexture != null) {
+						horizonTextureSize.x = horizonTextureSize.x / ladderMaterial.mainTexture.width;
+						ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
+					}
 				}
-			}
 
-			if (!String.IsNullOrEmpty(headingBar)) {
-				headingMaterial = new Material(unlit);
-				headingMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
-			}
-
-			if (!String.IsNullOrEmpty(staticOverlay)) {
-				overlayMaterial = new Material(unlit);
-				overlayMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
-			}
-
-			if (!String.IsNullOrEmpty(vertBar1Texture) && !String.IsNullOrEmpty(vertBar1Variable)) {
-				vertBar1Material = new Material(unlit);
-				vertBar1Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				vertBar1Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
-				if (vertBar1Material.mainTexture != null) {
-					float height = (float)vertBar1Material.mainTexture.height;
-					vertBar1TextureLimit.x = 1.0f - (vertBar1TextureLimit.x / height);
-					vertBar1TextureLimit.y = 1.0f - (vertBar1TextureLimit.y / height);
-					vertBar1TextureSize = 0.5f * (vertBar1TextureSize / height);
-					vertBar1Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				if (!String.IsNullOrEmpty(headingBar)) {
+					headingMaterial = new Material(unlit);
+					headingMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+					headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
 				}
-			}
 
-			if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable)) {
-				vertBar2Material = new Material(unlit);
-				vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-				vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
-				if (vertBar2Material.mainTexture != null) {
-					float height = (float)vertBar2Material.mainTexture.height;
-					vertBar2TextureLimit.x = 1.0f - (vertBar2TextureLimit.x / height);
-					vertBar2TextureLimit.y = 1.0f - (vertBar2TextureLimit.y / height);
-					vertBar2TextureSize = 0.5f * (vertBar2TextureSize / height);
-					vertBar2Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+				if (!String.IsNullOrEmpty(staticOverlay)) {
+					overlayMaterial = new Material(unlit);
+					overlayMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+					overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
 				}
+
+				if (!String.IsNullOrEmpty(vertBar1Texture) && !String.IsNullOrEmpty(vertBar1Variable)) {
+					vertBar1Material = new Material(unlit);
+					vertBar1Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+					vertBar1Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
+					if (vertBar1Material.mainTexture != null) {
+						float height = (float)vertBar1Material.mainTexture.height;
+						vertBar1TextureLimit.x = 1.0f - (vertBar1TextureLimit.x / height);
+						vertBar1TextureLimit.y = 1.0f - (vertBar1TextureLimit.y / height);
+						vertBar1TextureSize = 0.5f * (vertBar1TextureSize / height);
+						vertBar1Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+					}
+				}
+
+				if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable)) {
+					vertBar2Material = new Material(unlit);
+					vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+					vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
+					if (vertBar2Material.mainTexture != null) {
+						float height = (float)vertBar2Material.mainTexture.height;
+						vertBar2TextureLimit.x = 1.0f - (vertBar2TextureLimit.x / height);
+						vertBar2TextureLimit.y = 1.0f - (vertBar2TextureLimit.y / height);
+						vertBar2TextureSize = 0.5f * (vertBar2TextureSize / height);
+						vertBar2Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
+					}
+				}
+
+				if (vertBar1UseLog10) {
+					vertBar1Limit.x = JUtil.PseudoLog10(vertBar1Limit.x);
+					vertBar1Limit.y = JUtil.PseudoLog10(vertBar1Limit.y);
+				}
+
+				if (vertBar2UseLog10) {
+					vertBar2Limit.x = JUtil.PseudoLog10(vertBar2Limit.x);
+					vertBar2Limit.y = JUtil.PseudoLog10(vertBar2Limit.y);
+				}
+
+				if (!string.IsNullOrEmpty(progradeColor)) {
+					progradeColorValue = ConfigNode.ParseColor32(progradeColor);
+				}
+
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+
+				iconMaterial = new Material(unlit);
+				iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				gizmoTexture = JUtil.GetGizmoTexture();
+
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
 			}
-
-			if (vertBar1UseLog10) {
-				vertBar1Limit.x = JUtil.PseudoLog10(vertBar1Limit.x);
-				vertBar1Limit.y = JUtil.PseudoLog10(vertBar1Limit.y);
-			}
-
-			if (vertBar2UseLog10) {
-				vertBar2Limit.x = JUtil.PseudoLog10(vertBar2Limit.x);
-				vertBar2Limit.y = JUtil.PseudoLog10(vertBar2Limit.y);
-			}
-
-			if (!string.IsNullOrEmpty(progradeColor)) {
-				progradeColorValue = ConfigNode.ParseColor32(progradeColor);
-			}
-
-			comp = RasterPropMonitorComputer.Instantiate(internalProp);
-
-			iconMaterial = new Material(unlit);
-			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-			gizmoTexture = JUtil.GetGizmoTexture();
-
-			startupComplete = true;
 		}
 
 		private void DrawIcon(float xPos, float yPos, Rect texCoord, Color iconColor)
 		{
 			var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
-							   iconPixelSize, iconPixelSize);
+				               iconPixelSize, iconPixelSize);
 
 			Graphics.DrawTexture(position, gizmoTexture, texCoord, 0, 0, 0, 0, iconColor, iconMaterial);
 		}

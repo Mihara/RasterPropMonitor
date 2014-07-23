@@ -131,170 +131,176 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName)) {
-				JUtil.LogErrorMessage(this, "Action \"{0}\" is not supported.", actionName);
-				return;
-			}
+			try {
 
-			// Parse the needs-electric-charge here.
-			if (!string.IsNullOrEmpty(needsElectricCharge)) {
-				switch (needsElectricCharge.ToLowerInvariant().Trim()) {
-					case "true":
-					case "yes":
-					case "1":
-						needsElectricChargeValue = true;
-						break;
-					case "false":
-					case "no":
-					case "0":
-						needsElectricChargeValue = false;
-						break;
+				if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName)) {
+					JUtil.LogErrorMessage(this, "Action \"{0}\" is not supported.", actionName);
+					return;
 				}
-			}
 
-			// Now parse consumeOnToggle and consumeWhileActive...
-			if (!string.IsNullOrEmpty(consumeOnToggle)) {
-				string[] tokens = consumeOnToggle.Split(',');
-				if (tokens.Length == 3) {
-					consumeOnToggleName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null &&
-						float.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
-						    out consumeOnToggleAmount))) {
-						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
-					}
-					switch (tokens[2].Trim().ToLower()) {
-						case "on":
-							consumingOnToggleUp = true;
+				// Parse the needs-electric-charge here.
+				if (!string.IsNullOrEmpty(needsElectricCharge)) {
+					switch (needsElectricCharge.ToLowerInvariant().Trim()) {
+						case "true":
+						case "yes":
+						case "1":
+							needsElectricChargeValue = true;
 							break;
-						case "off":
-							consumingOnToggleDown = true;
-							break;
-						case "both":
-							consumingOnToggleUp = true;
-							consumingOnToggleDown = true;
-							break;
-						default:
-							JUtil.LogErrorMessage(this, "So should I consume resources when turning on, turning off, or both in \"{0}\"?", consumeOnToggle);
+						case "false":
+						case "no":
+						case "0":
+							needsElectricChargeValue = false;
 							break;
 					}
 				}
-			}
 
-			if (!string.IsNullOrEmpty(consumeWhileActive)) {
-				string[] tokens = consumeWhileActive.Split(',');
-				if (tokens.Length == 2) {
-					consumeWhileActiveName = tokens[0].Trim();
-					if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null &&
-						float.TryParse(tokens[1].Trim(), 
-						    NumberStyles.Any, CultureInfo.InvariantCulture,
-						    out consumeWhileActiveAmount))) {
-						JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
-					} else {
-						consumingWhileActive = true;
-						JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName, 
-							internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
+				// Now parse consumeOnToggle and consumeWhileActive...
+				if (!string.IsNullOrEmpty(consumeOnToggle)) {
+					string[] tokens = consumeOnToggle.Split(',');
+					if (tokens.Length == 3) {
+						consumeOnToggleName = tokens[0].Trim();
+						if (!(PartResourceLibrary.Instance.GetDefinition(consumeOnToggleName) != null &&
+						   float.TryParse(tokens[1].Trim(), NumberStyles.Any, CultureInfo.InvariantCulture,
+							   out consumeOnToggleAmount))) {
+							JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeOnToggle);
+						}
+						switch (tokens[2].Trim().ToLower()) {
+							case "on":
+								consumingOnToggleUp = true;
+								break;
+							case "off":
+								consumingOnToggleDown = true;
+								break;
+							case "both":
+								consumingOnToggleUp = true;
+								consumingOnToggleDown = true;
+								break;
+							default:
+								JUtil.LogErrorMessage(this, "So should I consume resources when turning on, turning off, or both in \"{0}\"?", consumeOnToggle);
+								break;
+						}
 					}
 				}
-			}
 
-			if (groupList.ContainsKey(actionName)) {
-				currentState = vessel.ActionGroups[groupList[actionName]];
-			} else {
-				isCustomAction = true;
-				switch (actionName) {
-					case "intlight":
-						persistentVarName = internalLightName;
-						lightObjects = internalModel.FindModelComponents<Light>();
-						needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
-						break;
-					case "plugin":
-						persistentVarName = string.Empty;
-						foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
-							if (node.GetValue("name") == internalProp.propName) {
-								foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
-									if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod")) {
-										if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
-											JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
-										} else {
-											isPluginAction = true;
-											break;
+				if (!string.IsNullOrEmpty(consumeWhileActive)) {
+					string[] tokens = consumeWhileActive.Split(',');
+					if (tokens.Length == 2) {
+						consumeWhileActiveName = tokens[0].Trim();
+						if (!(PartResourceLibrary.Instance.GetDefinition(consumeWhileActiveName) != null &&
+						   float.TryParse(tokens[1].Trim(), 
+							   NumberStyles.Any, CultureInfo.InvariantCulture,
+							   out consumeWhileActiveAmount))) {
+							JUtil.LogErrorMessage(this, "Could not parse \"{0}\"", consumeWhileActive);
+						} else {
+							consumingWhileActive = true;
+							JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName, 
+								internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
+						}
+					}
+				}
+
+				if (groupList.ContainsKey(actionName)) {
+					currentState = vessel.ActionGroups[groupList[actionName]];
+				} else {
+					isCustomAction = true;
+					switch (actionName) {
+						case "intlight":
+							persistentVarName = internalLightName;
+							lightObjects = internalModel.FindModelComponents<Light>();
+							needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
+							break;
+						case "plugin":
+							persistentVarName = string.Empty;
+							foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+								if (node.GetValue("name") == internalProp.propName) {
+									foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("PLUGINACTION")) {
+										if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod")) {
+											if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler)) {
+												JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
+											} else {
+												isPluginAction = true;
+												break;
+											}
 										}
 									}
 								}
 							}
-						}
-						if (actionHandler == null) {
-							actionName = "dummy";
-							JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
-						}
-						break;
-					default:
-						persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
-						break;
+							if (actionHandler == null) {
+								actionName = "dummy";
+								JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
+							}
+							break;
+						default:
+							persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
+							break;
+					}
+					if (!string.IsNullOrEmpty(perPodPersistenceName)) {
+						persistentVarName = perPodPersistenceName;
+					}
+					persistence = new PersistenceAccessor(part);
 				}
-				if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-					persistentVarName = perPodPersistenceName;
+				if (needsElectricChargeValue) {
+					comp = RasterPropMonitorComputer.Instantiate(internalProp);
+					comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
 				}
-				persistence = new PersistenceAccessor(part);
-			}
-			if (needsElectricChargeValue) {
-				comp = RasterPropMonitorComputer.Instantiate(internalProp);
-				comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
-			}
 
-			// set up the toggle switch
-			if (!string.IsNullOrEmpty(switchTransform)) {
-				SmarterButton.CreateButton(internalProp, switchTransform, Click);
-			}
+				// set up the toggle switch
+				if (!string.IsNullOrEmpty(switchTransform)) {
+					SmarterButton.CreateButton(internalProp, switchTransform, Click);
+				}
 
-			if (isCustomAction) {
-				if (isPluginAction && stateHandler != null) {
-					currentState = stateHandler();
-				} else {
-					if (!string.IsNullOrEmpty(persistentVarName)) {
-						currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? currentState);
-						if (actionName == "intlight") {
-							// We have to restore lighting after reading the
-							// persistent variable.
-							SetInternalLights(customGroupList[actionName]);
+				if (isCustomAction) {
+					if (isPluginAction && stateHandler != null) {
+						currentState = stateHandler();
+					} else {
+						if (!string.IsNullOrEmpty(persistentVarName)) {
+							currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? currentState);
+							if (actionName == "intlight") {
+								// We have to restore lighting after reading the
+								// persistent variable.
+								SetInternalLights(customGroupList[actionName]);
+							}
 						}
 					}
 				}
+
+				if (!string.IsNullOrEmpty(animationName)) {
+					// Set up the animation
+					Animation[] animators = animateExterior ? part.FindModelAnimators(animationName) : internalProp.FindModelAnimators(animationName);
+					if (animators.Length > 0) {
+						anim = animators[0];
+					} else {
+						JUtil.LogErrorMessage(this, "Could not find animation \"{0}\" on {2} \"{1}\"", 
+							animationName, animateExterior ? part.name : internalProp.name, animateExterior ? "part" : "prop");
+						return;
+					}
+					anim[animationName].wrapMode = WrapMode.Once;
+
+					if (currentState ^ reverse) {
+						anim[animationName].speed = float.MaxValue;
+						anim[animationName].normalizedTime = 0;
+
+					} else {
+						anim[animationName].speed = float.MinValue;
+						anim[animationName].normalizedTime = 1;
+					}
+					anim.Play(animationName);
+				} else if (!string.IsNullOrEmpty(coloredObject)) {
+					// Set up the color shift.
+					colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
+					disabledColorValue = ConfigNode.ParseColor32(disabledColor);
+					enabledColorValue = ConfigNode.ParseColor32(enabledColor);
+					colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
+				} else
+					JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
+
+				audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
+
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
 			}
-
-			if (!string.IsNullOrEmpty(animationName)) {
-				// Set up the animation
-				Animation[] animators = animateExterior ? part.FindModelAnimators(animationName) : internalProp.FindModelAnimators(animationName);
-				if (animators.Length > 0) {
-					anim = animators[0];
-				} else {
-					JUtil.LogErrorMessage(this, "Could not find animation \"{0}\" on {2} \"{1}\"", 
-						animationName, animateExterior ? part.name : internalProp.name, animateExterior ? "part" : "prop");
-					return;
-				}
-				anim[animationName].wrapMode = WrapMode.Once;
-
-				if (currentState ^ reverse) {
-					anim[animationName].speed = float.MaxValue;
-					anim[animationName].normalizedTime = 0;
-
-				} else {
-					anim[animationName].speed = float.MinValue;
-					anim[animationName].normalizedTime = 1;
-				}
-				anim.Play(animationName);
-			} else if (!string.IsNullOrEmpty(coloredObject)) {
-				// Set up the color shift.
-				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
-				disabledColorValue = ConfigNode.ParseColor32(disabledColor);
-				enabledColorValue = ConfigNode.ParseColor32(enabledColor);
-				colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
-			} else
-				JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
-
-			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
-
-			startupComplete = true;
 		}
 
 		private void SetInternalLights(bool value)
@@ -338,10 +344,10 @@ namespace JSI
 			if (!startupComplete)
 				return;
 
-			if (consumingWhileActive && currentState && ! forcedShutdown) {
+			if (consumingWhileActive && currentState && !forcedShutdown) {
 				float requesting = (consumeWhileActiveAmount * TimeWarp.deltaTime);
 				float extracted = part.RequestResource(consumeWhileActiveName, requesting);
-				if (Math.Abs(extracted - requesting) > Math.Abs(requesting/2)) {
+				if (Math.Abs(extracted - requesting) > Math.Abs(requesting / 2)) {
 					// We don't have enough of the resource or can't produce more negative resource, so we should shut down...
 					forcedShutdown = true;
 					JUtil.LogMessage(this, "Could not consume {0}, asked for {1}, got {2} shutting switch down.", consumeWhileActiveName, requesting, extracted);
@@ -394,7 +400,7 @@ namespace JSI
 				// If we're consuming resources on toggle, do that now.
 				if ((consumingOnToggleUp && newState) || (consumingOnToggleDown && !newState)) {
 					float extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
-					if (Math.Abs(extracted - consumeOnToggleAmount) > Math.Abs(consumeOnToggleAmount/2)) {
+					if (Math.Abs(extracted - consumeOnToggleAmount) > Math.Abs(consumeOnToggleAmount / 2)) {
 						// We don't have enough of the resource, so we force a shutdown on the next loop.
 						// This ensures the animations will play at least once.
 						forcedShutdown = true;
@@ -421,14 +427,6 @@ namespace JSI
 			}
 		}
 
-		public void LateUpdate()
-		{
-			if (JUtil.IsActiveVessel(vessel) && !startupComplete) {
-				JUtil.AnnoyUser(this);
-				// And disable ourselves.
-				enabled = false;
-			}
-		}
 	}
 }
 

@@ -40,60 +40,65 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!string.IsNullOrEmpty(borderColor))
-				borderColorValue = ConfigNode.ParseColor32(borderColor);
-			if (!string.IsNullOrEmpty(backgroundColor))
-				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+			try {
+				if (!string.IsNullOrEmpty(borderColor))
+					borderColorValue = ConfigNode.ParseColor32(borderColor);
+				if (!string.IsNullOrEmpty(backgroundColor))
+					backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
-			comp = RasterPropMonitorComputer.Instantiate(internalProp);
-			graphSpace = new Rect();
-			graphSpace.xMin = graphRect.x;
-			graphSpace.yMin = graphRect.y;
-			graphSpace.xMax = graphRect.z;
-			graphSpace.yMax = graphRect.w;
-			xGraphSpan = xSpan;
-			interval = secondsBetweenSamples;
-			if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes()))
-				backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+				graphSpace = new Rect();
+				graphSpace.xMin = graphRect.x;
+				graphSpace.yMin = graphRect.y;
+				graphSpace.xMax = graphRect.z;
+				graphSpace.yMax = graphRect.w;
+				xGraphSpan = xSpan;
+				interval = secondsBetweenSamples;
+				if (GameDatabase.Instance.ExistsTexture(backgroundTextureURL.EnforceSlashes()))
+					backgroundTexture = GameDatabase.Instance.GetTexture(backgroundTextureURL.EnforceSlashes(), false);
 
-			var bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
-			var bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
-			var topLeft = new Vector2(graphSpace.xMin, graphSpace.yMax);
-			var topRight = new Vector2(graphSpace.xMax, graphSpace.yMax);
+				var bottomLeft = new Vector2(graphSpace.xMin, graphSpace.yMin);
+				var bottomRight = new Vector2(graphSpace.xMax, graphSpace.yMin);
+				var topLeft = new Vector2(graphSpace.xMin, graphSpace.yMax);
+				var topRight = new Vector2(graphSpace.xMax, graphSpace.yMax);
 
 
-			switch (borders) {
-				case 2:
-					borderVertices.Add(bottomRight);
-					borderVertices.Add(bottomLeft);
-					borderVertices.Add(topLeft);
-					break;
-				case 4:
-					borderVertices.Add(bottomLeft);
-					borderVertices.Add(topLeft);
-					borderVertices.Add(topRight);
-					borderVertices.Add(bottomRight);
-					borderVertices.Add(bottomLeft);
-					break;
+				switch (borders) {
+					case 2:
+						borderVertices.Add(bottomRight);
+						borderVertices.Add(bottomLeft);
+						borderVertices.Add(topLeft);
+						break;
+					case 4:
+						borderVertices.Add(bottomLeft);
+						borderVertices.Add(topLeft);
+						borderVertices.Add(topRight);
+						borderVertices.Add(bottomRight);
+						borderVertices.Add(bottomLeft);
+						break;
+				}
+
+				foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSIGRAPHSET")) {
+					if (node.HasValue("name") && node.GetValue("name") == graphSet)
+						foreach (ConfigNode graphNode in node.GetNodes("GRAPH"))
+							graphs.Add(new GraphLine(graphNode, xGraphSpan, ySpan, interval, comp));
+				}
+				JUtil.LogMessage(this, "Graphing {0} values.", graphs.Count);
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
 			}
-
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("JSIGRAPHSET")) {
-				if (node.HasValue("name") && node.GetValue("name") == graphSet)
-					foreach (ConfigNode graphNode in node.GetNodes("GRAPH"))
-						graphs.Add(new GraphLine(graphNode, xGraphSpan, ySpan, interval, comp));
-			}
-			JUtil.LogMessage(this, "Graphing {0} values.", graphs.Count);
-			startupComplete = true;
 		}
 		// Analysis disable once UnusedParameter
 		public bool RenderGraphs(RenderTexture screen, float cameraAspect)
 		{
+			if (!startupComplete)
+				return false;
+
 			if (backgroundTexture != null)
 				Graphics.Blit(backgroundTexture, screen);
 			GL.Clear(true, (backgroundTexture == null), backgroundColorValue);
-
-			if (!startupComplete)
-				JUtil.AnnoyUser(this);
 
 			GL.PushMatrix();
 			// This way 0,0 is in bottom left corner, which is what we want this time.

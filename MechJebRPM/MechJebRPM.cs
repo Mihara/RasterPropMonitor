@@ -193,7 +193,8 @@ namespace MechJebRPM
 			// But now we have KSPAssembly and KSPAssemblyDependency, which actually sidestep the issue, and finally
 			// Mu told someone about it and now I can avoid this path hardlinking.
 			// Actually, better yet. Let it check for the new canonical location instead. Because fuck installation problems.
-			JSI.InstallationPathWarning.Warn();
+			if (!JSI.InstallationPathWarning.Warn())
+				return;
 
 			if (!string.IsNullOrEmpty(itemColor))
 				itemColorValue = ConfigNode.ParseColor32(itemColor);

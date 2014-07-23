@@ -208,10 +208,8 @@ namespace JSI
 		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
-			if (!startupComplete) {
-				JUtil.AnnoyUser(this);
-			}
-
+			if (!startupComplete)
+				return false;
 			// Make sure the parameters fit on the screen.
 			Vector4 displayPosition = orbitDisplayPosition;
 			displayPosition.z = Mathf.Min(screen.width - displayPosition.x, displayPosition.z);
@@ -569,39 +567,44 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!string.IsNullOrEmpty(backgroundColor)) {
-				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
-			}
-			if (!string.IsNullOrEmpty(iconColorSelf)) {
-				iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
-			}
-			if (!string.IsNullOrEmpty(orbitColorSelf)) {
-				orbitColorSelfValue = ConfigNode.ParseColor32(orbitColorSelf);
-			}
-			if (!string.IsNullOrEmpty(iconColorTarget)) {
-				iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
-			}
-			if (!string.IsNullOrEmpty(iconColorShadow)) {
-				iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
-			}
-			if (!string.IsNullOrEmpty(iconColorAP)) {
-				iconColorAPValue = ConfigNode.ParseColor32(iconColorAP);
-			}
-			if (!string.IsNullOrEmpty(iconColorPE)) {
-				iconColorPEValue = ConfigNode.ParseColor32(iconColorPE);
-			}
-			if (!string.IsNullOrEmpty(orbitColorNextNode)) {
-				orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
-			}
-			if (!string.IsNullOrEmpty(iconColorClosestApproach)) {
-				iconColorClosestApproachValue = ConfigNode.ParseColor32(iconColorClosestApproach);
-			}
+			try {
+				if (!string.IsNullOrEmpty(backgroundColor)) {
+					backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+				}
+				if (!string.IsNullOrEmpty(iconColorSelf)) {
+					iconColorSelfValue = ConfigNode.ParseColor32(iconColorSelf);
+				}
+				if (!string.IsNullOrEmpty(orbitColorSelf)) {
+					orbitColorSelfValue = ConfigNode.ParseColor32(orbitColorSelf);
+				}
+				if (!string.IsNullOrEmpty(iconColorTarget)) {
+					iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
+				}
+				if (!string.IsNullOrEmpty(iconColorShadow)) {
+					iconColorShadowValue = ConfigNode.ParseColor32(iconColorShadow);
+				}
+				if (!string.IsNullOrEmpty(iconColorAP)) {
+					iconColorAPValue = ConfigNode.ParseColor32(iconColorAP);
+				}
+				if (!string.IsNullOrEmpty(iconColorPE)) {
+					iconColorPEValue = ConfigNode.ParseColor32(iconColorPE);
+				}
+				if (!string.IsNullOrEmpty(orbitColorNextNode)) {
+					orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
+				}
+				if (!string.IsNullOrEmpty(iconColorClosestApproach)) {
+					iconColorClosestApproachValue = ConfigNode.ParseColor32(iconColorClosestApproach);
+				}
 
-			// This mess with shaders has to stop. Maybe we should have a single shader to draw EVERYTHING on the screen...
-			iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-			iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				// This mess with shaders has to stop. Maybe we should have a single shader to draw EVERYTHING on the screen...
+				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+				iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
 
-			startupComplete = true;
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
+			}
 		}
 	}
 }

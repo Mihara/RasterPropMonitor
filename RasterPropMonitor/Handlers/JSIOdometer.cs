@@ -65,11 +65,10 @@ namespace JSI
 		private PersistenceAccessor persistence;
 		private bool startupComplete;
 
-		private readonly Dictionary<string, OdometerMode> modeList = new Dictionary<string, OdometerMode>
-		{
-			{ "LINEAR", OdometerMode.LINEAR},
-			{ "SI", OdometerMode.SI},
-			{ "TIME_HHHMMSS", OdometerMode.TIME_HHHMMSS},
+		private readonly Dictionary<string, OdometerMode> modeList = new Dictionary<string, OdometerMode> {
+			{ "LINEAR", OdometerMode.LINEAR },
+			{ "SI", OdometerMode.SI },
+			{ "TIME_HHHMMSS", OdometerMode.TIME_HHHMMSS },
 		};
 
 		private enum OdometerMode
@@ -85,7 +84,7 @@ namespace JSI
 			float dT = (float)(thisUpdate - lastUpdate) * odometerRotationScalar;
 
 			float value;
-			if(!string.IsNullOrEmpty(perPodPersistenceName)) {
+			if (!string.IsNullOrEmpty(perPodPersistenceName)) {
 				bool state = persistence.GetBool(perPodPersistenceName) ?? false;
 				value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
 			} else {
@@ -137,12 +136,12 @@ namespace JSI
 						// So we can display fractional values:
 						// However, we also quantize it to make it easier to
 						// read during the transition from 9 to 0.
-						thisCoord = Mathf.Floor((scaledValue % 10.0f)*2.0f) / 20.0f;
+						thisCoord = Mathf.Floor((scaledValue % 10.0f) * 2.0f) / 20.0f;
 					}
 					intValue = intValue / 10;
 					goalCoordinate[i] = thisCoord;
 				}
-			} else if(oMode == OdometerMode.TIME_HHHMMSS) {
+			} else if (oMode == OdometerMode.TIME_HHHMMSS) {
 				// Clamp the value
 				value = Mathf.Min(value, 59.0f + 59.0f * 60.0f + 999.0f * 60.0f * 24.0f);
 
@@ -171,14 +170,13 @@ namespace JSI
 					intValue = intValue / 10;
 					goalCoordinate[i] = thisCoord;
 				}
-			}
-			else {
+			} else {
 				int intValue = (int)(value);
 
 				for (int i = 7; i >= 0; --i) {
 					float thisCoord = (float)(intValue % 10) / 10.0f;
 					if (i == 7) {
-						thisCoord = Mathf.Floor((value % 10.0f)*2.0f) / 20.0f;
+						thisCoord = Mathf.Floor((value % 10.0f) * 2.0f) / 20.0f;
 					}
 					intValue = intValue / 10;
 					goalCoordinate[i] = thisCoord;
@@ -193,12 +191,10 @@ namespace JSI
 					if (Mathf.Abs(currentCoordinate[i] - goalCoordinate[i]) <= 0.5f) {
 						startingPoint = currentCoordinate[i];
 						endingPoint = goalCoordinate[i];
-					}
-					else if (goalCoordinate[i] < currentCoordinate[i]) {
+					} else if (goalCoordinate[i] < currentCoordinate[i]) {
 						startingPoint = currentCoordinate[i];
 						endingPoint = goalCoordinate[i] + 1.0f;
-					}
-					else {
+					} else {
 						startingPoint = currentCoordinate[i] + 1.0f;
 						endingPoint = goalCoordinate[i];
 					}
@@ -243,7 +239,6 @@ namespace JSI
 			RenderTexture.active = screenTexture;
 
 			if (!startupComplete) {
-				JUtil.AnnoyUser(this);
 				return;
 			}
 
@@ -341,76 +336,81 @@ namespace JSI
 
 		public void Start()
 		{
-			if (!string.IsNullOrEmpty(odometerMode) && modeList.ContainsKey(odometerMode)) {
-				oMode = modeList[odometerMode];
-			}
-			//else if (!string.IsNullOrEmpty(odometerMode)) {
-			//	JUtil.LogMessage(this, "found odometerMode {0}, but it's not in the dictionary", odometerMode);
-			//}
-			//else {
-			//	JUtil.LogMessage(this, "Did not find odometerMode");
-			//}
+			try {
+				if (!string.IsNullOrEmpty(odometerMode) && modeList.ContainsKey(odometerMode)) {
+					oMode = modeList[odometerMode];
+				}
+				//else if (!string.IsNullOrEmpty(odometerMode)) {
+				//	JUtil.LogMessage(this, "found odometerMode {0}, but it's not in the dictionary", odometerMode);
+				//}
+				//else {
+				//	JUtil.LogMessage(this, "Did not find odometerMode");
+				//}
 
-			if (string.IsNullOrEmpty(characterTexture) && oMode == OdometerMode.SI) {
-				JUtil.LogErrorMessage(this, "Prop configured as SI scaled, but there is no characterTexture");
-				return;
-			}
-
-			if (string.IsNullOrEmpty(digitTexture)) {
-				// We can't do anything without the digit texture
-				JUtil.LogErrorMessage(this, "Prop can not function without a digitTexture");
-				return;
-			}
-
-			digitTex = GameDatabase.Instance.GetTexture(digitTexture.EnforceSlashes(), false);
-			if (digitTex == null) {
-				JUtil.LogErrorMessage(this, "Failed to load digitTexture {0}", digitTexture);
-				return;
-			}
-
-			if (!string.IsNullOrEmpty(characterTexture)) {
-				characterTex = GameDatabase.Instance.GetTexture(characterTexture.EnforceSlashes(), false);
-				if (characterTex == null) {
-					JUtil.LogErrorMessage(this, "Failed to load characterTexture {0}", characterTexture);
+				if (string.IsNullOrEmpty(characterTexture) && oMode == OdometerMode.SI) {
+					JUtil.LogErrorMessage(this, "Prop configured as SI scaled, but there is no characterTexture");
 					return;
 				}
-			}
 
-			if (!string.IsNullOrEmpty(overlayTexture)) {
-				overlayTex = GameDatabase.Instance.GetTexture(overlayTexture.EnforceSlashes(), false);
-				if (overlayTex == null) {
-					JUtil.LogErrorMessage(this, "Failed to load overlayTexture {0}", overlayTexture);
+				if (string.IsNullOrEmpty(digitTexture)) {
+					// We can't do anything without the digit texture
+					JUtil.LogErrorMessage(this, "Prop can not function without a digitTexture");
 					return;
 				}
+
+				digitTex = GameDatabase.Instance.GetTexture(digitTexture.EnforceSlashes(), false);
+				if (digitTex == null) {
+					JUtil.LogErrorMessage(this, "Failed to load digitTexture {0}", digitTexture);
+					return;
+				}
+
+				if (!string.IsNullOrEmpty(characterTexture)) {
+					characterTex = GameDatabase.Instance.GetTexture(characterTexture.EnforceSlashes(), false);
+					if (characterTex == null) {
+						JUtil.LogErrorMessage(this, "Failed to load characterTexture {0}", characterTexture);
+						return;
+					}
+				}
+
+				if (!string.IsNullOrEmpty(overlayTexture)) {
+					overlayTex = GameDatabase.Instance.GetTexture(overlayTexture.EnforceSlashes(), false);
+					if (overlayTex == null) {
+						JUtil.LogErrorMessage(this, "Failed to load overlayTexture {0}", overlayTexture);
+						return;
+					}
+				}
+
+				if (string.IsNullOrEmpty(altVariable) != string.IsNullOrEmpty(perPodPersistenceName)) {
+					JUtil.LogErrorMessage(this, "Both altVariable and perPodPeristenceName must be defined, or neither");
+					return;
+				}
+
+				if (!string.IsNullOrEmpty(perPodPersistenceName)) {
+					persistence = new PersistenceAccessor(part);
+				}
+
+				// MOARdV: Which one are we using?  HUD uses the latter, OrbitDisplay, the former.
+				Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
+				//Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
+				digitMaterial = new Material(unlit);
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+
+				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+
+				lastUpdate = Planetarium.GetUniversalTime();
+
+				screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
+				screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+
+				foreach (string layerID in textureLayerID.Split()) {
+					screenMat.SetTexture(layerID.Trim(), screenTexture);
+				}
+
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
 			}
-
-			if (string.IsNullOrEmpty(altVariable) != string.IsNullOrEmpty(perPodPersistenceName)) {
-				JUtil.LogErrorMessage(this, "Both altVariable and perPodPeristenceName must be defined, or neither");
-				return;
-			}
-
-			if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-				persistence = new PersistenceAccessor(part);
-			}
-
-			// MOARdV: Which one are we using?  HUD uses the latter, OrbitDisplay, the former.
-			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
-			//Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
-			digitMaterial = new Material(unlit);
-			comp = RasterPropMonitorComputer.Instantiate(internalProp);
-
-			backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
-
-			lastUpdate = Planetarium.GetUniversalTime();
-
-			screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
-			screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
-
-			foreach (string layerID in textureLayerID.Split()) {
-				screenMat.SetTexture(layerID.Trim(), screenTexture);
-			}
-
-			startupComplete = true;
 		}
 	}
 }

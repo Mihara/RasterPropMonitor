@@ -88,11 +88,8 @@ namespace JSI
 		// Sorry. :)
 		public bool RenderPFD(RenderTexture screen, float aspect)
 		{
-			if (screen == null)
+			if (screen == null || !startupComplete)
 				return false;
-
-			if (!startupComplete)
-				JUtil.AnnoyUser(this);
 
 			// Analysis disable once CompareOfFloatsByEqualityOperator
 			if (aspect != cameraAspect) {
@@ -241,116 +238,120 @@ namespace JSI
 
 		public void Start()
 		{
+			try {
+				// Parse bloody KSPField colors.
+				if (!string.IsNullOrEmpty(backgroundColor))
+					backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
+				if (!string.IsNullOrEmpty(ballColor))
+					ballColorValue = ConfigNode.ParseColor32(ballColor);
+				if (!string.IsNullOrEmpty(progradeColor))
+					progradeColorValue = ConfigNode.ParseColor32(progradeColor);
+				if (!string.IsNullOrEmpty(maneuverColor))
+					maneuverColorValue = ConfigNode.ParseColor32(maneuverColor);
+				if (!string.IsNullOrEmpty(targetColor))
+					targetColorValue = ConfigNode.ParseColor32(targetColor);
+				if (!string.IsNullOrEmpty(normalColor))
+					normalColorValue = ConfigNode.ParseColor32(normalColor);
+				if (!string.IsNullOrEmpty(radialColor))
+					radialColorValue = ConfigNode.ParseColor32(radialColor);
+				if (!string.IsNullOrEmpty(dockingColor))
+					dockingColorValue = ConfigNode.ParseColor32(dockingColor);
 
-			// Parse bloody KSPField colors.
-			if (!string.IsNullOrEmpty(backgroundColor))
-				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
-			if (!string.IsNullOrEmpty(ballColor))
-				ballColorValue = ConfigNode.ParseColor32(ballColor);
-			if (!string.IsNullOrEmpty(progradeColor))
-				progradeColorValue = ConfigNode.ParseColor32(progradeColor);
-			if (!string.IsNullOrEmpty(maneuverColor))
-				maneuverColorValue = ConfigNode.ParseColor32(maneuverColor);
-			if (!string.IsNullOrEmpty(targetColor))
-				targetColorValue = ConfigNode.ParseColor32(targetColor);
-			if (!string.IsNullOrEmpty(normalColor))
-				normalColorValue = ConfigNode.ParseColor32(normalColor);
-			if (!string.IsNullOrEmpty(radialColor))
-				radialColorValue = ConfigNode.ParseColor32(radialColor);
-			if (!string.IsNullOrEmpty(dockingColor))
-				dockingColorValue = ConfigNode.ParseColor32(dockingColor);
+				Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
+				overlayMaterial = new Material(unlit);
+				overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
 
-			Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
-			overlayMaterial = new Material(unlit);
-			overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
+				if (!string.IsNullOrEmpty(headingBar)) {
+					headingMaterial = new Material(unlit);
+					headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
+				}
+				horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
 
-			if (!string.IsNullOrEmpty(headingBar)) {
-				headingMaterial = new Material(unlit);
-				headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
+				gizmoTexture = JUtil.GetGizmoTexture();
+
+				// Ahaha, that's clever, does it work?
+				stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
+				// ...well, it does, but the result is bizarre,
+				// apparently, because the stock BALL ITSELF IS MIRRORED.
+
+				navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+				Destroy(navBall.collider);
+				navBall.name = "RPMNB" + navBall.GetInstanceID();
+				navBall.layer = drawingLayer;
+				navBall.transform.position = Vector3.zero;
+				navBall.transform.rotation = Quaternion.identity;
+				navBall.transform.localRotation = Quaternion.identity;
+
+				if (ballIsEmissive) {
+					navBall.renderer.material.shader = Shader.Find("KSP/Emissive/Diffuse");
+					navBall.renderer.material.SetTexture("_MainTex", horizonTex);
+					navBall.renderer.material.SetTextureOffset("_Emissive", navBall.renderer.material.GetTextureOffset("_MainTex"));
+					navBall.renderer.material.SetTexture("_Emissive", horizonTex);
+					navBall.renderer.material.SetColor("_EmissiveColor", ballColorValue);
+				} else {
+					navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
+					navBall.renderer.material.mainTexture = horizonTex;
+					navBall.renderer.material.color = ballColorValue;
+				}
+				navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
+
+				markerPrograde = BuildMarker(0, 2, progradeColorValue);
+				markerRetrograde = BuildMarker(1, 2, progradeColorValue);
+				markerManeuver = BuildMarker(2, 0, maneuverColorValue);
+				markerManeuverMinus = BuildMarker(1, 2, maneuverColorValue);
+				markerTarget = BuildMarker(2, 1, targetColorValue);
+				markerTargetMinus = BuildMarker(2, 2, targetColorValue);
+				markerNormal = BuildMarker(0, 0, normalColorValue);
+				markerNormalMinus = BuildMarker(1, 0, normalColorValue);
+				markerRadial = BuildMarker(1, 1, radialColorValue);
+				markerRadialMinus = BuildMarker(0, 1, radialColorValue);
+
+				markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
+
+				// Non-moving parts...
+				cameraBody = new GameObject();
+				cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
+				cameraBody.layer = drawingLayer;
+				ballCamera = cameraBody.AddComponent<Camera>();
+				ballCamera.enabled = false;
+				ballCamera.orthographic = true;
+				ballCamera.clearFlags = CameraClearFlags.Nothing;
+				ballCamera.eventMask = 0;
+				ballCamera.farClipPlane = 3f;
+				ballCamera.orthographicSize = cameraSpan;
+				ballCamera.cullingMask = 1 << drawingLayer;
+				ballCamera.clearFlags = CameraClearFlags.Depth;
+				// -2,0,0 seems to get the orientation exactly as the ship.
+				// But logically, forward is Z+, right?
+				// Which means that 
+				ballCamera.transform.position = new Vector3(0, 0, 2);
+				ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
+				ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
+
+				overlay = CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
+				overlay.layer = drawingLayer;
+				overlay.transform.position = new Vector3(0, 0, 1.5f);
+				overlay.renderer.material = overlayMaterial;
+				overlay.transform.parent = cameraBody.transform;
+				FaceCamera(overlay);
+
+				if (headingMaterial != null) {
+					heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
+					heading.layer = drawingLayer;
+					heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
+					heading.transform.parent = cameraBody.transform;
+					heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
+					heading.renderer.material = headingMaterial;
+					heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
+					FaceCamera(heading);
+				}
+
+				ShowHide(false, navBall, cameraBody, overlay, heading);
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				throw;
 			}
-			horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
-
-			gizmoTexture = JUtil.GetGizmoTexture();
-
-			// Ahaha, that's clever, does it work?
-			stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
-			// ...well, it does, but the result is bizarre,
-			// apparently, because the stock BALL ITSELF IS MIRRORED.
-
-			navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
-			Destroy(navBall.collider);
-			navBall.name = "RPMNB" + navBall.GetInstanceID();
-			navBall.layer = drawingLayer;
-			navBall.transform.position = Vector3.zero;
-			navBall.transform.rotation = Quaternion.identity;
-			navBall.transform.localRotation = Quaternion.identity;
-
-			if (ballIsEmissive) {
-				navBall.renderer.material.shader = Shader.Find("KSP/Emissive/Diffuse");
-				navBall.renderer.material.SetTexture("_MainTex", horizonTex);
-				navBall.renderer.material.SetTextureOffset("_Emissive", navBall.renderer.material.GetTextureOffset("_MainTex"));
-				navBall.renderer.material.SetTexture("_Emissive", horizonTex);
-				navBall.renderer.material.SetColor("_EmissiveColor", ballColorValue);
-			} else {
-				navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
-				navBall.renderer.material.mainTexture = horizonTex;
-				navBall.renderer.material.color = ballColorValue;
-			}
-			navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
-
-			markerPrograde = BuildMarker(0, 2, progradeColorValue);
-			markerRetrograde = BuildMarker(1, 2, progradeColorValue);
-			markerManeuver = BuildMarker(2, 0, maneuverColorValue);
-			markerManeuverMinus = BuildMarker(1, 2, maneuverColorValue);
-			markerTarget = BuildMarker(2, 1, targetColorValue);
-			markerTargetMinus = BuildMarker(2, 2, targetColorValue);
-			markerNormal = BuildMarker(0, 0, normalColorValue);
-			markerNormalMinus = BuildMarker(1, 0, normalColorValue);
-			markerRadial = BuildMarker(1, 1, radialColorValue);
-			markerRadialMinus = BuildMarker(0, 1, radialColorValue);
-
-			markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
-
-			// Non-moving parts...
-			cameraBody = new GameObject();
-			cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
-			cameraBody.layer = drawingLayer;
-			ballCamera = cameraBody.AddComponent<Camera>();
-			ballCamera.enabled = false;
-			ballCamera.orthographic = true;
-			ballCamera.clearFlags = CameraClearFlags.Nothing;
-			ballCamera.eventMask = 0;
-			ballCamera.farClipPlane = 3f;
-			ballCamera.orthographicSize = cameraSpan;
-			ballCamera.cullingMask = 1 << drawingLayer;
-			ballCamera.clearFlags = CameraClearFlags.Depth;
-			// -2,0,0 seems to get the orientation exactly as the ship.
-			// But logically, forward is Z+, right?
-			// Which means that 
-			ballCamera.transform.position = new Vector3(0, 0, 2);
-			ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
-			ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
-
-			overlay = CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
-			overlay.layer = drawingLayer;
-			overlay.transform.position = new Vector3(0, 0, 1.5f);
-			overlay.renderer.material = overlayMaterial;
-			overlay.transform.parent = cameraBody.transform;
-			FaceCamera(overlay);
-
-			if (headingMaterial != null) {
-				heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
-				heading.layer = drawingLayer;
-				heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
-				heading.transform.parent = cameraBody.transform;
-				heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
-				heading.renderer.material = headingMaterial;
-				heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
-				FaceCamera(heading);
-			}
-
-			ShowHide(false, navBall, cameraBody, overlay, heading);
-			startupComplete = true;
 		}
 
 		private static void FaceCamera(GameObject thatObject)

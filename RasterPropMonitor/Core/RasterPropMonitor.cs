@@ -120,6 +120,8 @@ namespace JSI
 
 		public void Start()
 		{
+
+			// If we're not in the correct location, there's no point doing anything.
 			if (!InstallationPathWarning.Warn())
 				return;
 
@@ -245,6 +247,9 @@ namespace JSI
 				startupComplete = true;
 			} catch {
 				JUtil.AnnoyUser(this);
+				// And now that we notified the user that config is borked, we rethrow the exception so that
+				// it gets logged and we can debug.
+				throw;
 			}
 
 		}
