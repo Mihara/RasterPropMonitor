@@ -25,37 +25,43 @@ namespace JSI
 
 		public void Start()
 		{
-			ConfigNode moduleConfig = null;
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
-				if (node.GetValue("name") == internalProp.propName) {
+			try {
+				ConfigNode moduleConfig = null;
+				foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {
+					if (node.GetValue("name") == internalProp.propName) {
 
-					moduleConfig = node.GetNodes("MODULE")[moduleID];
-					ConfigNode[] variableNodes = moduleConfig.GetNodes("VARIABLESET");
+						moduleConfig = node.GetNodes("MODULE")[moduleID];
+						ConfigNode[] variableNodes = moduleConfig.GetNodes("VARIABLESET");
 
-					for (int i = 0; i < variableNodes.Length; i++) {
-						try {
-							variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
-						} catch (ArgumentException e) {
-							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+						for (int i = 0; i < variableNodes.Length; i++) {
+							try {
+								variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
+							} catch (ArgumentException e) {
+								JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+							}
 						}
+						break;
 					}
-					break;
 				}
-			}
 
-			// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
-			if (variableSets.Count < 1 && moduleConfig != null) {
-				try {
-					variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
-				} catch (ArgumentException e) {
-					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+				// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
+				if (variableSets.Count < 1 && moduleConfig != null) {
+					try {
+						variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp)); 
+					} catch (ArgumentException e) {
+						JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+					}
 				}
+				JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+				foreach (VariableAnimationSet thatSet in variableSets) {
+					alwaysActive |= thatSet.alwaysActive;
+				}
+				startupComplete = true;
+			} catch {
+				JUtil.AnnoyUser(this);
+				enabled = false;
+				throw;
 			}
-			JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
-			foreach (VariableAnimationSet thatSet in variableSets) {
-				alwaysActive |= thatSet.alwaysActive;
-			}
-			startupComplete = true;
 		}
 
 		public override void OnUpdate()

@@ -34,48 +34,54 @@ namespace JSI
 
 		public void Start()
 		{
-			comp = RasterPropMonitorComputer.Instantiate(internalProp);
-			textObjTransform = internalProp.FindModelTransform(labelTransform);
-			textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
-			activeLabel = 0;
+			try {
+				comp = RasterPropMonitorComputer.Instantiate(internalProp);
+				textObjTransform = internalProp.FindModelTransform(labelTransform);
+				textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
+				activeLabel = 0;
 
-			SmarterButton.CreateButton(internalProp, switchTransform, Click);
+				SmarterButton.CreateButton(internalProp, switchTransform, Click);
 
-			ConfigNode moduleConfig = null;
-			foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP")) {
-				if (node.GetValue("name") == internalProp.propName) {
+				ConfigNode moduleConfig = null;
+				foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP")) {
+					if (node.GetValue("name") == internalProp.propName) {
 
-					moduleConfig = node.GetNodes("MODULE")[moduleID];
-					ConfigNode[] variableNodes = moduleConfig.GetNodes("VARIABLESET");
+						moduleConfig = node.GetNodes("MODULE")[moduleID];
+						ConfigNode[] variableNodes = moduleConfig.GetNodes("VARIABLESET");
 
-					for (int i = 0; i < variableNodes.Length; i++) {
-						try {
-							labelsEx.Add(new VariableLabelSet(variableNodes[i]));
-						} catch (ArgumentException e) {
-							JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+						for (int i = 0; i < variableNodes.Length; i++) {
+							try {
+								labelsEx.Add(new VariableLabelSet(variableNodes[i]));
+							} catch (ArgumentException e) {
+								JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+							}
 						}
+						break;
 					}
-					break;
 				}
-			}
 
-			// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
-			if (labelsEx.Count < 1 && moduleConfig != null) {
-				try {
-					labelsEx.Add(new VariableLabelSet(moduleConfig));
-				} catch (ArgumentException e) {
-					JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+				// Fallback: If there are no VARIABLESET blocks, we treat the module configuration itself as a variableset block.
+				if (labelsEx.Count < 1 && moduleConfig != null) {
+					try {
+						labelsEx.Add(new VariableLabelSet(moduleConfig));
+					} catch (ArgumentException e) {
+						JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+					}
 				}
-			}
 
-			colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
-			if (labelsEx[activeLabel].hasColor) {
-				colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
-			}
-			textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
+				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
+				if (labelsEx[activeLabel].hasColor) {
+					colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
+				}
+				textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
 
-			audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
-			JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
+				audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
+				JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
+			} catch {
+				JUtil.AnnoyUser(this);
+				enabled = false;
+				throw;
+			}
 		}
 
 		private bool UpdateCheck()

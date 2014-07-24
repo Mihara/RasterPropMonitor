@@ -299,6 +299,7 @@ namespace JSI
 				startupComplete = true;
 			} catch {
 				JUtil.AnnoyUser(this);
+				enabled = false;
 				throw;
 			}
 		}

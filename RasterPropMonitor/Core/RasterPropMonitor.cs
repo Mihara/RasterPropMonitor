@@ -251,6 +251,8 @@ namespace JSI
 			} catch {
 				JUtil.AnnoyUser(this);
 				startupFailed = true;
+				// We can also disable ourselves, that should help.
+				enabled = false;
 				// And now that we notified the user that config is borked, we rethrow the exception so that
 				// it gets logged and we can debug.
 				throw;
