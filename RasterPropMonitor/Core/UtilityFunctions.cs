@@ -231,6 +231,16 @@ namespace JSI
 
 		}
 
+		public static bool IsPodTransparent(Part thatPart) 
+		{
+			foreach (PartModule thatModule in thatPart.Modules) {
+				if (thatModule is JSITransparentPod) {
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public static void SetMainCameraCullingMaskForIVA(bool flag)
 		{
 			SetCameraCullingMaskForIVA("Camera 00", flag);

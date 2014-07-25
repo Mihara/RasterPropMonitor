@@ -91,6 +91,8 @@ namespace JSI
 		private int loopsWithoutInitCounter = 0;
 		private bool startupFailed = false;
 
+		private bool ourPodIsTransparent = false;
+
 		private enum Script
 		{
 			Normal,
@@ -245,6 +247,9 @@ namespace JSI
 				}
 
 				audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
+
+				// One last thing to make sure of: If our pod is transparent, we're always active.
+				ourPodIsTransparent = JUtil.IsPodTransparent(part);
 
 				// And if the try block never completed, startupComplete will never be true.
 				startupComplete = true;
@@ -541,7 +546,7 @@ namespace JSI
 				return;
 			}
 
-			if (!JUtil.UserIsInPod(part))
+			if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
 				return; 
 
 			// Screenshots need to happen in at this moment, because otherwise they may miss.
