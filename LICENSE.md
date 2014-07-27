@@ -4,7 +4,8 @@ The complete copy of the license is attached to this document.
 ------
 SUMMARY:
 
-    RasterPropMonitor  Copyright (C) 2013 by Mihara (Eugene Medvedev)
+    RasterPropMonitor  Copyright (C) 2013-2014 
+    by Mihara (Eugene Medvedev) and other contributors
     This program comes with ABSOLUTELY NO WARRANTY!
     This is free software, and you are welcome to redistribute it
     under certain conditions, as outlined in the full content of
