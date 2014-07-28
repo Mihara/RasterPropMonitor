@@ -537,7 +537,7 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
-
+		
 			// If we didn't complete startup, we can't do anything anyway.
 			// The only trouble is that situations where update happens before startup is complete do happen sometimes,
 			// particularly when docking, so we can't use it to detect being broken by a third party plugin.
@@ -545,6 +545,10 @@ namespace JSI
 				loopsWithoutInitCounter++;
 				return;
 			}
+
+			// If we were spawned while in editor, we need to blank the screen out and halt.
+			// So we switch to oneshot mode.
+			oneshot |= HighLogic.LoadedSceneIsEditor;
 
 			if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
 				return; 

@@ -377,6 +377,10 @@ namespace JSI
 		public static bool UserIsInPod(Part thisPart)
 		{
 
+			// Just in case, check for whether we're not in flight.
+			if (!HighLogic.LoadedSceneIsFlight)
+				return false;
+
 			// If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
 			if (!VesselIsInIVA(thisPart.vessel) || thisPart.internalModel == null)
 				return false;
