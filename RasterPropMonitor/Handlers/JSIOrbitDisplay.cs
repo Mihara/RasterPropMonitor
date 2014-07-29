@@ -16,7 +16,7 @@ namespace JSI
 		private Color iconColorSelfValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public string orbitColorSelf = string.Empty;
-		private Color orbitColorSelfValue = MapView.PatchColors[0];
+		private Color orbitColorSelfValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public string iconColorTarget = string.Empty;
 		private Color iconColorTargetValue = new Color32(255, 235, 4, 153);
@@ -25,16 +25,16 @@ namespace JSI
 		private Color iconColorShadowValue = new Color(0f, 0f, 0f, 0.5f);
 		[KSPField]
 		public string iconColorAP = string.Empty;
-		private Color iconColorAPValue = MapView.PatchColors[0];
+		private Color iconColorAPValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public string iconColorPE = string.Empty;
-		private Color iconColorPEValue = MapView.PatchColors[0];
+		private Color iconColorPEValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public string iconColorClosestApproach = string.Empty;
 		private Color iconColorClosestApproachValue = new Color(0.7f, 0.0f, 0.7f, 0.6f);
 		[KSPField]
 		public string orbitColorNextNode = string.Empty;
-		private Color orbitColorNextNodeValue = MapView.PatchColors[1];
+		private Color orbitColorNextNodeValue = new Color(1f, 1f, 1f, 0.6f);
 		[KSPField]
 		public Vector4 orbitDisplayPosition = new Vector4(0f, 0f, 512f, 512f);
 		[KSPField]
@@ -208,7 +208,7 @@ namespace JSI
 		// Analysis disable once UnusedParameter
 		public bool RenderOrbit(RenderTexture screen, float cameraAspect)
 		{
-			if (!startupComplete)
+			if (!startupComplete || HighLogic.LoadedSceneIsEditor)
 				return false;
 			// Make sure the parameters fit on the screen.
 			Vector4 displayPosition = orbitDisplayPosition;
@@ -567,6 +567,14 @@ namespace JSI
 
 		public void Start()
 		{
+			// Skip the entire sequence when in editor -- this means we're part of a transparent pod and won't get used anyway.
+			if (HighLogic.LoadedSceneIsEditor) {
+				iconMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+				iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
+				startupComplete = true;
+				return;
+			}
+
 			try {
 				if (!string.IsNullOrEmpty(backgroundColor)) {
 					backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
@@ -576,6 +584,8 @@ namespace JSI
 				}
 				if (!string.IsNullOrEmpty(orbitColorSelf)) {
 					orbitColorSelfValue = ConfigNode.ParseColor32(orbitColorSelf);
+				} else {
+					orbitColorSelfValue = MapView.PatchColors[0];
 				}
 				if (!string.IsNullOrEmpty(iconColorTarget)) {
 					iconColorTargetValue = ConfigNode.ParseColor32(iconColorTarget);
@@ -585,12 +595,18 @@ namespace JSI
 				}
 				if (!string.IsNullOrEmpty(iconColorAP)) {
 					iconColorAPValue = ConfigNode.ParseColor32(iconColorAP);
+				} else {
+					iconColorAPValue = MapView.PatchColors[0];
 				}
 				if (!string.IsNullOrEmpty(iconColorPE)) {
 					iconColorPEValue = ConfigNode.ParseColor32(iconColorPE);
+				} else {
+					iconColorPEValue = MapView.PatchColors[0];
 				}
 				if (!string.IsNullOrEmpty(orbitColorNextNode)) {
 					orbitColorNextNodeValue = ConfigNode.ParseColor32(orbitColorNextNode);
+				} else {
+					orbitColorNextNodeValue = MapView.PatchColors[1];
 				}
 				if (!string.IsNullOrEmpty(iconColorClosestApproach)) {
 					iconColorClosestApproachValue = ConfigNode.ParseColor32(iconColorClosestApproach);
