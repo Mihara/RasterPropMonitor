@@ -354,12 +354,16 @@ namespace JSI
 
 		public static Texture2D GetGizmoTexture()
 		{
-			// This clever method at getting at the stock texture asset originates in Enhanced Navball.
-			ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
-			ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
-			Transform gizmoTransform = maneuverGizmoHandle.flag;
-			Renderer gizmoRenderer = gizmoTransform.renderer;
-			return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+			if (HighLogic.LoadedSceneIsFlight) {
+				// This clever method at getting at the stock texture asset originates in Enhanced Navball.
+				ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
+				ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
+				Transform gizmoTransform = maneuverGizmoHandle.flag;
+				Renderer gizmoRenderer = gizmoTransform.renderer;
+				return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
+			}
+			// Apparently when not in flight scene, the MapView isn't around yet and we need to return, well, something.
+			return new Texture2D(32, 32);
 		}
 
 		public static void AnnoyUser(object caller)
