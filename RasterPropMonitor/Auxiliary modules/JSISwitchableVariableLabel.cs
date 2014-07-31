@@ -69,11 +69,18 @@ namespace JSI
 					}
 				}
 
+				if (labelsEx.Count == 0) {
+					JUtil.LogMessage(this, "No labels defined.");
+					throw new ArgumentException("No labels defined");
+				}
+
 				colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
 				if (labelsEx[activeLabel].hasColor) {
 					colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
 				}
-				textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
+				if (labelsEx[activeLabel].hasText) {
+					textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
+				}
 
 				audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 				JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
