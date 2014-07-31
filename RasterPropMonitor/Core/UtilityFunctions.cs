@@ -368,6 +368,7 @@ namespace JSI
 
 		public static void AnnoyUser(object caller)
 		{
+			LogErrorMessage(caller, "INITIALIZATION ERROR, CHECK CONFIGURATION.");
 			ScreenMessages.PostScreenMessage(string.Format("{0}: INITIALIZATION ERROR, CHECK CONFIGURATION.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
 		}
 
