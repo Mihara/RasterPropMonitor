@@ -88,7 +88,7 @@ namespace JSI
 		// Sorry. :)
 		public bool RenderPFD(RenderTexture screen, float aspect)
 		{
-			if (screen == null || !startupComplete)
+			if (screen == null || !startupComplete || HighLogic.LoadedSceneIsEditor)
 				return false;
 
 			// Analysis disable once CompareOfFloatsByEqualityOperator
@@ -238,6 +238,10 @@ namespace JSI
 
 		public void Start()
 		{
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 				// Parse bloody KSPField colors.
 				if (!string.IsNullOrEmpty(backgroundColor))

@@ -87,7 +87,7 @@ namespace JSI
 
 		public bool RenderHUD(RenderTexture screen, float cameraAspect)
 		{
-			if (screen == null || !startupComplete)
+			if (screen == null || !startupComplete || HighLogic.LoadedSceneIsEditor)
 				return false;
 
 			// Clear the background, if configured.
@@ -304,6 +304,9 @@ namespace JSI
 
 		public void Start()
 		{
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
 			try {
 				backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 

@@ -165,7 +165,7 @@ namespace JSI
 		public bool RenderCamera(RenderTexture screen, float cameraAspect)
 		{
 			// Just in case.
-			if (!HighLogic.LoadedSceneIsFlight) {
+			if (HighLogic.LoadedSceneIsEditor) {
 				return false;
 			}
 
@@ -357,6 +357,9 @@ namespace JSI
 
 		public void Start()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			if (string.IsNullOrEmpty(cameraTransform)) {
 				// Nothing to do if there're no camera transforms.
 				return;
