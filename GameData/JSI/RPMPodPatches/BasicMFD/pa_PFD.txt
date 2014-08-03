@@ -6,15 +6,15 @@
   {0:ORB;TGT;SRF}                                  $&$ SPEEDDISPLAYMODE 
 
  [@x-3]{0,6:000.0}°                        [@x2]{1,6:000.0}° $&$ ROLL PITCH
-
-
-
-
- 
-
+[@y8] SAS:                              [hw] Gear:[/hw]
+ {0,-3:"[#00ff00ff]On [#ffffffff]";0;Off}                               [@x8]{1,-4:"[#00ff00ff]Down [#ffffffff]";0;Up} $&$ SAS GEAR
+[@y8] RCS:                              [hw] Brakes:[/hw]
+ {0,-3:"[#00ff00ff]On [#ffffffff]";0;Off}                               [@x8]{1,-3:"[#00ff00ff]On [#ffffffff]";0;Off} $&$ RCS BRAKES
+[@y8] [hw]Throttle: [/hw]                             [hw] Lights: [/hw]
+ {0,5:P0}                             [@x8]{1,-3:"[#00ff00ff]On [#ffffffff]";0;Off} $&$ THROTTLE LIGHTS
 {0:;"                                                       ";""} Burn T:$&$ MNODEEXISTS
 {0:;"                                                       ";""} {1:KDTS.f}s $&$ MNODEEXISTS MNODEBURNTIMESECS
 {0:;"                                                       ";""} Node in T                       ΔV $&$ MNODEEXISTS
 {2:;"                                                       ";}{0,17:KDT+yy:ddd:hh:mm:ss.f}          {1:SIP_6.3}m/s     $&$ MNODETIMESECS MNODEDV MNODEEXISTS
 
-  {0:SIP_6.3}m       {1:SIP_6.3}m/s    {2:SIP_6.3}m/s      $&$RADARALT HORZVELOCITY VERTSPEED 
+  {0:SIP_6.3}m       {1:SIP_6.3}m/s    {2:SIP_6.3}m/s      $&$RADARALT HORZVELOCITY VERTSPEED
