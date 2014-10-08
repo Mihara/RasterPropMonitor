@@ -25,6 +25,9 @@ namespace JSI
 
 		public void Start()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 				ConfigNode moduleConfig = null;
 				foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes ("PROP")) {

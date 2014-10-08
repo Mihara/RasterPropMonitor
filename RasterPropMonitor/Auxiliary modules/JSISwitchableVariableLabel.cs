@@ -34,6 +34,9 @@ namespace JSI
 
 		public void Start()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 				comp = RasterPropMonitorComputer.Instantiate(internalProp);
 				textObjTransform = internalProp.FindModelTransform(labelTransform);

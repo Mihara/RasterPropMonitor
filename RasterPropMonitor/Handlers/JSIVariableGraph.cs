@@ -40,6 +40,10 @@ namespace JSI
 
 		public void Start()
 		{
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 				if (!string.IsNullOrEmpty(borderColor))
 					borderColorValue = ConfigNode.ParseColor32(borderColor);
@@ -115,6 +119,9 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			double time = Planetarium.GetUniversalTime();
 			if (lastDataPoint + (double)secondsBetweenSamples < time) {
 				foreach (GraphLine graph in graphs)

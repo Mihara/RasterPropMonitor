@@ -376,7 +376,7 @@ namespace JSI
 		{
 			// Inactive IVAs are renderer.enabled = false, this can and should be used...
 			// ... but now it can't because we're doing transparent pods, so we need a more complicated way to find which pod the player is in.
-			return IsActiveVessel(thatVessel) && IsInIVA();
+			return HighLogic.LoadedSceneIsFlight && IsActiveVessel(thatVessel) && IsInIVA();
 		}
 
 		public static bool UserIsInPod(Part thisPart)

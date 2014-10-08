@@ -336,6 +336,10 @@ namespace JSI
 
 		public void Start()
 		{
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 				if (!string.IsNullOrEmpty(odometerMode) && modeList.ContainsKey(odometerMode)) {
 					oMode = modeList[odometerMode];

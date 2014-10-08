@@ -130,6 +130,9 @@ namespace JSI
 			if (!InstallationPathWarning.Warn())
 				return;
 
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 
 				// Install the calculator module.
@@ -537,6 +540,9 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
 		
 			// If we didn't complete startup, we can't do anything anyway.
 			// The only trouble is that situations where update happens before startup is complete do happen sometimes,
@@ -611,6 +617,10 @@ namespace JSI
 		}
 
 		public void LateUpdate() {
+
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			// If we reached a set number of update loops and startup still didn't happen, we're getting killed by a third party module.
 			// We might STILL be getting killed by a third party module even during update, but I hope this will catch at least some cases.
 			if (!startupFailed && loopsWithoutInitCounter > 600) {

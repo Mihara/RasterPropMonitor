@@ -131,6 +131,9 @@ namespace JSI
 
 		public void Start()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
+
 			try {
 
 				if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName)) {
@@ -341,6 +344,8 @@ namespace JSI
 
 		public override void OnUpdate()
 		{
+			if (HighLogic.LoadedSceneIsEditor)
+				return;
 
 			if (!startupComplete)
 				return;
