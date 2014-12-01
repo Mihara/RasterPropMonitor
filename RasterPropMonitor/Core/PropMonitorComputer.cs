@@ -867,6 +867,9 @@ namespace JSI
 			return 0;
 		}
 
+
+
+
 		private void FetchCommonData()
 		{
 			localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
@@ -1785,8 +1788,9 @@ namespace JSI
 				case "TARGETANGLEX":
 					if (target != null) {
 						if (targetDockingNode != null)
-							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
-						if (target is Vessel)
+                            return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward.normalized, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+							//return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up);
+                        if (target is Vessel)
 							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
 						return 0d;
 					}
@@ -1794,8 +1798,9 @@ namespace JSI
 				case "TARGETANGLEY":
 					if (target != null) {
 						if (targetDockingNode != null)
-							return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right);
-						if (target is Vessel) {
+                            return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward.normalized, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
+							//return JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right);
+                        	if (target is Vessel) {
 							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
 						return 0d;
@@ -1804,7 +1809,8 @@ namespace JSI
 				case "TARGETANGLEZ":
 					if (target != null) {
 						if (targetDockingNode != null)
-							return JUtil.NormalAngle(targetDockingNode.GetTransform().up, up, -forward);
+                            return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
+							//return JUtil.NormalAngle(targetDockingNode.GetTransform().up, up, -forward);
 						if (target is Vessel) {
 							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
