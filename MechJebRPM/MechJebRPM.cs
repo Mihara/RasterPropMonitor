@@ -539,9 +539,9 @@ namespace MechJebRPM
 			activeMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 			activeMenu.menuTitle = "== Circularize Menu:";
 
-			activeMenu.Add(new TextMenu.Item("At Next Ap", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS));
-			activeMenu.Add(new TextMenu.Item("At Next Pe", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.PERIAPSIS));
-			activeMenu.Add(new TextMenu.Item("In 15s", DoCircularize, (int)MechJebModuleManeuverPlanner.TimeReference.X_FROM_NOW));
+			activeMenu.Add(new TextMenu.Item("At Next Ap", DoCircularize, (int)TimeReference.APOAPSIS));
+			activeMenu.Add(new TextMenu.Item("At Next Pe", DoCircularize, (int)TimeReference.PERIAPSIS));
+			activeMenu.Add(new TextMenu.Item("In 15s", DoCircularize, (int)TimeReference.X_FROM_NOW));
 		}
 
 		//--- Orbital Menu
@@ -574,7 +574,7 @@ namespace MechJebRPM
 			// If the menu works, the only thing we won't allow is
 			// "circularize at Ap" when we're hyperbolic.
 
-			var AtAp = activeMenu.Find(x => x.id == (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS);
+			var AtAp = activeMenu.Find(x => x.id == (int)TimeReference.APOAPSIS);
 			if (AtAp != null) {
 				AtAp.isDisabled = (vessel.orbit.eccentricity >= 1.0);
 			}
@@ -587,15 +587,15 @@ namespace MechJebRPM
 			Orbit o = vessel.orbit;
 
 			switch (tmi.id) {
-				case (int)MechJebModuleManeuverPlanner.TimeReference.APOAPSIS:
+				case (int)TimeReference.APOAPSIS:
 					UT = o.NextApoapsisTime(Planetarium.GetUniversalTime());
 					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
 					break;
-				case (int)MechJebModuleManeuverPlanner.TimeReference.PERIAPSIS:
+				case (int)TimeReference.PERIAPSIS:
 					UT = o.NextPeriapsisTime(Planetarium.GetUniversalTime());
 					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
 					break;
-				case (int)MechJebModuleManeuverPlanner.TimeReference.X_FROM_NOW:
+				case (int)TimeReference.X_FROM_NOW:
 					UT = Planetarium.GetUniversalTime() + 15.0;
 					dV = OrbitalManeuverCalculator.DeltaVToCircularize(o, UT);
 					break;
