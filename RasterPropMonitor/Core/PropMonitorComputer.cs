@@ -1367,12 +1367,49 @@ namespace JSI
 					return bestPossibleSpeedAtImpact;
 
 			// The way Engineer does it...
-				case "TGTRELX":
-					return FlightGlobals.ship_tgtVelocity.x;
-				case "TGTRELY":
-					return FlightGlobals.ship_tgtVelocity.y;
-				case "TGTRELZ":
-					return FlightGlobals.ship_tgtVelocity.z;
+		//		case "TGTRELX":
+		//			return FlightGlobals.ship_tgtVelocity.x;
+		//		case "TGTRELY":
+		//			return FlightGlobals.ship_tgtVelocity.y;
+		//		case "TGTRELZ":
+		//			return FlightGlobals.ship_tgtVelocity.z;
+            
+                //The way NavyFish does it...
+                        case "TGTRELX":
+                     
+                    if (target != null)
+                    {
+                      //  if (targetDockingNode != null){
+                          Transform targetTransform = targetDockingNode.GetTransform();
+                            float normalVelocity = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform.forward.normalized);
+                            Vector3 globalTransverseVelocity = FlightGlobals.ship_tgtVelocity - normalVelocity * targetTransform.forward.normalized;
+                            return Vector3.Dot(globalTransverseVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
+                            
+                       // }
+                    }else{
+                        return 0; 
+                    }
+
+                		case "TGTRELY":
+                    if (target != null)
+                    {
+                     //   if (targetDockingNode != null){
+                        
+                            Transform targetTransform2 = targetDockingNode.GetTransform();
+                            float normalVelocity2 = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform2.forward.normalized);
+                            Vector3 globalTransverseVelocity2 = FlightGlobals.ship_tgtVelocity - normalVelocity2 * targetTransform2.forward.normalized;
+                            return Vector3.Dot(globalTransverseVelocity2, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+
+                          
+                       // }
+                    }else{
+                        return 0; 
+                    }
+                		case "TGTRELZ":
+                            //cheap way to do this one.. but should be true!
+                            return approachSpeed;
+               
+
 
 			// Time to impact. This is quite imprecise, because a precise calculation pulls in pages upon pages of MechJeb code.
 			// It accounts for gravity now, though. Pull requests welcome.
