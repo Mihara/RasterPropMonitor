@@ -1781,28 +1781,34 @@ namespace JSI
 				case "TARGETDISTANCEZ":  //closure distance from target - (h and n rcs keys)
 					return -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
 
-                case "TARGETDISTANCESCALEDX":    //scaled and clamped version of TARGETDISTANCEX.  Returns a number between 100 and -100, with precision increasing as distance decreases.
-                    double scaledX = Vector3d.Dot(targetSeparation, vessel.GetTransform().right);
-                    double zdist = -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
-                    scaledX = ((scaledX + zdist) / (zdist + zdist)) * (100) - 50;
-                    if (scaledX > 100) scaledX = 100;
-                    if (scaledX < -100) scaledX = -100;
-                    return scaledX;
+				case "TARGETDISTANCESCALEDX":    //scaled and clamped version of TARGETDISTANCEX.  Returns a number between 100 and -100, with precision increasing as distance decreases.
+					double scaledX = Vector3d.Dot(targetSeparation, vessel.GetTransform().right);
+					double zdist = -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
+					if (zdist < .1)
+						scaledX = scaledX / (0.1 * Math.Sign(zdist));
+					else
+						scaledX = ((scaledX + zdist) / (zdist + zdist)) * (100) - 50;
+					if (scaledX > 100) scaledX = 100;
+					if (scaledX < -100) scaledX = -100;
+					return scaledX;
 
 
-                case "TARGETDISTANCESCALEDY":  //scaled and clamped version of TARGETDISTANCEY.  These two numbers will control the position needles on a docking port alignment gauge.
-                    double scaledY = Vector3d.Dot(targetSeparation, vessel.GetTransform().forward);
-                    double zdist2 = -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
-                    scaledY = ((scaledY + zdist2) / (zdist2 + zdist2)) * (100) - 50;
-                    if (scaledY> 100) scaledY = 100;
-                    if (scaledY < -100) scaledY = -100;
-                    return scaledY;
+				case "TARGETDISTANCESCALEDY":  //scaled and clamped version of TARGETDISTANCEY.  These two numbers will control the position needles on a docking port alignment gauge.
+					double scaledY = Vector3d.Dot(targetSeparation, vessel.GetTransform().forward);
+					double zdist2 = -Vector3d.Dot(targetSeparation, vessel.GetTransform().up);
+					if (zdist2 < .1)
+						scaledY = scaledY / (0.1 * Math.Sign(zdist2));
+					else
+						scaledY = ((scaledY + zdist2) / (zdist2 + zdist2)) * (100) - 50;
+					if (scaledY> 100) scaledY = 100;
+					if (scaledY < -100) scaledY = -100;
+					return scaledY;
 
 			// TODO: I probably should return something else for vessels. But not sure what exactly right now.
 				case "TARGETANGLEX":
 					if (target != null) {
 						if (targetDockingNode != null)
-                            return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward.normalized, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+							return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
 						if (target is Vessel)
 							return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
 						return 0d;
@@ -1811,7 +1817,7 @@ namespace JSI
 				case "TARGETANGLEY":
 					if (target != null) {
 						if (targetDockingNode != null)
-                            return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward.normalized, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
+							return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
 						if (target is Vessel) {
 							JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
 						}
@@ -1821,7 +1827,7 @@ namespace JSI
 				case "TARGETANGLEZ":
 					if (target != null) {
 						if (targetDockingNode != null)
-                            return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
+							return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
 						if (target is Vessel) {
 							return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
 						}
