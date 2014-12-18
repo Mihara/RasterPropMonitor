@@ -144,7 +144,7 @@ namespace JSI
 			MoveMarker(markerRadial, radialPlus, radialColorValue, gymbal);
 			MoveMarker(markerRadialMinus, -radialPlus, radialColorValue, gymbal);
 
-			if (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
+			if (vessel.patchedConicSolver != null && vessel.patchedConicSolver.maneuverNodes.Count > 0) {
 				Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
 				MoveMarker(markerManeuver, burnVector.normalized, maneuverColorValue, gymbal);
 				MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColorValue, gymbal);

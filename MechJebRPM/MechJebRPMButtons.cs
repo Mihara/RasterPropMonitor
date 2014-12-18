@@ -473,10 +473,12 @@ namespace MechJebRPM
 		// NODE button
 		public void ButtonNode(bool state)
 		{
-			if (state && vessel.patchedConicSolver.maneuverNodes.Count > 0)
-				EnactTargetAction(MechJebModuleSmartASS.Target.NODE, vessel);
-			else if (!state)
-				EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			if (vessel.patchedConicSolver != null) {
+				if (state && vessel.patchedConicSolver.maneuverNodes.Count > 0)
+					EnactTargetAction(MechJebModuleSmartASS.Target.NODE, vessel);
+				else if (!state)
+					EnactTargetAction(MechJebModuleSmartASS.Target.OFF, vessel);
+			}
 		}
 
 		public bool ButtonNodeState()
