@@ -236,7 +236,11 @@ namespace MechJebRPM
 			activeMenu.menuTitle = "== Root Menu: " + GetActiveMode();
 
 			targetMenuItem.isDisabled = (FlightGlobals.fetch.VesselTarget == null);
-			nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+			if (vessel.patchedConicSolver != null) {
+				nodeMenuItem.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+			} else {
+				nodeMenuItem.isDisabled = true;
+			}
 			// Analysis disable once RedundantCast
 			forceRollMenuItem.labelText = String.Format("Force Roll: {0:+0;-0;0}", (activeSmartass != null) ? (double)activeSmartass.rol : 0.0);
 
@@ -287,7 +291,11 @@ namespace MechJebRPM
 				if (mp != null) {
 					item.isSelected = false;
 					item.labelText = (activeJeb.node.enabled) ? "Abort Node Execution" : "Execute Next Node";
-					item.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+					if (vessel.patchedConicSolver != null) {
+						item.isDisabled = (vessel.patchedConicSolver.maneuverNodes.Count == 0);
+					} else {
+						item.isDisabled = true;
+					}
 				} else {
 					item.isSelected = false;
 					item.labelText = "Execute Next Node";

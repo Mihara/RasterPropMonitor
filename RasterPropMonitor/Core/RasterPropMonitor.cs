@@ -565,7 +565,7 @@ namespace JSI
 				JUtil.LogMessage(this, "SCREENSHOT!");
 
 				string screenshotName = string.Format("{0}{1}{2:yyyy-MM-dd_HH-mm-ss}_{4}_{3}.png",
-					                        KSPUtil.ApplicationRootPath, "Screenshots/monitor", DateTime.Now, internalProp.propID, part.uid);
+											KSPUtil.ApplicationRootPath, "Screenshots/monitor", DateTime.Now, internalProp.propID, part.GetInstanceID());
 				var screenshot = new Texture2D(screenTexture.width, screenTexture.height);
 				RenderTexture backupRenderTexture = RenderTexture.active;
 				RenderTexture.active = screenTexture;

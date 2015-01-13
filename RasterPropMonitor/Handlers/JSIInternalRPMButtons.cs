@@ -47,8 +47,11 @@ namespace JSI
 		// Analysis disable once UnusedParameter
 		public void ButtonClearNodes(bool state)
 		{
-			while (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
-				vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+			// patchedConicSolver can be null in early career mode.
+			if (vessel.patchedConicSolver != null) {
+				while (vessel.patchedConicSolver.maneuverNodes.Count > 0) {
+					vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+				}
 			}
 		}
 
@@ -58,6 +61,11 @@ namespace JSI
 		/// <returns></returns>
 		public bool ButtonClearNodesState()
 		{
+			if (vessel.patchedConicSolver == null) {
+				// patchedConicSolver can be null in early career mode.
+				return false;
+			}
+
 			return (vessel.patchedConicSolver.maneuverNodes.Count > 0);
 		}
 

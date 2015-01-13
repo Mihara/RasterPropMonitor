@@ -885,7 +885,11 @@ namespace JSI
 			speedVertical = Vector3d.Dot(velocityVesselSurface, up);
 			speedVerticalRounded = Math.Ceiling(speedVertical * 20) / 20;
 			target = FlightGlobals.fetch.VesselTarget;
-			node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+			if (vessel.patchedConicSolver != null) {
+				node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+			} else {
+				node = null;
+			}
 			time = Planetarium.GetUniversalTime();
 			FetchAltitudes();
 			terrainHeight = altitudeASL - altitudeTrue;

@@ -339,7 +339,11 @@ namespace JSI
 				}
 			}
 
-			ManeuverNode node = (vessel.patchedConicSolver.maneuverNodes.Count > 0) ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+			ManeuverNode node = null;
+			if (vessel.patchedConicSolver != null) {
+				node = (vessel.patchedConicSolver.maneuverNodes.Count > 0) ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+			}
+
 			if (node != null) {
 				double nodePe = node.nextPatch.NextPeriapsisTime(now);
 				vesselPos = screenTransform.MultiplyPoint3x4(node.nextPatch.SwappedRelativePositionAtUT(nodePe));
