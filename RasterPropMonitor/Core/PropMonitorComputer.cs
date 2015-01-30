@@ -1214,6 +1214,12 @@ namespace JSI
 					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
 				case "WHEE":
 					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
+				case "TITLE":
+					return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
+				case "LEVEL":
+					return valid ? (float)crewList[seatID].experienceLevel : -1d;
+				case "EXPERIENCE":
+					return valid ? crewList[seatID].experience : -1d;
 				default:
 					return "???!";
 			}
