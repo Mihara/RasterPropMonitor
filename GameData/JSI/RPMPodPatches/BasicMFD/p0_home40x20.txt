@@ -1,4 +1,4 @@
-[hw]      ATT    |  GRAPH  |   TRGT   |   AUTO  |  VESSEL  |  IGNITOR  |
+[hw]      ATT    |  GRAPH  |   TRGT   |   AUTO  |  VESSEL  |  IGNITOR  |   DPAI
 
 
 
