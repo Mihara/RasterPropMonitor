@@ -1214,6 +1214,12 @@ namespace JSI
 					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
 				case "WHEE":
 					return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
+				case "TITLE":
+					return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
+				case "LEVEL":
+					return valid ? (float)crewList[seatID].experienceLevel : -1d;
+				case "EXPERIENCE":
+					return valid ? crewList[seatID].experience : -1d;
 				default:
 					return "???!";
 			}
@@ -1377,41 +1383,34 @@ namespace JSI
 		//			return FlightGlobals.ship_tgtVelocity.y;
 		//		case "TGTRELZ":
 		//			return FlightGlobals.ship_tgtVelocity.z;
-            
-                //The way NavyFish does it...
-                        case "TGTRELX":
-                     
-                    if (target != null)
-                    {
-                      //  if (targetDockingNode != null){
-                          Transform targetTransform = targetDockingNode.GetTransform();
-                            float normalVelocity = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform.forward.normalized);
-                            Vector3 globalTransverseVelocity = FlightGlobals.ship_tgtVelocity - normalVelocity * targetTransform.forward.normalized;
-                            return Vector3.Dot(globalTransverseVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
-                            
-                       // }
-                    }else{
-                        return 0; 
-                    }
 
-                		case "TGTRELY":
-                    if (target != null)
-                    {
-                     //   if (targetDockingNode != null){
-                        
-                            Transform targetTransform2 = targetDockingNode.GetTransform();
-                            float normalVelocity2 = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform2.forward.normalized);
-                            Vector3 globalTransverseVelocity2 = FlightGlobals.ship_tgtVelocity - normalVelocity2 * targetTransform2.forward.normalized;
-                            return Vector3.Dot(globalTransverseVelocity2, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+				//The way NavyFish does it...
+				case "TGTRELX":
+					if (target != null && targetDockingNode != null) {
+						Transform targetTransform = targetDockingNode.GetTransform();
+						float normalVelocity = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform.forward.normalized);
+						Vector3 globalTransverseVelocity = FlightGlobals.ship_tgtVelocity - normalVelocity * targetTransform.forward.normalized;
+						return Vector3.Dot(globalTransverseVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
+					} else {
+						return 0;
+					}
 
-                          
-                       // }
-                    }else{
-                        return 0; 
-                    }
-                		case "TGTRELZ":
-                            //I THINK this is the way approachspeed should be calculated as well.  This is the number that NavyFish uses for ClosureV.
-                    return -Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetDockingNode.GetTransform().forward.normalized);
+				case "TGTRELY":
+					if (target != null && targetDockingNode != null) {
+						Transform targetTransform2 = targetDockingNode.GetTransform();
+						float normalVelocity2 = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform2.forward.normalized);
+						Vector3 globalTransverseVelocity2 = FlightGlobals.ship_tgtVelocity - normalVelocity2 * targetTransform2.forward.normalized;
+						return Vector3.Dot(globalTransverseVelocity2, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+					} else {
+						return 0;
+					}
+				case "TGTRELZ":
+					//I THINK this is the way approachspeed should be calculated as well.  This is the number that NavyFish uses for ClosureV.
+					if (targetDockingNode != null) {
+						return -Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetDockingNode.GetTransform().forward.normalized);
+					} else {
+						return 0;
+					}
                
 
 
@@ -2050,6 +2049,24 @@ namespace JSI
 					return vessel.ActionGroups.groups[lightGroupNumber].GetHashCode();
 				case "RCS":
 					return vessel.ActionGroups.groups[rcsGroupNumber].GetHashCode();
+
+			// 0.90 SAS mode fields:
+				case "SASMODESTABILITY":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist) ? 1.0 : 0.0;
+				case "SASMODEPROGRADE":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Prograde) ? 1.0 :
+						(vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Retrograde) ? -1.0 : 0.0;
+				case "SASMODENORMAL":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Normal) ? 1.0 :
+						(vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Antinormal) ? -1.0 : 0.0;
+				case "SASMODERADIAL":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialOut) ? 1.0 :
+						(vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialIn) ? -1.0 : 0.0;
+				case "SASMODETARGET":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Target) ? 1.0 : 
+						(vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.AntiTarget) ? -1.0 : 0.0;
+				case "SASMODEMANEUVER":
+					return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver) ? 1.0 : 0.0;
 
 			// Database information about planetary bodies.
 				case "ORBITBODYATMOSPHERE":
