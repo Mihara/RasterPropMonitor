@@ -143,6 +143,251 @@ namespace JSI
 			return false;
 		}
 
+		/// <summary>
+		/// Force the SAS mode buttons on the flight view to update when we
+		/// update modes under the hood.  Code from
+		/// http://forum.kerbalspaceprogram.com/threads/105074-Updating-the-auto-pilot-UI?p=1633958&viewfull=1#post1633958
+		/// </summary>
+		/// <param name="newMode">The new autopilot mode</param>
+		private void ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode newMode)
+		{
+			// find the UI object on screen
+			RUIToggleButton[] SASbtns = FindObjectOfType<VesselAutopilotUI>().modeButtons;
+			UnityEngine.Debug.Log("SASbts queried, got " + SASbtns.Length);
+			// set our mode, note it takes the mode as an int, generally top to bottom, left to right, as seen on the screen. Maneuver node being the exception, it is 9
+			SASbtns.ElementAt<RUIToggleButton>((int)newMode).SetTrue(true, true);
+		}
+
+		/// <summary>
+		/// Sets SAS to stability assist mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeStabilityAssist(bool ignored)
+		{
+			if(vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.StabilityAssist))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.StabilityAssist);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.StabilityAssist);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Stability Assist</returns>
+		public bool ButtonSASModeStabilityAssistState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist);
+		}
+
+		/// <summary>
+		/// Sets SAS to prograde mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModePrograde(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Prograde))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Prograde);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Prograde);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Prograde</returns>
+		public bool ButtonSASModeProgradeState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Prograde);
+		}
+
+		/// <summary>
+		/// Sets SAS to retrograde mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeRetrograde(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Retrograde))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Retrograde);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Retrograde);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Retrograde</returns>
+		public bool ButtonSASModeRetrogradeState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Retrograde);
+		}
+
+		/// <summary>
+		/// Sets SAS to normal mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeNormal(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Normal))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Normal);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Normal);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Normal</returns>
+		public bool ButtonSASModeNormalState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Normal);
+		}
+
+		/// <summary>
+		/// Sets SAS to anti normal mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeAntiNormal(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Antinormal))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Antinormal);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Antinormal);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Antinormal</returns>
+		public bool ButtonSASModeAntiNormalState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Antinormal);
+		}
+
+		/// <summary>
+		/// Sets SAS to radial in mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeRadialIn(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialIn))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.RadialIn);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.RadialIn);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for RadialIn</returns>
+		public bool ButtonSASModeRadialInState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialIn);
+		}
+
+		/// <summary>
+		/// Sets SAS to radial out mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeRadialOut(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialOut))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.RadialOut);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.RadialOut);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for RadialOut</returns>
+		public bool ButtonSASModeRadialOutState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialOut);
+		}
+
+		/// <summary>
+		/// Sets SAS to target mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeTarget(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Target))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Target);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Target);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Target</returns>
+		public bool ButtonSASModeTargetState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Target);
+		}
+
+		/// <summary>
+		/// Sets SAS to anti target mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeAntiTarget(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.AntiTarget))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.AntiTarget);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.AntiTarget);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for AntiTarget</returns>
+		public bool ButtonSASModeAntiTargetState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.AntiTarget);
+		}
+
+		/// <summary>
+		/// Sets SAS to maneuver mode mode
+		/// </summary>
+		/// <param name="ignored">Unused</param>
+		// Analysis disable once UnusedParameter
+		public void ButtonSASModeManeuver(bool ignored)
+		{
+			if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Maneuver))
+			{
+				vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Maneuver);
+				ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Maneuver);
+			}
+		}
+
+		/// <summary>
+		/// Used to check SAS mode.
+		/// </summary>
+		/// <returns>true if SAS is currently set for Maneuver</returns>
+		public bool ButtonSASModeManeuverState()
+		{
+			return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver);
+		}
+
 		/**
 		 * Cycle speed modes (between orbital/surface/target)
 		 */
