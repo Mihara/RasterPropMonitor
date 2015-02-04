@@ -194,6 +194,8 @@ namespace JSI
 
 		private string[] storedStringsArray;
 
+		private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
+
 		// Processing cache!
 		private readonly DefaultableDictionary<string,object> resultCache = new DefaultableDictionary<string,object>(null);
 		// Public functions:
@@ -1292,6 +1294,34 @@ namespace JSI
 					return tokens[2].StartsWith("STAGE", StringComparison.Ordinal) ? 
 						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), true) : 
 						resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], false);
+				}
+
+				// Custom variables - if the first token is CUSTOM, we'll evaluate it here
+				if (tokens.Length > 1 && tokens[0] == "CUSTOM") {
+					if (customVariables.ContainsKey(input)) {
+						return customVariables[input].Evaluate(this);
+					} else {
+						string customName = input.Substring(7);
+						CustomVariable customVar = null;
+
+						// We haven't encountered this custom variable yet.
+						foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE")) {
+							if (node.GetValue("name") == customName) {
+								customVar = new CustomVariable(node);
+								break;
+							}
+						}
+
+						if (customVar == null) {
+							// We failed to find and evaluate a custom variable with this name.
+							// Return the unrecognized token like we do with any other unrecognized variable.
+							return input;
+						} else {
+							customVariables.Add(input, customVar);
+
+							return customVar.Evaluate(this);
+						}
+					}
 				}
 
 				// We do similar things for crew rosters.
