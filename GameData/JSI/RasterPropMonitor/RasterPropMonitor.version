@@ -4,12 +4,12 @@
   "DOWNLOAD": "https://github.com/Mihara/RasterPropMonitor/releases",
   "VERSION": {
     "MAJOR": 0,
-    "MINOR": 18,
-    "PATCH": 3
+    "MINOR": 19,
+    "PATCH": 0
   },
   "KSP_VERSION": {
     "MAJOR": 0,
-    "MINOR": 25,
+    "MINOR": 90,
     "PATCH": 0
   }
 }
