@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\ButtonHandler.cs" />
     <Compile Include="Core\FlyingCamera.cs" />
