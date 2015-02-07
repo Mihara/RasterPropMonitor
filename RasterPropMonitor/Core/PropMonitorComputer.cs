@@ -1406,40 +1406,24 @@ namespace JSI
 				case "BESTSPEEDATIMPACT":
 					return bestPossibleSpeedAtImpact;
 
-			// The way Engineer does it...
-		//		case "TGTRELX":
-		//			return FlightGlobals.ship_tgtVelocity.x;
-		//		case "TGTRELY":
-		//			return FlightGlobals.ship_tgtVelocity.y;
-		//		case "TGTRELZ":
-		//			return FlightGlobals.ship_tgtVelocity.z;
-
-				//The way NavyFish does it...
 				case "TGTRELX":
-					if (target != null && targetDockingNode != null) {
-						Transform targetTransform = targetDockingNode.GetTransform();
-						float normalVelocity = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform.forward.normalized);
-						Vector3 globalTransverseVelocity = FlightGlobals.ship_tgtVelocity - normalVelocity * targetTransform.forward.normalized;
-						return Vector3.Dot(globalTransverseVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
 					} else {
-						return 0;
+						return 0.0;
 					}
 
 				case "TGTRELY":
-					if (target != null && targetDockingNode != null) {
-						Transform targetTransform2 = targetDockingNode.GetTransform();
-						float normalVelocity2 = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform2.forward.normalized);
-						Vector3 globalTransverseVelocity2 = FlightGlobals.ship_tgtVelocity - normalVelocity2 * targetTransform2.forward.normalized;
-						return Vector3.Dot(globalTransverseVelocity2, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
 					} else {
-						return 0;
+						return 0.0;
 					}
 				case "TGTRELZ":
-					//I THINK this is the way approachspeed should be calculated as well.  This is the number that NavyFish uses for ClosureV.
-					if (targetDockingNode != null) {
-						return -Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetDockingNode.GetTransform().forward.normalized);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.up);
 					} else {
-						return 0;
+						return 0.0;
 					}
                
 
