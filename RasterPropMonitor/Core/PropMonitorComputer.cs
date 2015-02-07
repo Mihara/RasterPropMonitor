@@ -399,6 +399,7 @@ namespace JSI
 			FetchCommonData();
 			UpdateTransferAngles();
 		}
+
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
 		private void UpdateTransferAngles()
@@ -1789,6 +1790,48 @@ namespace JSI
 						return double.NaN;
 					return targetClosestApproach;
 
+			// Space Objects (asteroid) specifics
+				case "TARGETSIGNALSTRENGTH":
+					// MOARdV:
+					// Based on observation, it appears the discovery
+					// level bitfield is basically unused - either the
+					// craft is Owned (-1) or Unowned (29 - which is the
+					// OR of all the bits).  However, maybe career mode uses
+					// the bits, so I will make a guess on what knowledge is
+					// appropriate here.
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.GetSignalStrength(targetVessel.DiscoveryInfo.lastObservedTime);
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETSIGNALSTRENGTHCAPTION":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return DiscoveryInfo.GetSignalStrengthCaption(targetVessel.DiscoveryInfo.GetSignalStrength(targetVessel.DiscoveryInfo.lastObservedTime));
+					} else {
+						return "";
+					}
+
+				case "TARGETLASTOBSERVEDTIMEUT":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.lastObservedTime;
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETLASTOBSERVEDTIMESECS":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return Math.Max(time - targetVessel.DiscoveryInfo.lastObservedTime, 0.0);
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETSIZECLASS":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.objectSize;
+					} else {
+						return "";
+					}
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":    //distance to target along the yaw axis (j and l rcs keys)
