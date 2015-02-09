@@ -399,6 +399,7 @@ namespace JSI
 			FetchCommonData();
 			UpdateTransferAngles();
 		}
+
 		// Update phase angle, ejection angle, and closest approach values.
 		// Code derived from the Protractor plug-in.
 		private void UpdateTransferAngles()
@@ -1406,40 +1407,24 @@ namespace JSI
 				case "BESTSPEEDATIMPACT":
 					return bestPossibleSpeedAtImpact;
 
-			// The way Engineer does it...
-		//		case "TGTRELX":
-		//			return FlightGlobals.ship_tgtVelocity.x;
-		//		case "TGTRELY":
-		//			return FlightGlobals.ship_tgtVelocity.y;
-		//		case "TGTRELZ":
-		//			return FlightGlobals.ship_tgtVelocity.z;
-
-				//The way NavyFish does it...
 				case "TGTRELX":
-					if (target != null && targetDockingNode != null) {
-						Transform targetTransform = targetDockingNode.GetTransform();
-						float normalVelocity = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform.forward.normalized);
-						Vector3 globalTransverseVelocity = FlightGlobals.ship_tgtVelocity - normalVelocity * targetTransform.forward.normalized;
-						return Vector3.Dot(globalTransverseVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
 					} else {
-						return 0;
+						return 0.0;
 					}
 
 				case "TGTRELY":
-					if (target != null && targetDockingNode != null) {
-						Transform targetTransform2 = targetDockingNode.GetTransform();
-						float normalVelocity2 = Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetTransform2.forward.normalized);
-						Vector3 globalTransverseVelocity2 = FlightGlobals.ship_tgtVelocity - normalVelocity2 * targetTransform2.forward.normalized;
-						return Vector3.Dot(globalTransverseVelocity2, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
 					} else {
-						return 0;
+						return 0.0;
 					}
 				case "TGTRELZ":
-					//I THINK this is the way approachspeed should be calculated as well.  This is the number that NavyFish uses for ClosureV.
-					if (targetDockingNode != null) {
-						return -Vector3.Dot(FlightGlobals.ship_tgtVelocity, targetDockingNode.GetTransform().forward.normalized);
+					if (target != null) {
+						return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.up);
 					} else {
-						return 0;
+						return 0.0;
 					}
                
 
@@ -1805,6 +1790,48 @@ namespace JSI
 						return double.NaN;
 					return targetClosestApproach;
 
+			// Space Objects (asteroid) specifics
+				case "TARGETSIGNALSTRENGTH":
+					// MOARdV:
+					// Based on observation, it appears the discovery
+					// level bitfield is basically unused - either the
+					// craft is Owned (-1) or Unowned (29 - which is the
+					// OR of all the bits).  However, maybe career mode uses
+					// the bits, so I will make a guess on what knowledge is
+					// appropriate here.
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.GetSignalStrength(targetVessel.DiscoveryInfo.lastObservedTime);
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETSIGNALSTRENGTHCAPTION":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return DiscoveryInfo.GetSignalStrengthCaption(targetVessel.DiscoveryInfo.GetSignalStrength(targetVessel.DiscoveryInfo.lastObservedTime));
+					} else {
+						return "";
+					}
+
+				case "TARGETLASTOBSERVEDTIMEUT":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.lastObservedTime;
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETLASTOBSERVEDTIMESECS":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return Math.Max(time - targetVessel.DiscoveryInfo.lastObservedTime, 0.0);
+					} else {
+						return -1.0;
+					}
+
+				case "TARGETSIZECLASS":
+					if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence)) {
+						return targetVessel.DiscoveryInfo.objectSize;
+					} else {
+						return "";
+					}
 
 			// Ok, what are X, Y and Z here anyway?
 				case "TARGETDISTANCEX":    //distance to target along the yaw axis (j and l rcs keys)
