@@ -460,8 +460,13 @@ namespace JSI
 			// leadingDigitExponent is the location relative to the original
 			// decimal place for the leading digit.
 			int leadingDigitExponent = (int)Math.Floor(Math.Log10(Math.Abs(inputValue)));
+			// MOARdV: After some reflection, I'm discarding cases where the
+			// exponent is < 0: milli-(units) can be represented just fine
+			// with x.xxx displays, and micro-(units) are outright silly (as
+			// in seeing a digital VSI bouncing around a few um/s, after
+			// landing, for instance).
 			// Analysis disable once CompareOfFloatsByEqualityOperator
-			if (inputValue == 0d) {
+			if (inputValue == 0d || leadingDigitExponent < 0) {
 				// special case: can't take log(0).
 				leadingDigitExponent = 0;
 			}
