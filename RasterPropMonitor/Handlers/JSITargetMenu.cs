@@ -53,18 +53,21 @@ namespace JSI
 		private TextMenu activeMenu;
 		private TextMenu.Item clearTarget;
 		private TextMenu.Item undockMenuItem;
+		private TextMenu.Item grappleMenuItem;
 		private int refreshMenuCountdown;
 		private MenuList currentMenu;
 		private string nameColorTag, distanceColorTag, selectedColorTag, unavailableColorTag;
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 		private const string clearTargetItemText = "Clear target";
 		private const string undockItemText = "Undock";
+		private const string armGrappleText = "Arm Grapple";
 		private readonly List<string> rootMenu = new List<string> {
 			"Celestials",
 			"Vessels",
 			"Space Objects",
 			"Reference part",
 			undockItemText,
+			armGrappleText,
 			"Filters",
 			clearTargetItemText,
 		};
@@ -129,6 +132,9 @@ namespace JSI
 					break;
 				case MenuList.Root:
 					activeMenu.menuTitle = MakeMenuTitle("Root menu", width);
+					grappleMenuItem.isDisabled = UpdateReferencePartAsClaw();
+					clearTarget.isDisabled = (currentTarget == null);
+					undockMenuItem.isDisabled = (undockablesList.Count == 0);
 					break;
 				case MenuList.Filters:
 					activeMenu.menuTitle = string.Format(fp, menuTitleFormatString, "Vessel filtering");
@@ -154,9 +160,6 @@ namespace JSI
 					activeMenu.menuTitle = MakeMenuTitle(selectedVessel.GetName(), width);
 					break;
 			}
-
-			clearTarget.isDisabled = (currentTarget == null);
-			undockMenuItem.isDisabled = (undockablesList.Count == 0);
 
 			if (string.IsNullOrEmpty(pageTitle)) {
 				return activeMenu.ShowMenu(width, height);
@@ -385,6 +388,8 @@ namespace JSI
 						// Mihara: Before first activation: "Disabled", open: "Ready", attached: "Grappled", after release: "Disengage".
 						// I have a suspicion that grappled-on-same-vessel is some other string and needs a "Decouple" rather than "Release" call to release.
 						// But it's pretty annoying to test for.
+						// MOARdV: I'm not sure how grappled-on-same-vessel is possible - grabbing other craft in orbit
+						// shows the same results as recorded here, so I won't worry about "Decouple".
 						if (thatClaw.state == "Grappled") {
 							undockablesList.Add(thatModule);
 						}
@@ -628,6 +633,7 @@ namespace JSI
 			menuActions.Add(ShowSpaceObjectMenu);
 			menuActions.Add(ShowReferenceMenu);
 			menuActions.Add(ShowUndockMenu);
+			menuActions.Add(ArmGrapple);
 			menuActions.Add(ShowFiltersMenu);
 			menuActions.Add(ClearTarget);
 
@@ -643,10 +649,11 @@ namespace JSI
 					case undockItemText:
 						undockMenuItem = topMenu[i];
 						break;
+					case armGrappleText:
+						grappleMenuItem = topMenu[i];
+						break;
 				}
 			}
-			// As long as ClearTarget is the last menu entry, this works:
-			//clearTarget = topMenu[topMenu.Count - 1];
 
 			activeMenu = topMenu;
 		}
@@ -691,6 +698,29 @@ namespace JSI
 			vesselFilter[VesselType.Debris] = (mask & (1 << 8)) > 0;
 			vesselFilter[VesselType.Unknown] = (mask & (1 << 9)) > 0;
 		}
+
+		// Returns true if the reference part is a claw and the part can be
+		// toggled (state is Ready or state is Disabled).  Also updates the
+		// top-menu state text.  Returns whether or not to disable the menu
+		// item.
+		private bool UpdateReferencePartAsClaw()
+		{
+			ModuleGrappleNode thatClaw = null;
+			foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+				thatClaw = thatModule as ModuleGrappleNode;
+				if (thatClaw != null)
+					break;
+			}
+
+			if(thatClaw != null && (thatClaw.state == "Ready" || thatClaw.state == "Disabled")) {
+				grappleMenuItem.labelText = (thatClaw.state == "Disabled") ? "Arm Grapple" : "Disarm Grapple";
+				
+				return false;
+			} else {
+				return true;
+			}
+		}
+
 		//--- Menu item callbacks
 		// Root menu:
 		private void ShowCelestialMenu(int index, TextMenu.Item ti)
@@ -814,6 +844,31 @@ namespace JSI
 		{
 			FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
 		}
+
+		private void ArmGrapple(int index, TextMenu.Item ti)
+		{
+			ModuleGrappleNode thatClaw = null;
+			foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules) {
+				thatClaw = thatModule as ModuleGrappleNode;
+				if (thatClaw != null) {
+					break;
+				}
+			}
+
+			if (thatClaw != null) {
+				try {
+					ModuleAnimateGeneric clawAnimation = (vessel.GetReferenceTransformPart().Modules[thatClaw.deployAnimationController] as ModuleAnimateGeneric);
+					if (clawAnimation != null) {
+						clawAnimation.Toggle();
+					}
+				}
+				catch (Exception e) {
+					JUtil.LogErrorMessage(this, "Exception trying to arm/disarm Grapple Node: {0}", e.Message);
+				}
+
+			}
+		}
+
 		// Celestial Menu
 		private void TargetCelestial(int index, TextMenu.Item ti)
 		{
