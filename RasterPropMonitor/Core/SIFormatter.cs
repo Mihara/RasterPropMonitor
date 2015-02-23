@@ -246,7 +246,7 @@ namespace JSI
 						i += AppendRepeated(formatChars, result, days + ((applyCalendarAdjustment) ? 1 : 0), 'd', i);
 						break;
 					case 'D':
-						i += AppendRepeated(formatChars, result, wholeDays + ((applyCalendarAdjustment) ? 1 : 0), 'D', i);
+						i += AppendRepeated(formatChars, result, wholeDays, 'D', i);
 						break;
 					case 'h':
 						i += AppendRepeated(formatChars, result, hours, 'h', i);
