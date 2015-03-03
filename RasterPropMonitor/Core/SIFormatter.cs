@@ -15,6 +15,7 @@ namespace JSI
 		private const string formatPrefixSIP = "SIP";
 		private const string formatPrefixDMS = "DMS";
 		private const string formatPrefixKDT = "KDT";
+		private const string formatPrefixMET = "MET";
 		private const string formatPrefixBAR = "BAR";
 
 		private static string[] SplitByColon(string input)
@@ -99,7 +100,9 @@ namespace JSI
 			if (splitformat.StartsWith(formatPrefixDMS, StringComparison.Ordinal))
 				return DMSFormat(splitformat, inputValue);
 			if (splitformat.StartsWith(formatPrefixKDT, StringComparison.Ordinal))
-				return KDTFormat(splitformat, inputValue);
+				return KDTFormat(splitformat, inputValue, true);
+			if (splitformat.StartsWith(formatPrefixMET, StringComparison.Ordinal))
+				return KDTFormat(splitformat, inputValue, false);
 			if (splitformat.StartsWith(formatPrefixBAR, StringComparison.Ordinal))
 				return BARFormat(splitformat, inputValue);
 
@@ -182,7 +185,10 @@ namespace JSI
 		// Repeat of a character means 'pad to this number of characters with zeros.'
 		// - - sign of the date/time span, space if the span is positive.
 		// + - sign of the date/time span, plus if the span is positive
-		private static string KDTFormat(string format, double seconds)
+		// applyCalendarAdjustment: Add one to the "day" field, so it's in the range
+		// of 1 - (yearLength), instead of 0 - (yearLength-1).  MET uses zero-based
+		// day counts, but the calendar uses 1-based.
+		private static string KDTFormat(string format, double seconds, bool applyCalendarAdjustment)
 		{
 
 			if (double.IsNaN(seconds) || double.IsInfinity(seconds))
@@ -237,7 +243,7 @@ namespace JSI
 						i += AppendRepeated(formatChars, result, years, 'y', i);
 						break;
 					case 'd':
-						i += AppendRepeated(formatChars, result, days, 'd', i);
+						i += AppendRepeated(formatChars, result, days + ((applyCalendarAdjustment) ? 1 : 0), 'd', i);
 						break;
 					case 'D':
 						i += AppendRepeated(formatChars, result, wholeDays, 'D', i);

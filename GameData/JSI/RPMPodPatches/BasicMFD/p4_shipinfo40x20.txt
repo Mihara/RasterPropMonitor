@@ -4,7 +4,7 @@ Body: {0}  Status: {1} $&$ORBITBODY SITUATION
 Commander: {0}$&$CREW_0_FULL
 
 UT : {0:KDTyy:ddd:hh:mm:ss.f} $&$ UTSECS
-MET: {0:KDTyy:ddd:hh:mm:ss.f} $&$ METSECS
+MET: {0:METyy:ddd:hh:mm:ss.f} $&$ METSECS
 
 Lat: {0:000.00000"°N";000.00000"°S"}  Lon:{1:000.00000"°E";000.00000"°W"}$&$LATITUDE LONGITUDE
 Mass(W):  {1,5:0.00}t  Mass(D): {0,4:0.00}t   $&$MASSDRY MASSWET
