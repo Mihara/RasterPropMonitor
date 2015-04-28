@@ -119,13 +119,13 @@ namespace JSI
 			GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
 
 			Vector3 coM = vessel.findWorldCenterOfMass();
-			Vector3 up = (coM - vessel.mainBody.position).normalized;
+			Vector3 up = comp.Up;
 			Vector3 forward = vessel.GetTransform().up;
 			Vector3 right = vessel.GetTransform().right;
 			Vector3 top = Vector3.Cross(right, forward);
-			Vector3 north = Vector3.Exclude(up, (vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM).normalized;
+			Vector3 north = comp.North;
 
-			Vector3d velocityVesselSurface = vessel.orbit.GetVel() - vessel.mainBody.getRFrmVel(coM);
+			Vector3d velocityVesselSurface = comp.VelocityVesselSurface;
 			Vector3 velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
 
 			if (ladderMaterial) {

@@ -257,7 +257,7 @@ namespace JSI
 			double minY = -maxX;
 
 			if (vessel.mainBody.atmosphere) {
-				maxX += vessel.mainBody.maxAtmosphereAltitude;
+				maxX += vessel.mainBody.atmosphereDepth;
 				minX = -maxX;
 				maxY = maxX;
 				minY = -maxX;
@@ -399,7 +399,7 @@ namespace JSI
 				// Use the atmospheric ambient to color the atmosphere circle.
 				GL.Color(vessel.mainBody.atmosphericAmbientColor);
 
-				DrawCircle(focusCenter.x, focusCenter.y, (float)((vessel.mainBody.Radius + vessel.mainBody.maxAtmosphereAltitude) * pixelScalar), orbitPoints);
+				DrawCircle(focusCenter.x, focusCenter.y, (float)((vessel.mainBody.Radius + vessel.mainBody.atmosphereDepth) * pixelScalar), orbitPoints);
 			}
 
 			if (targetVessel != null && !targetVessel.LandedOrSplashed) {

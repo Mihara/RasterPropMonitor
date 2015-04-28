@@ -204,7 +204,7 @@ namespace JSI
 
 			if (GameSettings.KERBIN_TIME) {
 				dayLength = 6 * hourLength;
-				yearLength = 426 * hourLength;
+				yearLength = 426 * dayLength;
 			}
 
 			int years = (int)Math.Floor(seconds / yearLength);
