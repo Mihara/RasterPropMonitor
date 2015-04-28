@@ -37,12 +37,33 @@ namespace JSI
 		private int refreshDataRate = int.MaxValue;
 		private Vector3d coM;
 		private Vector3d up;
+		public  Vector3d Up
+		{
+			get
+			{
+				return up;
+			}
+		}
 		private Vector3d forward;
 		private Vector3d right;
 		private Vector3d north;
+		public  Vector3d North
+		{
+			get
+			{
+				return north;
+			}
+		}
 		private Quaternion rotationVesselSurface;
 		private Quaternion rotationSurface;
 		private Vector3d velocityVesselSurface;
+		public  Vector3d VelocityVesselSurface
+		{
+			get
+			{
+				return velocityVesselSurface;
+			}
+		}
 		private Vector3d velocityVesselOrbit;
 		private Vector3d velocityRelativeTarget;
 		private double speedVertical;
@@ -283,7 +304,7 @@ namespace JSI
 				}
 
 				FetchPerPartData();
-				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]));
+				standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]), FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel);
 
 				// Let's deal with the system resource library.
 				// This dictionary is sorted so that longer names go first to prevent false identification - they're compared in order.
@@ -444,7 +465,7 @@ namespace JSI
 					ejectionAngle = -1.0;
 
 					moonEjectionAngle = (MoonAngle() - CurrentEjectAngle() + 360.0) % 360.0;
-					ejectionAltitude = 1.05 * vessel.mainBody.referenceBody.maxAtmosphereAltitude;
+					ejectionAltitude = 1.05 * vessel.mainBody.referenceBody.atmosphereDepth;
 					targetBodyDeltaV = CalculateDeltaV(orbitOfDestination);
 				} else {
 					// What case does this cover?  I *think* it can't happen.
@@ -647,7 +668,7 @@ namespace JSI
 		{
 			CelestialBody orig = vessel.mainBody;
 			double o_alt = CalcMeanAlt(orig.orbit);
-			double d_alt = (orig.orbit.referenceBody.Radius + orig.orbit.referenceBody.maxAtmosphereAltitude) * 1.05;
+			double d_alt = (orig.orbit.referenceBody.Radius + orig.orbit.referenceBody.atmosphereDepth) * 1.05;
 			double o_soi = orig.sphereOfInfluence;
 			double o_radius = orig.Radius;
 			double o_mu = orig.gravParameter;
@@ -805,7 +826,7 @@ namespace JSI
 			double moonalt = CalcMeanAlt(moon.orbit);
 			double usun = Planetarium.fetch.Sun.gravParameter;
 			double uplanet = planet.gravParameter;
-			double oberthalt = (planet.Radius + planet.maxAtmosphereAltitude) * 1.05;
+			double oberthalt = (planet.Radius + planet.atmosphereDepth) * 1.05;
 
 			double th1 = Math.PI * Math.Sqrt(Math.Pow(moonalt + oberthalt, 3.0) / (8.0 * uplanet));
 			double th2 = Math.PI * Math.Sqrt(Math.Pow(planetalt + destalt, 3.0) / (8.0 * usun));
@@ -878,7 +899,7 @@ namespace JSI
 			up = (coM - vessel.mainBody.position).normalized;
 			forward = vessel.GetTransform().up;
 			right = vessel.GetTransform().right;
-			north = Vector3d.Exclude(up, (vessel.mainBody.position + vessel.mainBody.transform.up * (float)vessel.mainBody.Radius) - coM).normalized;
+			north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM, up).normalized;
 			rotationSurface = Quaternion.LookRotation(north, up);
 			rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
@@ -1473,8 +1494,8 @@ namespace JSI
 					return dynamicPressure;
 				case "ATMOSPHEREDEPTH":
 					if (vessel.mainBody.atmosphere) {
-						return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure) /
-						FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.staticPressureASL))) / upperAtmosphereLimit).Clamp(0d, 1d);
+						return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
+						FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0d, 1d);
 					}
 					return 0d;
 
@@ -2139,10 +2160,10 @@ namespace JSI
 						return targetBody.atmosphereContainsOxygen ? 1d : -1d;
 					return -1d;
 				case "ORBITBODYSCALEHEIGHT":
-					return vessel.orbit.referenceBody.atmosphereScaleHeight;
+					return vessel.orbit.referenceBody.atmosphereDepth;
 				case "TARGETBODYSCALEHEIGHT":
 					if (targetBody != null)
-						return targetBody.atmosphereScaleHeight;
+						return targetBody.atmosphereDepth;
 					return -1d;
 				case "ORBITBODYRADIUS":
 					return vessel.orbit.referenceBody.Radius;
@@ -2181,10 +2202,10 @@ namespace JSI
 						return targetBody.gravParameter;
 					return -1d;
 				case "ORBITBODYATMOSPHERETOP":
-					return vessel.orbit.referenceBody.maxAtmosphereAltitude;
+					return vessel.orbit.referenceBody.atmosphereDepth;
 				case "TARGETBODYATMOSPHERETOP":
 					if (targetBody != null)
-						return targetBody.maxAtmosphereAltitude;
+						return targetBody.atmosphereDepth;
 					return -1d;
 				case "ORBITBODYESCAPEVEL":
 					return Math.Sqrt(2 * vessel.orbit.referenceBody.gravParameter / vessel.orbit.referenceBody.Radius);
