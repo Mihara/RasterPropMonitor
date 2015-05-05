@@ -577,11 +577,12 @@ namespace JSI
                     }
                     break;
                 case BackgroundType.Texture:
+                    //call clear before redraw of textures
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
                     Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
                     break;
                 case BackgroundType.Handler:
-
+                    //No clear here as it would interfere with the handlers(Causing effects such as VesselViewer to blink)
                     // If there's a handler references method, it gets called before each render.
                     if (backgroundHandlerS.getHandlerReferences != null)
                     {
