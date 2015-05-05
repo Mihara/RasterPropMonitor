@@ -561,14 +561,15 @@ namespace JSI
 
         public void RenderBackground(RenderTexture screen)
         {
-            // Clear the render texture
-            GL.Clear(true, true, ourMonitor.emptyColorValue);
             switch (background)
             {
                 case BackgroundType.None:
-                    // no-op
+                    //call clear for screens such as the sleep screen
+                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     break;
                 case BackgroundType.Camera:
+                    //call clear for camera
+                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     if (!cameraObject.Render())
                     {
                         if (ourMonitor.noSignalTexture != null)
@@ -576,11 +577,12 @@ namespace JSI
                     }
                     break;
                 case BackgroundType.Texture:
+                    //call clear before redraw of textures
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
                     Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
                     break;
                 case BackgroundType.Handler:
-
+                    //No clear here as it would interfere with the handlers(Causing effects such as VesselViewer to blink)
                     // If there's a handler references method, it gets called before each render.
                     if (backgroundHandlerS.getHandlerReferences != null)
                         backgroundHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
