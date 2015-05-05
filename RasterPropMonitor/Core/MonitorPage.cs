@@ -561,14 +561,13 @@ namespace JSI
 
         public void RenderBackground(RenderTexture screen)
         {
-            // Clear the render texture
-            GL.Clear(true, true, ourMonitor.emptyColorValue);
             switch (background)
             {
                 case BackgroundType.None:
-                    // no-op
+                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     break;
                 case BackgroundType.Camera:
+                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     if (!cameraObject.Render())
                     {
                         if (ourMonitor.noSignalTexture != null)
@@ -578,6 +577,7 @@ namespace JSI
                     }
                     break;
                 case BackgroundType.Texture:
+                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
                     break;
                 case BackgroundType.Handler:
@@ -593,6 +593,10 @@ namespace JSI
                         if (ourMonitor.noSignalTexture != null && showNoSignal)
                         {
                             Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+                        }
+                        else
+                        {
+                            GL.Clear(true, true, ourMonitor.emptyColorValue);
                         }
                     }
                     break;
