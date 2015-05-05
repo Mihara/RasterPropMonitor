@@ -564,16 +564,16 @@ namespace JSI
             switch (background)
             {
                 case BackgroundType.None:
-                    //call clear for screens such as the sleep screen
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
                     break;
                 case BackgroundType.Camera:
-                    //call clear for camera
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
                     if (!cameraObject.Render())
                     {
                         if (ourMonitor.noSignalTexture != null)
+                        {
                             Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+                        }
                     }
                     break;
                 case BackgroundType.Texture:
@@ -585,12 +585,20 @@ namespace JSI
                     //No clear here as it would interfere with the handlers(Causing effects such as VesselViewer to blink)
                     // If there's a handler references method, it gets called before each render.
                     if (backgroundHandlerS.getHandlerReferences != null)
+                    {
                         backgroundHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+                    }
 
                     if (!backgroundHandlerMethod(screen, cameraAspect))
                     {
                         if (ourMonitor.noSignalTexture != null && showNoSignal)
+                        {
                             Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+                        }
+                        else
+                        {
+                            GL.Clear(true, true, ourMonitor.emptyColorValue);
+                        }
                     }
                     break;
             }
