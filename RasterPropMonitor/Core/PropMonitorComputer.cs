@@ -1910,6 +1910,16 @@ namespace JSI
                     if (target != null)
                         return targetDistance;
                     return -1d;
+                case "TARGETGROUNDDISTANCE":
+                    if (target != null)
+                    {
+                        Vector3d targetGroundPos = target.ProjectPositionOntoSurface(vessel.mainBody);
+                        if (targetGroundPos != Vector3d.zero)
+                        {
+                            return Vector3d.Distance(targetGroundPos, vessel.ProjectPositionOntoSurface());
+                        }
+                    }
+                    return -1d;
                 case "RELATIVEINCLINATION":
                     // MechJeb's targetables don't have orbits.
                     if (target != null && targetOrbit != null)
