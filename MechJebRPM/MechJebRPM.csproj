@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>MechJebRPM</RootNamespace>
     <AssemblyName>MechJebRPM</AssemblyName>
-    <ReleaseVersion>0.19.2</ReleaseVersion>
+    <ReleaseVersion>0.19.3</ReleaseVersion>
     <CodePage>65001</CodePage>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -64,4 +64,7 @@
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)GameData\JSI\RasterPropMonitor\Plugins\</PostBuildEvent>
+  </PropertyGroup>
 </Project>

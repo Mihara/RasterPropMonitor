@@ -572,23 +572,28 @@ namespace JSI
                     if (!cameraObject.Render())
                     {
                         if (ourMonitor.noSignalTexture != null)
+                        {
                             Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+                        }
                     }
                     break;
                 case BackgroundType.Texture:
-                    GL.Clear(true, true, ourMonitor.emptyColorValue);
                     Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), backgroundTexture);
                     break;
                 case BackgroundType.Handler:
 
                     // If there's a handler references method, it gets called before each render.
                     if (backgroundHandlerS.getHandlerReferences != null)
+                    {
                         backgroundHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+                    }
 
                     if (!backgroundHandlerMethod(screen, cameraAspect))
                     {
                         if (ourMonitor.noSignalTexture != null && showNoSignal)
+                        {
                             Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
+                        }
                     }
                     break;
             }
