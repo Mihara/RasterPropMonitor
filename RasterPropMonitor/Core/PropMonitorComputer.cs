@@ -959,8 +959,13 @@ namespace JSI
             double sine = Math.Sin(angleFromHorizontal * Math.PI / 180.0);
             double g = localGeeDirect;
             double T = totalMaximumThrust / totalShipWetMass;
+            double decelTerm = (2.0 * g * sine) * (2.0 * g * sine) + 4.0 * (T * T - g * g);
+            if (decelTerm < 0.0)
+            {
+                return double.NaN;
+            }
 
-            double effectiveDecel = 0.5 * (-2.0 * g * sine + Math.Sqrt((2.0 * g * sine) * (2.0 * g * sine) + 4.0 * (T * T - g * g)));
+            double effectiveDecel = 0.5 * (-2.0 * g * sine + Math.Sqrt(decelTerm));
             double decelTime = horzVelocity / effectiveDecel;
 
             Vector3d estimatedLandingSite = coM + 0.5 * decelTime * vessel.srf_velocity;
@@ -972,7 +977,7 @@ namespace JSI
             }
             catch (ArgumentException)
             {
-                return 0.0;
+                return double.NaN;
             }
             return impactTime - decelTime / 2.0 - time;
         }
@@ -1648,12 +1653,17 @@ namespace JSI
                 case "SUICIDEBURNSTARTSECS":
                     if (vessel.orbit.PeA > 0.0)
                     {
-                        return -1.0;
+                        return double.NaN;
                     }
                     return SuicideBurnCountdown();
 
                 case "LATERALBRAKEDISTANCE":
-                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass))  
+                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
+                    if (totalMaximumThrust <= 0.0)
+                    {
+                        // It should be impossible for wet mass to be zero.
+                        return -1.0;
+                    }
                     return (horzVelocity * horzVelocity) / (2.0 * totalMaximumThrust / totalShipWetMass);
 
                 // Altitudes
