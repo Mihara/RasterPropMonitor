@@ -286,7 +286,7 @@ namespace JSI
 
             if (!HighLogic.LoadedSceneIsEditor)
             {
-
+                JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
                 brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
                 sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
@@ -946,6 +946,40 @@ namespace JSI
                 return flippyEngine.maxThrust * (flippyEngine.thrustPercentage / 100d);
             }
             return 0;
+        }
+
+        // Valid only for the active vessel.  Imported from MechJeb
+        private double SuicideBurnCountdown()
+        {
+            Orbit orbit = vessel.orbit;
+            if (orbit.PeA > 0.0) throw new ArgumentException("SuicideBurnCountdown: periapsis is above the ground");
+
+            double angleFromHorizontal = 90 - Vector3d.Angle(-vessel.srf_velocity, up);
+            angleFromHorizontal = JUtil.Clamp(angleFromHorizontal, 0.0, 90.0);
+            double sine = Math.Sin(angleFromHorizontal * Math.PI / 180.0);
+            double g = localGeeDirect;
+            double T = totalMaximumThrust / totalShipWetMass;
+            double decelTerm = (2.0 * g * sine) * (2.0 * g * sine) + 4.0 * (T * T - g * g);
+            if (decelTerm < 0.0)
+            {
+                return double.NaN;
+            }
+
+            double effectiveDecel = 0.5 * (-2.0 * g * sine + Math.Sqrt(decelTerm));
+            double decelTime = horzVelocity / effectiveDecel;
+
+            Vector3d estimatedLandingSite = coM + 0.5 * decelTime * vessel.srf_velocity;
+            double terrainRadius = vessel.mainBody.Radius + vessel.mainBody.TerrainAltitude(estimatedLandingSite);
+            double impactTime = 0;
+            try
+            {
+                impactTime = orbit.NextTimeOfRadius(time, terrainRadius);
+            }
+            catch (ArgumentException)
+            {
+                return double.NaN;
+            }
+            return impactTime - decelTime / 2.0 - time;
         }
 
         private static double GetRealIsp(PartModule engine)
@@ -1615,6 +1649,22 @@ namespace JSI
                     if (Double.IsNaN(secondsToImpact) || secondsToImpact > 365 * 24 * 60 * 60 || secondsToImpact < 0)
                         return -1d;
                     return secondsToImpact;
+
+                case "SUICIDEBURNSTARTSECS":
+                    if (vessel.orbit.PeA > 0.0)
+                    {
+                        return double.NaN;
+                    }
+                    return SuicideBurnCountdown();
+
+                case "LATERALBRAKEDISTANCE":
+                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
+                    if (totalMaximumThrust <= 0.0)
+                    {
+                        // It should be impossible for wet mass to be zero.
+                        return -1.0;
+                    }
+                    return (horzVelocity * horzVelocity) / (2.0 * totalMaximumThrust / totalShipWetMass);
 
                 // Altitudes
                 case "ALTITUDE":
