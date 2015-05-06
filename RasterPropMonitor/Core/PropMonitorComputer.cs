@@ -286,7 +286,7 @@ namespace JSI
 
             if (!HighLogic.LoadedSceneIsEditor)
             {
-
+                JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
                 brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
                 sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
