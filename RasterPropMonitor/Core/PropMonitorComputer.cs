@@ -1648,9 +1648,13 @@ namespace JSI
                 case "SUICIDEBURNSTARTSECS":
                     if (vessel.orbit.PeA > 0.0)
                     {
-                        return 0.0;
+                        return -1.0;
                     }
                     return SuicideBurnCountdown();
+
+                case "LATERALBRAKEDISTANCE":
+                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass))  
+                    return (horzVelocity * horzVelocity) / (2.0 * totalMaximumThrust / totalShipWetMass);
 
                 // Altitudes
                 case "ALTITUDE":
