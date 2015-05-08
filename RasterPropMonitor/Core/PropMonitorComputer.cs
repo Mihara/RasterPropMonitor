@@ -36,6 +36,13 @@ namespace JSI
         private int refreshTextRate = int.MaxValue;
         private int refreshDataRate = int.MaxValue;
         private Vector3d coM;
+        public Vector3d CoM
+        {
+            get
+            {
+                return coM;
+            }
+        }
         private Vector3d up;
         public Vector3d Up
         {
@@ -65,6 +72,13 @@ namespace JSI
             }
         }
         private Vector3d velocityVesselOrbit;
+        public Vector3d VelocityVesselOrbit
+        {
+            get
+            {
+                return velocityVesselOrbit;
+            }
+        }
         private Vector3d velocityRelativeTarget;
         private double speedVertical;
         private double speedVerticalRounded;
@@ -74,6 +88,13 @@ namespace JSI
         private Vessel targetVessel;
         private double targetDistance;
         private Vector3d targetSeparation;
+        public Vector3d TargetSeparation
+        {
+            get
+            {
+                return targetSeparation;
+            }
+        }
         private double approachSpeed;
         private Quaternion targetOrientation;
         private ManeuverNode node;
@@ -229,23 +250,28 @@ namespace JSI
             if (thatPart == null)
             {
                 if (thatProp == null)
+                {
                     throw new ArgumentException("Cannot instantiate RPMC in this location.");
+                }
                 thatPart = thatProp.part;
             }
             for (int i = 0; i < thatPart.Modules.Count; i++)
+            {
                 if (thatPart.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name)
                 {
-                    var other = thatPart.Modules[i] as RasterPropMonitorComputer;
-                    return other;
+                    return thatPart.Modules[i] as RasterPropMonitorComputer;
                 }
+            }
             return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
         }
+
         // Set refresh rates.
-        public void UpdateRefreshRates(int rate, int dataRate)
+        public void UpdateRefreshRates(int textRate, int dataRate)
         {
-            refreshTextRate = Math.Min(rate, refreshTextRate);
+            refreshTextRate = Math.Min(textRate, refreshTextRate);
             refreshDataRate = Math.Min(dataRate, refreshDataRate);
         }
+
         // Internal persistence interface:
         public void SetVar(string varname, int value)
         {
