@@ -62,6 +62,13 @@ namespace JSI
             }
         }
         private Quaternion rotationVesselSurface;
+        public Quaternion RotationVesselSurface
+        {
+            get
+            {
+                return rotationVesselSurface;
+            }
+        }
         private Quaternion rotationSurface;
         private Vector3d velocityVesselSurface;
         public Vector3d VelocityVesselSurface
