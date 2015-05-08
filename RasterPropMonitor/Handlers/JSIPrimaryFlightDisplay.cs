@@ -87,6 +87,14 @@ namespace JSI
         // Misc...
         private float cameraAspect;
         private bool startupComplete;
+
+        // Since most of the values we use for the PFD are also values we
+        // compute in the RPM computer, we should just query its values
+        // instead of having multiple props doing all of these maths.
+        // MOARdV TODO: currently, RPMC may not update every frame.  Does that
+        // show a problem?
+        private RasterPropMonitorComputer comp;
+
         // This is honestly very badly written code, probably the worst of what I have in this project.
         // Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
         // the rest is because the problem is all built out of special cases.
@@ -107,12 +115,12 @@ namespace JSI
             ballCamera.targetTexture = screen;
 
 
-            Vector3d coM = vessel.findWorldCenterOfMass();
-            Vector3d up = (coM - vessel.mainBody.position).normalized;
-            Vector3d velocityVesselOrbit = vessel.orbit.GetVel();
+            //Vector3d coM = comp.CoM;//vessel.findWorldCenterOfMass();
+            Vector3d up = comp.Up;// (coM - vessel.mainBody.position).normalized;
+            Vector3d velocityVesselOrbit = comp.VelocityVesselOrbit;//vessel.orbit.GetVel();
             Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
-            Vector3d velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
-            Vector3d velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
+            //Vector3d velocityVesselSurface = comp.VelocityVesselSurface;// velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
+            //Vector3d velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
             Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbit, up).normalized;
             Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
 
@@ -123,7 +131,7 @@ namespace JSI
 
             if (heading != null)
             {
-                Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM).normalized;
+                Vector3d north = Vector3d.Exclude(up, (vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - comp.CoM).normalized;
                 Quaternion rotationSurface = Quaternion.LookRotation(north, up);
                 Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
                 heading.renderer.material.SetTextureOffset("_MainTex",
@@ -134,8 +142,11 @@ namespace JSI
             switch (FlightUIController.speedDisplayMode)
             {
                 case FlightUIController.SpeedDisplayModes.Surface:
-                    MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColorValue, gymbal);
-                    MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColorValue, gymbal);
+                    {
+                        Vector3d velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                        MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColorValue, gymbal);
+                        MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColorValue, gymbal);
+                    }
                     break;
                 case FlightUIController.SpeedDisplayModes.Target:
                     MoveMarker(markerPrograde, targetDirection, progradeColorValue, gymbal);
@@ -163,7 +174,7 @@ namespace JSI
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
-                Vector3d waypointDirection = (waypointPosition - coM).normalized;
+                Vector3d waypointDirection = (waypointPosition - comp.CoM).normalized;
                 MoveMarker(markerNavWaypoint, waypointDirection, waypointColorValue, gymbal);
                 ShowHide(true, markerNavWaypoint);
             }
@@ -171,7 +182,7 @@ namespace JSI
             ITargetable target = FlightGlobals.fetch.VesselTarget;
             if (target != null)
             {
-                Vector3 targetSeparation = (vessel.GetTransform().position - target.GetTransform().position).normalized;
+                Vector3 targetSeparation = comp.TargetSeparation.normalized;
                 MoveMarker(markerTarget, targetSeparation, targetColorValue, gymbal);
                 MoveMarker(markerTargetMinus, -targetSeparation, targetColorValue, gymbal);
                 var targetPort = target as ModuleDockingNode;
@@ -215,7 +226,9 @@ namespace JSI
         public void ButtonProcessor(int buttonID)
         {
             if (buttonID == speedModeButton)
+            {
                 FlightUIController.fetch.cycleSpdModes();
+            }
         }
 
         private static void MoveMarker(GameObject marker, Vector3 position, Color nativeColor, Quaternion voodooGymbal)
@@ -400,6 +413,13 @@ namespace JSI
                 }
 
                 ShowHide(false, navBall, cameraBody, overlay, heading);
+
+                // use the RPM comp's centralized database so we're not 
+                // repeatedly doing computation.
+                comp = RasterPropMonitorComputer.Instantiate(this.part);
+                // We don't really care about the text refresh rate, but the
+                // PFD does care about data refresh rates
+                comp.UpdateRefreshRates(10000,1);
                 startupComplete = true;
             }
             catch
