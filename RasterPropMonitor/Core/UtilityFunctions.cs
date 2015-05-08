@@ -796,8 +796,46 @@ namespace JSI
             return OrbitFromSurfacePos(body, lat, lon, alt, UT);
         }
 
+        public static double GetClosestApproach(Orbit vesselOrbit, ITargetable target, out double timeAtClosestApproach)
+        {
+            if (target == null)
+            {
+                timeAtClosestApproach = -1.0;
+                return -1.0;
+            }
+
+            if (target is CelestialBody)
+            {
+                return GetClosestApproach(vesselOrbit, target as CelestialBody, out timeAtClosestApproach);
+            }
+            else if (target is ModuleDockingNode)
+            {
+                return GetClosestApproach(vesselOrbit, (target as ModuleDockingNode).GetVessel().GetOrbit(), out timeAtClosestApproach);
+            }
+            else if (target is Vessel)
+            {
+                Vessel targetVessel = target as Vessel;
+                if (targetVessel.LandedOrSplashed)
+                {
+                    double closestApproach;
+                    Orbit targetOrbit = JUtil.ClosestApproachSrfOrbit(vesselOrbit, targetVessel, out timeAtClosestApproach, out closestApproach);
+                    return closestApproach;
+                }
+                else
+                {
+                    return JUtil.GetClosestApproach(vesselOrbit, targetVessel.GetOrbit(), out timeAtClosestApproach);
+                }
+            }
+            else
+            {
+                LogErrorMessage(target, "Unknown / unsupported target type in GetClosestApproach");
+                timeAtClosestApproach = -1.0;
+                return -1.0;
+            }
+        }
+
         // Closest Approach algorithms based on Protractor mod
-        public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, out double timeAtClosestApproach)
+        private static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, out double timeAtClosestApproach)
         {
             Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetCelestial);
             if (closestorbit.referenceBody == targetCelestial)
@@ -814,7 +852,7 @@ namespace JSI
             return MinTargetDistance(closestorbit, targetCelestial.orbit, Planetarium.GetUniversalTime(), Planetarium.GetUniversalTime() + closestorbit.period, out timeAtClosestApproach) - targetCelestial.Radius;
         }
 
-        public static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, Vector3d srfTarget, out double timeAtClosestApproach)
+        private static double GetClosestApproach(Orbit vesselOrbit, CelestialBody targetCelestial, Vector3d srfTarget, out double timeAtClosestApproach)
         {
             Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetCelestial);
             if (closestorbit.referenceBody == targetCelestial)
