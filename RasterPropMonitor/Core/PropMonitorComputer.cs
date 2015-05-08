@@ -36,6 +36,13 @@ namespace JSI
         private int refreshTextRate = int.MaxValue;
         private int refreshDataRate = int.MaxValue;
         private Vector3d coM;
+        public Vector3d CoM
+        {
+            get
+            {
+                return coM;
+            }
+        }
         private Vector3d up;
         public Vector3d Up
         {
@@ -55,6 +62,13 @@ namespace JSI
             }
         }
         private Quaternion rotationVesselSurface;
+        public Quaternion RotationVesselSurface
+        {
+            get
+            {
+                return rotationVesselSurface;
+            }
+        }
         private Quaternion rotationSurface;
         private Vector3d velocityVesselSurface;
         public Vector3d VelocityVesselSurface
@@ -65,6 +79,13 @@ namespace JSI
             }
         }
         private Vector3d velocityVesselOrbit;
+        public Vector3d VelocityVesselOrbit
+        {
+            get
+            {
+                return velocityVesselOrbit;
+            }
+        }
         private Vector3d velocityRelativeTarget;
         private double speedVertical;
         private double speedVerticalRounded;
@@ -74,6 +95,13 @@ namespace JSI
         private Vessel targetVessel;
         private double targetDistance;
         private Vector3d targetSeparation;
+        public Vector3d TargetSeparation
+        {
+            get
+            {
+                return targetSeparation;
+            }
+        }
         private double approachSpeed;
         private Quaternion targetOrientation;
         private ManeuverNode node;
@@ -110,8 +138,6 @@ namespace JSI
         private double timeToPhaseAngle;
         private double ejectionAngle;
         private double timeToEjectionAngle;
-        private double targetClosestApproach;
-        private double targetTimeAtClosestApproach;
         private double moonEjectionAngle;
         private double ejectionAltitude;
         private double targetBodyDeltaV;
@@ -229,23 +255,28 @@ namespace JSI
             if (thatPart == null)
             {
                 if (thatProp == null)
+                {
                     throw new ArgumentException("Cannot instantiate RPMC in this location.");
+                }
                 thatPart = thatProp.part;
             }
             for (int i = 0; i < thatPart.Modules.Count; i++)
+            {
                 if (thatPart.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name)
                 {
-                    var other = thatPart.Modules[i] as RasterPropMonitorComputer;
-                    return other;
+                    return thatPart.Modules[i] as RasterPropMonitorComputer;
                 }
+            }
             return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
         }
+
         // Set refresh rates.
-        public void UpdateRefreshRates(int rate, int dataRate)
+        public void UpdateRefreshRates(int textRate, int dataRate)
         {
-            refreshTextRate = Math.Min(rate, refreshTextRate);
+            refreshTextRate = Math.Min(textRate, refreshTextRate);
             refreshDataRate = Math.Min(dataRate, refreshDataRate);
         }
+
         // Internal persistence interface:
         public void SetVar(string varname, int value)
         {
@@ -528,25 +559,6 @@ namespace JSI
                 {
                     timeToEjectionAngle = -1.0;
                 }
-
-                if (targetBody != null)
-                {
-                    targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetBody, out targetTimeAtClosestApproach);
-                }
-                else if (targetDockingNode != null)
-                {
-                    targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetDockingNode.GetVessel().GetOrbit(), out targetTimeAtClosestApproach);
-
-                }
-                else
-                {
-                    if (targetVessel == null)
-                    {
-                        // Analysis disable once NotResolvedInText
-                        throw new ArgumentNullException("RasterPropMonitorComputer: Updating closest approach, but all appropriate targets are null");
-                    }
-                    targetClosestApproach = JUtil.GetClosestApproach(vessel.orbit, targetOrbit, out targetTimeAtClosestApproach);
-                }
             }
             else
             {
@@ -555,15 +567,9 @@ namespace JSI
                 timeToPhaseAngle = -1.0;
                 ejectionAngle = -1.0;
                 timeToEjectionAngle = -1.0;
-                targetClosestApproach = -1.0;
-                targetTimeAtClosestApproach = -1.0;
                 moonEjectionAngle = -1.0;
                 ejectionAltitude = -1.0;
                 targetBodyDeltaV = -1.0;
-
-                // unless maybe a landed vessel
-                if (orbitSensibility && targetVessel != null && targetVessel.LandedOrSplashed)
-                    targetOrbit = JUtil.ClosestApproachSrfOrbit(vessel.orbit, targetVessel, out targetTimeAtClosestApproach, out targetClosestApproach);
             }
         }
         //--- Protractor utility methods
@@ -2038,13 +2044,26 @@ namespace JSI
                         return double.NaN;
                     return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
                 case "TARGETCLOSESTAPPROACHTIME":
-                    if (target == null || targetOrbit == null)
+                    if (target == null || targetOrbit == null || orbitSensibility == false)
+                    {
                         return double.NaN;
-                    return targetTimeAtClosestApproach - time;
+                    }
+                    else
+                    {
+                        double approachTime, approachDistance;
+                        approachDistance = JUtil.GetClosestApproach(vessel.GetOrbit(), target, out approachTime);
+                        return approachTime - time;
+                    }
                 case "TARGETCLOSESTAPPROACHDISTANCE":
-                    if (target == null || targetOrbit == null)
+                    if (target == null || targetOrbit == null || orbitSensibility == false)
+                    {
                         return double.NaN;
-                    return targetClosestApproach;
+                    }
+                    else
+                    {
+                        double approachTime;
+                        return JUtil.GetClosestApproach(vessel.GetOrbit(), target, out approachTime);
+                    }
 
                 // Space Objects (asteroid) specifics
                 case "TARGETSIGNALSTRENGTH":
@@ -2222,7 +2241,15 @@ namespace JSI
                 case "TARGETBODYEJECTIONANGLESECS":
                     return timeToEjectionAngle;
                 case "TARGETBODYCLOSESTAPPROACH":
-                    return targetClosestApproach;
+                    if (orbitSensibility == true)
+                    {
+                        double approachTime;
+                        return JUtil.GetClosestApproach(vessel.GetOrbit(), target, out approachTime);
+                    }
+                    else
+                    {
+                        return -1.0;
+                    }
                 case "TARGETBODYMOONEJECTIONANGLE":
                     return moonEjectionAngle;
                 case "TARGETBODYEJECTIONALTITUDE":
