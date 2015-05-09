@@ -52,10 +52,6 @@ namespace JSI
         public string dockingColor = string.Empty;
         private Color dockingColorValue = Color.red;
         [KSPField]
-        public string waypointColor = string.Empty;
-        // MOARdV: Don't know what color and what icon to use.  Haven't received any feedback.
-        private Color waypointColorValue = Color.magenta;
-        [KSPField]
         public float cameraSpan = 1f;
         [KSPField]
         public Vector2 cameraShift = Vector2.zero;
@@ -164,9 +160,14 @@ namespace JSI
 
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
+                // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
+                GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
+                Material material = navWaypointIndicator.renderer.sharedMaterial;
+                markerNavWaypoint.renderer.material.mainTexture = material.mainTexture;
+                
                 Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
                 Vector3d waypointDirection = (waypointPosition - comp.CoM).normalized;
-                MoveMarker(markerNavWaypoint, waypointDirection, waypointColorValue, gymbal);
+                MoveMarker(markerNavWaypoint, waypointDirection, material.color, gymbal);
                 ShowHide(true, markerNavWaypoint);
             }
 
@@ -302,11 +303,6 @@ namespace JSI
                 {
                     dockingColorValue = ConfigNode.ParseColor32(dockingColor);
                 }
-                if (!string.IsNullOrEmpty(waypointColor))
-                {
-                    waypointColorValue = ConfigNode.ParseColor32(waypointColor);
-                }
-
 
                 Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
                 overlayMaterial = new Material(unlit);
@@ -362,7 +358,7 @@ namespace JSI
                 markerRadialMinus = BuildMarker(0, 1, radialColorValue);
 
                 markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
-                markerNavWaypoint = BuildMarker(0, 2, waypointColorValue);
+                markerNavWaypoint = BuildMarker(0, 2, dockingColorValue);
 
                 // Non-moving parts...
                 cameraBody = new GameObject();
