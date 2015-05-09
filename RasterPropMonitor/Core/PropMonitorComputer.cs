@@ -1104,7 +1104,7 @@ namespace JSI
             }
             time = Planetarium.GetUniversalTime();
             FetchAltitudes();
-            terrainHeight = altitudeASL - altitudeTrue;
+
             if (time >= lastTimePerSecond + 1)
             {
                 terrainDelta = terrainHeight - lastTerrainHeight;
@@ -1385,17 +1385,14 @@ namespace JSI
             {
                 slopeAngle = Vector3.Angle(up, sfc.normal);
                 altitudeTrue = sfc.distance;
-            }
-            else if (vessel.mainBody.pqsController != null)
-            {
-                // from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
-                altitudeTrue = vessel.mainBody.GetAltitude(coM) -
-                (vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(coM), Vector3d.down) *
-                QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(coM), Vector3d.forward) *
-                Vector3d.right) - vessel.mainBody.pqsController.radius);
+                terrainHeight = altitudeASL - altitudeTrue;
             }
             else
-                altitudeTrue = vessel.mainBody.GetAltitude(coM);
+            {
+                terrainHeight = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, vessel.mainBody.GetLatitude(coM), vessel.mainBody.GetLongitude(coM));
+                altitudeTrue = altitudeASL - terrainHeight;
+            }
+
             altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {
