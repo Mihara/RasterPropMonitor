@@ -1,3 +1,4 @@
+//#define HACK_IN_A_NAVPOINT
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -942,13 +943,17 @@ namespace JSI
             if (straightEngine != null)
             {
                 if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
+                {
                     return 0;
+                }
                 return straightEngine.maxThrust * (straightEngine.thrustPercentage / 100d);
             }
             if (flippyEngine != null)
             {
                 if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
+                {
                     return 0;
+                }
                 return flippyEngine.maxThrust * (flippyEngine.thrustPercentage / 100d);
             }
             return 0;
@@ -1009,6 +1014,17 @@ namespace JSI
 
         private void FetchCommonData()
         {
+#if HACK_IN_A_NAVPOINT
+            //--- MOARdV: Keeping this hack around since I don't have a career
+            // game with waypoints to use for reference.
+            if(FinePrint.WaypointManager.navIsActive() == false)
+            {
+                double lat = vessel.mainBody.GetLatitude(coM) + 0.1;
+                double lon = vessel.mainBody.GetLongitude(coM) + 0.05;
+                FinePrint.WaypointManager.navWaypoint.SetupNavWaypoint(vessel.mainBody, lat, lon, 1000.0, "Squad/Contracts/Icons/seismic", Color.blue);
+                FinePrint.WaypointManager.activateNavPoint();
+            }
+#endif
             localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
             coM = vessel.findWorldCenterOfMass();
             localGeeDirect = FlightGlobals.getGeeForceAtPosition(coM).magnitude;
