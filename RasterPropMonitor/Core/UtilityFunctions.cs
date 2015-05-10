@@ -660,18 +660,8 @@ namespace JSI
 
             double latitude = body.GetLatitude(position);
             double longitude = body.GetLongitude(position);
-            double groundHeight;
-            if (body.pqsController != null)
-            {
-                groundHeight = body.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(longitude, Vector3d.down) *
-                QuaternionD.AngleAxis(latitude, Vector3d.forward) *
-                Vector3d.right) - body.pqsController.radius;
-            }
-            else
-            {
-                // No pqsController
-                groundHeight = 0.0;
-            }
+            // handy!
+            double groundHeight = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(body, latitude, longitude);
 
             return body.GetWorldSurfacePosition(latitude, longitude, groundHeight);
         }

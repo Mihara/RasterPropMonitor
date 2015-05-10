@@ -1,3 +1,4 @@
+//#define HACK_IN_A_NAVPOINT
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -915,43 +916,119 @@ namespace JSI
             return phase % 360.0;
         }
         //--- End Protractor imports
-        // Sigh. MechJeb math.
-        private static double GetCurrentThrust(PartModule engine)
+        private static float GetCurrentThrust(ModuleEngines engine)
         {
-            var straightEngine = engine as ModuleEngines;
-            var flippyEngine = engine as ModuleEnginesFX;
-            if (straightEngine != null)
+            if (engine != null)
             {
-                if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
-                    return 0;
-                return straightEngine.finalThrust;
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+                else
+                {
+                    return engine.finalThrust;
+                }
             }
-            if (flippyEngine != null)
+            else
             {
-                if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
-                    return 0;
-                return flippyEngine.finalThrust;
+                return 0.0f;
             }
-            return 0;
+        }
+        private static float GetCurrentThrust(ModuleEnginesFX engine)
+        {
+            if (engine != null)
+            {
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+                else
+                {
+                    return engine.finalThrust;
+                }
+            }
+            else
+            {
+                return 0.0f;
+            }
         }
 
-        private static double GetMaximumThrust(PartModule engine)
+        private static float GetMaximumThrust(ModuleEngines engine)
         {
-            var straightEngine = engine as ModuleEngines;
-            var flippyEngine = engine as ModuleEnginesFX;
-            if (straightEngine != null)
+            if (engine != null)
             {
-                if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
-                    return 0;
-                return straightEngine.maxThrust * (straightEngine.thrustPercentage / 100d);
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+
+                float vacISP = engine.atmosphereCurve.Evaluate(0.0f);
+                float maxThrustAtAltitude = engine.maxThrust * engine.realIsp / vacISP;
+
+                return maxThrustAtAltitude * (engine.thrustPercentage / 100.0f);
             }
-            if (flippyEngine != null)
+            else
             {
-                if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
-                    return 0;
-                return flippyEngine.maxThrust * (flippyEngine.thrustPercentage / 100d);
+                return 0.0f;
             }
-            return 0;
+        }
+
+        private static float GetMaximumThrust(ModuleEnginesFX engine)
+        {
+            if (engine != null)
+            {
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+
+                float vacISP = engine.atmosphereCurve.Evaluate(0.0f);
+                float maxThrustAtAltitude = engine.maxThrust * engine.realIsp / vacISP;
+
+                return maxThrustAtAltitude * (engine.thrustPercentage / 100.0f);
+            }
+            else
+            {
+                return 0.0f;
+            }
+        }
+
+        private static float GetRealIsp(ModuleEngines engine)
+        {
+            if (engine != null)
+            {
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+                else
+                {
+                    return engine.realIsp;
+                }
+            }
+            else
+            {
+                return 0.0f;
+            }
+        }
+
+        private static float GetRealIsp(ModuleEnginesFX engine)
+        {
+            if (engine != null)
+            {
+                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
+                {
+                    return 0.0f;
+                }
+                else
+                {
+                    return engine.realIsp;
+                }
+            }
+            else
+            {
+                return 0.0f;
+            }
         }
 
         // Valid only for the active vessel.  Imported from MechJeb
@@ -988,27 +1065,19 @@ namespace JSI
             return impactTime - decelTime / 2.0 - time;
         }
 
-        private static double GetRealIsp(PartModule engine)
-        {
-            var straightEngine = engine as ModuleEngines;
-            var flippyEngine = engine as ModuleEnginesFX;
-            if (straightEngine != null)
-            {
-                if ((!straightEngine.EngineIgnited) || (!straightEngine.isEnabled) || (!straightEngine.isOperational))
-                    return 0;
-                return straightEngine.realIsp;
-            }
-            if (flippyEngine != null)
-            {
-                if ((!flippyEngine.EngineIgnited) || (!flippyEngine.isEnabled) || (!flippyEngine.isOperational))
-                    return 0;
-                return flippyEngine.realIsp;
-            }
-            return 0;
-        }
-
         private void FetchCommonData()
         {
+#if HACK_IN_A_NAVPOINT
+            //--- MOARdV: Keeping this hack around since I don't have a career
+            // game with waypoints to use for reference.
+            if(FinePrint.WaypointManager.navIsActive() == false)
+            {
+                double lat = vessel.mainBody.GetLatitude(coM) + 0.1;
+                double lon = vessel.mainBody.GetLongitude(coM) + 0.05;
+                FinePrint.WaypointManager.navWaypoint.SetupNavWaypoint(vessel.mainBody, lat, lon, 1000.0, "Squad/Contracts/Icons/seismic", Color.blue);
+                FinePrint.WaypointManager.activateNavPoint();
+            }
+#endif
             localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
             coM = vessel.findWorldCenterOfMass();
             localGeeDirect = FlightGlobals.getGeeForceAtPosition(coM).magnitude;
@@ -1035,7 +1104,7 @@ namespace JSI
             }
             time = Planetarium.GetUniversalTime();
             FetchAltitudes();
-            terrainHeight = altitudeASL - altitudeTrue;
+
             if (time >= lastTimePerSecond + 1)
             {
                 terrainDelta = terrainHeight - lastTerrainHeight;
@@ -1181,7 +1250,7 @@ namespace JSI
         {
             totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
             totalDataAmount = 0;
-            double averageIspContribution = 0;
+            float averageIspContribution = 0.0f;
 
             anyEnginesOverheating = false;
 
@@ -1206,27 +1275,48 @@ namespace JSI
                 foreach (PartModule pm in thatPart.Modules)
                 {
                     if (!pm.isEnabled)
-                        continue;
-                    var thatEngineModule = pm as ModuleEngines;
-                    var thatEngineModuleFX = pm as ModuleEnginesFX;
-                    if (thatEngineModule != null || thatEngineModuleFX != null)
                     {
-                        // This part is an engine, so check if it's overheating here.
-                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
-
-                        totalCurrentThrust += GetCurrentThrust(pm);
-                        totalMaximumThrust += GetMaximumThrust(pm);
-                        double realIsp = GetRealIsp(pm);
-                        if (realIsp > 0)
-                            averageIspContribution += GetMaximumThrust(pm) / realIsp;
+                        continue;
                     }
 
-                    if (thatEngineModule != null)
+                    if (pm is ModuleEngines)
+                    {
+                        var thatEngineModule = pm as ModuleEngines;
+                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+
+                        totalCurrentThrust += GetCurrentThrust(thatEngineModule);
+                        float maxThrust = GetMaximumThrust(thatEngineModule);
+                        totalMaximumThrust += maxThrust;
+                        float realIsp = GetRealIsp(thatEngineModule);
+                        if (realIsp > 0)
+                        {
+                            averageIspContribution += maxThrust / realIsp;
+                        }
+
                         foreach (Propellant thatResource in thatEngineModule.propellants)
+                        {
                             resources.MarkPropellant(thatResource);
-                    if (thatEngineModuleFX != null)
+                        }
+                    }
+                    else if (pm is ModuleEnginesFX)
+                    {
+                        var thatEngineModuleFX = pm as ModuleEnginesFX;
+                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+
+                        totalCurrentThrust += GetCurrentThrust(thatEngineModuleFX);
+                        float maxThrust = GetMaximumThrust(thatEngineModuleFX);
+                        totalMaximumThrust += maxThrust;
+                        float realIsp = GetRealIsp(thatEngineModuleFX);
+                        if (realIsp > 0)
+                        {
+                            averageIspContribution += maxThrust / realIsp;
+                        }
+
                         foreach (Propellant thatResource in thatEngineModuleFX.propellants)
+                        {
                             resources.MarkPropellant(thatResource);
+                        }
+                    }
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -1234,15 +1324,21 @@ namespace JSI
                     foreach (ScienceData datapoint in container.GetData())
                     {
                         if (datapoint != null)
+                        {
                             totalDataAmount += datapoint.dataAmount;
+                        }
                     }
                 }
             }
 
-            if (averageIspContribution > 0)
+            if (averageIspContribution > 0.0f)
+            {
                 actualAverageIsp = totalMaximumThrust / averageIspContribution;
+            }
             else
-                actualAverageIsp = 0;
+            {
+                actualAverageIsp = 0.0;
+            }
 
             resourcesAlphabetic = resources.Alphabetic();
 
@@ -1289,17 +1385,14 @@ namespace JSI
             {
                 slopeAngle = Vector3.Angle(up, sfc.normal);
                 altitudeTrue = sfc.distance;
-            }
-            else if (vessel.mainBody.pqsController != null)
-            {
-                // from here: http://kerbalspaceprogram.com/forum/index.php?topic=10324.msg161923#msg161923
-                altitudeTrue = vessel.mainBody.GetAltitude(coM) -
-                (vessel.mainBody.pqsController.GetSurfaceHeight(QuaternionD.AngleAxis(vessel.mainBody.GetLongitude(coM), Vector3d.down) *
-                QuaternionD.AngleAxis(vessel.mainBody.GetLatitude(coM), Vector3d.forward) *
-                Vector3d.right) - vessel.mainBody.pqsController.radius);
+                terrainHeight = altitudeASL - altitudeTrue;
             }
             else
-                altitudeTrue = vessel.mainBody.GetAltitude(coM);
+            {
+                terrainHeight = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, vessel.mainBody.GetLatitude(coM), vessel.mainBody.GetLongitude(coM));
+                altitudeTrue = altitudeASL - terrainHeight;
+            }
+
             altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {

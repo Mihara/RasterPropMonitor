@@ -10,13 +10,13 @@ safely delete only those you don't want.
 Source code and full license information available at
 https://github.com/Mihara/RasterPropMonitor/
 
-RasterPropMonitor plugin (C) 2013-2014 Mihara and other contributors.
+RasterPropMonitor plugin (C) 2013-2015 Mihara and other contributors.
 Code is licensed under GPLv3. Props courtesy of alexustas and other contributors,
 and available under the terms of CC 3.0 BY-NC-SA. Portions of this package
 are derived from stock textures by Squad and are distributed according to
 Squad policy of permitting to distribute stock assets with mods if required.
 
-Support thread: http://forum.kerbalspaceprogram.com/threads/57603
+Support thread: http://forum.kerbalspaceprogram.com/threads/117471
 
 ModuleManager plugin included in this distribution to modify stock config files
 on the fly is available under the terms of CC SA, and obtained from
