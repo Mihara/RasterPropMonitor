@@ -153,7 +153,6 @@ namespace JSI
 		{
 			// find the UI object on screen
 			RUIToggleButton[] SASbtns = FindObjectOfType<VesselAutopilotUI>().modeButtons;
-			UnityEngine.Debug.Log("SASbts queried, got " + SASbtns.Length);
 			// set our mode, note it takes the mode as an int, generally top to bottom, left to right, as seen on the screen. Maneuver node being the exception, it is 9
 			SASbtns.ElementAt<RUIToggleButton>((int)newMode).SetTrue(true, true);
 		}
