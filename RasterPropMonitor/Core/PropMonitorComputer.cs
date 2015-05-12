@@ -1681,6 +1681,10 @@ namespace JSI
                     return speedVerticalRounded;
                 case "SURFSPEED":
                     return velocityVesselSurface.magnitude;
+                case "SURFSPEEDMACH":
+                    // Mach number wiggles around 1e-7 when sitting in launch
+                    // clamps before launch, so pull it down to zero if it's close.
+                    return (vessel.mach < 0.001) ? 0.0 : vessel.mach;
                 case "ORBTSPEED":
                     return velocityVesselOrbit.magnitude;
                 case "TRGTSPEED":
@@ -2386,6 +2390,12 @@ namespace JSI
                     return part.temperature + KelvinToCelsius;
                 case "PODTEMPERATUREKELVIN":
                     return part.temperature;
+                case "PODMAXTEMPERATURE":
+                    return part.maxTemp + KelvinToCelsius;
+                case "PODMAXTEMPERATUREKELVIN":
+                    return part.maxTemp;
+                case "PODNETFLUX":
+                    return part.thermalConductionFlux + part.thermalConvectionFlux + part.thermalInternalFlux + part.thermalRadiationFlux;
                 case "EXTERNALTEMPERATURE":
                     return vessel.externalTemperature + KelvinToCelsius;
                 case "EXTERNALTEMPERATUREKELVIN":
