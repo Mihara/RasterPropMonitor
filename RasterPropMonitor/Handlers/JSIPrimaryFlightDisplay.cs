@@ -158,6 +158,7 @@ namespace JSI
                 ShowHide(true, markerManeuver, markerManeuverMinus);
             }
 
+            /* Feature disabled until I can get a career game going and get a waypoint contract.
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
@@ -170,6 +171,7 @@ namespace JSI
                 MoveMarker(markerNavWaypoint, waypointDirection, material.color, gymbal);
                 ShowHide(true, markerNavWaypoint);
             }
+            */
 
             ITargetable target = FlightGlobals.fetch.VesselTarget;
             if (target != null)
