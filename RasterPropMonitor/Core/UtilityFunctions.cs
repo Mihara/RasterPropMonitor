@@ -463,43 +463,47 @@ namespace JSI
         }
 
         // Working in a generic to make that a generic function for all numbers is too much work
-        // and we only need these two anyway.
-        public static float DualLerp(float from, float to, float from2, float to2, float value)
+        public static float DualLerp(Vector2 destRange, Vector2 sourceRange, float value)
         {
-            if (from2 < to2)
-            {
-                if (value < from2)
-                    value = from2;
-                else if (value > to2)
-                    value = to2;
-            }
-            else
-            {
-                if (value < to2)
-                    value = to2;
-                else if (value > from2)
-                    value = from2;
-            }
-            return (to - from) * ((value - from2) / (to2 - from2)) + from;
+            return DualLerp(destRange.x, destRange.y, sourceRange.x, sourceRange.y, value);
         }
 
-        public static double DualLerp(double from, double to, double from2, double to2, double value)
+        public static float DualLerp(float destMin, float destMax, float sourceMin, float sourceMax, float value)
         {
-            if (from2 < to2)
+            if (sourceMin < sourceMax)
             {
-                if (value < from2)
-                    value = from2;
-                else if (value > to2)
-                    value = to2;
+                if (value < sourceMin)
+                    value = sourceMin;
+                else if (value > sourceMax)
+                    value = sourceMax;
             }
             else
             {
-                if (value < to2)
-                    value = to2;
-                else if (value > from2)
-                    value = from2;
+                if (value < sourceMax)
+                    value = sourceMax;
+                else if (value > sourceMin)
+                    value = sourceMin;
             }
-            return (to - from) * ((value - from2) / (to2 - from2)) + from;
+            return (destMax - destMin) * ((value - sourceMin) / (sourceMax - sourceMin)) + destMin;
+        }
+
+        public static double DualLerp(double destMin, double destMax, double sourceMin, double sourceMax, double value)
+        {
+            if (sourceMin < sourceMax)
+            {
+                if (value < sourceMin)
+                    value = sourceMin;
+                else if (value > sourceMax)
+                    value = sourceMax;
+            }
+            else
+            {
+                if (value < sourceMax)
+                    value = sourceMax;
+                else if (value > sourceMin)
+                    value = sourceMin;
+            }
+            return (destMax - destMin) * ((value - sourceMin) / (sourceMax - sourceMin)) + destMin;
         }
         // Convert a variable to a log10-like value (log10 for values > 1,
         // pass-through for values [-1, 1], and -log10(abs(value)) for values
