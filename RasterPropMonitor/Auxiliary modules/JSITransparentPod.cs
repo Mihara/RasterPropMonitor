@@ -30,6 +30,7 @@ namespace JSI
         private Quaternion originalRotation;
         private Transform originalParent;
         private Vector3 originalPosition;
+        private Vector3 originalScale;
 
         private Shader transparentShader, opaqueShader;
         private bool hasOpaqueShader;
@@ -185,6 +186,7 @@ namespace JSI
                 originalParent = part.internalModel.transform.parent;
                 originalPosition = part.internalModel.transform.localPosition;
                 originalRotation = part.internalModel.transform.localRotation;
+                originalScale = part.internalModel.transform.localScale;
 
                 // And then we remember the root part and the active vessel these coordinates refer to.
                 knownRootPart = vessel.rootPart;
@@ -259,6 +261,7 @@ namespace JSI
                     part.internalModel.transform.parent = originalParent;
                     part.internalModel.transform.localRotation = originalRotation;
                     part.internalModel.transform.localPosition = originalPosition;
+                    part.internalModel.transform.localScale = originalScale;
 
                     if (!JUtil.UserIsInPod(part))
                     {
