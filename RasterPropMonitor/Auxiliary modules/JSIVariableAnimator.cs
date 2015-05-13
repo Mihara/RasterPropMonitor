@@ -321,6 +321,7 @@ namespace JSI
                 threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
             }
 
+            resourceAmount = 0.0f;
             if (threshold != Vector2.zero)
             {
                 thresholdMode = true;
@@ -362,10 +363,6 @@ namespace JSI
                 }
 
                 TurnOff();
-            }
-            else
-            {
-                resourceAmount = 0.0f;
             }
         }
 
