@@ -244,6 +244,7 @@ namespace JSI
         private string[] storedStringsArray;
 
         private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
+        private Dictionary<string, MappedVariable> mappedVariables = new Dictionary<string, MappedVariable>();
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -1616,6 +1617,43 @@ namespace JSI
                             customVariables.Add(input, customVar);
 
                             return customVar.Evaluate(this);
+                        }
+                    }
+                }
+
+                // Mapped variables - if the first token is MAPPED, we'll evaluate it here
+                if (tokens.Length > 1 && tokens[0] == "MAPPED")
+                {
+                    if (mappedVariables.ContainsKey(input))
+                    {
+                        return mappedVariables[input].Evaluate(this);
+                    }
+                    else
+                    {
+                        string mappedName = input.Substring(7);
+                        MappedVariable mappedVar = null;
+
+                        // We haven't encountered this custom variable yet.
+                        foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
+                        {
+                            if (node.GetValue("mappedVariable") == mappedName)
+                            {
+                                mappedVar = new MappedVariable(node);
+                                break;
+                            }
+                        }
+
+                        if (mappedVar == null)
+                        {
+                            // We failed to find and evaluate a custom variable with this name.
+                            // Return the unrecognized token like we do with any other unrecognized variable.
+                            return input;
+                        }
+                        else
+                        {
+                            mappedVariables.Add(input, mappedVar);
+
+                            return mappedVar.Evaluate(this);
                         }
                     }
                 }
