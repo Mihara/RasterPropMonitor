@@ -140,11 +140,13 @@ namespace JSI
         private readonly Material affectedMaterial;
         private readonly string textureLayer;
         private readonly Mode mode;
+        private readonly float resourceAmount;
         private readonly bool looping;
         // runtime values:
         private bool alarmActive;
         private bool currentState;
         private double lastStateChange;
+        private Part part;
         public readonly bool alwaysActive = false;
 
         private enum Mode
@@ -161,24 +163,36 @@ namespace JSI
 
         public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
         {
+            part = thisProp.part;
+
             if (!node.HasData)
+            {
                 throw new ArgumentException("No data?!");
+            }
 
             comp = RasterPropMonitorComputer.Instantiate(thisProp);
 
             string[] tokens = { };
 
             if (node.HasValue("scale"))
+            {
                 tokens = node.GetValue("scale").Split(',');
+            }
 
             if (tokens.Length != 2)
+            {
                 throw new ArgumentException("Could not parse 'scale' parameter.");
+            }
 
             string variableName;
             if (node.HasValue("variableName"))
+            {
                 variableName = node.GetValue("variableName").Trim();
+            }
             else
+            {
                 throw new ArgumentException("Missing variable name.");
+            }
 
             scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
             scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
@@ -189,7 +203,9 @@ namespace JSI
             if (node.HasValue("reverse"))
             {
                 if (!bool.TryParse(node.GetValue("reverse"), out reverse))
+                {
                     throw new ArgumentException("So is 'reverse' true or false?");
+                }
             }
 
             if (node.HasValue("animationName"))
@@ -296,10 +312,14 @@ namespace JSI
                 mode = Mode.TextureScale;
             }
             else
+            {
                 throw new ArgumentException("Cannot initiate any of the possible action modes.");
+            }
 
             if (node.HasValue("threshold"))
+            {
                 threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
+            }
 
             if (threshold != Vector2.zero)
             {
@@ -335,9 +355,18 @@ namespace JSI
                         audioOutput.audio.loop = alarmSoundLooping;
                     }
                 }
+
+                if (node.HasValue("resourceAmount"))
+                {
+                    resourceAmount = float.Parse(node.GetValue("resourceAmount"));
+                }
+
                 TurnOff();
             }
-
+            else
+            {
+                resourceAmount = 0.0f;
+            }
         }
 
         private void TurnOn()
@@ -376,6 +405,18 @@ namespace JSI
                             affectedMaterial.SetTextureScale(token.Trim(), reverse ? textureScaleEnd : textureScaleStart);
                         }
                         break;
+                }
+            }
+
+            if (resourceAmount > 0.0f)
+            {
+                float requesting = (resourceAmount * TimeWarp.deltaTime);
+                float extracted = part.RequestResource("ElectricCharge", requesting);
+                if (Mathf.Abs(requesting - extracted) < Mathf.Abs(0.5f * requesting))
+                {
+                    // Insufficient power - shut down
+                    TurnOff();
+                    return; // early, so we don't thinl it's on
                 }
             }
             currentState = true;
@@ -445,13 +486,19 @@ namespace JSI
                         if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay)
                         {
                             if (currentState)
+                            {
                                 TurnOff();
+                            }
                             else
+                            {
                                 TurnOn();
+                            }
                         }
                     }
                     else
+                    {
                         TurnOn();
+                    }
                     if (audioOutput != null && !alarmActive)
                     {
                         audioOutput.audio.Play();
