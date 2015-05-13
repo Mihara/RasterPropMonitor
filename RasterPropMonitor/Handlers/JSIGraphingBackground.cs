@@ -11,7 +11,7 @@ namespace JSI
     class JSIGraphingBackground : InternalModule
     {
         [KSPField]
-        public string backgroundName;
+        public string layout;
         [KSPField]
         public string backgroundColor = "0,0,0,0";
         private Color32 backgroundColorValue;
@@ -64,11 +64,16 @@ namespace JSI
             }
             try
             {
+                if (string.IsNullOrEmpty(layout))
+                {
+                    throw new ArgumentNullException("layout");
+                }
+
                 backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("JSI_GRAPHING_BACKGROUND"))
                 {
-                    if (node.GetValue("name") == backgroundName)
+                    if (node.GetValue("name") == layout)
                     {
                         ConfigNode[] dataNodes = node.GetNodes("DATA_SET");
                         JUtil.LogMessage(this, "Found my config with {0} DATA_SET nodes", dataNodes.Length);
