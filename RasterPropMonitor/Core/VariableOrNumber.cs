@@ -70,7 +70,7 @@ namespace JSI
             {
                 if (!warningMade)
                 {
-                    JUtil.LogMessage(owner, "Warning, {0} can fail to produce a usable number.", variableName);
+                    JUtil.LogMessage(owner, "Warning: {0} can fail to produce a usable number.", variableName);
                     warningMade = true;
                     return false;
                 }
