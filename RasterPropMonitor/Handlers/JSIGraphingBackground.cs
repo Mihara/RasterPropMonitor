@@ -75,7 +75,7 @@ namespace JSI
                     throw new ArgumentNullException("layout");
                 }
 
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("JSI_GRAPHING_BACKGROUND"))
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_GRAPHING_BACKGROUND"))
                 {
                     if (node.GetValue("layout") == layout)
                     {
@@ -137,21 +137,27 @@ namespace JSI
         //--- Static data
         private readonly Vector2 position;
         private readonly Vector2 size;
-        private readonly Color32 color;
-        private readonly int lineWidth;
+        private readonly Color32 color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+        private readonly int lineWidth = 0;
 
+        private readonly Vector2 fillTopLeftCorner;
+        private readonly Vector2 fillSize;
+
+        //--- Graphing data
         private readonly GraphType graphType;
         private readonly string variableName;
-        private readonly Color32 passiveColor;
-        private readonly Color32 activeColor;
+        private readonly Color32 passiveColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+        private readonly Color32 activeColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         private readonly VariableOrNumber[] scale = new VariableOrNumber[2];
-
-        private bool warned = false;
+        private readonly Vector2 threshold;
+        private readonly bool thresholdMode;
+        private readonly bool reverse;
 
         private enum GraphType
         {
             VerticalUp,
             HorizontalRight,
+            Solid,
         };
 
         public DataSet(ConfigNode node)
@@ -163,29 +169,71 @@ namespace JSI
             size.x = packedPosition.z;
             size.y = packedPosition.w;
 
-            color = ConfigNode.ParseColor32(node.GetValue("borderColor"));
-            lineWidth = int.Parse(node.GetValue("borderWidth"));
+            if (node.HasValue("borderColor"))
+            {
+                color = ConfigNode.ParseColor32(node.GetValue("borderColor"));
+            }
+
+            if (node.HasValue("borderWidth"))
+            {
+                lineWidth = int.Parse(node.GetValue("borderWidth"));
+            }
 
             string graphTypeStr = node.GetValue("graphType").Trim();
             if (graphTypeStr == GraphType.VerticalUp.ToString())
             {
                 graphType = GraphType.VerticalUp;
             }
-            else if(graphTypeStr == GraphType.HorizontalRight.ToString())
+            else if (graphTypeStr == GraphType.HorizontalRight.ToString())
             {
                 graphType = GraphType.HorizontalRight;
+            }
+            else if (graphTypeStr == GraphType.Solid.ToString())
+            {
+                graphType = GraphType.Solid;
             }
             else
             {
                 throw new ArgumentException("Unknown 'graphType' in DATA_SET");
             }
 
-            passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-            activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+            if (node.HasValue("passiveColor"))
+            {
+                passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
+            }
+            if (node.HasValue("activeColor"))
+            {
+                activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+            }
             string[] token = node.GetValue("scale").Split(',');
             scale[0] = new VariableOrNumber(token[0].Trim(), this);
             scale[1] = new VariableOrNumber(token[1].Trim(), this);
             variableName = node.GetValue("variableName").Trim();
+
+            if (node.HasValue("reverse"))
+            {
+                if (!bool.TryParse(node.GetValue("reverse"), out reverse))
+                {
+                    throw new ArgumentException("So is 'reverse' true or false?");
+                }
+            }
+
+            if (node.HasValue("threshold"))
+            {
+                threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
+            }
+            if (threshold != Vector2.zero)
+            {
+                thresholdMode = true;
+
+                float min = Mathf.Min(threshold.x, threshold.y);
+                float max = Mathf.Max(threshold.x, threshold.y);
+                threshold.x = min;
+                threshold.y = max;
+            }
+
+            fillTopLeftCorner = position + new Vector2((float)lineWidth, (float)lineWidth);
+            fillSize = (size - new Vector2((float)(2 * lineWidth), (float)(2 * lineWidth)));
         }
 
         public void RenderBackground(RenderTexture screen)
@@ -207,69 +255,42 @@ namespace JSI
             float eval = comp.ProcessVariable(variableName).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
-                if (!warned)
-                {
-                    warned = true;
-                    JUtil.LogErrorMessage(this, "Variable {0} can produce bad values", variableName);
-                }
                 return; // bad value - can't render
             }
 
-            float position = JUtil.DualLerp(0.0f, 1.0f, leftVal, rightVal, eval);
+            float ratio = Mathf.InverseLerp(leftVal, rightVal, eval);
+
+            if (thresholdMode)
+            {
+                if (ratio >= threshold.x && ratio <= threshold.y)
+                {
+                    ratio = 1.0f;
+                }
+                else
+                {
+                    ratio = 0.0f;
+                }
+            }
+
+            if (reverse)
+            {
+                ratio = 1.0f - ratio;
+            }
 
             switch (graphType)
             {
                 case GraphType.VerticalUp:
-                    DrawVerticalUp(position);
+                    DrawVerticalUp(ratio);
                     break;
                 case GraphType.HorizontalRight:
-                    DrawHorizontalRight(position);
+                    DrawHorizontalRight(ratio);
+                    break;
+                case GraphType.Solid:
+                    DrawSolid(ratio);
                     break;
                 default:
                     throw new NotImplementedException("Unimplemented graphType " + graphType.ToString());
             }
-        }
-
-        private void DrawHorizontalRight(float fillRatio)
-        {
-            if (fillRatio <= 0.0f)
-            {
-                return; // early return - empty graph
-            }
-
-            Vector2 topLeft = position + new Vector2((float)lineWidth, (float)lineWidth);
-            Vector2 fillSize = (size - new Vector2((float)(2 * lineWidth), (float)(2 * lineWidth)));
-
-            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
-
-            GL.Color(fillColor);
-            GL.Begin(GL.QUADS);
-            GL.Vertex3(topLeft.x, topLeft.y + fillSize.y, 0.0f);
-            GL.Vertex3(topLeft.x + fillSize.x * fillRatio, topLeft.y + fillSize.y, 0.0f);
-            GL.Vertex3(topLeft.x + fillSize.x * fillRatio, topLeft.y, 0.0f);
-            GL.Vertex3(topLeft.x, topLeft.y, 0.0f);
-            GL.End();
-        }
-
-        private void DrawVerticalUp(float fillRatio)
-        {
-            if (fillRatio <= 0.0f)
-            {
-                return; // early return - empty graph
-            }
-
-            Vector2 topLeft = position + new Vector2((float)lineWidth, (float)lineWidth);
-            Vector2 fillSize = (size - new Vector2((float)(2 * lineWidth), (float)(2 * lineWidth)));
-
-            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
-
-            GL.Color(fillColor);
-            GL.Begin(GL.QUADS);
-            GL.Vertex3(topLeft.x, topLeft.y + fillSize.y, 0.0f);
-            GL.Vertex3(topLeft.x + fillSize.x, topLeft.y + fillSize.y, 0.0f);
-            GL.Vertex3(topLeft.x + fillSize.x, topLeft.y + fillSize.y * (1.0f - fillRatio), 0.0f);
-            GL.Vertex3(topLeft.x, topLeft.y + fillSize.y * (1.0f - fillRatio), 0.0f);
-            GL.End();
         }
 
         private void DrawBorder(RenderTexture screen)
@@ -288,6 +309,55 @@ namespace JSI
                 GL.Vertex3(position.x + size.x - offset, position.y + offset, 0.0f);
                 GL.Vertex3(position.x + offset, position.y + offset, 0.0f);
             }
+            GL.End();
+        }
+
+        private void DrawHorizontalRight(float fillRatio)
+        {
+            if (fillRatio <= 0.0f)
+            {
+                return; // early return - empty graph
+            }
+
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y, 0.0f);
+            GL.End();
+        }
+
+        private void DrawSolid(float fillRatio)
+        {
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y, 0.0f);
+            GL.End();
+        }
+
+        private void DrawVerticalUp(float fillRatio)
+        {
+            if (fillRatio <= 0.0f)
+            {
+                return; // early return - empty graph
+            }
+
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
             GL.End();
         }
     }
