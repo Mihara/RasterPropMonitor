@@ -139,6 +139,7 @@ namespace JSI
         private double totalMaximumThrust;
         private double actualAverageIsp;
         private bool anyEnginesOverheating;
+        private bool anyEnginesFlameout;
         private double totalDataAmount;
         private double secondsToImpact;
         private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
@@ -819,7 +820,7 @@ namespace JSI
             totalDataAmount = 0;
             float averageIspContribution = 0.0f;
 
-            anyEnginesOverheating = false;
+            anyEnginesOverheating = anyEnginesFlameout = false;
 
             resources.StartLoop(time);
 
@@ -850,6 +851,7 @@ namespace JSI
                     {
                         var thatEngineModule = pm as ModuleEngines;
                         anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+                        anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
                         float maxThrust = GetMaximumThrust(thatEngineModule);
@@ -869,6 +871,7 @@ namespace JSI
                     {
                         var thatEngineModuleFX = pm as ModuleEnginesFX;
                         anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+                        anyEnginesFlameout |= (thatEngineModuleFX.isActiveAndEnabled && thatEngineModuleFX.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModuleFX);
                         float maxThrust = GetMaximumThrust(thatEngineModuleFX);
@@ -2107,6 +2110,8 @@ namespace JSI
                 // Well, it's not a compound but it's an alarm...
                 case "ENGINEOVERHEATALARM":
                     return anyEnginesOverheating.GetHashCode();
+                case "ENGINEFLAMEOUTALARM":
+                    return anyEnginesFlameout.GetHashCode();
 
 
                 // SCIENCE!!
