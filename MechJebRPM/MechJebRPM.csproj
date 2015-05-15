@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>MechJebRPM</RootNamespace>
     <AssemblyName>MechJebRPM</AssemblyName>
-    <ReleaseVersion>0.19.3</ReleaseVersion>
+    <ReleaseVersion>0.19.4</ReleaseVersion>
     <CodePage>65001</CodePage>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>

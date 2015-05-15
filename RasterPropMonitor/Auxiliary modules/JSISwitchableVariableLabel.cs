@@ -82,8 +82,8 @@ namespace JSI
 					colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
 				}
 				if (labelsEx[activeLabel].hasText) {
-					textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
-				}
+                    textObj.text.Text = "";
+                }
 
 				audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 				JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
