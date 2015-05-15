@@ -17,7 +17,7 @@ using System.Runtime.CompilerServices;
 // Now this is the actual version number with build number.
 // As I release newer ones, I'll bump them manually.
 // Build number is altered automatically.
-[assembly: AssemblyFileVersion("0.19.3")]
+[assembly: AssemblyFileVersion("0.19.4")]
 
 // The following attributes are used to specify the signing key for the assembly,
 // if desired. See the Mono documentation for more information about signing.
