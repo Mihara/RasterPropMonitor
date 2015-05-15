@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
 using UnityEngine;
 
 namespace JSI
@@ -28,23 +26,33 @@ namespace JSI
                 return false;
             }
 
-            //JUtil.LogMessage(this, "RenderBackground ({0}, {1})", screen.width, screen.height);
             GL.Clear(true, true, backgroundColorValue);
             GL.PushMatrix();
             GL.LoadPixelMatrix(0.0f, screen.width, screen.height, 0.0f);
             GL.Viewport(new Rect(0, 0, screen.width, screen.height));
             lineMaterial.SetPass(0);
 
-            // Render background - eventually, squirrel this away onto a render tex
-            for (int i = 0; i < dataSets.Count; ++i)
+            try
             {
-                dataSets[i].RenderBackground(screen);
-            }
+                // Render background - eventually, squirrel this away onto a render tex
+                for (int i = 0; i < dataSets.Count; ++i)
+                {
+                    dataSets[i].RenderBackground(screen);
+                }
 
-            // Render data
-            for (int i = 0; i < dataSets.Count; ++i)
+                // Render data
+                for (int i = 0; i < dataSets.Count; ++i)
+                {
+                    dataSets[i].RenderData(screen, comp);
+                }
+            }
+            catch
             {
-                dataSets[i].RenderData(screen, comp);
+                // Something went wrong ....
+                GL.PopMatrix();
+                GL.Viewport(new Rect(0, 0, screen.width, screen.height));
+
+                return false;
             }
 
             GL.PopMatrix();
@@ -79,17 +87,6 @@ namespace JSI
                 {
                     if (node.GetValue("layout") == layout)
                     {
-                        JUtil.LogMessage(this, "node {0} has {1} nodes and {2} values", layout, node.CountNodes, node.CountValues);
-                        string[] vals = node.GetValues();
-                        for (int i = 0; i < vals.Length; ++i)
-                        {
-                            JUtil.LogMessage(this, "vals[{0}] = {1}", i, vals[i]);
-                        }
-                        ConfigNode[] nodess = node.GetNodes();
-                        for (int i = 0; i < nodess.Length; ++i)
-                        {
-                            JUtil.LogMessage(this, "nodess[{0}] = {1}", i, nodess[i].name);
-                        }
                         if (!node.HasValue("backgroundColor"))
                         {
                             JUtil.LogErrorMessage(this, "?!? no backgroundColor");
@@ -102,7 +99,6 @@ namespace JSI
                         backgroundColorValue = ConfigNode.ParseColor32(node.GetValue("backgroundColor"));
 
                         ConfigNode[] dataNodes = node.GetNodes("DATA_SET");
-                        //JUtil.LogMessage(this, "Found my config with {0} DATA_SET nodes", dataNodes.Length);
 
                         for (int i = 0; i < dataNodes.Length; i++)
                         {
@@ -113,6 +109,7 @@ namespace JSI
                             catch (ArgumentException e)
                             {
                                 JUtil.LogErrorMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+                                throw;
                             }
                         }
                         break;
@@ -166,7 +163,6 @@ namespace JSI
 
         public DataSet(ConfigNode node)
         {
-            //JUtil.LogMessage(this, "Initializing...");
             Vector4 packedPosition = ConfigNode.ParseVector4(node.GetValue("borderPosition"));
             position.x = packedPosition.x;
             position.y = packedPosition.y;
