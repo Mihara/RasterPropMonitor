@@ -156,7 +156,11 @@ namespace JSI
         private enum GraphType
         {
             VerticalUp,
+            VerticalDown,
+            VerticalSplit,
             HorizontalRight,
+            HorizontalLeft,
+            HorizontalSplit,
             Solid,
         };
 
@@ -184,9 +188,25 @@ namespace JSI
             {
                 graphType = GraphType.VerticalUp;
             }
+            else if (graphTypeStr == GraphType.VerticalDown.ToString())
+            {
+                graphType = GraphType.VerticalDown;
+            }
+            else if (graphTypeStr == GraphType.VerticalSplit.ToString())
+            {
+                graphType = GraphType.VerticalSplit;
+            }
             else if (graphTypeStr == GraphType.HorizontalRight.ToString())
             {
                 graphType = GraphType.HorizontalRight;
+            }
+            else if (graphTypeStr == GraphType.HorizontalLeft.ToString())
+            {
+                graphType = GraphType.HorizontalLeft;
+            }
+            else if (graphTypeStr == GraphType.HorizontalSplit.ToString())
+            {
+                graphType = GraphType.HorizontalSplit;
             }
             else if (graphTypeStr == GraphType.Solid.ToString())
             {
@@ -279,11 +299,23 @@ namespace JSI
 
             switch (graphType)
             {
+                case GraphType.VerticalDown:
+                    DrawVerticalDown(ratio);
+                    break;
                 case GraphType.VerticalUp:
                     DrawVerticalUp(ratio);
                     break;
+                case GraphType.VerticalSplit:
+                    DrawVerticalSplit(ratio);
+                    break;
+                case GraphType.HorizontalLeft:
+                    DrawHorizontalLeft(ratio);
+                    break;
                 case GraphType.HorizontalRight:
                     DrawHorizontalRight(ratio);
+                    break;
+                case GraphType.HorizontalSplit:
+                    DrawHorizontalSplit(ratio);
                     break;
                 case GraphType.Solid:
                     DrawSolid(ratio);
@@ -312,6 +344,24 @@ namespace JSI
             GL.End();
         }
 
+        private void DrawHorizontalLeft(float fillRatio)
+        {
+            if (fillRatio <= 0.0f)
+            {
+                return; // early return - empty graph
+            }
+
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x * (1.0f - fillRatio), fillTopLeftCorner.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x * (1.0f - fillRatio), fillTopLeftCorner.y + fillSize.y, 0.0f);
+            GL.End();
+        }
+
         private void DrawHorizontalRight(float fillRatio)
         {
             if (fillRatio <= 0.0f)
@@ -330,6 +380,33 @@ namespace JSI
             GL.End();
         }
 
+        private void DrawHorizontalSplit(float fillRatio)
+        {
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+
+            if (fillRatio < 0.5f || fillRatio > 0.5f)
+            {
+                // MOARdV: It doesn't look like back face culling is enabled,
+                // so I don't need to have separate cases for < 0.5 and > 0.5
+                GL.Begin(GL.QUADS);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y + fillSize.y, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y + fillSize.y, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y, 0.0f);
+                GL.End();
+            }
+            else
+            {
+                GL.Begin(GL.LINES);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y + fillSize.y, 0.0f);
+                GL.End();
+            }
+
+        }
+
         private void DrawSolid(float fillRatio)
         {
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
@@ -341,6 +418,51 @@ namespace JSI
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y, 0.0f);
             GL.End();
+        }
+
+        private void DrawVerticalDown(float fillRatio)
+        {
+            if (fillRatio <= 0.0f)
+            {
+                return; // early return - empty graph
+            }
+
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+            GL.Begin(GL.QUADS);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillRatio * fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillRatio * fillSize.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
+            GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y, 0.0f);
+            GL.End();
+        }
+
+        private void DrawVerticalSplit(float fillRatio)
+        {
+            Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
+
+            GL.Color(fillColor);
+
+            if (fillRatio < 0.5f || fillRatio > 0.5f)
+            {
+                // MOARdV: It doesn't look like back face culling is enabled,
+                // so I don't need to have separate cases for < 0.5 and > 0.5
+                GL.Begin(GL.QUADS);
+                GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
+                GL.End();
+            }
+            else
+            {
+                GL.Begin(GL.LINES);
+                GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
+                GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
+                GL.End();
+            }
+
         }
 
         private void DrawVerticalUp(float fillRatio)
