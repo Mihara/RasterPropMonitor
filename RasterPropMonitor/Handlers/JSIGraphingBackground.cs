@@ -158,7 +158,7 @@ namespace JSI
             HorizontalRight,
             HorizontalLeft,
             HorizontalSplit,
-            Solid,
+            Lamp,
         };
 
         public DataSet(ConfigNode node)
@@ -204,9 +204,9 @@ namespace JSI
             {
                 graphType = GraphType.HorizontalSplit;
             }
-            else if (graphTypeStr == GraphType.Solid.ToString())
+            else if (graphTypeStr == GraphType.Lamp.ToString())
             {
-                graphType = GraphType.Solid;
+                graphType = GraphType.Lamp;
             }
             else
             {
@@ -313,8 +313,8 @@ namespace JSI
                 case GraphType.HorizontalSplit:
                     DrawHorizontalSplit(ratio);
                     break;
-                case GraphType.Solid:
-                    DrawSolid(ratio);
+                case GraphType.Lamp:
+                    DrawLamp(ratio);
                     break;
                 default:
                     throw new NotImplementedException("Unimplemented graphType " + graphType.ToString());
@@ -403,7 +403,7 @@ namespace JSI
 
         }
 
-        private void DrawSolid(float fillRatio)
+        private void DrawLamp(float fillRatio)
         {
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
