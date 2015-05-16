@@ -20,9 +20,20 @@ namespace JSI
             {
                 // If there's a handler references method, it gets called before each text call.
                 if (pageHandlerS.getHandlerReferences != null)
+                {
                     pageHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+                }
 
                 return pageHandlerMethod != null ? pageHandlerMethod(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
+            }
+        }
+
+        private bool isActive;
+        public bool IsActive
+        {
+            get
+            {
+                return isActive;
             }
         }
 
@@ -83,7 +94,9 @@ namespace JSI
         public bool SwitchingPermitted(string destination)
         {
             if (string.IsNullOrEmpty(destination))
+            {
                 return false;
+            }
             return !simpleLockingPage && !disableSwitchingTo.Contains(destination);
         }
 
@@ -106,7 +119,9 @@ namespace JSI
             foreach (char thatChar in illegalChars)
             {
                 if (thatName.IndexOf(thatChar) != -1)
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -125,7 +140,9 @@ namespace JSI
             pageNumber = idNum;
             isMutable = false;
             if (!node.HasData)
+            {
                 throw new ArgumentException("Empty page?");
+            }
 
             if (node.HasValue("name"))
             {
@@ -135,15 +152,21 @@ namespace JSI
                     JUtil.LogMessage(ourMonitor, "Warning, name given for page #{0} is invalid, ignoring.", pageNumber);
                 }
                 else
+                {
                     name = value;
+                }
             }
             else
+            {
                 JUtil.LogMessage(ourMonitor, "Warning, page #{0} has no name. It's much better if it does.", pageNumber);
+            }
 
             isDefault |= node.HasValue("default");
 
             if (node.HasValue("button"))
+            {
                 SmarterButton.CreateButton(thatMonitor.internalProp, node.GetValue("button"), this, thatMonitor.PageButtonClick);
+            }
 
             // Page locking system -- simple locking:
             simpleLockingPage |= node.HasValue("lockingPage");
@@ -312,7 +335,9 @@ namespace JSI
                             cameraFOV = maxFOV;
                         }
                         else
+                        {
                             JUtil.LogMessage(ourMonitor, "Ignored invalid camera zoom settings on page {0}.", pageNumber);
+                        }
                     }
                 }
             }
@@ -336,7 +361,9 @@ namespace JSI
                     interlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
                 }
                 else
+                {
                     JUtil.LogErrorMessage(ourMonitor, "Interlay texture could not be loaded.");
+                }
             }
             if (node.HasValue("textureOverlayURL"))
             {
@@ -346,7 +373,9 @@ namespace JSI
                     overlayTexture = GameDatabase.Instance.GetTexture(textureURL, false);
                 }
                 else
+                {
                     JUtil.LogErrorMessage(ourMonitor, "Overlay texture {0} could not be loaded.", textureURL);
+                }
             }
 
         }
@@ -385,11 +414,13 @@ namespace JSI
                 {
 
                     foreach (InternalModule potentialModule in ourMonitor.internalProp.internalModules)
+                    {
                         if (potentialModule.ClassName == moduleName)
                         {
                             thatModule = potentialModule;
                             break;
                         }
+                    }
 
                 }
 
@@ -414,7 +445,9 @@ namespace JSI
                 const string sigError = "Incorrect signature of the {0} method in {1}, ignoring option. If it doesn't work later, that's why.";
 
                 if (node.HasValue("pageActiveMethod"))
+                {
                     foreach (MethodInfo m in thatModule.GetType().GetMethods())
+                    {
                         if (m.Name == node.GetValue("pageActiveMethod"))
                         {
                             try
@@ -427,9 +460,13 @@ namespace JSI
                             }
                             break;
                         }
+                    }
+                }
 
                 if (node.HasValue("buttonClickMethod"))
+                {
                     foreach (MethodInfo m in thatModule.GetType().GetMethods())
+                    {
                         if (m.Name == node.GetValue("buttonClickMethod"))
                         {
                             try
@@ -442,9 +479,13 @@ namespace JSI
                             }
                             break;
                         }
+                    }
+                }
 
                 if (node.HasValue("buttonReleaseMethod"))
+                {
                     foreach (MethodInfo m in thatModule.GetType().GetMethods())
+                    {
                         if (m.Name == node.GetValue("buttonReleaseMethod"))
                         {
                             try
@@ -457,9 +498,13 @@ namespace JSI
                             }
                             break;
                         }
+                    }
+                }
 
                 if (node.HasValue("getHandlerReferencesMethod"))
+                {
                     foreach (MethodInfo m in thatModule.GetType().GetMethods())
+                    {
                         if (m.Name == node.GetValue("getHandlerReferencesMethod"))
                         {
                             try
@@ -472,11 +517,17 @@ namespace JSI
                             }
                             break;
                         }
+                    }
+                }
 
                 moduleInstance = thatModule;
                 foreach (MethodInfo m in thatModule.GetType().GetMethods())
+                {
                     if (m.Name == methodName)
+                    {
                         return m;
+                    }
+                }
 
             }
             return null;
@@ -485,18 +536,30 @@ namespace JSI
         private float ComputeFOV()
         {
             if (zoomSteps == 0)
+            {
                 return cameraFOV;
-            return maxFOV - zoomSkip * currentZoom;
+            }
+            else
+            {
+                return maxFOV - zoomSkip * currentZoom;
+            }
         }
 
         public void Active(bool state)
         {
+            isActive = state;
             if (state)
+            {
                 cameraObject.PointCamera(camera, ComputeFOV());
+            }
             if (pageHandlerS.activate != null)
+            {
                 pageHandlerS.activate(state, pageNumber);
+            }
             if (backgroundHandlerS.activate != null && backgroundHandlerS.activate != pageHandlerS.activate)
+            {
                 backgroundHandlerS.activate(state, pageNumber);
+            }
             if (cameraFlickerChance > 0)
             {
                 cameraObject.SetFlicker(cameraFlickerChance, cameraFlickerRange);
@@ -511,7 +574,9 @@ namespace JSI
         {
             buttonID = redirectGlobals[buttonID] ?? buttonID;
             if (buttonID == -1)
+            {
                 return false;
+            }
             bool actionTaken = false;
             if (pageHandlerS.buttonClick != null)
             {
@@ -527,13 +592,21 @@ namespace JSI
             {
                 actionTaken = true;
                 if (buttonID == zoomUpButton)
+                {
                     currentZoom--;
+                }
                 if (buttonID == zoomDownButton)
+                {
                     currentZoom++;
+                }
                 if (currentZoom < 0)
+                {
                     currentZoom = 0;
+                }
                 if (currentZoom > zoomSteps)
+                {
                     currentZoom = zoomSteps;
+                }
                 cameraObject.FOV = ComputeFOV();
             }
             return actionTaken;
@@ -543,7 +616,9 @@ namespace JSI
         {
             buttonID = redirectGlobals[buttonID] ?? buttonID;
             if (buttonID == -1)
+            {
                 return false;
+            }
 
             bool actionTaken = false;
             if (pageHandlerS.buttonRelease != null)
@@ -618,4 +693,3 @@ namespace JSI
         }
     }
 }
-
