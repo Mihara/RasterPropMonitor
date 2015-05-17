@@ -184,10 +184,25 @@ namespace JSI
                 throw new ArgumentException("Could not parse 'scale' parameter.");
             }
 
-            string variableName;
             if (node.HasValue("variableName"))
             {
+                string variableName;
                 variableName = node.GetValue("variableName").Trim();
+                scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
+            }
+            else if (node.HasValue("stateMethod"))
+            {
+                string stateMethod;
+                stateMethod = node.GetValue("stateMethod").Trim();
+                Func<bool> stateFunction = JUtil.GetStateMethod(stateMethod, thisProp);
+                if (stateFunction != null)
+                {
+                    scaleEnds[2] = new VariableOrNumber(stateFunction, this);
+                }
+                else
+                {
+                    throw new ArgumentException("Unrecognized stateMethod");
+                }
             }
             else
             {
@@ -196,7 +211,6 @@ namespace JSI
 
             scaleEnds[0] = new VariableOrNumber(tokens[0], comp, this);
             scaleEnds[1] = new VariableOrNumber(tokens[1], comp, this);
-            scaleEnds[2] = new VariableOrNumber(variableName, comp, this);
 
             // That takes care of the scale, now what to do about that scale:
 

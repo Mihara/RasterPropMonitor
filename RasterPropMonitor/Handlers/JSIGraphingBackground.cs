@@ -18,7 +18,7 @@ namespace JSI
         private Material lineMaterial = JUtil.DrawLineMaterial();
         private Material graphMaterial;
 
-    
+
         public bool RenderBackground(RenderTexture screen, float cameraAspect)
         {
             if (!enabled)
@@ -92,7 +92,7 @@ namespace JSI
                             JUtil.LogErrorMessage(this, "?!? no backgroundColor");
                         }
                         string s = node.GetValue("backgroundColor");
-                        if(string.IsNullOrEmpty(s))
+                        if (string.IsNullOrEmpty(s))
                         {
                             JUtil.LogErrorMessage(this, "backgroundColor is missing?");
                         }
@@ -119,13 +119,13 @@ namespace JSI
                 graphMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
                 startupComplete = true;
-            } 
+            }
 
-            catch 
+            catch
             {
-				JUtil.AnnoyUser(this);
-				throw;
-			}
+                JUtil.AnnoyUser(this);
+                throw;
+            }
         }
     }
 
@@ -147,6 +147,9 @@ namespace JSI
         private readonly Color32 activeColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         private readonly VariableOrNumber[] scale = new VariableOrNumber[2];
         private readonly Vector2 threshold;
+        private double lastStateChange = 0.0;
+        private float lastState = 0.0f;
+        private readonly float flashingDelay;
         private readonly bool thresholdMode;
         private readonly bool reverse;
 
@@ -246,6 +249,12 @@ namespace JSI
                 float max = Mathf.Max(threshold.x, threshold.y);
                 threshold.x = min;
                 threshold.y = max;
+
+                if (node.HasValue("flashingDelay"))
+                {
+                    flashingDelay = float.Parse(node.GetValue("flashingDelay"));
+                    flashingDelay = Mathf.Max(flashingDelay, 0.0f);
+                }
             }
 
             fillTopLeftCorner = position + new Vector2((float)lineWidth, (float)lineWidth);
@@ -254,7 +263,7 @@ namespace JSI
 
         public void RenderBackground(RenderTexture screen)
         {
-            if(lineWidth > 0)
+            if (lineWidth > 0)
             {
                 DrawBorder(screen);
             }
@@ -280,7 +289,20 @@ namespace JSI
             {
                 if (ratio >= threshold.x && ratio <= threshold.y)
                 {
-                    ratio = 1.0f;
+                    if (flashingDelay > 0.0f)
+                    {
+                        if (lastStateChange + flashingDelay < comp.Time)
+                        {
+                            lastStateChange = comp.Time;
+                            lastState = 1.0f - lastState;
+                        }
+
+                        ratio = lastState;
+                    }
+                    else
+                    {
+                        ratio = 1.0f;
+                    }
                 }
                 else
                 {
