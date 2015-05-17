@@ -295,7 +295,7 @@ namespace JSI
                     part.internalModel.transform.parent = part.transform;
                     part.internalModel.transform.localRotation = MagicalVoodooRotation;
                     part.internalModel.transform.localPosition = Vector3.zero;
-
+                    part.internalModel.transform.localScale = Vector3.one;
                 }
 
             }
