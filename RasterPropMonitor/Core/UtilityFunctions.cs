@@ -1039,6 +1039,11 @@ namespace JSI
             return double.NaN;
         }
 
+        public static bool ReturnFalse()
+        {
+            return false;
+        }
+
         internal static Func<bool> GetStateMethod(string packedMethod, InternalProp internalProp)
         {
             string moduleName, stateMethod;
@@ -1074,7 +1079,13 @@ namespace JSI
                     stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
                 }
             }
-            JUtil.LogErrorMessage("I {0} method {1}", (stateCall == null) ? "failed to find" : "found", stateMethod);
+
+            if (stateCall == null)
+            {
+                JUtil.LogErrorMessage(internalProp, "Failed finding method {0} - using fallback of ReturnFalse", stateMethod);
+                stateCall = ReturnFalse;
+            }
+
             return stateCall;
         }
     }
