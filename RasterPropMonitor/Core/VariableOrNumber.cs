@@ -7,6 +7,7 @@ namespace JSI
         private readonly string variableName;
         private readonly object owner;
         private readonly RasterPropMonitorComputer comp;
+        private System.Func<bool> stateFunction;
 
         public VariableOrNumber(string input, RasterPropMonitorComputer compInstance, object caller)
         {
@@ -38,8 +39,21 @@ namespace JSI
             }
         }
 
+        public VariableOrNumber(System.Func<bool> stateFunction, object caller)
+        {
+            this.stateFunction = stateFunction;
+            owner = caller;
+        }
+
         public bool Get(out float destination)
         {
+            if (stateFunction != null)
+            {
+                bool state = stateFunction();
+                destination = state.GetHashCode();
+                return true;
+            }
+
             if (value != null)
             {
                 destination = value.Value;
@@ -60,6 +74,13 @@ namespace JSI
 
         public bool Get(out float destination, RasterPropMonitorComputer incomp)
         {
+            if (stateFunction != null)
+            {
+                bool state = stateFunction();
+                destination = state.GetHashCode();
+                return true;
+            }
+
             if (value != null)
             {
                 destination = value.Value;

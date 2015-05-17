@@ -1038,6 +1038,45 @@ namespace JSI
                 return (double)(int)thatValue;
             return double.NaN;
         }
+
+        internal static Func<bool> GetStateMethod(string packedMethod, InternalProp internalProp)
+        {
+            string moduleName, stateMethod;
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2)
+            {
+                JUtil.LogErrorMessage(internalProp, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+            moduleName = tokens[0];
+            stateMethod = tokens[1];
+            Func<bool> stateCall = null;
+
+            InternalModule thatModule = null;
+            foreach (InternalModule potentialModule in internalProp.internalModules)
+            {
+                if (potentialModule.ClassName == moduleName)
+                {
+                    thatModule = potentialModule;
+                    break;
+                }
+            }
+
+            if (thatModule == null)
+            {
+                JUtil.LogErrorMessage(internalProp, "Failed finding module {0} for method {1}", moduleName, stateMethod);
+                return null;
+            }
+            foreach (MethodInfo m in thatModule.GetType().GetMethods())
+            {
+                if (!string.IsNullOrEmpty(stateMethod) && m.Name == stateMethod)
+                {
+                    stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
+                }
+            }
+            JUtil.LogErrorMessage("I {0} method {1}", (stateCall == null) ? "failed to find" : "found", stateMethod);
+            return stateCall;
+        }
     }
     // This, instead, is a static class on it's own because it needs it's private static variables.
     public static class InstallationPathWarning
