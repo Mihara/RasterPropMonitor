@@ -1,3 +1,6 @@
+For the latest release notes, please refer to the wiki at
+https://github.com/Mihara/RasterPropMonitor/wiki/Changes-in-this-version
+
 This is a showcase mod for RasterPropMonitor which adds a useful information 
 display to certain stock and mod capsules. This is also the canonical source of
 RasterPropMonitor.dll plugin and associated files.
@@ -10,7 +13,7 @@ safely delete only those you don't want.
 Source code and full license information available at
 https://github.com/Mihara/RasterPropMonitor/
 
-RasterPropMonitor plugin (C) 2013-2015 Mihara and other contributors.
+RasterPropMonitor plugin (C) 2013-2015 Mihara, MOARdV, and other contributors.
 Code is licensed under GPLv3. Props courtesy of alexustas and other contributors,
 and available under the terms of CC 3.0 BY-NC-SA. Portions of this package
 are derived from stock textures by Squad and are distributed according to

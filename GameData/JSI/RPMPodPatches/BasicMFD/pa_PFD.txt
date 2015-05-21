@@ -17,4 +17,4 @@
 {0:;"                                                       ";""} Node in T                       ΔV $&$ MNODEEXISTS
 {2:;"                                                       ";}{0,17:KDT+yy:ddd:hh:mm:ss.f}          {1:SIP_6.3}m/s     $&$ MNODETIMESECS MNODEDV MNODEEXISTS
 
-  {0:SIP_6.3}m       {1:SIP_6.3}m/s    {2:SIP_6.3}m/s      $&$RADARALT HORZVELOCITY VERTSPEED
+  {0:SIP_6.3}m       {1:SIP_6.3}m/s    {2:SIP_6.3}m/s      $&$RADARALTOCEAN HORZVELOCITY VERTSPEED
