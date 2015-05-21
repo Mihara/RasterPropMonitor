@@ -383,6 +383,51 @@ namespace JSI
                     JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
                 }
 
+                // And parse known custom variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
+                {
+                    string varName = node.GetValue("name");
+
+                    try
+                    {
+                        CustomVariable customVar = new CustomVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && customVar != null)
+                        {
+                            string completeVarName = "CUSTOM_" + varName;
+                            customVariables.Add(completeVarName, customVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+                // And parse known mapped variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
+                {
+                    string varName = node.GetValue("mappedVariable");
+
+                    try
+                    {
+                        MappedVariable mappedVar = new MappedVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                        {
+                            string completeVarName = "MAPPED_" + varName;
+                            mappedVariables.Add(completeVarName, mappedVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+
                 // Now let's parse our stored strings...
 
                 if (!string.IsNullOrEmpty(storedStrings))
@@ -1180,31 +1225,7 @@ namespace JSI
                     }
                     else
                     {
-                        string customName = input.Substring(7);
-                        CustomVariable customVar = null;
-
-                        // We haven't encountered this custom variable yet.
-                        foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
-                        {
-                            if (node.GetValue("name") == customName)
-                            {
-                                customVar = new CustomVariable(node);
-                                break;
-                            }
-                        }
-
-                        if (customVar == null)
-                        {
-                            // We failed to find and evaluate a custom variable with this name.
-                            // Return the unrecognized token like we do with any other unrecognized variable.
-                            return input;
-                        }
-                        else
-                        {
-                            customVariables.Add(input, customVar);
-
-                            return customVar.Evaluate(this);
-                        }
+                        return input;
                     }
                 }
 
@@ -1217,31 +1238,7 @@ namespace JSI
                     }
                     else
                     {
-                        string mappedName = input.Substring(7);
-                        MappedVariable mappedVar = null;
-
-                        // We haven't encountered this custom variable yet.
-                        foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
-                        {
-                            if (node.GetValue("mappedVariable") == mappedName)
-                            {
-                                mappedVar = new MappedVariable(node);
-                                break;
-                            }
-                        }
-
-                        if (mappedVar == null)
-                        {
-                            // We failed to find and evaluate a custom variable with this name.
-                            // Return the unrecognized token like we do with any other unrecognized variable.
-                            return input;
-                        }
-                        else
-                        {
-                            mappedVariables.Add(input, mappedVar);
-
-                            return mappedVar.Evaluate(this);
-                        }
+                        return input;
                     }
                 }
 
