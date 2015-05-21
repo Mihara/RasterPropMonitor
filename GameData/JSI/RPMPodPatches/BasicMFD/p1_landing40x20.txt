@@ -1,5 +1,5 @@
    Asc/Des Mode     Body: {0} $&$ ORBITBODY
-R.Alt [#00ffffff]{0:SIP_6.3}m            [#ffffffff]Roll: [#00ffffff]{1,7:0.00}° $&$RADARALT ROLL
+R.Alt [#00ffffff]{0:SIP_6.3}m            [#ffffffff]Roll: [#00ffffff]{1,7:0.00}° $&$RADARALTOCEAN ROLL
 V.Spd [#00ffffff]{0:SIP_6.3}m/s          [#ffffffff]Pitch:[#00ffffff]{1,7:0.00}° $&$VERTSPEED PITCH
 H.Spd [#00ffffff]{0:SIP_6.3}m/s          [#ffffffff]Hdg:  [#00ffffff]{1,7:0.00}° $&$HORZVELOCITY HEADING
 TWR:[#00ffffff]{0,4:0.00}[#ffffffff]/[#0099ffff]{1,4:0.0}       [#ffffffff]Thr:[#00ffffff]{2,6:0.00}[#ffffffff]/[#0099ffff]{3,6:0.0}kN $&$TWR TWRMAX THRUST THRUSTMAX
