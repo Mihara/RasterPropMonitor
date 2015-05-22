@@ -1242,6 +1242,21 @@ namespace JSI
                     }
                 }
 
+                if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
+                {
+                    string substr = input.Substring("PERSISTENT".Length + 1);
+
+                    int? val = GetVar(substr);
+                    if(val == null)
+                    {
+                        return input;
+                    }
+                    else
+                    {
+                        return val.MassageToDouble();
+                    }
+                }
+
                 // We do similar things for crew rosters.
                 // The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
                 // Part-local crew list is identical but CREWLOCAL_.
