@@ -292,7 +292,10 @@ namespace JSI
         public void OnDestroy()
         {
             // Makes sure we don't leak our render texture
-            screenTexture.Release();
+            if (screenTexture != null)
+            {
+                screenTexture.Release();
+            }
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
