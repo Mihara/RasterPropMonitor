@@ -2147,6 +2147,8 @@ namespace JSI
                     return anyEnginesOverheating.GetHashCode();
                 case "ENGINEFLAMEOUTALARM":
                     return anyEnginesFlameout.GetHashCode();
+                case "IMPACTALARM":
+                    return (velocityVesselSurface.magnitude > part.crashTolerance).GetHashCode();
 
 
                 // SCIENCE!!
