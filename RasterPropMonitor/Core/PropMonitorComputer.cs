@@ -156,6 +156,9 @@ namespace JSI
         private double atmPressure;
         private double dynamicPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
+        private float heatShieldTemperature;
+        private float heatShieldFlux;
+
         private CelestialBody targetBody;
         private Protractor protractor = null;
         private double lastTimePerSecond;
@@ -881,6 +884,9 @@ namespace JSI
         {
             totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
             totalDataAmount = 0;
+            heatShieldTemperature = heatShieldFlux = 0.0f;
+            float hottestShield = float.MinValue;
+
             float averageIspContribution = 0.0f;
 
             anyEnginesOverheating = anyEnginesFlameout = false;
@@ -948,6 +954,17 @@ namespace JSI
                         foreach (Propellant thatResource in thatEngineModuleFX.propellants)
                         {
                             resources.MarkPropellant(thatResource);
+                        }
+                    }
+                    else if (pm is ModuleAblator)
+                    {
+                        var thatAblator = pm as ModuleAblator;
+
+                        if (thatPart.temperature - thatAblator.ablationTempThresh > hottestShield)
+                        {
+                            hottestShield = (thatPart.temperature - thatAblator.ablationTempThresh).MassageToFloat();
+                            heatShieldTemperature = (thatPart.temperature).MassageToFloat();
+                            heatShieldFlux = (thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux).MassageToFloat();
                         }
                     }
                 }
@@ -1247,7 +1264,7 @@ namespace JSI
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
                     int? val = GetVar(substr);
-                    if(val == null)
+                    if (val == null)
                     {
                         return input;
                     }
@@ -2049,6 +2066,12 @@ namespace JSI
                     return vessel.externalTemperature + KelvinToCelsius;
                 case "EXTERNALTEMPERATUREKELVIN":
                     return vessel.externalTemperature;
+                case "HEATSHIELDTEMPERATURE":
+                    return heatShieldTemperature.MassageToDouble() + KelvinToCelsius;
+                case "HEATSHIELDTEMPERATUREKELVIN":
+                    return heatShieldTemperature.MassageToDouble();
+                case "HEATSHIELDFLUX":
+                    return heatShieldFlux.MassageToDouble();
                 case "SLOPEANGLE":
                     return slopeAngle;
                 case "SPEEDDISPLAYMODE":
