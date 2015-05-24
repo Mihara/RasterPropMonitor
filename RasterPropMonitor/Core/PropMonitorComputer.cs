@@ -154,7 +154,6 @@ namespace JSI
         private double standardAtmosphere;
         private double slopeAngle;
         private double atmPressure;
-        private double dynamicPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
         private float heatShieldTemperature;
         private float heatShieldFlux;
@@ -751,7 +750,6 @@ namespace JSI
             horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
 
             atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
-            dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
 
             if (target != null)
             {
@@ -1462,7 +1460,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
-                    return dynamicPressure;
+                    return 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
