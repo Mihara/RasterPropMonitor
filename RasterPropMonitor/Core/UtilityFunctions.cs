@@ -354,14 +354,27 @@ namespace JSI
 
         public static Camera GetCameraByName(string name)
         {
-            foreach (Camera cam in Camera.allCameras)
+            for (int i = 0; i < Camera.allCamerasCount; ++i)
             {
-                if (cam.name == name)
+                if (Camera.allCameras[i].name == name)
                 {
-                    return cam;
+                    return Camera.allCameras[i];
                 }
             }
             return null;
+        }
+
+        internal static bool DoesCameraExist(string name)
+        {
+            for (int i = 0; i < Camera.allCamerasCount; ++i)
+            {
+                if (Camera.allCameras[i].name == name)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static Material DrawLineMaterial()

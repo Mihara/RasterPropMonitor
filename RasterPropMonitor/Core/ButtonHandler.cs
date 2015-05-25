@@ -11,6 +11,7 @@ namespace JSI
         private readonly List<Action> clickHandlers = new List<Action>();
         private readonly List<Action> releaseHandlers = new List<Action>();
         private readonly List<PageTriggerSet> pageTriggers = new List<PageTriggerSet>();
+        private Part part;
 
         private struct HandlerID
         {
@@ -60,6 +61,26 @@ namespace JSI
 
         public void OnMouseDown()
         {
+            if (part != null)
+            {
+                Kerbal k = part.FindCurrentKerbal();
+                if (k != null)
+                {
+                    // Disallow tourists using props
+                    if (k.protoCrewMember.type == ProtoCrewMember.KerbalType.Tourist)
+                    {
+                        if (UnityEngine.Random.Range(0, 10) > 8)
+                        {
+                            ScreenMessages.PostScreenMessage(string.Format("Stop touching buttons, {0}!", k.name), 4.0f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                        else
+                        {
+                            ScreenMessages.PostScreenMessage(string.Format("Tourist {0} may not operate equipment.", k.name), 4.0f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                        return;
+                    }
+                }
+            }
             foreach (PageTriggerSet monitor in pageTriggers)
             {
                 monitor.ShowNext();
@@ -154,6 +175,7 @@ namespace JSI
             }
 
             buttonBehaviour.pageTriggers.Add(new PageTriggerSet(handlerFunction, thatPage));
+            buttonBehaviour.part = (thatModel == null) ? thatProp.part : thatModel.part;
         }
 
         public static void CreateButton(InternalProp thatProp, string buttonName, int numericID, Action<int> clickHandlerFunction, Action<int> releaseHandlerFunction, InternalModel thatModel = null)
@@ -174,6 +196,7 @@ namespace JSI
                 function = releaseHandlerFunction,
                 idValue = numericID
             });
+            buttonBehaviour.part = (thatModel == null) ? thatProp.part : thatModel.part;
         }
 
         public static void CreateButton(InternalProp thatProp, string buttonName, Action handlerFunction, Action releaseHandlerFunction = null, InternalModel thatModel = null)
@@ -188,6 +211,7 @@ namespace JSI
             {
                 buttonBehaviour.releaseHandlers.Add(releaseHandlerFunction);
             }
+            buttonBehaviour.part = (thatModel == null) ? thatProp.part : thatModel.part;
         }
     }
 }

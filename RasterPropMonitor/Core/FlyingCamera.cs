@@ -11,7 +11,18 @@ namespace JSI
         private readonly Part ourPart;
         private GameObject cameraTransform;
         private Part cameraPart;
-        private readonly Camera[] cameraObject = { null, null, null, null, null, null };
+        private readonly int fxCameraIndex = 6;
+        private readonly string[] knownCameraNames = 
+        {
+            "GalaxyCamera",
+            "Camera ScaledSpace",
+            "Camera VE Underlay", // Environmental Visual Enhancements plugin camera
+            "Camera VE Overlay",  // Environmental Visual Enhancements plugin camera
+            "Camera 01",
+            "Camera 00",
+            "FXCamera"
+        };
+        private readonly Camera[] cameraObject = { null, null, null, null, null, null, null };
         private readonly float cameraAspect;
         private bool enabled;
         private readonly RenderTexture screenTexture;
@@ -41,7 +52,7 @@ namespace JSI
             flickerCounter = 0;
         }
 
-        public void PointCamera(string newCameraName, float initialFOV)
+        public bool PointCamera(string newCameraName, float initialFOV)
         {
             CleanupCameraObjects();
             if (!string.IsNullOrEmpty(newCameraName))
@@ -50,18 +61,22 @@ namespace JSI
 
                 if (newCameraName == referenceCamera)
                 {
-                    PointToReferenceCamera();
                     JUtil.LogMessage(this, "Tracking reference point docking port camera.");
+                    return PointToReferenceCamera();
                 }
                 else
                 {
                     isReferenceClawCamera = false;
-                    CreateCameraObjects(newCameraName);
+                    return CreateCameraObjects(newCameraName);
                 }
+            }
+            else
+            {
+                return false;
             }
         }
 
-        private void PointToReferenceCamera()
+        private bool PointToReferenceCamera()
         {
             isReferenceCamera = true;
             referencePart = ourVessel.GetReferenceTransformPart();
@@ -97,11 +112,15 @@ namespace JSI
                         cameraTransform = ourVessel.ReferenceTransform.gameObject;
                     }
                 }
-                CreateCameraObjects();
+                return CreateCameraObjects();
+            }
+            else
+            {
+                return false;
             }
         }
 
-        private void CreateCameraObjects(string newCameraName = null)
+        private bool CreateCameraObjects(string newCameraName = null)
         {
 
             if (!string.IsNullOrEmpty(newCameraName))
@@ -121,20 +140,19 @@ namespace JSI
             }
             if (cameraTransform != null)
             {
-                CameraSetup(0, "GalaxyCamera");
-                CameraSetup(1, "Camera ScaledSpace");
-                // These two cameras are created by Visual Enhancements mod.
-                // I'm still not completely satisfied with the look, but it's definitely an improvement.
-                CameraSetup(2, "Camera VE Underlay");
-                CameraSetup(3, "Camera VE Overlay");
-                CameraSetup(4, "Camera 01");
-                CameraSetup(5, "Camera 00");
+                for (int i = 0; i < knownCameraNames.Length; ++i)
+                {
+                    CameraSetup(i, knownCameraNames[i]);
+                }
                 enabled = true;
                 JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
-                return;
+                return true;
             }
-            JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
-
+            else
+            {
+                JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
+                return false;
+            }
         }
 
         private void CleanupCameraObjects()
@@ -264,13 +282,42 @@ namespace JSI
             rotation = rotation * offset;
 
 
+            // This is a hack - FXCamera isn't always available, so I need to add and remove it in flight.
+            // I don't know if there's a callback I can use to find when it's added, so brute force it for now.
+            bool fxCameraExists = JUtil.DoesCameraExist(knownCameraNames[fxCameraIndex]);
+            if (cameraObject[fxCameraIndex] == null)
+            {
+                if (fxCameraExists)
+                {
+                    CameraSetup(fxCameraIndex, knownCameraNames[fxCameraIndex]);
+                }
+            }
+            else if (!fxCameraExists)
+            {
+                try
+                {
+                    UnityEngine.Object.Destroy(cameraObject[fxCameraIndex]);
+                    // Analysis disable once EmptyGeneralCatchClause
+                }
+                catch
+                {
+                    // Yes, that's really what it's supposed to be doing.
+                }
+                finally
+                {
+                    cameraObject[fxCameraIndex] = null;
+                }
+            }
+
             for (int i = 0; i < cameraObject.Length; i++)
             {
                 if (cameraObject[i] != null)
                 {
                     // ScaledSpace camera and it's derived cameras from Visual Enhancements mod are special - they don't move.
                     if (i >= 3)
+                    {
                         cameraObject[i].transform.position = cameraTransform.transform.position;
+                    }
                     cameraObject[i].transform.rotation = rotation;
                     cameraObject[i].fieldOfView = FOV;
                     cameraObject[i].Render();

@@ -62,6 +62,13 @@ namespace JSI
                 return north;
             }
         }
+        // surfaceRight is the projection of the right vector onto the surface.
+        // If up x right is a degenerate vector (rolled on the side), we use
+        // the forward vector to compose a new basis
+        private Vector3d surfaceRight;
+        // surfaceForward is the cross of the up vector and right vector, so
+        // that surface velocity can be decomposed to surface-relative components.
+        private Vector3d surfaceForward;
         private Quaternion rotationVesselSurface;
         public Quaternion RotationVesselSurface
         {
@@ -90,7 +97,7 @@ namespace JSI
         private Vector3d velocityRelativeTarget;
         private double speedVertical;
         private double speedVerticalRounded;
-        private double horzVelocity, horzVelocityForward, horzVelocityRight;
+        private double horzVelocity;
         private ITargetable target;
         private ModuleDockingNode targetDockingNode;
         private Vessel targetVessel;
@@ -147,8 +154,10 @@ namespace JSI
         private double standardAtmosphere;
         private double slopeAngle;
         private double atmPressure;
-        private double dynamicPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
+        private float heatShieldTemperature;
+        private float heatShieldFlux;
+
         private CelestialBody targetBody;
         private Protractor protractor = null;
         private double lastTimePerSecond;
@@ -375,6 +384,51 @@ namespace JSI
                     knownLoadedAssemblies.Add(thatName.ToUpper());
                     JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
                 }
+
+                // And parse known custom variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
+                {
+                    string varName = node.GetValue("name");
+
+                    try
+                    {
+                        CustomVariable customVar = new CustomVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && customVar != null)
+                        {
+                            string completeVarName = "CUSTOM_" + varName;
+                            customVariables.Add(completeVarName, customVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
+                // And parse known mapped variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
+                {
+                    string varName = node.GetValue("mappedVariable");
+
+                    try
+                    {
+                        MappedVariable mappedVar = new MappedVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                        {
+                            string completeVarName = "MAPPED_" + varName;
+                            mappedVariables.Add(completeVarName, mappedVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+
 
                 // Now let's parse our stored strings...
 
@@ -656,6 +710,19 @@ namespace JSI
             rotationSurface = Quaternion.LookRotation(north, up);
             rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
+            // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
+            surfaceForward = Vector3d.Cross(up, right);
+            // If the craft is rolled sharply to the side, we have to re-do our basis.
+            if (surfaceForward.magnitude < 0.5)
+            {
+                surfaceRight = Vector3d.Cross(forward, up);
+                surfaceForward = Vector3d.Cross(up, surfaceRight);
+            }
+            else
+            {
+                surfaceRight = Vector3d.Cross(surfaceForward, up);
+            }
+
             velocityVesselOrbit = vessel.orbit.GetVel();
             velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
 
@@ -681,11 +748,8 @@ namespace JSI
             }
 
             horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
-            horzVelocityForward = Vector3d.Dot(velocityVesselSurface, forward);
-            horzVelocityRight = Vector3d.Dot(velocityVesselSurface, right);
 
             atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
-            dynamicPressure = 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
 
             if (target != null)
             {
@@ -818,6 +882,9 @@ namespace JSI
         {
             totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
             totalDataAmount = 0;
+            heatShieldTemperature = heatShieldFlux = 0.0f;
+            float hottestShield = float.MinValue;
+
             float averageIspContribution = 0.0f;
 
             anyEnginesOverheating = anyEnginesFlameout = false;
@@ -885,6 +952,17 @@ namespace JSI
                         foreach (Propellant thatResource in thatEngineModuleFX.propellants)
                         {
                             resources.MarkPropellant(thatResource);
+                        }
+                    }
+                    else if (pm is ModuleAblator)
+                    {
+                        var thatAblator = pm as ModuleAblator;
+
+                        if (thatPart.temperature - thatAblator.ablationTempThresh > hottestShield)
+                        {
+                            hottestShield = (thatPart.temperature - thatAblator.ablationTempThresh).MassageToFloat();
+                            heatShieldTemperature = (thatPart.temperature).MassageToFloat();
+                            heatShieldFlux = (thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux).MassageToFloat();
                         }
                     }
                 }
@@ -1162,31 +1240,7 @@ namespace JSI
                     }
                     else
                     {
-                        string customName = input.Substring(7);
-                        CustomVariable customVar = null;
-
-                        // We haven't encountered this custom variable yet.
-                        foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
-                        {
-                            if (node.GetValue("name") == customName)
-                            {
-                                customVar = new CustomVariable(node);
-                                break;
-                            }
-                        }
-
-                        if (customVar == null)
-                        {
-                            // We failed to find and evaluate a custom variable with this name.
-                            // Return the unrecognized token like we do with any other unrecognized variable.
-                            return input;
-                        }
-                        else
-                        {
-                            customVariables.Add(input, customVar);
-
-                            return customVar.Evaluate(this);
-                        }
+                        return input;
                     }
                 }
 
@@ -1199,31 +1253,22 @@ namespace JSI
                     }
                     else
                     {
-                        string mappedName = input.Substring(7);
-                        MappedVariable mappedVar = null;
+                        return input;
+                    }
+                }
 
-                        // We haven't encountered this custom variable yet.
-                        foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
-                        {
-                            if (node.GetValue("mappedVariable") == mappedName)
-                            {
-                                mappedVar = new MappedVariable(node);
-                                break;
-                            }
-                        }
+                if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
+                {
+                    string substr = input.Substring("PERSISTENT".Length + 1);
 
-                        if (mappedVar == null)
-                        {
-                            // We failed to find and evaluate a custom variable with this name.
-                            // Return the unrecognized token like we do with any other unrecognized variable.
-                            return input;
-                        }
-                        else
-                        {
-                            mappedVariables.Add(input, mappedVar);
-
-                            return mappedVar.Evaluate(this);
-                        }
+                    int? val = GetVar(substr);
+                    if (val == null)
+                    {
+                        return input;
+                    }
+                    else
+                    {
+                        return val.MassageToDouble();
                     }
                 }
 
@@ -1299,9 +1344,12 @@ namespace JSI
                 case "HORZVELOCITY":
                     return horzVelocity;
                 case "HORZVELOCITYFORWARD":
-                    return horzVelocityForward;
+                    // Negate it, since this is actually movement on the Z axis,
+                    // and we want to treat it as a 2D projection on the surface
+                    // such that moving "forward" has a positive value.
+                    return -Vector3d.Dot(velocityVesselSurface, surfaceForward);
                 case "HORZVELOCITYRIGHT":
-                    return horzVelocityRight;
+                    return Vector3d.Dot(velocityVesselSurface, surfaceRight);
                 case "EASPEED":
                     return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
                 case "APPROACHSPEED":
@@ -1403,6 +1451,8 @@ namespace JSI
                     return terrainDelta;
                 case "TERRAINHEIGHTLOG10":
                     return JUtil.PseudoLog10(terrainHeight);
+                case "DISTTOATMOSPHERETOP":
+                    return Math.Max(0.0, vessel.orbit.referenceBody.atmosphereDepth - altitudeASL);
 
                 // Atmospheric values
                 case "ATMPRESSURE":
@@ -1410,7 +1460,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
-                    return dynamicPressure;
+                    return 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
@@ -2014,6 +2064,12 @@ namespace JSI
                     return vessel.externalTemperature + KelvinToCelsius;
                 case "EXTERNALTEMPERATUREKELVIN":
                     return vessel.externalTemperature;
+                case "HEATSHIELDTEMPERATURE":
+                    return heatShieldTemperature.MassageToDouble() + KelvinToCelsius;
+                case "HEATSHIELDTEMPERATUREKELVIN":
+                    return heatShieldTemperature.MassageToDouble();
+                case "HEATSHIELDFLUX":
+                    return heatShieldFlux.MassageToDouble();
                 case "SLOPEANGLE":
                     return slopeAngle;
                 case "SPEEDDISPLAYMODE":
@@ -2112,6 +2168,8 @@ namespace JSI
                     return anyEnginesOverheating.GetHashCode();
                 case "ENGINEFLAMEOUTALARM":
                     return anyEnginesFlameout.GetHashCode();
+                case "IMPACTALARM":
+                    return (velocityVesselSurface.magnitude > part.crashTolerance).GetHashCode();
 
 
                 // SCIENCE!!
