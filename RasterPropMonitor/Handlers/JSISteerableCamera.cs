@@ -258,14 +258,10 @@ namespace JSI
 
                 return true;
             }
-            else if (skipMissingCameras && cameras.Count > 1)
+            else if (skipMissingCameras)
             {
                 // This will handle cameras getting ejected while in use.
-                if (++currentCamera >= cameras.Count)
-                {
-                    currentCamera = 0;
-                }
-                cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+                SelectNextCamera();
             }
             return false;
         }
@@ -366,38 +362,15 @@ namespace JSI
             {
                 // Stop current camera motion, since we're not going to update it.
                 cameras[currentCamera].seekHome = false;
-                bool goodCamera;
 
-                do
-                {
-                    ++currentCamera;
-                    if (currentCamera == cameras.Count)
-                    {
-                        currentCamera = 0;
-                    }
-                    goodCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
-                } while (skipMissingCameras && !goodCamera && cameras.Count > 1);
-
+                SelectNextCamera();
             }
             else if (buttonID == prevCamera)
             {
                 // Stop current camera motion, since we're not going to update it.
                 cameras[currentCamera].seekHome = false;
-                bool goodCamera;
 
-                do
-                {
-                    if (currentCamera == 0)
-                    {
-                        currentCamera = cameras.Count - 1;
-                    }
-                    else
-                    {
-                        --currentCamera;
-                    }
-                    goodCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
-                } while (skipMissingCameras && !goodCamera && cameras.Count > 1);
-
+                SelectPreviousCamera();
             }
             else if (buttonID == seekHome)
             {
@@ -408,6 +381,74 @@ namespace JSI
             // has been a while since the last click.
             lastUpdateTime = Planetarium.GetUniversalTime();
         }
+
+        private void SelectNextCamera()
+        {
+            {
+                return;
+            }
+
+            ++currentCamera;
+            if (currentCamera == cameras.Count)
+            {
+                currentCamera = 0;
+            }
+
+            bool gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+
+            if (!skipMissingCameras)
+            {
+                return;
+            }
+
+            int camerasTested = 1;
+
+            while (!gotCamera && camerasTested < cameras.Count)
+            {
+                ++camerasTested;
+                ++currentCamera;
+                if (currentCamera == cameras.Count)
+                {
+                    currentCamera = 0;
+                }
+
+                gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+            }
+        }
+
+        private void SelectPreviousCamera()
+        {
+            if (cameras.Count < 2)
+            {
+                return;
+            }
+
+            --currentCamera;
+            if (currentCamera < 0)
+            {
+                currentCamera = cameras.Count - 1;
+            }
+
+            bool gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+
+            if (!skipMissingCameras)
+            {
+                return;
+            }
+            int camerasTested = 1;
+
+            {
+                ++camerasTested;
+                --currentCamera;
+                if (currentCamera < 0)
+                {
+                    currentCamera = cameras.Count - 1;
+                }
+
+                gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+            }
+        }
+
         // Analysis disable once UnusedParameter
         public void ReleaseProcessor(int buttonID)
         {
