@@ -127,6 +127,56 @@ namespace JSI
             return font;
         }
 
+        // This function courtesy of EnhancedNavBall.
+        internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
+        {
+            var mesh = new Mesh();
+
+            var obj = new GameObject(name);
+            MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
+            obj.AddComponent<MeshRenderer>();
+
+            var p0 = new Vector3(-vectorSize, 0.0f, vectorSize);
+            var p1 = new Vector3(vectorSize, 0.0f, vectorSize);
+            var p2 = new Vector3(-vectorSize, 0.0f, -vectorSize);
+            var p3 = new Vector3(vectorSize, 0.0f, -vectorSize);
+
+            mesh.vertices = new[] 
+            {
+                p0, p1, p2,
+                p1, p3, p2
+            };
+
+            mesh.triangles = new[] 
+            {
+                0, 1, 2,
+                3, 4, 5
+            };
+
+            var uv1 = new Vector2(0.0f, 0.0f);
+            var uv2 = new Vector2(1.0f, 1.0f);
+            var uv3 = new Vector2(0.0f, 1.0f);
+            var uv4 = new Vector2(1.0f, 0.0f);
+
+            mesh.uv = new[] 
+            {
+                uv1, uv4, uv3,
+                uv4, uv2, uv3
+            };
+
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            mesh.Optimize();
+
+            meshFilter.mesh = mesh;
+
+            obj.layer = drawingLayer;
+
+            Destroy(obj.collider);
+
+            return obj;
+        }
+
         public void Start()
         {
 

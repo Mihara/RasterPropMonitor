@@ -242,6 +242,20 @@ namespace JSI
 
         }
 
+        internal static void FaceCamera(this GameObject thatObject)
+        {
+            if (thatObject == null)
+                throw new ArgumentNullException("thatObject");
+            // This is known to rotate correctly, so I'll keep it around.
+            /*
+            Vector3 originalPosition = thatObject.transform.position;
+            thatObject.transform.position = Vector3.zero;
+            thatObject.transform.LookAt(Vector3.down,Vector3.back);
+            thatObject.transform.position = originalPosition;
+            */
+            thatObject.transform.rotation = Quaternion.Euler(90, 180, 0);
+        }
+
         public static bool IsPodTransparent(Part thatPart)
         {
             foreach (PartModule thatModule in thatPart.Modules)

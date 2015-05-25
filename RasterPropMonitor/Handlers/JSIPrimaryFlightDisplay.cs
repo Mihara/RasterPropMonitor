@@ -232,7 +232,7 @@ namespace JSI
             marker.transform.position = FixMarkerPosition(position, voodooGymbal) * markerRadius;
             marker.renderer.material.color = new Color(nativeColor.r, nativeColor.g, nativeColor.b, (float)(marker.transform.position.z + 0.5));
             marker.transform.position = new Vector3(marker.transform.position.x, marker.transform.position.y, markerPlane);
-            FaceCamera(marker);
+            marker.FaceCamera();
         }
 
         private static Vector3 FixMarkerPosition(Vector3 thatVector, Quaternion thatVoodoo)
@@ -251,7 +251,7 @@ namespace JSI
         public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
         {
 
-            GameObject marker = CreateSimplePlane("RPMPFDMarker" + iconX + iconY + internalProp.propID, markerScale, drawingLayer);
+            GameObject marker = RasterPropMonitor.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + internalProp.propID, markerScale, drawingLayer);
             marker.renderer.material = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
             marker.renderer.material.mainTexture = gizmoTexture;
             marker.renderer.material.mainTextureScale = Vector2.one / 3f;
@@ -382,23 +382,23 @@ namespace JSI
                 ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
                 ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
 
-                overlay = CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
+                overlay = RasterPropMonitor.CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
                 overlay.layer = drawingLayer;
                 overlay.transform.position = new Vector3(0, 0, 1.5f);
                 overlay.renderer.material = overlayMaterial;
                 overlay.transform.parent = cameraBody.transform;
-                FaceCamera(overlay);
+                overlay.FaceCamera();
 
                 if (headingMaterial != null)
                 {
-                    heading = CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
+                    heading = RasterPropMonitor.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
                     heading.layer = drawingLayer;
                     heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
                     heading.transform.parent = cameraBody.transform;
                     heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
                     heading.renderer.material = headingMaterial;
                     heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
-                    FaceCamera(heading);
+                    heading.FaceCamera();
                 }
 
                 ShowHide(false, navBall, cameraBody, overlay, heading);
@@ -419,20 +419,6 @@ namespace JSI
             }
         }
 
-        private static void FaceCamera(GameObject thatObject)
-        {
-            if (thatObject == null)
-                throw new ArgumentNullException("thatObject");
-            // This is known to rotate correctly, so I'll keep it around.
-            /*
-            Vector3 originalPosition = thatObject.transform.position;
-            thatObject.transform.position = Vector3.zero;
-            thatObject.transform.LookAt(Vector3.down,Vector3.back);
-            thatObject.transform.position = originalPosition;
-            */
-            thatObject.transform.rotation = Quaternion.Euler(90, 180, 0);
-        }
-
         private static void ShowHide(bool status, params GameObject[] objects)
         {
             foreach (GameObject thatObject in objects)
@@ -444,57 +430,6 @@ namespace JSI
                         thatObject.renderer.enabled = status;
                 }
             }
-        }
-        // This function courtesy of EnhancedNavBall.
-        private static GameObject CreateSimplePlane(
-            string name,
-            float vectorSize,
-            int drawingLayer)
-        {
-            var mesh = new Mesh();
-
-            var obj = new GameObject(name);
-            MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
-            obj.AddComponent<MeshRenderer>();
-
-            const float uvize = 1f;
-
-            var p0 = new Vector3(-vectorSize, 0, vectorSize);
-            var p1 = new Vector3(vectorSize, 0, vectorSize);
-            var p2 = new Vector3(-vectorSize, 0, -vectorSize);
-            var p3 = new Vector3(vectorSize, 0, -vectorSize);
-
-            mesh.vertices = new[] {
-                p0, p1, p2,
-                p1, p3, p2
-            };
-
-            mesh.triangles = new[] {
-                0, 1, 2,
-                3, 4, 5
-            };
-
-            var uv1 = new Vector2(0, 0);
-            var uv2 = new Vector2(uvize, uvize);
-            var uv3 = new Vector2(0, uvize);
-            var uv4 = new Vector2(uvize, 0);
-
-            mesh.uv = new[] {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
-            };
-
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            mesh.Optimize();
-
-            meshFilter.mesh = mesh;
-
-            obj.layer = drawingLayer;
-
-            Destroy(obj.collider);
-
-            return obj;
         }
     }
 }
