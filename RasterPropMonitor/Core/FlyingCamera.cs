@@ -41,7 +41,7 @@ namespace JSI
             flickerCounter = 0;
         }
 
-        public void PointCamera(string newCameraName, float initialFOV)
+        public bool PointCamera(string newCameraName, float initialFOV)
         {
             CleanupCameraObjects();
             if (!string.IsNullOrEmpty(newCameraName))
@@ -50,18 +50,22 @@ namespace JSI
 
                 if (newCameraName == referenceCamera)
                 {
-                    PointToReferenceCamera();
                     JUtil.LogMessage(this, "Tracking reference point docking port camera.");
+                    return PointToReferenceCamera();
                 }
                 else
                 {
                     isReferenceClawCamera = false;
-                    CreateCameraObjects(newCameraName);
+                    return CreateCameraObjects(newCameraName);
                 }
+            }
+            else
+            {
+                return false;
             }
         }
 
-        private void PointToReferenceCamera()
+        private bool PointToReferenceCamera()
         {
             isReferenceCamera = true;
             referencePart = ourVessel.GetReferenceTransformPart();
@@ -97,11 +101,15 @@ namespace JSI
                         cameraTransform = ourVessel.ReferenceTransform.gameObject;
                     }
                 }
-                CreateCameraObjects();
+                return CreateCameraObjects();
+            }
+            else
+            {
+                return false;
             }
         }
 
-        private void CreateCameraObjects(string newCameraName = null)
+        private bool CreateCameraObjects(string newCameraName = null)
         {
 
             if (!string.IsNullOrEmpty(newCameraName))
@@ -131,10 +139,13 @@ namespace JSI
                 CameraSetup(5, "Camera 00");
                 enabled = true;
                 JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
-                return;
+                return true;
             }
-            JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
-
+            else
+            {
+                JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
+                return false;
+            }
         }
 
         private void CleanupCameraObjects()

@@ -95,7 +95,7 @@ namespace JSI
         [KSPField]
         public int flickerRange;
         [KSPField]
-        public bool removeMissingCameras = false;
+        public bool skipMissingCameras = false;
 
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
@@ -258,11 +258,10 @@ namespace JSI
 
                 return true;
             }
-            else if (removeMissingCameras && cameras.Count > 1)
+            else if (skipMissingCameras && cameras.Count > 1)
             {
-                cameras.RemoveAt(currentCamera);
-                int oldCameraId = currentCamera;
-                if (currentCamera >= cameras.Count)
+                // This will handle cameras getting ejected while in use.
+                if (++currentCamera >= cameras.Count)
                 {
                     currentCamera = 0;
                 }
@@ -367,27 +366,37 @@ namespace JSI
             {
                 // Stop current camera motion, since we're not going to update it.
                 cameras[currentCamera].seekHome = false;
-                ++currentCamera;
-                if (currentCamera == cameras.Count)
+                bool goodCamera;
+
+                do
                 {
-                    currentCamera = 0;
-                }
-                cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+                    ++currentCamera;
+                    if (currentCamera == cameras.Count)
+                    {
+                        currentCamera = 0;
+                    }
+                    goodCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+                } while (skipMissingCameras && !goodCamera && cameras.Count > 1);
 
             }
             else if (buttonID == prevCamera)
             {
                 // Stop current camera motion, since we're not going to update it.
                 cameras[currentCamera].seekHome = false;
-                if (currentCamera == 0)
+                bool goodCamera;
+
+                do
                 {
-                    currentCamera = cameras.Count - 1;
-                }
-                else
-                {
-                    --currentCamera;
-                }
-                cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+                    if (currentCamera == 0)
+                    {
+                        currentCamera = cameras.Count - 1;
+                    }
+                    else
+                    {
+                        --currentCamera;
+                    }
+                    goodCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+                } while (skipMissingCameras && !goodCamera && cameras.Count > 1);
 
             }
             else if (buttonID == seekHome)
