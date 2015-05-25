@@ -384,6 +384,7 @@ namespace JSI
 
         private void SelectNextCamera()
         {
+            if (cameras.Count < 2)
             {
                 return;
             }
@@ -435,8 +436,10 @@ namespace JSI
             {
                 return;
             }
+
             int camerasTested = 1;
 
+            while (!gotCamera && camerasTested < cameras.Count)
             {
                 ++camerasTested;
                 --currentCamera;
