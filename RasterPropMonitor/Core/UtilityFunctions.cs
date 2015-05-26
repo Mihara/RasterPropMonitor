@@ -415,8 +415,8 @@ namespace JSI
                 Renderer gizmoRenderer = gizmoTransform.renderer;
                 return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
             }
-            // Apparently when not in flight scene, the MapView isn't around yet and we need to return, well, something.
-            return new Texture2D(32, 32);
+
+            return null;
         }
 
         public static void AnnoyUser(object caller)
