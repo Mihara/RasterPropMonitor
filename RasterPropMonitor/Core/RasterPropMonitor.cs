@@ -61,6 +61,7 @@ namespace JSI
         // Internal stuff.
         private readonly List<Texture2D> fontTexture = new List<Texture2D>();
         private RenderTexture screenTexture;
+        private Texture2D frozenScreen;
         // Local variables
         private int refreshDrawCountdown;
         private int refreshTextCountdown;
@@ -189,7 +190,7 @@ namespace JSI
 
             try
             {
-
+                screenBuffer = new string[screenHeight];
                 // Install the calculator module.
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
                 comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
@@ -345,6 +346,10 @@ namespace JSI
             if (screenTexture != null)
             {
                 screenTexture.Release();
+            }
+            if (frozenScreen != null)
+            {
+                Destroy(frozenScreen);
             }
         }
 
@@ -606,7 +611,9 @@ namespace JSI
             RenderTexture backupRenderTexture = RenderTexture.active;
 
             if (!screenTexture.IsCreated())
+            {
                 screenTexture.Create();
+            }
             screenTexture.DiscardContents();
             RenderTexture.active = screenTexture;
 
@@ -645,10 +652,11 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
-            screenBuffer = new string[screenHeight];
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < screenHeight; i++)
+            {
                 screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
+            }
             textRefreshRequired = false;
 
             // This is where we request electric charge reserve. And if we don't have any, well... :)
@@ -658,14 +666,18 @@ namespace JSI
         private void CheckForElectricCharge()
         {
             if (needsElectricCharge)
+            {
                 electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
+            }
         }
 
         public override void OnUpdate()
         {
 
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             // If we didn't complete startup, we can't do anything anyway.
             // The only trouble is that situations where update happens before startup is complete do happen sometimes,
@@ -681,7 +693,9 @@ namespace JSI
             oneshot |= HighLogic.LoadedSceneIsEditor;
 
             if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
+            {
                 return;
+            }
 
             // Screenshots need to happen in at this moment, because otherwise they may miss.
             if (doScreenshots && GameSettings.TAKE_SCREENSHOT.GetKeyDown() && part.ActiveKerbalIsLocal())
@@ -702,7 +716,9 @@ namespace JSI
             }
 
             if (!UpdateCheck())
+            {
                 return;
+            }
 
             if (!activePage.isMutable)
             {
@@ -717,29 +733,35 @@ namespace JSI
                 {
                     CheckForElectricCharge();
                     if (needsElectricCharge && electricChargeReserve < 0.01d)
+                    {
                         RenderScreen();
+                    }
                 }
             }
             else
             {
                 if (textRefreshRequired)
+                {
                     FillScreenBuffer();
+                }
                 RenderScreen();
                 firstRenderComplete = true;
             }
 
             // Oneshot screens: We create a permanent texture from our RenderTexture if the first pass of the render is complete,
             // set it in place of the rendertexture -- and then we selfdestruct.
+            // MAORdV: Except we don't want to self-destruct, because we will leak the frozenScreen texture.
             if (oneshot && firstRenderComplete)
             {
-                var frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
+                frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
                 RenderTexture backupRenderTexture = RenderTexture.active;
                 RenderTexture.active = screenTexture;
                 frozenScreen.ReadPixels(new Rect(0, 0, screenTexture.width, screenTexture.height), 0, 0);
                 RenderTexture.active = backupRenderTexture;
                 foreach (string layerID in textureLayerID.Split())
+                {
                     screenMat.SetTexture(layerID.Trim(), frozenScreen);
-                Destroy(this);
+                }
             }
         }
 
