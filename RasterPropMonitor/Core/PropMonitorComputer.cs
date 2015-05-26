@@ -1452,7 +1452,7 @@ namespace JSI
                 case "TERRAINHEIGHTLOG10":
                     return JUtil.PseudoLog10(terrainHeight);
                 case "DISTTOATMOSPHERETOP":
-                    return Math.Max(0.0, vessel.orbit.referenceBody.atmosphereDepth - altitudeASL);
+                    return vessel.orbit.referenceBody.atmosphereDepth - altitudeASL;
 
                 // Atmospheric values
                 case "ATMPRESSURE":
