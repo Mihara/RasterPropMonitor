@@ -61,6 +61,7 @@ namespace JSI
         // Internal stuff.
         private readonly List<Texture2D> fontTexture = new List<Texture2D>();
         private RenderTexture screenTexture;
+        private Texture2D frozenScreen;
         // Local variables
         private int refreshDrawCountdown;
         private int refreshTextCountdown;
@@ -127,6 +128,56 @@ namespace JSI
             return font;
         }
 
+        // This function courtesy of EnhancedNavBall.
+        internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
+        {
+            var mesh = new Mesh();
+
+            var obj = new GameObject(name);
+            MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
+            obj.AddComponent<MeshRenderer>();
+
+            var p0 = new Vector3(-vectorSize, 0.0f, vectorSize);
+            var p1 = new Vector3(vectorSize, 0.0f, vectorSize);
+            var p2 = new Vector3(-vectorSize, 0.0f, -vectorSize);
+            var p3 = new Vector3(vectorSize, 0.0f, -vectorSize);
+
+            mesh.vertices = new[] 
+            {
+                p0, p1, p2,
+                p1, p3, p2
+            };
+
+            mesh.triangles = new[] 
+            {
+                0, 1, 2,
+                3, 4, 5
+            };
+
+            var uv1 = new Vector2(0.0f, 0.0f);
+            var uv2 = new Vector2(1.0f, 1.0f);
+            var uv3 = new Vector2(0.0f, 1.0f);
+            var uv4 = new Vector2(1.0f, 0.0f);
+
+            mesh.uv = new[] 
+            {
+                uv1, uv4, uv3,
+                uv4, uv2, uv3
+            };
+
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            mesh.Optimize();
+
+            meshFilter.mesh = mesh;
+
+            obj.layer = drawingLayer;
+
+            Destroy(obj.collider);
+
+            return obj;
+        }
+
         public void Start()
         {
 
@@ -139,7 +190,7 @@ namespace JSI
 
             try
             {
-
+                screenBuffer = new string[screenHeight];
                 // Install the calculator module.
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
                 comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
@@ -295,6 +346,10 @@ namespace JSI
             if (screenTexture != null)
             {
                 screenTexture.Release();
+            }
+            if (frozenScreen != null)
+            {
+                Destroy(frozenScreen);
             }
         }
 
@@ -556,7 +611,9 @@ namespace JSI
             RenderTexture backupRenderTexture = RenderTexture.active;
 
             if (!screenTexture.IsCreated())
+            {
                 screenTexture.Create();
+            }
             screenTexture.DiscardContents();
             RenderTexture.active = screenTexture;
 
@@ -595,10 +652,11 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
-            screenBuffer = new string[screenHeight];
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < screenHeight; i++)
+            {
                 screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
+            }
             textRefreshRequired = false;
 
             // This is where we request electric charge reserve. And if we don't have any, well... :)
@@ -608,14 +666,18 @@ namespace JSI
         private void CheckForElectricCharge()
         {
             if (needsElectricCharge)
+            {
                 electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
+            }
         }
 
         public override void OnUpdate()
         {
 
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             // If we didn't complete startup, we can't do anything anyway.
             // The only trouble is that situations where update happens before startup is complete do happen sometimes,
@@ -631,7 +693,9 @@ namespace JSI
             oneshot |= HighLogic.LoadedSceneIsEditor;
 
             if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
+            {
                 return;
+            }
 
             // Screenshots need to happen in at this moment, because otherwise they may miss.
             if (doScreenshots && GameSettings.TAKE_SCREENSHOT.GetKeyDown() && part.ActiveKerbalIsLocal())
@@ -652,7 +716,9 @@ namespace JSI
             }
 
             if (!UpdateCheck())
+            {
                 return;
+            }
 
             if (!activePage.isMutable)
             {
@@ -667,29 +733,35 @@ namespace JSI
                 {
                     CheckForElectricCharge();
                     if (needsElectricCharge && electricChargeReserve < 0.01d)
+                    {
                         RenderScreen();
+                    }
                 }
             }
             else
             {
                 if (textRefreshRequired)
+                {
                     FillScreenBuffer();
+                }
                 RenderScreen();
                 firstRenderComplete = true;
             }
 
             // Oneshot screens: We create a permanent texture from our RenderTexture if the first pass of the render is complete,
             // set it in place of the rendertexture -- and then we selfdestruct.
+            // MAORdV: Except we don't want to self-destruct, because we will leak the frozenScreen texture.
             if (oneshot && firstRenderComplete)
             {
-                var frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
+                frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
                 RenderTexture backupRenderTexture = RenderTexture.active;
                 RenderTexture.active = screenTexture;
                 frozenScreen.ReadPixels(new Rect(0, 0, screenTexture.width, screenTexture.height), 0, 0);
                 RenderTexture.active = backupRenderTexture;
                 foreach (string layerID in textureLayerID.Split())
+                {
                     screenMat.SetTexture(layerID.Trim(), frozenScreen);
-                Destroy(this);
+                }
             }
         }
 

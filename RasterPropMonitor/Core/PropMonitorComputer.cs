@@ -1264,11 +1264,11 @@ namespace JSI
                     int? val = GetVar(substr);
                     if (val == null)
                     {
-                        return input;
+                        return -1.0f;
                     }
                     else
                     {
-                        return val.MassageToDouble();
+                        return val.MassageToFloat();
                     }
                 }
 
@@ -1452,7 +1452,7 @@ namespace JSI
                 case "TERRAINHEIGHTLOG10":
                     return JUtil.PseudoLog10(terrainHeight);
                 case "DISTTOATMOSPHERETOP":
-                    return Math.Max(0.0, vessel.orbit.referenceBody.atmosphereDepth - altitudeASL);
+                    return vessel.orbit.referenceBody.atmosphereDepth - altitudeASL;
 
                 // Atmospheric values
                 case "ATMPRESSURE":

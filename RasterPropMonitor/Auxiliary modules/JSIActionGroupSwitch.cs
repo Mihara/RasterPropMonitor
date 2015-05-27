@@ -47,6 +47,8 @@ namespace JSI
         [KSPField]
         public string enabledColor = string.Empty;
         private Color enabledColorValue;
+        [KSPField]
+        public bool initialState = false;
         // Neater.
         private readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
@@ -301,7 +303,7 @@ namespace JSI
                     {
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? currentState);
+                            currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? initialState);
                             if (actionName == "intlight")
                             {
                                 // We have to restore lighting after reading the
@@ -310,6 +312,11 @@ namespace JSI
                             }
                         }
                     }
+                }
+
+                if (!string.IsNullOrEmpty(persistentVarName) && persistence.GetBool(persistentVarName) == null)
+                {
+                    persistence.SetVar(persistentVarName, currentState);
                 }
 
                 if (!string.IsNullOrEmpty(animationName))
@@ -350,7 +357,9 @@ namespace JSI
                     colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
                 else
+                {
                     JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
+                }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 
