@@ -1264,11 +1264,11 @@ namespace JSI
                     int? val = GetVar(substr);
                     if (val == null)
                     {
-                        return input;
+                        return -1.0f;
                     }
                     else
                     {
-                        return val.MassageToDouble();
+                        return val.MassageToFloat();
                     }
                 }
 
