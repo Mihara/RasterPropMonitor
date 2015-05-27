@@ -163,6 +163,14 @@ namespace JSI
         private double lastTimePerSecond;
         private double terrainHeight, lastTerrainHeight, terrainDelta;
         private ExternalVariableHandlers plugins;
+        private PersistenceAccessor persistence;
+        public PersistenceAccessor Persistence
+        {
+            get
+            {
+                return persistence;
+            }
+        }
         // Local data fetching variables...
         private int gearGroupNumber;
         private int brakeGroupNumber;
@@ -439,6 +447,8 @@ namespace JSI
 
                 // We instantiate plugins late.
                 plugins = new ExternalVariableHandlers(this);
+
+                persistence = new PersistenceAccessor(this);
 
                 protractor = new Protractor(this);
             }

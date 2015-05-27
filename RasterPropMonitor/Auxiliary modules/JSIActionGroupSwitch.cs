@@ -79,8 +79,6 @@ namespace JSI
         private Animation anim;
         private bool currentState;
         private bool isCustomAction;
-        // Persistence for current state variable.
-        private PersistenceAccessor persistence;
         private string persistentVarName;
         private Light[] lightObjects;
         private FXGroup audioOutput;
@@ -285,12 +283,7 @@ namespace JSI
                     }
                 }
 
-                if (!string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName))
-                {
-                    persistence = new PersistenceAccessor(part);
-                }
-
-                if (needsElectricChargeValue)
+                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
                     comp = RasterPropMonitorComputer.Instantiate(internalProp);
                     comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
@@ -314,13 +307,13 @@ namespace JSI
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = persistence.GetVar(persistentVarName) ?? 0;
+                                int activeSwitch = comp.Persistence.GetVar(persistentVarName) ?? 0;
 
                                 currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? initialState);
+                                currentState = customGroupList[actionName] = (comp.Persistence.GetBool(persistentVarName) ?? initialState);
                             }
 
                             if (actionName == "intlight")
@@ -333,18 +326,18 @@ namespace JSI
                     }
                 }
 
-                if (!string.IsNullOrEmpty(persistentVarName) && persistence.GetBool(persistentVarName) == null)
+                if (!string.IsNullOrEmpty(persistentVarName) && comp.Persistence.GetBool(persistentVarName) == null)
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            comp.Persistence.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     else
                     {
-                        persistence.SetVar(persistentVarName, currentState);
+                        comp.Persistence.SetVar(persistentVarName, currentState);
                     }
                 }
 
@@ -419,7 +412,7 @@ namespace JSI
         {
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = (persistence.GetBool(perPodMasterSwitchName) ?? false) || forcedShutdown;
+                bool switchEnabled = (comp.Persistence.GetBool(perPodMasterSwitchName) ?? false) || forcedShutdown;
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off' and we're not here because
@@ -438,7 +431,7 @@ namespace JSI
                         customGroupList[actionName] = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            comp.Persistence.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     // else: can't turn off a radio group switch.
@@ -448,7 +441,7 @@ namespace JSI
                     customGroupList[actionName] = !customGroupList[actionName];
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                        comp.Persistence.SetVar(persistentVarName, customGroupList[actionName]);
                     }
                 }
             }
@@ -517,14 +510,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = persistence.GetVar(persistentVarName) ?? 0;
+                        int activeGroupId = comp.Persistence.GetVar(persistentVarName) ?? 0;
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupList[actionName] = newState;
                     }
                     else
                     {
-                        // If the switch transform is not given, and the global persistence value is, this means this is a slave module.
-                        newState = persistence.GetBool(persistentVarName) ?? false;
+                        // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
+                        newState = comp.Persistence.GetBool(persistentVarName) ?? false;
                     }
                 }
                 else
@@ -534,13 +527,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = persistence.GetVar(persistentVarName) ?? 0;
+                            int activeGroupId = comp.Persistence.GetVar(persistentVarName) ?? 0;
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupList[actionName] = newState;
                         }
                         else
                         {
-                            newState = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
+                            newState = comp.Persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
                         }
                     }
                     else
@@ -567,7 +560,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = persistence.GetBool(perPodMasterSwitchName) ?? false;
+                bool switchEnabled = comp.Persistence.GetBool(perPodMasterSwitchName) ?? false;
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off

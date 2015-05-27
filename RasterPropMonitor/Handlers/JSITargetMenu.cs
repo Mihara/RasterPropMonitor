@@ -116,7 +116,7 @@ namespace JSI
 		private int partCount;
 		private SortMode sortMode;
 		private bool pageActiveState;
-		private PersistenceAccessor persistence;
+        private RasterPropMonitorComputer comp;
 		private string persistentVarName;
 		// unfocusedRange for stock ModuleDockingNode is 200f
 		// so it should in theory work from at least this far.
@@ -602,9 +602,9 @@ namespace JSI
 				unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
 
 			persistentVarName = "targetfilter" + internalProp.propID;
-			persistence = new PersistenceAccessor(part);
+            comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			// 7 is the bitmask for ship-station-probe;
-			VesselFilterFromBitmask(persistence.GetVar(persistentVarName) ?? defaultFilter);
+			VesselFilterFromBitmask(comp.Persistence.GetVar(persistentVarName) ?? defaultFilter);
 
 			nameColorTag = JUtil.ColorToColorTag(nameColorValue);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
@@ -942,7 +942,7 @@ namespace JSI
 		private void ToggleFilter(int index, TextMenu.Item ti)
 		{
 			vesselFilter[vesselFilter.ElementAt(index).Key] = !vesselFilter[vesselFilter.ElementAt(index).Key];
-			persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
+			comp.Persistence.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
 			ti.isSelected = !ti.isSelected;
 			ti.labelText = vesselFilter.ElementAt(index).Key.ToString().PadRight(9) + (ti.isSelected ? "- On" : "- Off");
 		}

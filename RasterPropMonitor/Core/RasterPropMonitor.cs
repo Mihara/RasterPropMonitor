@@ -73,8 +73,6 @@ namespace JSI
         private MonitorPage activePage;
         // All computations are split into a separate class, because it was getting a mite too big.
         private RasterPropMonitorComputer comp;
-        // Persistence for current page variable.
-        private PersistenceAccessor persistence;
         private string persistentVarName;
         private string[] screenBuffer;
         private readonly Dictionary<char, Rect> fontCharacters = new Dictionary<char, Rect>();
@@ -298,8 +296,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                persistence = new PersistenceAccessor(part);
-                int? activePageID = persistence.GetVar(persistentVarName);
+                int? activePageID = comp.Persistence.GetVar(persistentVarName);
                 if (activePageID != null && activePageID.Value < pages.Count)
                 {
                     activePage = pages[activePageID.Value];
@@ -404,7 +401,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                persistence.SetVar(persistentVarName, activePage.pageNumber);
+                comp.Persistence.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 comp.updateForced = true;
                 firstRenderComplete = false;
