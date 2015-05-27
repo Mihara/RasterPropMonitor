@@ -83,7 +83,7 @@ namespace JSI
 
 			float value;
 			if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-				bool state = comp.Persistence.GetBool(perPodPersistenceName) ?? false;
+				bool state = comp.Persistence.GetBool(perPodPersistenceName, false);
 				value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
 			} else {
 				value = comp.ProcessVariable(variable).MassageToFloat();

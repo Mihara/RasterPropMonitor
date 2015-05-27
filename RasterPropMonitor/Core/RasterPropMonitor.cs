@@ -296,10 +296,10 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int? activePageID = comp.Persistence.GetVar(persistentVarName);
-                if (activePageID != null && activePageID.Value < pages.Count)
+                int activePageID = comp.Persistence.GetVar(persistentVarName, pages.Count);
+                if (activePageID < pages.Count)
                 {
-                    activePage = pages[activePageID.Value];
+                    activePage = pages[activePageID];
                 }
                 activePage.Active(true);
 

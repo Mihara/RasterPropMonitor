@@ -305,26 +305,6 @@ namespace JSI
             refreshDataRate = Math.Min(dataRate, refreshDataRate);
         }
 
-        // Internal persistence interface:
-        public void SetVar(string varname, int value)
-        {
-            var variables = ParseData(data);
-            try
-            {
-                variables.Add(varname, value);
-            }
-            catch (ArgumentException)
-            {
-                variables[varname] = value;
-            }
-            data = UnparseData(variables);
-        }
-
-        public int? GetVar(string varname)
-        {
-            var variables = ParseData(data);
-            return variables.ContainsKey(varname) ? (int?)variables[varname] : (int?)null;
-        }
         // Page handler interface for vessel description page.
         // Analysis disable UnusedParameter
         public string VesselDescriptionRaw(int screenWidth, int screenHeight)
@@ -496,31 +476,6 @@ namespace JSI
             return false;
         }
 
-        private static string UnparseData(Dictionary<string, int> variables)
-        {
-            var tokens = new List<string>();
-            foreach (KeyValuePair<string, int> item in variables)
-            {
-                tokens.Add(item.Key + "$" + item.Value);
-            }
-            return String.Join("|", tokens.ToArray());
-        }
-
-        private static Dictionary<string, int> ParseData(string dataString)
-        {
-            var variables = new Dictionary<string, int>();
-            if (!string.IsNullOrEmpty(dataString))
-                foreach (string varstring in dataString.Split('|'))
-                {
-                    string[] tokens = varstring.Split('$');
-                    int value;
-                    int.TryParse(tokens[1], out value);
-                    variables.Add(tokens[0], value);
-                }
-
-            return variables;
-
-        }
         // I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
         public void Update()
         {
@@ -970,9 +925,9 @@ namespace JSI
 
                         if (thatPart.temperature - thatAblator.ablationTempThresh > hottestShield)
                         {
-                            hottestShield = (thatPart.temperature - thatAblator.ablationTempThresh).MassageToFloat();
-                            heatShieldTemperature = (thatPart.temperature).MassageToFloat();
-                            heatShieldFlux = (thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux).MassageToFloat();
+                            hottestShield = (float)(thatPart.temperature - thatAblator.ablationTempThresh);
+                            heatShieldTemperature = (float)(thatPart.temperature);
+                            heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
                         }
                     }
                 }
@@ -1271,14 +1226,13 @@ namespace JSI
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
-                    int? val = GetVar(substr);
-                    if (val == null)
+                    if(persistence.HasVar(substr))
                     {
-                        return -1.0f;
+                        return (float)persistence.GetVar(substr);
                     }
                     else
                     {
-                        return val.MassageToFloat();
+                        return -1.0f;
                     }
                 }
 
@@ -2075,11 +2029,11 @@ namespace JSI
                 case "EXTERNALTEMPERATUREKELVIN":
                     return vessel.externalTemperature;
                 case "HEATSHIELDTEMPERATURE":
-                    return heatShieldTemperature.MassageToDouble() + KelvinToCelsius;
+                    return (double)heatShieldTemperature + KelvinToCelsius;
                 case "HEATSHIELDTEMPERATUREKELVIN":
-                    return heatShieldTemperature.MassageToDouble();
+                    return heatShieldTemperature;
                 case "HEATSHIELDFLUX":
-                    return heatShieldFlux.MassageToDouble();
+                    return heatShieldFlux;
                 case "SLOPEANGLE":
                     return slopeAngle;
                 case "SPEEDDISPLAYMODE":

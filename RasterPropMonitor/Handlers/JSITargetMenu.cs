@@ -604,7 +604,7 @@ namespace JSI
 			persistentVarName = "targetfilter" + internalProp.propID;
             comp = RasterPropMonitorComputer.Instantiate(internalProp);
 			// 7 is the bitmask for ship-station-probe;
-			VesselFilterFromBitmask(comp.Persistence.GetVar(persistentVarName) ?? defaultFilter);
+			VesselFilterFromBitmask(comp.Persistence.GetVar(persistentVarName, defaultFilter));
 
 			nameColorTag = JUtil.ColorToColorTag(nameColorValue);
 			distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
