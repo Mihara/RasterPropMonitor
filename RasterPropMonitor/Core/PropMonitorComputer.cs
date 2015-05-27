@@ -1054,16 +1054,21 @@ namespace JSI
 
         // This intermediary will cache the results so that multiple variable requests within the frame would not result in duplicated code.
         // If I actually break down and decide to do expressions, however primitive, this will also be the function responsible.
-        public object ProcessVariable(string input)
+        public object ProcessVariable(string input, int propId)
         {
             if (resultCache[input] != null)
+            {
                 return resultCache[input];
+            }
+
             bool cacheable;
             object returnValue;
             try
             {
                 if (!plugins.ProcessVariable(input, out returnValue, out cacheable))
-                    returnValue = VariableToObject(input, out cacheable);
+                {
+                    returnValue = VariableToObject(input, propId, out cacheable);
+                }
             }
             catch (Exception e)
             {
@@ -1133,7 +1138,7 @@ namespace JSI
             return 0.0;
         }
 
-        private object VariableToObject(string input, out bool cacheable)
+        private object VariableToObject(string input, int propId, out bool cacheable)
         {
 
             // Some variables may not cacheable, because they're meant to be different every time like RANDOM,
@@ -1215,6 +1220,21 @@ namespace JSI
                     if (mappedVariables.ContainsKey(input))
                     {
                         return mappedVariables[input].Evaluate(this);
+                    }
+                    else
+                    {
+                        return input;
+                    }
+                }
+
+                if (tokens.Length > 1 && tokens[0] == "PROP")
+                {
+                    string substr = input.Substring("PROP".Length + 1);
+
+                    if (persistence.HasPropVar(substr, propId))
+                    {
+                        cacheable = false;
+                        return (float)persistence.GetPropVar(substr, propId);
                     }
                     else
                     {

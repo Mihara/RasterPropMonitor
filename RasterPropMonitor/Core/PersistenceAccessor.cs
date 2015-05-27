@@ -85,9 +85,27 @@ namespace JSI
             return int.MinValue;
         }
 
+        public int GetPropVar(string persistentVarName, int propId)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            return GetVar(perPropVarName);
+        }
+
+        public bool HasPropVar(string persistentVarName, int propId)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            return HasVar(perPropVarName);
+        }
+
         public bool HasVar(string persistentVarName)
         {
             return persistentVars.ContainsKey(persistentVarName);
+        }
+
+        public void SetPropVar(string persistentVarName, int propId, int varvalue)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            SetVar(perPropVarName, varvalue);
         }
 
         public void SetVar(string persistentVarName, int varvalue)

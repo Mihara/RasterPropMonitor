@@ -277,7 +277,7 @@ namespace JSI
                 return; // bad values - can't render
             }
 
-            float eval = comp.ProcessVariable(variableName).MassageToFloat();
+            float eval = comp.ProcessVariable(variableName, -1).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
                 return; // bad value - can't render

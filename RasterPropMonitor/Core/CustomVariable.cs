@@ -51,7 +51,7 @@ namespace JSI
 
 		public object Evaluate(RasterPropMonitorComputer comp)
 		{
-			double result = comp.ProcessVariable(name).MassageToDouble();
+			double result = comp.ProcessVariable(name, -1).MassageToDouble();
 			bool returnResult = (result >= minValue && result <= maxValue);
 			//JUtil.LogMessage(this, "Evaluate {0} ({3}, {4}) = {1}, returning {2}", name, result, returnResult, minValue, maxValue);
 

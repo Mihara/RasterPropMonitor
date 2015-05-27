@@ -554,7 +554,7 @@ namespace JSI
                 if (lightCheckCountdown <= 0)
                 {
                     lightCheckCountdown = lightCheckRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToDouble() < 0.01d;
+                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1).MassageToDouble() < 0.01d;
                 }
             }
 

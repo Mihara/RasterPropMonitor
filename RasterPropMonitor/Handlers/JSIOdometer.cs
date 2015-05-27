@@ -84,9 +84,9 @@ namespace JSI
 			float value;
 			if (!string.IsNullOrEmpty(perPodPersistenceName)) {
 				bool state = comp.Persistence.GetBool(perPodPersistenceName, false);
-				value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
+                value = comp.ProcessVariable((state) ? altVariable : variable, internalProp.propID).MassageToFloat();
 			} else {
-				value = comp.ProcessVariable(variable).MassageToFloat();
+				value = comp.ProcessVariable(variable, internalProp.propID).MassageToFloat();
 			}
 			// Make sure the value isn't going to be a problem.
 			if (float.IsNaN(value)) {

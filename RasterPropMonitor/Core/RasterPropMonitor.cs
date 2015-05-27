@@ -652,7 +652,7 @@ namespace JSI
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < screenHeight; i++)
             {
-                screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
+                screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID) : string.Empty;
             }
             textRefreshRequired = false;
 
@@ -664,7 +664,7 @@ namespace JSI
         {
             if (needsElectricCharge)
             {
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
+                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1);
             }
         }
 

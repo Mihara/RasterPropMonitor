@@ -51,7 +51,7 @@ namespace JSI
 			if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
 				return;
 
-			textObj.text.Text = StringProcessor.ProcessString(sourceString, comp);
+			textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, internalProp.propID);
 			oneshotComplete = true;
 		}
 	}
