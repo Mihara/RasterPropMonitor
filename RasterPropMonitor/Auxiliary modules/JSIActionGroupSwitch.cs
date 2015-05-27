@@ -49,8 +49,10 @@ namespace JSI
         private Color enabledColorValue;
         [KSPField]
         public bool initialState = false;
+        [KSPField]
+        public int switchGroupIdentifier = -1;
         // Neater.
-        private readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
+        private static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -226,6 +228,8 @@ namespace JSI
                 if (groupList.ContainsKey(actionName))
                 {
                     currentState = vessel.ActionGroups[groupList[actionName]];
+                    // action group switches may not belong to a radio group
+                    switchGroupIdentifier = -1;
                 }
                 else
                 {
@@ -274,6 +278,11 @@ namespace JSI
                     {
                         persistentVarName = perPodPersistenceName;
                     }
+                    else
+                    {
+                        // If there's no persistence name, there's no valid group id for this switch
+                        switchGroupIdentifier = -1;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName))
@@ -303,7 +312,17 @@ namespace JSI
                     {
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? initialState);
+                            if (switchGroupIdentifier >= 0)
+                            {
+                                int activeSwitch = persistence.GetVar(persistentVarName) ?? 0;
+
+                                currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
+                            }
+                            else
+                            {
+                                currentState = customGroupList[actionName] = (persistence.GetBool(persistentVarName) ?? initialState);
+                            }
+
                             if (actionName == "intlight")
                             {
                                 // We have to restore lighting after reading the
@@ -316,7 +335,17 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(persistentVarName) && persistence.GetBool(persistentVarName) == null)
                 {
-                    persistence.SetVar(persistentVarName, currentState);
+                    if (switchGroupIdentifier >= 0)
+                    {
+                        if (currentState)
+                        {
+                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                        }
+                    }
+                    else
+                    {
+                        persistence.SetVar(persistentVarName, currentState);
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(animationName))
@@ -402,10 +431,25 @@ namespace JSI
 
             if (isCustomAction)
             {
-                customGroupList[actionName] = !customGroupList[actionName];
-                if (!string.IsNullOrEmpty(persistentVarName))
+                if (switchGroupIdentifier >= 0)
                 {
-                    persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                    if (!forcedShutdown && !customGroupList[actionName])
+                    {
+                        customGroupList[actionName] = true;
+                        if (!string.IsNullOrEmpty(persistentVarName))
+                        {
+                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                        }
+                    }
+                    // else: can't turn off a radio group switch.
+                }
+                else
+                {
+                    customGroupList[actionName] = !customGroupList[actionName];
+                    if (!string.IsNullOrEmpty(persistentVarName))
+                    {
+                        persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                    }
                 }
             }
             else
@@ -471,15 +515,33 @@ namespace JSI
             {
                 if (string.IsNullOrEmpty(switchTransform) && !string.IsNullOrEmpty(perPodPersistenceName))
                 {
-                    // If the switch transform is not given, and the global persistence value is, this means this is a slave module.
-                    newState = persistence.GetBool(persistentVarName) ?? false;
+                    if (switchGroupIdentifier >= 0)
+                    {
+                        int activeGroupId = persistence.GetVar(persistentVarName) ?? 0;
+                        newState = (switchGroupIdentifier == activeGroupId);
+                        customGroupList[actionName] = newState;
+                    }
+                    else
+                    {
+                        // If the switch transform is not given, and the global persistence value is, this means this is a slave module.
+                        newState = persistence.GetBool(persistentVarName) ?? false;
+                    }
                 }
                 else
                 {
                     // Otherwise it's a master module. But it still might have to follow the clicks on other copies of the same prop...
                     if (!string.IsNullOrEmpty(perPodPersistenceName))
                     {
-                        newState = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
+                        if (switchGroupIdentifier >= 0)
+                        {
+                            int activeGroupId = persistence.GetVar(persistentVarName) ?? 0;
+                            newState = (switchGroupIdentifier == activeGroupId);
+                            customGroupList[actionName] = newState;
+                        }
+                        else
+                        {
+                            newState = persistence.GetBool(persistentVarName) ?? customGroupList[actionName];
+                        }
                     }
                     else
                     {
