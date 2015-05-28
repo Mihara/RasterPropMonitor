@@ -114,6 +114,7 @@ namespace JSI
         private readonly List<PartModule> undockablesList = new List<PartModule>();
         private List<ModuleDockingNode> portsList = new List<ModuleDockingNode>();
         private readonly List<PartModule> referencePoints = new List<PartModule>();
+        private readonly List<uint> unavailablePorts = new List<uint>();
         private int partCount;
         private SortMode sortMode;
         private bool pageActiveState;
@@ -252,90 +253,14 @@ namespace JSI
         {
             string targetName = string.Empty;
             if (selectedCelestial != null)
+            {
                 targetName = selectedCelestial.GetName();
-            if (selectedVessel != null)
+            }
+            else if (selectedVessel != null)
+            {
                 targetName = selectedVessel.GetName();
+            }
             return currentTarget != null ? string.Format(fp, menuTitleFormatString, "Current: " + targetName) : string.Format(fp, menuTitleFormatString, titleString);
-        }
-
-        private static List<ModuleDockingNode> ListAvailablePorts(Vessel thatVessel)
-        {
-            var unavailableParts = new List<uint>();
-            var availablePorts = new List<ModuleDockingNode>();
-            for (int i = 0; i < 2; i++)
-            {
-                foreach (Part thatPart in thatVessel.parts)
-                {
-                    foreach (PartModule thatModule in thatPart.Modules)
-                    {
-                        // Mihara: Note that ModuleDockingNode is ITargetable but ModuleGrapplingNode is not.
-                        var thatPort = thatModule as ModuleDockingNode;
-                        if (thatPort != null)
-                        {
-                            if (i == 0)
-                            {
-                                if (thatPort.state.ToLower().Contains("docked"))
-                                {
-                                    unavailableParts.Add(thatPort.part.flightID);
-                                    unavailableParts.Add(thatPort.dockedPartUId);
-                                }
-                            }
-                            else
-                            {
-                                if (!unavailableParts.Contains(thatPort.part.flightID))
-                                    availablePorts.Add(thatPort);
-                            }
-                        }
-                    }
-                }
-            }
-            /*
-            var availablePorts = new List<ModuleDockingNode>();
-            foreach (Part thatPart in thatVessel.parts) {
-                foreach (PartModule thatModule in thatPart.Modules) {
-                    var thatPort = thatModule as ModuleDockingNode;
-                    if (thatPort != null) {
-                        Debug.Log(String.Format("JSITargetMenu::ListAvailablePorts(): Port {0} is {3} has dockedPartUId {1} and dockingNodeModuleIndex {2}",
-                                thatPort.name,
-                            thatPort.dockedPartUId,
-                            thatPort.dockingNodeModuleIndex,
-                            thatPort.state));
-                        if (thatPort.state == "Ready") {
-                            // Add some sanity tests:
-                            if (thatPort.vesselInfo != null) {
-                                Debug.Log(String.Format("JSITargetMenu::ListAvailablePorts(): Port {0} is Ready, but says it is docked to {1}",
-                                    thatPort.name,
-                                    thatPort.vesselInfo.name));
-                            }
-                            availablePorts.Add(thatPort);
-                        }
-                    }
-                }
-            }
-             */
-            return availablePorts;
-        }
-
-        private string FormatItem(string itemText, double distance, bool current, bool selected, bool unavailable)
-        {
-            var result = new StringBuilder();
-            result.Append(current ? "> " : "  ");
-            if (selected)
-                result.Append(selectedColorTag);
-            else if (unavailable)
-                result.Append(unavailableColorTag);
-            else
-                result.Append(nameColorTag);
-
-            if (distance > 0)
-            {
-                result.Append(itemText.PadRight(distanceColumn, ' ').Substring(0, distanceColumn - 2));
-                result.Append(distanceColorTag);
-                result.AppendFormat(fp, distanceFormatString, distance);
-            }
-            else
-                result.Append(itemText);
-            return result.ToString();
         }
 
         private bool UpdateCheck()
@@ -387,17 +312,17 @@ namespace JSI
             Vector3 portDirection = subject.up;
             const float deviation = 5f;
             if (Vector3.Angle(reference.up, portDirection) < deviation)
-                return "front";
+                return "(front)";
             if (Vector3.Angle(-reference.up, portDirection) < deviation)
-                return "back";
+                return "(back)";
             if (Vector3.Angle(reference.right, portDirection) < deviation)
-                return "right";
+                return "(right)";
             if (Vector3.Angle(-reference.right, portDirection) < deviation)
-                return "left";
+                return "(left)";
             if (Vector3.Angle(reference.forward, portDirection) < deviation)
-                return "bottom";
+                return "(bottom)";
             if (Vector3.Angle(-reference.forward, portDirection) < deviation)
-                return "top";
+                return "(top)";
             return "??";
         }
         // Decouple port menu...
@@ -432,6 +357,7 @@ namespace JSI
 
         private int UpdateUndockablesList()
         {
+            // MOARdV TODO:
             undockablesList.Clear();
             foreach (Part thatPart in vessel.parts)
             {
@@ -478,23 +404,23 @@ namespace JSI
                     {
                         var tmi = new TextMenu.Item();
                         tmi.action = DecouplePort;
-                        var thatClaw = thatUndockable as ModuleGrappleNode;
-                        var thatPort = thatUndockable as ModuleDockingNode;
-                        if (thatPort != null)
+                        if (thatUndockable is ModuleDockingNode)
                         {
+                            var thatPort = thatUndockable as ModuleDockingNode;
                             switch (thatPort.state)
                             {
                                 case "Docked (docker)":
                                     tmi.labelText = "Undock " + thatPort.vesselInfo.name;
                                     break;
                                 case "PreAttached":
-                                    tmi.labelText = string.Format("Detach {0} ({1})", thatPort.part.name,
+                                    tmi.labelText = string.Format("Detach {0} {1}", GetPortName(thatPort),
                                         PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
                                     break;
                             }
                         }
-                        if (thatClaw != null)
+                        if (thatUndockable is ModuleGrappleNode)
                         {
+                            var thatClaw = thatUndockable as ModuleGrappleNode;
                             tmi.labelText = "Claw (" + thatClaw.otherVesselInfo.name + ")";
                         }
                         activeMenu.Add(tmi);
@@ -539,17 +465,17 @@ namespace JSI
                     {
                         var tmi = new TextMenu.Item();
                         tmi.action = SetReferencePoint;
-                        var thatPort = referencePoint as ModuleDockingNode;
-                        var thatClaw = referencePoint as ModuleGrappleNode;
 
-                        if (thatPort != null)
+                        if (referencePoint is ModuleDockingNode)
                         {
-                            tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, GetPortName(thatPort),
+                            var thatPort = referencePoint as ModuleDockingNode;
+                            tmi.labelText = string.Format("{0}. {1} {2}", activeMenu.Count + 1, GetPortName(thatPort),
                                 PortOrientationText(part.GetReferenceTransform(), thatPort.controlTransform));
                         }
-                        else if (thatClaw != null)
+                        else if (referencePoint is ModuleGrappleNode)
                         {
-                            tmi.labelText = string.Format("{0}. {1} ({2})", activeMenu.Count + 1, referencePoint.part.partInfo.title,
+                            var thatClaw = referencePoint as ModuleGrappleNode;
+                            tmi.labelText = string.Format("{0}. {1} {2}", activeMenu.Count + 1, referencePoint.part.partInfo.title,
                                 PortOrientationText(part.GetReferenceTransform(), thatClaw.controlTransform));
                         }
                         else
@@ -646,7 +572,8 @@ namespace JSI
                     {
                         var tmi = new TextMenu.Item();
                         tmi.action = TargetVessel;
-                        tmi.labelText = string.Format("{0} ({1})", GetPortName(port), PortOrientationText(port.vessel.ReferenceTransform, port.controlTransform));
+                        tmi.labelText = GetPortName(port);
+                        tmi.rightText = PortOrientationText(port.vessel.ReferenceTransform, port.controlTransform);
                         tmi.isSelected = (selectedPort == port);
                         tmi.action = TargetPort;
                         activeMenu.Add(tmi);
@@ -680,25 +607,73 @@ namespace JSI
             return port.part.partInfo.title;
         }
 
-        private int UpdatePortsList()
+        private void UpdatePortsList()
         {
-            portsList = ListAvailablePorts(selectedVessel);
-            return portsList.Count;
+            unavailablePorts.Clear();
+            foreach(uint id in FindUnavailablePorts(selectedVessel))
+            {
+                unavailablePorts.Add(id);
+            }
+            portsList.Clear();
+            foreach (ModuleDockingNode thatPort in FindAvailablePorts(selectedVessel, unavailablePorts))
+            {
+                portsList.Add(thatPort);
+            }
+        }
+
+        private static IEnumerable<ModuleDockingNode> FindAvailablePorts(Vessel selectedVessel, List<uint> unavailablePorts)
+        {
+            foreach (Part thatPart in selectedVessel.parts)
+            {
+                foreach (PartModule thatModule in thatPart.Modules)
+                {
+                    if (thatModule is ModuleDockingNode && !unavailablePorts.Contains(thatModule.part.flightID))
+                    {
+                        yield return (thatModule as ModuleDockingNode);
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<uint> FindUnavailablePorts(Vessel selectedVessel)
+        {
+            foreach (Part thatPart in selectedVessel.parts)
+            {
+                foreach (PartModule thatModule in thatPart.Modules)
+                {
+                    if (thatModule is ModuleDockingNode)
+                    {
+                        var thatPort = thatModule as ModuleDockingNode;
+                        if (thatPort.state.ToLower().Contains("docked"))
+                        {
+                            yield return thatPort.part.flightID;
+                            yield return thatPort.dockedPartUId;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<PartModule> FindReferenceModules(List<Part> parts)
+        {
+            foreach (Part thatPart in parts)
+            {
+                foreach (PartModule thatModule in thatPart.Modules)
+                {
+                    if (thatModule is ModuleDockingNode || thatModule is ModuleCommand || thatModule is ModuleGrappleNode)
+                    {
+                        yield return thatModule;
+                    }
+                }
+            }
         }
 
         private void FindReferencePoints()
         {
             referencePoints.Clear();
-            foreach (Part thatPart in vessel.Parts)
+            foreach (PartModule thatModule in FindReferenceModules(vessel.Parts))
             {
-                foreach (PartModule thatModule in thatPart.Modules)
-                {
-                    var thatNode = thatModule as ModuleDockingNode;
-                    var thatCommand = thatModule as ModuleCommand;
-                    var thatClaw = thatModule as ModuleGrappleNode;
-                    if (thatNode != null || thatCommand != null || thatClaw != null)
-                        referencePoints.Add(thatModule);
-                }
+                referencePoints.Add(thatModule);
             }
             partCount = vessel.parts.Count;
         }
@@ -1018,12 +993,13 @@ namespace JSI
             if (selectedVessel == vesselsList[index].vessel)
             {
                 // Already selected.  Are there ports?
-                if (UpdatePortsList() > 0)
+                UpdatePortsList();
+                if (portsList.Count > 0)
                 {
                     currentMenu = MenuList.Ports;
 
                     activeMenu = new TextMenu();
-                    activeMenu.rightColumnWidth = 7;
+                    activeMenu.rightColumnWidth = 8;
 
                     activeMenu.labelColor = nameColorTag;
                     activeMenu.selectedColor = selectedColorTag;
