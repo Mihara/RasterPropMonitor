@@ -145,12 +145,12 @@ namespace JSI
                     CameraSetup(i, knownCameraNames[i]);
                 }
                 enabled = true;
-                JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
+                //JUtil.LogMessage(this, "Switched to camera \"{0}\".", cameraTransform.name);
                 return true;
             }
             else
             {
-                JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
+                //JUtil.LogMessage(this, "Tried to switch to camera \"{0}\" but camera was not found.", newCameraName);
                 return false;
             }
         }
@@ -176,7 +176,7 @@ namespace JSI
                     }
                 }
                 enabled = false;
-                JUtil.LogMessage(this, "Turning camera off.");
+                //JUtil.LogMessage(this, "Turning camera off.");
             }
             cameraPart = null;
             cameraTransform = null;
