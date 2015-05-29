@@ -1260,7 +1260,7 @@ namespace JSI
                         }
                         else
                         {
-                            return float.NaN;
+                            return -1;
                         }
                     }
                     else
@@ -1269,8 +1269,7 @@ namespace JSI
                         if (internalModule.Length != 2)
                         {
                             JUtil.LogErrorMessage(this, "Badly-formed plugin name in {0}", input);
-                            pluginVariables.Add(tokens[1], null);
-                            return float.NaN;
+                            return input;
                         }
 
                         InternalProp propToUse = null;
@@ -1310,7 +1309,7 @@ namespace JSI
                         {
                             JUtil.LogErrorMessage(this, "Wait - propToUse is still null?");
                             pluginVariables.Add(tokens[1], null);
-                            return float.NaN;
+                            return -1;
                         }
 
                         Func<bool> pluginCall = JUtil.GetStateMethod(tokens[1], propToUse);
@@ -1322,7 +1321,7 @@ namespace JSI
                         }
                         else
                         {
-                            return float.NaN;
+                            return -1;
                         }
                     }
                 }
