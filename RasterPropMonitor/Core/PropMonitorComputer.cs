@@ -37,6 +37,7 @@ namespace JSI
         private int refreshTextRate = int.MaxValue;
         private int refreshDataRate = int.MaxValue;
 
+        // Craft center
         public Vector3d CoM
         {
             get
@@ -45,14 +46,7 @@ namespace JSI
             }
         }
 
-        private Vector3d up;
-        public Vector3d Up
-        {
-            get
-            {
-                return up;
-            }
-        }
+        // Craft-relative basis vectors
         private Vector3d forward
         {
             get
@@ -68,6 +62,15 @@ namespace JSI
             }
         }
 
+        // Surface-relative vectors
+        private Vector3d up;
+        public Vector3d Up
+        {
+            get
+            {
+                return up;
+            }
+        }
         private Vector3d north;
         public Vector3d North
         {
@@ -83,6 +86,7 @@ namespace JSI
         // surfaceForward is the cross of the up vector and right vector, so
         // that surface velocity can be decomposed to surface-relative components.
         private Vector3d surfaceForward;
+
         private Quaternion rotationVesselSurface;
         public Quaternion RotationVesselSurface
         {
@@ -118,6 +122,7 @@ namespace JSI
             }
         }
         private double speedVerticalRounded;
+
         private double horzVelocity;
         private ITargetable target;
         private ModuleDockingNode targetDockingNode;
@@ -134,24 +139,24 @@ namespace JSI
         private double approachSpeed;
         private Quaternion targetOrientation;
         private ManeuverNode node;
-        private double time;
+
         public double Time
         {
             get
             {
-                return time;
+                return Planetarium.GetUniversalTime();
             }
         }
         private ProtoCrewMember[] vesselCrew;
         private kerbalExpressionSystem[] vesselCrewMedical;
         private ProtoCrewMember[] localCrew;
         private kerbalExpressionSystem[] localCrewMedical;
-        private double altitudeASL;
+
         public double AltitudeASL
         {
             get
             {
-                return altitudeASL;
+                return vessel.mainBody.GetAltitude(vessel.CoM);
             }
         }
         private double altitudeTrue;
@@ -664,13 +669,13 @@ namespace JSI
             double impactTime = 0;
             try
             {
-                impactTime = orbit.NextTimeOfRadius(time, terrainRadius);
+                impactTime = orbit.NextTimeOfRadius(Time, terrainRadius);
             }
             catch (ArgumentException)
             {
                 return double.NaN;
             }
-            return impactTime - decelTime / 2.0 - time;
+            return impactTime - decelTime / 2.0 - Time;
         }
 
         private void FetchCommonData()
@@ -716,19 +721,19 @@ namespace JSI
             {
                 node = null;
             }
-            time = Planetarium.GetUniversalTime();
+
             FetchAltitudes();
 
-            if (time >= lastTimePerSecond + 1)
+            if (Time >= lastTimePerSecond + 1.0)
             {
                 terrainDelta = vessel.terrainAltitude - lastTerrainHeight;
                 lastTerrainHeight = vessel.terrainAltitude;
-                lastTimePerSecond = time;
+                lastTimePerSecond = Time;
             }
 
             horzVelocity = (VelocityVesselSurface - (speedVertical * up)).magnitude;
 
-            atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
+            atmPressure = FlightGlobals.getStaticPressure(AltitudeASL, vessel.mainBody);
 
             if (target != null)
             {
@@ -792,12 +797,12 @@ namespace JSI
                 double accelUp = Vector3d.Dot(vessel.acceleration, up);
 
                 double altitude = altitudeTrue;
-                if (vessel.mainBody.ocean && altitudeASL > 0.0)
+                if (vessel.mainBody.ocean && AltitudeASL > 0.0)
                 {
                     // AltitudeTrue shows distance above the floor of the ocean,
                     // so use ASL if it's closer in this case, and we're not
                     // already below SL.
-                    altitude = Math.Min(altitudeASL, altitudeTrue);
+                    altitude = Math.Min(AltitudeASL, altitudeTrue);
                 }
 
                 if (accelUp < 0.0 || speedVertical >= 0.0 || Planetarium.TimeScale > 1.0)
@@ -868,7 +873,7 @@ namespace JSI
 
             anyEnginesOverheating = anyEnginesFlameout = false;
 
-            resources.StartLoop(time);
+            resources.StartLoop(Time);
 
             foreach (Part thatPart in vessel.parts)
             {
@@ -1010,11 +1015,10 @@ namespace JSI
         // Another piece from MechJeb.
         private void FetchAltitudes()
         {
-            altitudeASL = vessel.mainBody.GetAltitude(CoM);
-            altitudeTrue = altitudeASL - vessel.terrainAltitude;
+            altitudeTrue = AltitudeASL - vessel.terrainAltitude;
 
             RaycastHit sfc;
-            if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
+            if (Physics.Raycast(CoM, -up, out sfc, (float)AltitudeASL + 10000.0F, 1 << 15))
             {
                 slopeAngle = Vector3.Angle(up, sfc.normal);
             }
@@ -1023,10 +1027,10 @@ namespace JSI
                 slopeAngle = -1.0f;
             }
 
-            altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
+            altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(AltitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {
-                double lowestPoint = altitudeASL;
+                double lowestPoint = AltitudeASL;
                 foreach (Part p in vessel.parts)
                 {
                     if (p.collider != null)
@@ -1036,13 +1040,12 @@ namespace JSI
                         lowestPoint = Math.Min(lowestPoint, partBottomAlt);
                     }
                 }
-                lowestPoint -= altitudeASL;
+                lowestPoint -= AltitudeASL;
                 altitudeBottom += lowestPoint;
             }
-
-            if (altitudeBottom < 0)
-                altitudeBottom = 0;
+            altitudeBottom = Math.Max(0.0, altitudeBottom);
         }
+
         // According to C# specification, switch-case is compiled to a constant hash table.
         // So this is actually more efficient than a dictionary, who'd have thought.
         private static string SituationString(Vessel.Situations situation)
@@ -1427,20 +1430,20 @@ namespace JSI
 
                 // Altitudes
                 case "ALTITUDE":
-                    return altitudeASL;
+                    return AltitudeASL;
                 case "ALTITUDELOG10":
-                    return JUtil.PseudoLog10(altitudeASL);
+                    return JUtil.PseudoLog10(AltitudeASL);
                 case "RADARALT":
                     return altitudeTrue;
                 case "RADARALTLOG10":
                     return JUtil.PseudoLog10(altitudeTrue);
                 case "RADARALTOCEAN":
                     if (vessel.mainBody.ocean)
-                        return Math.Min(altitudeASL, altitudeTrue);
+                        return Math.Min(AltitudeASL, altitudeTrue);
                     return altitudeTrue;
                 case "RADARALTOCEANLOG10":
                     if (vessel.mainBody.ocean)
-                        return JUtil.PseudoLog10(Math.Min(altitudeASL, altitudeTrue));
+                        return JUtil.PseudoLog10(Math.Min(AltitudeASL, altitudeTrue));
                     return JUtil.PseudoLog10(altitudeTrue);
                 case "ALTITUDEBOTTOM":
                     return altitudeBottom;
@@ -1453,7 +1456,7 @@ namespace JSI
                 case "TERRAINHEIGHTLOG10":
                     return JUtil.PseudoLog10(vessel.terrainAltitude);
                 case "DISTTOATMOSPHERETOP":
-                    return vessel.orbit.referenceBody.atmosphereDepth - altitudeASL;
+                    return vessel.orbit.referenceBody.atmosphereDepth - AltitudeASL;
 
                 // Atmospheric values
                 case "ATMPRESSURE":
@@ -1519,7 +1522,7 @@ namespace JSI
                 // Maneuvers
                 case "MNODETIMESECS":
                     if (node != null)
-                        return -(node.UT - time);
+                        return -(node.UT - Time);
                     return double.NaN;
                 case "MNODEDV":
                     if (node != null)
@@ -1613,11 +1616,11 @@ namespace JSI
                     return -1d;
                 case "TIMETOANEQUATORIAL":
                     if (orbitSensibility && vessel.orbit.AscendingNodeEquatorialExists())
-                        return vessel.orbit.TimeOfAscendingNodeEquatorial(time) - time;
+                        return vessel.orbit.TimeOfAscendingNodeEquatorial(Time) - Time;
                     return double.NaN;
                 case "TIMETODNEQUATORIAL":
                     if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
-                        return vessel.orbit.TimeOfDescendingNodeEquatorial(time) - time;
+                        return vessel.orbit.TimeOfDescendingNodeEquatorial(Time) - Time;
                     return double.NaN;
                 // SOI changes in orbits.
                 case "ENCOUNTEREXISTS":
@@ -1637,7 +1640,7 @@ namespace JSI
                         (vessel.orbit.patchEndTransition == Orbit.PatchTransitionType.ENCOUNTER ||
                         vessel.orbit.patchEndTransition == Orbit.PatchTransitionType.ESCAPE))
                     {
-                        return vessel.orbit.UTsoi - time;
+                        return vessel.orbit.UTsoi - Time;
                     }
                     return double.NaN;
                 case "ENCOUNTERBODY":
@@ -1657,9 +1660,9 @@ namespace JSI
                 case "UTSECS":
                     if (GameSettings.KERBIN_TIME)
                     {
-                        return time + 426 * 6 * 60 * 60;
+                        return Time + 426 * 6 * 60 * 60;
                     }
-                    return time + 365 * 24 * 60 * 60;
+                    return Time + 365 * 24 * 60 * 60;
                 case "METSECS":
                     return vessel.missionTime;
                 // Names!
@@ -1777,7 +1780,7 @@ namespace JSI
                         return -1d;
                     if (targetVessel != null)
                     {
-                        return targetVessel.mainBody.GetAltitude(targetVessel.findWorldCenterOfMass());
+                        return targetVessel.mainBody.GetAltitude(targetVessel.CoM);
                     }
                     if (targetOrbit != null)
                     {
@@ -1793,11 +1796,11 @@ namespace JSI
                 case "TIMETOANWITHTARGETSECS":
                     if (target == null || targetOrbit == null)
                         return double.NaN;
-                    return vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, time) - time;
+                    return vessel.GetOrbit().TimeOfAscendingNode(targetOrbit, Time) - Time;
                 case "TIMETODNWITHTARGETSECS":
                     if (target == null || targetOrbit == null)
                         return double.NaN;
-                    return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, time) - time;
+                    return vessel.GetOrbit().TimeOfDescendingNode(targetOrbit, Time) - Time;
                 case "TARGETCLOSESTAPPROACHTIME":
                     if (target == null || targetOrbit == null || orbitSensibility == false)
                     {
@@ -1807,7 +1810,7 @@ namespace JSI
                     {
                         double approachTime, approachDistance;
                         approachDistance = JUtil.GetClosestApproach(vessel.GetOrbit(), target, out approachTime);
-                        return approachTime - time;
+                        return approachTime - Time;
                     }
                 case "TARGETCLOSESTAPPROACHDISTANCE":
                     if (target == null || targetOrbit == null || orbitSensibility == false)
@@ -1861,7 +1864,7 @@ namespace JSI
                 case "TARGETLASTOBSERVEDTIMESECS":
                     if (targetVessel != null && targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                     {
-                        return Math.Max(time - targetVessel.DiscoveryInfo.lastObservedTime, 0.0);
+                        return Math.Max(Time - targetVessel.DiscoveryInfo.lastObservedTime, 0.0);
                     }
                     else
                     {
@@ -1988,16 +1991,18 @@ namespace JSI
 
                 // Protractor-type values (phase angle, ejection angle)
                 case "TARGETBODYPHASEANGLE":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    // targetOrbit is always null if targetOrbitSensibility is false,
+                    // so no need to test if the orbit makes sense.
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.PhaseAngle;
                 case "TARGETBODYPHASEANGLESECS":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.TimeToPhaseAngle;
                 case "TARGETBODYEJECTIONANGLE":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.EjectionAngle;
                 case "TARGETBODYEJECTIONANGLESECS":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.TimeToEjectionAngle;
                 case "TARGETBODYCLOSESTAPPROACH":
                     if (orbitSensibility == true)
@@ -2010,13 +2015,13 @@ namespace JSI
                         return -1.0;
                     }
                 case "TARGETBODYMOONEJECTIONANGLE":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.MoonEjectionAngle;
                 case "TARGETBODYEJECTIONALTITUDE":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.EjectionAltitude;
                 case "TARGETBODYDELTAV":
-                    protractor.Update(vessel, (targetOrbitSensibility) ? targetOrbit : null);
+                    protractor.Update(vessel, targetOrbit);
                     return protractor.TargetBodyDeltaV;
 
                 // FLight control status
