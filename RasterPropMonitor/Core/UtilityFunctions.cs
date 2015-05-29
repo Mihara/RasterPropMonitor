@@ -1096,6 +1096,13 @@ namespace JSI
 
             if (thatModule == null)
             {
+                // The module hasn't been instantiated on this part, so let's do so now.
+                var handlerConfiguration = new ConfigNode("MODULE");
+                handlerConfiguration.SetValue("name", moduleName, true);
+                thatModule = internalProp.AddModule(handlerConfiguration);
+            }
+            if (thatModule == null)
+            {
                 JUtil.LogErrorMessage(internalProp, "Failed finding module {0} for method {1}", moduleName, stateMethod);
                 return null;
             }
