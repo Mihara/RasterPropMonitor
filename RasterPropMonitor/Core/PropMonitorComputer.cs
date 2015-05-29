@@ -221,73 +221,6 @@ namespace JSI
         private const double gee = 9.81d;
         private const double KelvinToCelsius = -273.15;
 
-        // Now this whole mess can get deprecated.
-        private readonly Dictionary<string, string> namedResources = new Dictionary<string, string> {
-			// Stock resources...
-			{ "ELECTRIC", "ElectricCharge" },
-			{ "FUEL", "LiquidFuel" },
-			{ "OXIDIZER", "Oxidizer" },
-			{ "MONOPROP", "MonoPropellant" },
-			{ "RSINTAKEAIR", "IntakeAir" },
-			{ "XENON", "XenonGas" },
-			{ "SOLIDFUEL", "SolidFuel" },
-			// Mod resources...
-			{ "KETHANE", "Kethane" },
-			// Modular fuels.
-			{ "MFLH2", "LiquidH2" },
-			{ "MFLOX", "LiquidOxygen" },
-			{ "MFN2O4", "N2O4" },
-			{ "MFMMH", "MMH" },
-			{ "MFAEROZINE", "Aerozine" },
-			{ "MFUDMH", "UDMH" },
-			{ "MFHYDRAZINE", "Hydrazine" },
-			{ "MFMETHANE", "Methane" },
-			{ "MFNUCLEARFUEL", "nuclearFuel" },
-			{ "MFNUCLEARWASTE", "nuclearWaste" },
-			// Life support resources -- apparently common for TAC and Ioncross these days.
-			{ "LSFOOD","Food" },
-			{ "LSWATER","Water" },
-			{ "LSOXYGEN","Oxygen" },
-			{ "LSCO2","CarbonDioxide" },
-			{ "LSWASTE","Waste" },
-			{ "LSWASTEWATER","WasteWater" },
-			// ECLSS resources
-			{ "ECLSSCO2","CO2" },
-			{ "ECLSSO2C","O2 Candle" },
-			// Deadly reentry ablative shielding
-			{ "ABLATIVESHIELD","AblativeShielding" },
-			// Interstellar
-			{ "ISTTHERMALPOWER","ThermalPower" },
-			{ "ISTMEGAJOULES","Megajoules" },
-			{ "ISTANTIMATTER","Antimatter" },
-			{ "ISTINTAKEATM","IntakeAtm" },
-			{ "ISTUF4","UF4" },
-			{ "ISTTHF4","ThF4" },
-			{ "ISTACTINIDES","Actinides" },
-			{ "ISTDEPLETEDFUEL","DepletedFuel" },
-			{ "ISTSCIENCE","Science" },
-			{ "ISTVACUUMPLASMA", "VacuumPlasma" },
-			{ "ISTARGON", "Argon" },
-			{ "ISTALIMINIUM", "Aluminium" },
-			{ "ISTEXOTICMATTER", "ExoticMatter" },
-			{ "ISTDEUTERIUM", "Deuterium" },
-			{ "ISTLITHIUM", "Lithium" },
-			{ "ISTTRITIUM", "Tritium" },
-			{ "ISTWASTEHEAT", "WasteHeat" },
-			{ "ISTLQDMETHANE", "LqdMethane" },
-			// Launchpads
-			{ "ELPROCKETPARTS","RocketParts" },
-			{ "ELPMETAL", "Metal" },
-			{ "ELPORE", "Ore" },
-			// Near Future
-			{ "NFARGON","ArgonGas" },
-			{ "NFHYDROGEN","HydrogenGas" },
-			{ "NFPTFE", "Polytetrafluoroethylene" },
-			{ "NFSTOREDCHARGE","StoredCharge" },
-			{ "NFURANIUM","EnrichedUranium" },
-			{ "NFDEPLETEDURANIUM","DepletedUranium" },
-		};
-
         // Ok, this is to deprecate the named resources mechanic entirely...
         private static SortedDictionary<string, string> systemNamedResources;
 
@@ -2404,21 +2337,6 @@ namespace JSI
                         return 2 * Math.PI * Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
                     }
                     return -1d;
-            }
-
-            // Individually named resources are deprecated, but still in.
-            foreach (KeyValuePair<string, string> resourceType in namedResources)
-            {
-                if (input.StartsWith(resourceType.Key, StringComparison.Ordinal))
-                {
-                    string argument = input.Substring(resourceType.Key.Length);
-                    if (argument.StartsWith("STAGE", StringComparison.Ordinal))
-                    {
-                        argument = argument.Substring("STAGE".Length);
-                        return resources.ListElement(resourceType.Value, argument, true);
-                    }
-                    return resources.ListElement(resourceType.Value, argument, false);
-                }
             }
 
             // Didn't recognise anything so we return the string we got, that helps debugging.
