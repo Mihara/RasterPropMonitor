@@ -59,7 +59,7 @@ namespace JSI
                 destination = value.Value;
                 return true;
             }
-            destination = comp.ProcessVariable(variableName).MassageToFloat();
+            destination = comp.ProcessVariable(variableName, -1).MassageToFloat();
             if (float.IsNaN(destination) || float.IsInfinity(destination))
             {
                 if (!warningMade)
@@ -86,7 +86,7 @@ namespace JSI
                 destination = value.Value;
                 return true;
             }
-            destination = incomp.ProcessVariable(variableName).MassageToFloat();
+            destination = incomp.ProcessVariable(variableName, -1).MassageToFloat();
             if (float.IsNaN(destination) || float.IsInfinity(destination))
             {
                 if (!warningMade)

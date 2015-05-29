@@ -254,7 +254,7 @@ namespace JSI
 
             if (vertBar1Material != null)
             {
-                float value = comp.ProcessVariable(vertBar1Variable).MassageToFloat();
+                float value = comp.ProcessVariable(vertBar1Variable, internalProp.propID).MassageToFloat();
                 if (float.IsNaN(value))
                 {
                     value = 0.0f;
@@ -282,7 +282,7 @@ namespace JSI
 
             if (vertBar2Material != null)
             {
-                float value = comp.ProcessVariable(vertBar2Variable).MassageToFloat();
+                float value = comp.ProcessVariable(vertBar2Variable, internalProp.propID).MassageToFloat();
                 if (float.IsNaN(value))
                 {
                     value = 0.0f;

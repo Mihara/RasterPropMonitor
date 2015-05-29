@@ -43,12 +43,12 @@ namespace JSI
 
         public double Evaluate(RasterPropMonitorComputer comp)
         {
-            float result = comp.ProcessVariable(sourceVariable).MassageToFloat();
+            float result = comp.ProcessVariable(sourceVariable, -1).MassageToFloat();
 
             Vector2 sourceRange;
             if (!string.IsNullOrEmpty(sourceMinStr))
             {
-                sourceRange.x = comp.ProcessVariable(sourceMinStr).MassageToFloat();
+                sourceRange.x = comp.ProcessVariable(sourceMinStr, -1).MassageToFloat();
             }
             else
             {
@@ -57,7 +57,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(sourceMaxStr))
             {
-                sourceRange.y = comp.ProcessVariable(sourceMaxStr).MassageToFloat();
+                sourceRange.y = comp.ProcessVariable(sourceMaxStr, -1).MassageToFloat();
             }
             else
             {

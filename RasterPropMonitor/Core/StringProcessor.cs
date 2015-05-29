@@ -6,7 +6,7 @@ namespace JSI
 	{
 		private static readonly SIFormatProvider fp = new SIFormatProvider();
 
-		public static string ProcessString(string input, RasterPropMonitorComputer comp, bool trim = true)
+		public static string ProcessString(string input, RasterPropMonitorComputer comp, int propId)
 		{
 			if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0) {
 				string[] tokens = input.Split(JUtil.VariableListSeparator, StringSplitOptions.RemoveEmptyEntries);
@@ -17,13 +17,13 @@ namespace JSI
 
 					var variables = new object[vars.Length];
 					for (int i = 0; i < vars.Length; i++) {
-						variables[i] = comp.ProcessVariable(vars[i]);
+						variables[i] = comp.ProcessVariable(vars[i], propId);
 					}
 					string output = string.Format(fp, tokens[0], variables);
-					return trim ? output.TrimEnd() : output;
+					return output.TrimEnd();
 				}
 			}
-			return trim ? input.TrimEnd() : input;
+			return input.TrimEnd();
 		}
 	}
 }

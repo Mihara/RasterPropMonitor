@@ -1,55 +1,131 @@
 using System;
+using System.Collections.Generic;
 
 namespace JSI
 {
 
-	// Just a helper class to encapsulate this mess.
-	public class PersistenceAccessor
-	{
-		private readonly RasterPropMonitorComputer persistenceStorage;
-		private const string errorMessage = "Warning: RasterPropMonitor components want RasterPropMonitorComputer PartModule to be loaded by the pod they're in. {0}";
+    // Just a helper class to encapsulate this mess.
+    public class PersistenceAccessor
+    {
+        private readonly RasterPropMonitorComputer comp;
+        private Dictionary<string, int> persistentVars = new Dictionary<string, int>();
 
-		public PersistenceAccessor(Part thatPart)
-		{
-			for (int i = 0; i < thatPart.Modules.Count; i++)
-				if (thatPart.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name)
-					persistenceStorage = thatPart.Modules[i] as RasterPropMonitorComputer;
-		}
+        public PersistenceAccessor(RasterPropMonitorComputer comp)
+        {
+            this.comp = comp;
+            ParseData();
+        }
 
-		public int? GetVar(string persistentVarName)
-		{
-			try {
-				return persistenceStorage.GetVar(persistentVarName);
-			} catch (NullReferenceException e) {
-				JUtil.LogMessage(this,errorMessage, e.Message);
-			}
-			return null;
-		}
+        private void ParseData()
+        {
+            persistentVars.Clear();
+            if (!string.IsNullOrEmpty(comp.data))
+            {
+                string[] varstring = comp.data.Split('|');
+                for (int i = 0; i < varstring.Length; ++i)
+                {
+                    string[] tokens = varstring[i].Split('$');
+                    int value;
+                    if (tokens.Length == 2 && int.TryParse(tokens[1], out value))
+                    {
+                        persistentVars.Add(tokens[0], value);
+                    }
+                }
+            }
+            JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
+        }
 
-		public bool? GetBool(string persistentVarName)
-		{
+        private void StoreData()
+        {
+            var tokens = new List<string>();
+            foreach (KeyValuePair<string, int> item in persistentVars)
+            {
+                tokens.Add(item.Key + "$" + item.Value);
+            }
 
-			int? value;
-			if ((value = GetVar(persistentVarName)) > 0)
-				return true;
-			if (value == 0)
-				return false;
-			return null;
-		}
+            comp.data = string.Join("|", tokens.ToArray());
+        }
 
-		public void SetVar(string persistentVarName, int varvalue)
-		{
-			try {
-				persistenceStorage.SetVar(persistentVarName, varvalue);
-			} catch (NullReferenceException e) {
-				JUtil.LogMessage(this,errorMessage, e.Message);
-			}
-		}
+        public bool GetBool(string persistentVarName, bool defaultValue)
+        {
+            if (persistentVars.ContainsKey(persistentVarName))
+            {
+                int value = GetVar(persistentVarName);
+                return (value > 0);
+            }
+            else
+            {
+                return defaultValue;
+            }
+        }
 
-		public void SetVar(string persistentVarName, bool varvalue)
-		{
-			SetVar(persistentVarName, varvalue ? 1 : 0);
-		}
-	}
+        public int GetVar(string persistentVarName, int defaultValue)
+        {
+            if (persistentVars.ContainsKey(persistentVarName))
+            {
+                return persistentVars[persistentVarName];
+            }
+            else
+            {
+                return defaultValue;
+            }
+        }
+
+        public int GetVar(string persistentVarName)
+        {
+            try
+            {
+                return persistentVars[persistentVarName];
+            }
+            catch
+            {
+                JUtil.LogErrorMessage(this, "Someone called GetVar({0}) without making sure the value existed", persistentVarName);
+            }
+
+            return int.MinValue;
+        }
+
+        public int GetPropVar(string persistentVarName, int propId)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            return GetVar(perPropVarName);
+        }
+
+        public bool HasPropVar(string persistentVarName, int propId)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            return HasVar(perPropVarName);
+        }
+
+        public bool HasVar(string persistentVarName)
+        {
+            return persistentVars.ContainsKey(persistentVarName);
+        }
+
+        public void SetPropVar(string persistentVarName, int propId, int varvalue)
+        {
+            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
+            SetVar(perPropVarName, varvalue);
+        }
+
+        public void SetVar(string persistentVarName, int varvalue)
+        {
+            if (persistentVars.ContainsKey(persistentVarName))
+            {
+                persistentVars[persistentVarName] = varvalue;
+            }
+            else
+            {
+                persistentVars.Add(persistentVarName, varvalue);
+            }
+
+            StoreData();
+        }
+
+        public void SetVar(string persistentVarName, bool varvalue)
+        {
+            SetVar(persistentVarName, varvalue ? 1 : 0);
+        }
+    }
 }
 

@@ -140,7 +140,7 @@ namespace JSI
                 return;
             }
 
-            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
+            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, internalProp.propID);
         }
 
         public void Click()
@@ -159,7 +159,7 @@ namespace JSI
 
             if (labelsEx[activeLabel].hasText && labelsEx[activeLabel].oneShot)
             {
-                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
+                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, internalProp.propID);
             }
 
             // Force an update.

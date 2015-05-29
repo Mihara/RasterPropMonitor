@@ -73,8 +73,6 @@ namespace JSI
         private MonitorPage activePage;
         // All computations are split into a separate class, because it was getting a mite too big.
         private RasterPropMonitorComputer comp;
-        // Persistence for current page variable.
-        private PersistenceAccessor persistence;
         private string persistentVarName;
         private string[] screenBuffer;
         private readonly Dictionary<char, Rect> fontCharacters = new Dictionary<char, Rect>();
@@ -298,11 +296,10 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                persistence = new PersistenceAccessor(part);
-                int? activePageID = persistence.GetVar(persistentVarName);
-                if (activePageID != null && activePageID.Value < pages.Count)
+                int activePageID = comp.Persistence.GetVar(persistentVarName, pages.Count);
+                if (activePageID < pages.Count)
                 {
-                    activePage = pages[activePageID.Value];
+                    activePage = pages[activePageID];
                 }
                 activePage.Active(true);
 
@@ -404,7 +401,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                persistence.SetVar(persistentVarName, activePage.pageNumber);
+                comp.Persistence.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 comp.updateForced = true;
                 firstRenderComplete = false;
@@ -655,7 +652,7 @@ namespace JSI
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < screenHeight; i++)
             {
-                screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp) : string.Empty;
+                screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID) : string.Empty;
             }
             textRefreshRequired = false;
 
@@ -667,7 +664,7 @@ namespace JSI
         {
             if (needsElectricCharge)
             {
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
+                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1);
             }
         }
 

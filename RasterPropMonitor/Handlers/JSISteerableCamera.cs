@@ -96,7 +96,10 @@ namespace JSI
         public int flickerRange;
         [KSPField]
         public bool skipMissingCameras = false;
+        [KSPField]
+        public string cameraInfoVarName = string.Empty;
 
+        private RasterPropMonitorComputer comp;
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
         private float zoomDirection;
@@ -399,6 +402,10 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
+                if (!string.IsNullOrEmpty(cameraInfoVarName))
+                {
+                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                }
                 return;
             }
 
@@ -414,6 +421,11 @@ namespace JSI
                 }
 
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+            }
+
+            if (!string.IsNullOrEmpty(cameraInfoVarName))
+            {
+                comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
             }
         }
 
@@ -434,6 +446,10 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
+                if (!string.IsNullOrEmpty(cameraInfoVarName))
+                {
+                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                }
                 return;
             }
 
@@ -449,6 +465,10 @@ namespace JSI
                 }
 
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
+            }
+            if (!string.IsNullOrEmpty(cameraInfoVarName))
+            {
+                comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
             }
         }
 
@@ -515,6 +535,19 @@ namespace JSI
 
             homeCrosshairMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
             homeCrosshairMaterial.color = ConfigNode.ParseColor32(homeCrosshairColor);
+
+            if (!string.IsNullOrEmpty(cameraInfoVarName))
+            {
+                comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                if (comp.Persistence.HasPropVar(cameraInfoVarName + "_ID", internalProp.propID))
+                {
+                    currentCamera = comp.Persistence.GetPropVar(cameraInfoVarName + "_ID", internalProp.propID) - 1;
+                }
+                else
+                {
+                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                }
+            }
         }
     }
 

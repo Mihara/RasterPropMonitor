@@ -197,7 +197,7 @@ namespace JSI
 
 			public void Update(double time)
 			{
-				double value = isFlat ? flatValue : comp.ProcessVariable(variableName).MassageToDouble();
+				double value = isFlat ? flatValue : comp.ProcessVariable(variableName, -1).MassageToDouble();
 				if (double.IsNaN(value) || double.IsInfinity(value))
 					return;
 				points.Add(new Vector2d(time, value));

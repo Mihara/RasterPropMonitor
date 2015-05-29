@@ -61,8 +61,6 @@ namespace JSI
 		private RenderTexture screenTexture;
 		private Material screenMat;
 		private int refreshDrawCountdown;
-		// Persistence for current state variable.
-		private PersistenceAccessor persistence;
 		private bool startupComplete;
 
 		private readonly Dictionary<string, OdometerMode> modeList = new Dictionary<string, OdometerMode> {
@@ -85,10 +83,10 @@ namespace JSI
 
 			float value;
 			if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-				bool state = persistence.GetBool(perPodPersistenceName) ?? false;
-				value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
+				bool state = comp.Persistence.GetBool(perPodPersistenceName, false);
+                value = comp.ProcessVariable((state) ? altVariable : variable, internalProp.propID).MassageToFloat();
 			} else {
-				value = comp.ProcessVariable(variable).MassageToFloat();
+				value = comp.ProcessVariable(variable, internalProp.propID).MassageToFloat();
 			}
 			// Make sure the value isn't going to be a problem.
 			if (float.IsNaN(value)) {
@@ -387,10 +385,6 @@ namespace JSI
 				if (string.IsNullOrEmpty(altVariable) != string.IsNullOrEmpty(perPodPersistenceName)) {
 					JUtil.LogErrorMessage(this, "Both altVariable and perPodPeristenceName must be defined, or neither");
 					return;
-				}
-
-				if (!string.IsNullOrEmpty(perPodPersistenceName)) {
-					persistence = new PersistenceAccessor(part);
 				}
 
 				// MOARdV: Which one are we using?  HUD uses the latter, OrbitDisplay, the former.
