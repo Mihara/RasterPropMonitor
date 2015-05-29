@@ -297,6 +297,7 @@ namespace JSI
 
         private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
         private Dictionary<string, MappedVariable> mappedVariables = new Dictionary<string, MappedVariable>();
+        private Dictionary<string, Func<bool>> pluginVariables = new Dictionary<string, Func<bool>>();
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -1247,6 +1248,86 @@ namespace JSI
                     }
                 }
 
+                // Plugin variables.  Let's get crazy!
+                if (tokens.Length == 2 && tokens[0] == "PLUGIN")
+                {
+                    if (pluginVariables.ContainsKey(tokens[1]))
+                    {
+                        Func<bool> pluginCall = pluginVariables[tokens[1]];
+                        if (pluginCall != null)
+                        {
+                            return pluginCall().GetHashCode();
+                        }
+                        else
+                        {
+                            return float.NaN;
+                        }
+                    }
+                    else
+                    {
+                        string[] internalModule = tokens[1].Split(':');
+                        if (internalModule.Length != 2)
+                        {
+                            JUtil.LogErrorMessage(this, "Badly-formed plugin name in {0}", input);
+                            pluginVariables.Add(tokens[1], null);
+                            return float.NaN;
+                        }
+
+                        InternalProp propToUse = null;
+                        foreach (InternalProp thisProp in part.internalModel.props)
+                        {
+                            foreach (InternalModule module in thisProp.internalModules)
+                            {
+                                if (module != null && module.ClassName == internalModule[0])
+                                {
+                                    propToUse = thisProp;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (propToUse == null)
+                        {
+                            if (part.internalModel.props.Count == 0)
+                            {
+                                JUtil.LogErrorMessage(this, "How did RPM get invoked in an IVA with no props?");
+                                pluginVariables.Add(tokens[1], null);
+                                return float.NaN;
+                            }
+
+                            if (propId >= 0 && propId < part.internalModel.props.Count)
+                            {
+                                propToUse = part.internalModel.props[propId];
+                            }
+                            else
+                            {
+                                propToUse = part.internalModel.props[0];
+                            }
+                            JUtil.LogMessage(this, "I am adding {0} to a {2} so I can answer {1}", internalModule[0], input, propToUse.name);
+                        }
+
+                        if (propToUse == null)
+                        {
+                            JUtil.LogErrorMessage(this, "Wait - propToUse is still null?");
+                            pluginVariables.Add(tokens[1], null);
+                            return float.NaN;
+                        }
+
+                        Func<bool> pluginCall = JUtil.GetStateMethod(tokens[1], propToUse);
+                        pluginVariables.Add(tokens[1], pluginCall);
+
+                        if (pluginCall != null)
+                        {
+                            return pluginCall().GetHashCode();
+                        }
+                        else
+                        {
+                            return float.NaN;
+                        }
+                    }
+                }
+
+                // Prop variables - kind-of hackish.  I am probably going to get rid of this after further thought.
                 if (tokens.Length > 1 && tokens[0] == "PROP")
                 {
                     string substr = input.Substring("PROP".Length + 1);
@@ -1266,7 +1347,7 @@ namespace JSI
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
-                    if(persistence.HasVar(substr))
+                    if (persistence.HasVar(substr))
                     {
                         return (float)persistence.GetVar(substr);
                     }
