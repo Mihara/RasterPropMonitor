@@ -36,14 +36,15 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshTextRate = int.MaxValue;
         private int refreshDataRate = int.MaxValue;
-        private Vector3d coM;
+
         public Vector3d CoM
         {
             get
             {
-                return coM;
+                return vessel.CoM;
             }
         }
+
         private Vector3d up;
         public Vector3d Up
         {
@@ -52,8 +53,21 @@ namespace JSI
                 return up;
             }
         }
-        private Vector3d forward;
-        private Vector3d right;
+        private Vector3d forward
+        {
+            get
+            {
+                return vessel.GetTransform().up;
+            }
+        }
+        private Vector3d right
+        {
+            get
+            {
+                return vessel.GetTransform().right;
+            }
+        }
+
         private Vector3d north;
         public Vector3d North
         {
@@ -78,24 +92,31 @@ namespace JSI
             }
         }
         private Quaternion rotationSurface;
-        private Vector3d velocityVesselSurface;
+
         public Vector3d VelocityVesselSurface
         {
             get
             {
-                return velocityVesselSurface;
+                return vessel.srf_velocity;
             }
         }
-        private Vector3d velocityVesselOrbit;
+
         public Vector3d VelocityVesselOrbit
         {
             get
             {
-                return velocityVesselOrbit;
+                return vessel.orbit.GetVel();
             }
         }
+
         private Vector3d velocityRelativeTarget;
-        private double speedVertical;
+        private double speedVertical
+        {
+            get
+            {
+                return vessel.verticalSpeed;
+            }
+        }
         private double speedVerticalRounded;
         private double horzVelocity;
         private ITargetable target;
@@ -147,12 +168,12 @@ namespace JSI
         private double actualAverageIsp;
         private bool anyEnginesOverheating;
         private bool anyEnginesFlameout;
-        private double totalDataAmount;
+        private float totalDataAmount;
         private double secondsToImpact;
         private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
         private double localGeeASL, localGeeDirect;
         private double standardAtmosphere;
-        private double slopeAngle;
+        private float slopeAngle;
         private double atmPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
         private float heatShieldTemperature;
@@ -161,7 +182,7 @@ namespace JSI
         private CelestialBody targetBody;
         private Protractor protractor = null;
         private double lastTimePerSecond;
-        private double terrainHeight, lastTerrainHeight, terrainDelta;
+        private double lastTerrainHeight, terrainDelta;
         private ExternalVariableHandlers plugins;
         private PersistenceAccessor persistence;
         public PersistenceAccessor Persistence
@@ -638,7 +659,7 @@ namespace JSI
             double effectiveDecel = 0.5 * (-2.0 * g * sine + Math.Sqrt(decelTerm));
             double decelTime = horzVelocity / effectiveDecel;
 
-            Vector3d estimatedLandingSite = coM + 0.5 * decelTime * vessel.srf_velocity;
+            Vector3d estimatedLandingSite = CoM + 0.5 * decelTime * vessel.srf_velocity;
             double terrainRadius = vessel.mainBody.Radius + vessel.mainBody.TerrainAltitude(estimatedLandingSite);
             double impactTime = 0;
             try
@@ -666,19 +687,16 @@ namespace JSI
             }
 #endif
             localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
-            coM = vessel.findWorldCenterOfMass();
-            localGeeDirect = FlightGlobals.getGeeForceAtPosition(coM).magnitude;
-            up = (coM - vessel.mainBody.position).normalized;
-            forward = vessel.GetTransform().up;
-            right = vessel.GetTransform().right;
-            north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - coM, up).normalized;
+            localGeeDirect = FlightGlobals.getGeeForceAtPosition(CoM).magnitude;
+            up = (CoM - vessel.mainBody.position).normalized;
+            north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
             rotationSurface = Quaternion.LookRotation(north, up);
             rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
             surfaceForward = Vector3d.Cross(up, right);
             // If the craft is rolled sharply to the side, we have to re-do our basis.
-            if (surfaceForward.magnitude < 0.5)
+            if (surfaceForward.sqrMagnitude < 0.5)
             {
                 surfaceRight = Vector3d.Cross(forward, up);
                 surfaceForward = Vector3d.Cross(up, surfaceRight);
@@ -688,11 +706,7 @@ namespace JSI
                 surfaceRight = Vector3d.Cross(surfaceForward, up);
             }
 
-            velocityVesselOrbit = vessel.orbit.GetVel();
-            velocityVesselSurface = velocityVesselOrbit - vessel.mainBody.getRFrmVel(coM);
-
-            speedVertical = Vector3d.Dot(velocityVesselSurface, up);
-            speedVerticalRounded = Math.Ceiling(speedVertical * 20) / 20;
+            speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
             target = FlightGlobals.fetch.VesselTarget;
             if (vessel.patchedConicSolver != null)
             {
@@ -707,12 +721,12 @@ namespace JSI
 
             if (time >= lastTimePerSecond + 1)
             {
-                terrainDelta = terrainHeight - lastTerrainHeight;
-                lastTerrainHeight = terrainHeight;
+                terrainDelta = vessel.terrainAltitude - lastTerrainHeight;
+                lastTerrainHeight = vessel.terrainAltitude;
                 lastTimePerSecond = time;
             }
 
-            horzVelocity = (velocityVesselSurface - (speedVertical * up)).magnitude;
+            horzVelocity = (VelocityVesselSurface - (speedVertical * up)).magnitude;
 
             atmPressure = FlightGlobals.getStaticPressure(altitudeASL, vessel.mainBody);
 
@@ -846,7 +860,7 @@ namespace JSI
         private void FetchPerPartData()
         {
             totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
-            totalDataAmount = 0;
+            totalDataAmount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
             float hottestShield = float.MinValue;
 
@@ -930,6 +944,11 @@ namespace JSI
                             heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
                         }
                     }
+                    else if (pm is ModuleScienceExperiment)
+                    {
+                        var thatExperiment = pm as ModuleScienceExperiment;
+                        //JUtil.LogMessage(this, "Experiment: {0} in {1}", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name);
+                    }
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -991,19 +1010,17 @@ namespace JSI
         // Another piece from MechJeb.
         private void FetchAltitudes()
         {
-            altitudeASL = vessel.mainBody.GetAltitude(coM);
-            slopeAngle = -1;
+            altitudeASL = vessel.mainBody.GetAltitude(CoM);
+            altitudeTrue = altitudeASL - vessel.terrainAltitude;
+
             RaycastHit sfc;
-            if (Physics.Raycast(coM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
+            if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
             {
                 slopeAngle = Vector3.Angle(up, sfc.normal);
-                altitudeTrue = sfc.distance;
-                terrainHeight = altitudeASL - altitudeTrue;
             }
             else
             {
-                terrainHeight = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, vessel.mainBody.GetLatitude(coM), vessel.mainBody.GetLongitude(coM));
-                altitudeTrue = altitudeASL - terrainHeight;
+                slopeAngle = -1.0f;
             }
 
             altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
@@ -1316,13 +1333,13 @@ namespace JSI
                 case "VERTSPEEDROUNDED":
                     return speedVerticalRounded;
                 case "SURFSPEED":
-                    return velocityVesselSurface.magnitude;
+                    return VelocityVesselSurface.magnitude;
                 case "SURFSPEEDMACH":
                     // Mach number wiggles around 1e-7 when sitting in launch
                     // clamps before launch, so pull it down to zero if it's close.
                     return (vessel.mach < 0.001) ? 0.0 : vessel.mach;
                 case "ORBTSPEED":
-                    return velocityVesselOrbit.magnitude;
+                    return VelocityVesselOrbit.magnitude;
                 case "TRGTSPEED":
                     return velocityRelativeTarget.magnitude;
                 case "HORZVELOCITY":
@@ -1331,9 +1348,9 @@ namespace JSI
                     // Negate it, since this is actually movement on the Z axis,
                     // and we want to treat it as a 2D projection on the surface
                     // such that moving "forward" has a positive value.
-                    return -Vector3d.Dot(velocityVesselSurface, surfaceForward);
+                    return -Vector3d.Dot(VelocityVesselSurface, surfaceForward);
                 case "HORZVELOCITYRIGHT":
-                    return Vector3d.Dot(velocityVesselSurface, surfaceRight);
+                    return Vector3d.Dot(VelocityVesselSurface, surfaceRight);
                 case "EASPEED":
                     return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
                 case "APPROACHSPEED":
@@ -1342,9 +1359,9 @@ namespace JSI
                     switch (FlightUIController.speedDisplayMode)
                     {
                         case FlightUIController.SpeedDisplayModes.Orbit:
-                            return velocityVesselOrbit.magnitude;
+                            return VelocityVesselOrbit.magnitude;
                         case FlightUIController.SpeedDisplayModes.Surface:
-                            return velocityVesselSurface.magnitude;
+                            return VelocityVesselSurface.magnitude;
                         case FlightUIController.SpeedDisplayModes.Target:
                             return velocityRelativeTarget.magnitude;
                     }
@@ -1430,11 +1447,11 @@ namespace JSI
                 case "ALTITUDEBOTTOMLOG10":
                     return JUtil.PseudoLog10(altitudeBottom);
                 case "TERRAINHEIGHT":
-                    return terrainHeight;
+                    return vessel.terrainAltitude;
                 case "TERRAINDELTA":
                     return terrainDelta;
                 case "TERRAINHEIGHTLOG10":
-                    return JUtil.PseudoLog10(terrainHeight);
+                    return JUtil.PseudoLog10(vessel.terrainAltitude);
                 case "DISTTOATMOSPHERETOP":
                     return vessel.orbit.referenceBody.atmosphereDepth - altitudeASL;
 
@@ -1444,7 +1461,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
-                    return 0.5 * velocityVesselSurface.sqrMagnitude * vessel.atmDensity;
+                    return vessel.dynamicPressurekPa * 1000.0;
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
@@ -1663,9 +1680,9 @@ namespace JSI
 
                 // Coordinates.
                 case "LATITUDE":
-                    return vessel.mainBody.GetLatitude(coM);
+                    return vessel.mainBody.GetLatitude(CoM);
                 case "LONGITUDE":
-                    return JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(coM));
+                    return JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(CoM));
                 case "LATITUDETGT":
                     // These targetables definitely don't have any coordinates.
                     if (target == null || target is CelestialBody)
@@ -2153,7 +2170,7 @@ namespace JSI
                 case "ENGINEFLAMEOUTALARM":
                     return anyEnginesFlameout.GetHashCode();
                 case "IMPACTALARM":
-                    return (velocityVesselSurface.magnitude > part.crashTolerance).GetHashCode();
+                    return (VelocityVesselSurface.magnitude > part.crashTolerance).GetHashCode();
 
 
                 // SCIENCE!!
