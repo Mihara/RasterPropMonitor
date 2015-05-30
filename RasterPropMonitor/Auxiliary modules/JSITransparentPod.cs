@@ -108,6 +108,33 @@ namespace JSI
                 }
             }
 
+            if (part.internalModel == null && part.partInfo != null)
+            {
+                // KSP 1.0.x introduced a new feature where it doesn't appear
+                // to fully load parts if they're not the root.  In particular,
+                // that CreateInternalModel() call above here returns null for
+                // non-root parts until one exits the VAB and returns.
+                // If the internalModel doesn't exist yet, I find the config
+                // for this part, extract the INTERNAL node, and try to create
+                // the model myself. Awfully roundabout.
+
+                JUtil.LogMessage(this, "Let's see if anyone included parts so I can assemble the interior");
+                ConfigNode ipNameNode = null;
+                foreach (UrlDir.UrlConfig cfg in GameDatabase.Instance.GetConfigs("PART"))
+                {
+                    if (cfg.url == part.partInfo.partUrl)
+                    {
+                        ipNameNode = cfg.config.GetNode("INTERNAL");
+                        break;
+                    }
+                }
+
+                if (ipNameNode != null)
+                {
+                    part.internalModel = part.AddInternalPart(ipNameNode);
+                }
+            }
+
             // If we ended up with an existing internal model, rotate it now, so that it is shown correctly in the editor.
             if (part.internalModel != null)
             {
