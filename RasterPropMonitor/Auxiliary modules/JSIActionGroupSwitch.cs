@@ -21,6 +21,12 @@ namespace JSI
         [KSPField]
         public string perPodMasterSwitchName = string.Empty;
         [KSPField]
+        public string masterVariableName = string.Empty;
+        private VariableOrNumber masterVariable = null;
+        [KSPField]
+        public string masterVariableRange = string.Empty;
+        private VariableOrNumber[] masterRange = new VariableOrNumber[2];
+        [KSPField]
         public bool reverse;
         [KSPField]
         public float customSpeed = 1f;
@@ -283,10 +289,26 @@ namespace JSI
                     }
                 }
 
-                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName))
+                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
                     comp = RasterPropMonitorComputer.Instantiate(internalProp);
                     comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+
+                    if (!string.IsNullOrEmpty(masterVariableName))
+                    {
+                        masterVariable = new VariableOrNumber(masterVariableName, this);
+                        string[] range = masterVariableRange.Split(',');
+                        if(range.Length == 2)
+                        {
+                            masterRange[0] = new VariableOrNumber(range[0], this);
+                            masterRange[1] = new VariableOrNumber(range[1], this);
+                            JUtil.LogMessage(this, "Configured masterVariable");
+                        }
+                        else
+                        {
+                            masterVariable = null;
+                        }
+                    }
                 }
 
                 // set up the toggle switch
@@ -410,16 +432,34 @@ namespace JSI
 
         public void Click()
         {
-            if (!string.IsNullOrEmpty(perPodMasterSwitchName))
+            bool switchEnabled = true;
+            if (!forcedShutdown)
             {
-                bool switchEnabled = comp.Persistence.GetBool(perPodMasterSwitchName, false) || forcedShutdown;
-                if (!switchEnabled)
+                if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
-                    // If the master switch is 'off' and we're not here because
-                    // of a forced shutdown, don't allow this switch to work.
-                    // early return
-                    return;
+                    switchEnabled = comp.Persistence.GetBool(perPodMasterSwitchName, false);
                 }
+                if (masterVariable != null)
+                {
+                    float value, range1, range2;
+                    if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
+                    {
+                        float minR = Mathf.Min(range1, range2);
+                        float maxR = Mathf.Max(range1, range2);
+                        if (value < minR || value > maxR)
+                        {
+                            // If the master variable is out of spec, disable the switch.
+                            switchEnabled = false;
+                        }
+                    }
+                }
+            }
+            if (!switchEnabled)
+            {
+                // If the master switch is 'off' and we're not here because
+                // of a forced shutdown, don't allow this switch to work.
+                // early return
+                return;
             }
 
             if (isCustomAction)
@@ -566,6 +606,22 @@ namespace JSI
                     // If the master switch is 'off', this switch needs to turn off
                     newState = false;
                     forcedShutdown = true;
+                }
+            }
+
+            if (masterVariable != null)
+            {
+                float value, range1, range2;
+                if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
+                {
+                    float minR = Mathf.Min(range1, range2);
+                    float maxR = Mathf.Max(range1, range2);
+                    if(value < minR || value > maxR)
+                    {
+                        // If the master variable is out of spec, disable the switch.
+                        newState = false;
+                        forcedShutdown = true;
+                    }
                 }
             }
 
