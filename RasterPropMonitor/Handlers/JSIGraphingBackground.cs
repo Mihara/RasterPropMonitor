@@ -49,12 +49,14 @@ namespace JSI
             catch
             {
                 // Something went wrong ....
+                GL.Color(Color.white);
                 GL.PopMatrix();
                 GL.Viewport(new Rect(0, 0, screen.width, screen.height));
 
                 return false;
             }
 
+            GL.Color(Color.white);
             GL.PopMatrix();
             GL.Viewport(new Rect(0, 0, screen.width, screen.height));
 
