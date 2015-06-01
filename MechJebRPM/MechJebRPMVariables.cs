@@ -10,36 +10,36 @@ namespace MechJebRPM
             MechJebCore activeJeb = vessel.GetMasterMechJeb();
             switch (variable)
             {
-                case "MECHJEBAVAILABLE":
-                    if (activeJeb != null)
-                    {
-                        return 1;
-                    }
-                    return -1;
-                case "DELTAV":
-                    if (activeJeb != null)
-                    {
-                        MechJebModuleStageStats stats = activeJeb.GetComputerModule<MechJebModuleStageStats>();
-                        stats.RequestUpdate(this);
-                        if (stats.vacStats.Length > 0 && stats.atmoStats.Length > 0)
-                        {
-                            double dVvac = stats.vacStats.Sum(s => s.deltaV);
-                            double dVatm = stats.atmoStats.Sum(s => s.deltaV);
-                            return UtilMath.LerpUnclamped(dVvac, dVatm, vessel.atmDensity);
-                        }
-                    }
-                    return null;
-                case "DELTAVSTAGE":
-                    if (activeJeb != null)
-                    {
-                        MechJebModuleStageStats stats = activeJeb.GetComputerModule<MechJebModuleStageStats>();
-                        stats.RequestUpdate(this);
-                        if (stats.vacLastStage != null && stats.atmLastStage != null)
-                        {
-                            return UtilMath.LerpUnclamped(stats.vacLastStage.deltaV, stats.atmLastStage.deltaV, vessel.atmDensity);
-                        }
-                    }
-                    return null;
+                //case "MECHJEBAVAILABLE":
+                //    if (activeJeb != null)
+                //    {
+                //        return 1;
+                //    }
+                //    return -1;
+                //case "DELTAV":
+                //    if (activeJeb != null)
+                //    {
+                //        MechJebModuleStageStats stats = activeJeb.GetComputerModule<MechJebModuleStageStats>();
+                //        stats.RequestUpdate(this);
+                //        if (stats.vacStats.Length > 0 && stats.atmoStats.Length > 0)
+                //        {
+                //            double dVvac = stats.vacStats.Sum(s => s.deltaV);
+                //            double dVatm = stats.atmoStats.Sum(s => s.deltaV);
+                //            return UtilMath.LerpUnclamped(dVvac, dVatm, vessel.atmDensity);
+                //        }
+                //    }
+                //    return null;
+                //case "DELTAVSTAGE":
+                //    if (activeJeb != null)
+                //    {
+                //        MechJebModuleStageStats stats = activeJeb.GetComputerModule<MechJebModuleStageStats>();
+                //        stats.RequestUpdate(this);
+                //        if (stats.vacLastStage != null && stats.atmLastStage != null)
+                //        {
+                //            return UtilMath.LerpUnclamped(stats.vacLastStage.deltaV, stats.atmLastStage.deltaV, vessel.atmDensity);
+                //        }
+                //    }
+                //    return null;
                 case "PREDICTEDLANDINGERROR":
                     // If there's a failure at any step, exit with a -1.
                     // The landing prediction system can be costly, and it

@@ -230,7 +230,13 @@ namespace JSI
 
         private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
         private Dictionary<string, MappedVariable> mappedVariables = new Dictionary<string, MappedVariable>();
-        private Dictionary<string, Func<bool>> pluginVariables = new Dictionary<string, Func<bool>>();
+        private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
+        private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
+
+        // MechJeb reflections
+        private Func<bool> evaluateMechJebAvailable;
+        private Func<double> evaluateDeltaV;
+        private Func<double> evaluateDeltaVStage;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -1184,9 +1190,9 @@ namespace JSI
                 // Plugin variables.  Let's get crazy!
                 if (tokens.Length == 2 && tokens[0] == "PLUGIN")
                 {
-                    if (pluginVariables.ContainsKey(tokens[1]))
+                    if (pluginBoolVariables.ContainsKey(tokens[1]))
                     {
-                        Func<bool> pluginCall = pluginVariables[tokens[1]];
+                        Func<bool> pluginCall = pluginBoolVariables[tokens[1]];
                         if (pluginCall != null)
                         {
                             return pluginCall().GetHashCode();
@@ -1194,6 +1200,18 @@ namespace JSI
                         else
                         {
                             return -1;
+                        }
+                    }
+                    else if(pluginDoubleVariables.ContainsKey(tokens[1]))
+                    {
+                        Func<double> pluginCall = pluginDoubleVariables[tokens[1]];
+                        if (pluginCall != null)
+                        {
+                            return pluginCall();
+                        }
+                        else
+                        {
+                            return double.NaN;
                         }
                     }
                     else
@@ -1223,7 +1241,7 @@ namespace JSI
                             if (part.internalModel.props.Count == 0)
                             {
                                 JUtil.LogErrorMessage(this, "How did RPM get invoked in an IVA with no props?");
-                                pluginVariables.Add(tokens[1], null);
+                                pluginBoolVariables.Add(tokens[1], null);
                                 return float.NaN;
                             }
 
@@ -1241,20 +1259,33 @@ namespace JSI
                         if (propToUse == null)
                         {
                             JUtil.LogErrorMessage(this, "Wait - propToUse is still null?");
-                            pluginVariables.Add(tokens[1], null);
+                            pluginBoolVariables.Add(tokens[1], null);
                             return -1;
                         }
 
-                        Func<bool> pluginCall = JUtil.GetStateMethod(tokens[1], propToUse);
-                        pluginVariables.Add(tokens[1], pluginCall);
-
-                        if (pluginCall != null)
+                        Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(bool), typeof(Func<bool>));
+                        if (pluginCall == null)
                         {
-                            return pluginCall().GetHashCode();
+                            Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(double), typeof(Func<double>));
+
+                            if(pluginNumericCall != null)
+                            {
+                                JUtil.LogMessage(this, "Adding {0} as a Func<double>", tokens[1]);
+                                pluginDoubleVariables.Add(tokens[1], pluginNumericCall);
+                                return pluginNumericCall();
+                            }
+                            else
+                            {
+                                pluginBoolVariables.Add(tokens[1], null);
+                                return -1;
+                            }
                         }
                         else
                         {
-                            return -1;
+                            JUtil.LogMessage(this, "Adding {0} as a Func<bool>", tokens[1]);
+                            pluginBoolVariables.Add(tokens[1], pluginCall);
+
+                            return pluginCall().GetHashCode();
                         }
                     }
                 }
@@ -1502,9 +1533,9 @@ namespace JSI
                 // The primitive delta V calculation.
 
                 case "DELTAV":
-                    return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
+                    return DeltaV();
                 case "DELTAVSTAGE":
-                    return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
+                    return DeltaVStage();
 
                 // Thrust and related
                 case "THRUST":
@@ -2156,6 +2187,9 @@ namespace JSI
                 // We use "AsssemblyFileVersion" for actual version numbers now to facilitate hardlinking.
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
+                case "MECHJEBAVAILABLE":
+                    return MechJebAvailable();
+
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":
                     // Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
@@ -2341,6 +2375,88 @@ namespace JSI
 
             // Didn't recognise anything so we return the string we got, that helps debugging.
             return input;
+        }
+
+        private double FallbackEvaluateDeltaV()
+        {
+            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
+        }
+
+        private double FallbackEvaluateDeltaVStage()
+        {
+            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
+        }
+
+        private double DeltaV()
+        {
+            if(evaluateDeltaV == null)
+            {
+                Func<double> accessor = null;
+                
+                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+                if(accessor != null)
+                {
+                    double value = accessor();
+                    if(double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDeltaV;
+                }
+
+                evaluateDeltaV = accessor;
+            }
+
+            return evaluateDeltaV();
+        }
+
+        private double DeltaVStage()
+        {
+            if (evaluateDeltaVStage == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDeltaVStage;
+                }
+
+                evaluateDeltaVStage = accessor;
+            }
+
+            return evaluateDeltaVStage();
+        }
+
+        private bool MechJebAvailable()
+        {
+            if (evaluateMechJebAvailable == null)
+            {
+                Func<bool> accessor = null;
+
+                accessor = (Func<bool>)JUtil.GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(bool), typeof(Func<bool>));
+                if (accessor == null)
+                {
+                    accessor = JUtil.ReturnFalse;
+                }
+
+                evaluateMechJebAvailable = accessor;
+            }
+
+            return evaluateMechJebAvailable();
         }
 
         private class ResourceNameLengthComparer : IComparer<String>

@@ -1071,7 +1071,7 @@ namespace JSI
             return false;
         }
 
-        internal static Func<bool> GetStateMethod(string packedMethod, InternalProp internalProp)
+        internal static Delegate GetMethod(string packedMethod, InternalProp internalProp, Type returnType, Type delegateType)
         {
             string moduleName, stateMethod;
             string[] tokens = packedMethod.Split(':');
@@ -1082,7 +1082,6 @@ namespace JSI
             }
             moduleName = tokens[0];
             stateMethod = tokens[1];
-            Func<bool> stateCall = null;
 
             InternalModule thatModule = null;
             foreach (InternalModule potentialModule in internalProp.internalModules)
@@ -1097,6 +1096,9 @@ namespace JSI
             if (thatModule == null)
             {
                 // The module hasn't been instantiated on this part, so let's do so now.
+                // MOARdV TODO: This actually causes an exception, because
+                // it's added during InternalProp.OnUpdate.  One thing I could
+                // do is add the internal modules when I instantiate RPMC.
                 var handlerConfiguration = new ConfigNode("MODULE");
                 handlerConfiguration.SetValue("name", moduleName, true);
                 thatModule = internalProp.AddModule(handlerConfiguration);
@@ -1106,24 +1108,21 @@ namespace JSI
                 JUtil.LogErrorMessage(internalProp, "Failed finding module {0} for method {1}", moduleName, stateMethod);
                 return null;
             }
+
+            Delegate stateCall = null;
             foreach (MethodInfo m in thatModule.GetType().GetMethods())
             {
-                if (!string.IsNullOrEmpty(stateMethod) && m.Name == stateMethod)
+                if (!string.IsNullOrEmpty(stateMethod) && m.Name == stateMethod && m.ReturnParameter.ParameterType == returnType)
                 {
-                    stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
+                    stateCall = Delegate.CreateDelegate(delegateType, thatModule, m);
                 }
-            }
-
-            if (stateCall == null)
-            {
-                JUtil.LogErrorMessage(internalProp, "Failed finding method {0} - using fallback of ReturnFalse", stateMethod);
-                stateCall = ReturnFalse;
             }
 
             return stateCall;
         }
     }
-    // This, instead, is a static class on it's own because it needs it's private static variables.
+
+    // This, instead, is a static class on it's own because it needs its private static variables.
     public static class InstallationPathWarning
     {
         private static readonly List<string> warnedList = new List<string>();
