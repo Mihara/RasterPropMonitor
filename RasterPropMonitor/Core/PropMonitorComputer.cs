@@ -1264,10 +1264,10 @@ namespace JSI
                             return -1;
                         }
 
-                        Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(bool), typeof(Func<bool>));
+                        Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<bool>));
                         if (pluginCall == null)
                         {
-                            Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(double), typeof(Func<double>));
+                            Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<double>));
 
                             if(pluginNumericCall != null)
                             {
@@ -2399,7 +2399,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
                 
-                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(Func<double>));
                 if(accessor != null)
                 {
                     double value = accessor();
@@ -2426,7 +2426,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
 
-                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(Func<double>));
                 if (accessor != null)
                 {
                     double value = accessor();
@@ -2451,7 +2451,7 @@ namespace JSI
         {
             if (evaluateLandingError == null)
             {
-                evaluateLandingError = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+                evaluateLandingError = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(Func<double>));
             }
 
             return evaluateLandingError();
@@ -2463,7 +2463,7 @@ namespace JSI
             {
                 Func<bool> accessor = null;
 
-                accessor = (Func<bool>)JUtil.GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(bool), typeof(Func<bool>));
+                accessor = (Func<bool>)JUtil.GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(Func<bool>));
                 if (accessor == null)
                 {
                     accessor = JUtil.ReturnFalse;

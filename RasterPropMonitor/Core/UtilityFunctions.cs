@@ -1071,7 +1071,7 @@ namespace JSI
             return false;
         }
 
-        internal static Delegate GetMethod(string packedMethod, InternalProp internalProp, Type returnType, Type delegateType)
+        internal static Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
         {
             string moduleName, stateMethod;
             string[] tokens = packedMethod.Split(':');
@@ -1109,6 +1109,7 @@ namespace JSI
                 return null;
             }
 
+            Type returnType = delegateType.GetMethod("Invoke").ReturnType;
             Delegate stateCall = null;
             foreach (MethodInfo m in thatModule.GetType().GetMethods())
             {

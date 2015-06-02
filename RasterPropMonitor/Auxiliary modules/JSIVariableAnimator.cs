@@ -194,7 +194,7 @@ namespace JSI
             {
                 string stateMethod;
                 stateMethod = node.GetValue("stateMethod").Trim();
-                Func<bool> stateFunction = (Func<bool>)JUtil.GetMethod(stateMethod, thisProp, typeof(bool), typeof(Func<bool>));
+                Func<bool> stateFunction = (Func<bool>)JUtil.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
                     scaleEnds[2] = new VariableOrNumber(stateFunction, this);
