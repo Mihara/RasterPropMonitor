@@ -13,7 +13,7 @@ namespace JSI
     /// designed to work with RealChutes.  And, thanks to reflection, I don't
     /// need a hard dependency with RealChutes.
     /// </summary>
-    public class JSIParachute : InternalModule
+    public class JSIParachute : IJSIModule
     {
         private static readonly Type rcModuleRealChute;
         private static readonly MethodInfo rcGetAnyDeployed;
@@ -23,7 +23,9 @@ namespace JSI
         private static readonly MethodInfo rcCutChute;
         private static readonly FieldInfo rcArmed;
         private static readonly bool rcFound;
-        private static bool armed;
+
+        private bool anyDeployed;
+        private bool anyArmed;
 
         static JSIParachute()
         {
@@ -70,6 +72,8 @@ namespace JSI
             }
         }
 
+        public JSIParachute(Vessel _vessel) : base(_vessel) { }
+
         public void ArmParachutes(bool state)
         {
             if (rcFound)
@@ -90,25 +94,17 @@ namespace JSI
                 }
             }
 
-            armed = state;
+            anyArmed = state;
         }
 
         public bool ArmParachutesState()
         {
-            if (rcFound)
+            if (moduleInvalidated)
             {
-                armed = false;
-                foreach (PartModule module in FindRealChuteIn(vessel))
-                {
-                    if ((bool)rcArmed.GetValue(module) == true)
-                    {
-                        armed = true;
-                        break;
-                    }
-                }
+                UpdateParachuteState();
             }
 
-            return armed;
+            return anyArmed;
         }
 
         // Just to avoid accidental cuts, CutParachutes is a separate method from DeployParachutes
@@ -158,7 +154,19 @@ namespace JSI
 
         public bool DeployParachutesState()
         {
-            bool anyDeployed = false;
+            if (moduleInvalidated)
+            {
+                UpdateParachuteState();
+            }
+
+            return anyDeployed;
+        }
+
+        private void UpdateParachuteState()
+        {
+            moduleInvalidated = false;
+
+            anyDeployed = false;
 
             if (rcFound)
             {
@@ -167,6 +175,16 @@ namespace JSI
                     if ((bool)rcGetAnyDeployed.Invoke(module, null) == true)
                     {
                         anyDeployed = true;
+                        break;
+                    }
+                }
+
+                anyArmed = false;
+                foreach (PartModule module in FindRealChuteIn(vessel))
+                {
+                    if ((bool)rcArmed.GetValue(module) == true)
+                    {
+                        anyArmed = true;
                         break;
                     }
                 }
@@ -183,8 +201,6 @@ namespace JSI
                     }
                 }
             }
-
-            return anyDeployed;
         }
 
         private static IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)

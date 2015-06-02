@@ -14,7 +14,7 @@ namespace JSI
     /// on the fly.  Even better: Move these methods out of InternalModule, and
     /// have RPMC instantiate them as child objects.
     /// </summary>
-    internal class JSIMechJeb : InternalModule
+    internal class JSIMechJeb : IJSIModule
     {
         // MechJebCore
         private static readonly Type mjMechJebCore_t;
@@ -73,7 +73,12 @@ namespace JSI
         // VesselExtensions.GetMasterMechJeb()
         private static readonly MethodInfo mjGetMasterMechJeb;
 
-        public static readonly bool mjFound;
+        private static readonly bool mjFound;
+
+        private bool landingCurrent, deltaVCurrent;
+        private double deltaV, deltaVStage;
+
+        private double landingLat, landingLon, landingAlt, landingErr = -1.0;
 
         static JSIMechJeb()
         {
@@ -274,10 +279,26 @@ namespace JSI
             catch(Exception e)
             {
                 mjFound = false;
-                print("JSIMechJeb: Exception triggered when configuring: " + e);
+                JUtil.LogMessage(null, "JSIMechJeb: Exception triggered when configuring: " + e);
             }
 
-            print("JSIMechJeb: mjFound is " + mjFound);
+            JUtil.LogMessage(null, "JSIMechJeb: mjFound is " + mjFound);
+        }
+
+        public JSIMechJeb(Vessel _vessel) : base(_vessel) { }
+
+        private void InvalidateResults()
+        {
+            landingCurrent = false;
+            deltaVCurrent = false;
+        
+            deltaV = 0.0;
+            deltaVStage = 0.0;
+
+            landingLat = 0.0;
+            landingLon = 0.0;
+            landingAlt = 0.0;
+            landingErr = -1.0;
         }
 
         #region Internal Methods
@@ -285,7 +306,7 @@ namespace JSI
         /// Invokes VesselExtensions.GetMasterMechJeb()
         /// </summary>
         /// <returns>The master MJ object</returns>
-        internal object GetMasterMechJeb()
+        private object GetMasterMechJeb()
         {
             if (mjFound)
             {
@@ -322,6 +343,99 @@ namespace JSI
 
             return null;
         }
+        
+        /// <summary>
+        /// Update the landing prediction stats
+        /// </summary>
+        private void UpdateLandingStats()
+        {
+            try
+            {
+                object masterMechJeb = GetMasterMechJeb();
+                object result = GetLandingResults(masterMechJeb);
+                if(result != null)
+                {
+                    object outcome = mjReentryOutcome.GetValue(result);
+                    if (outcome != null && outcome.ToString() == "LANDED")
+                    {
+                        object endPosition = mjReentryEndPosition.GetValue(result);
+                        if (endPosition != null)
+                        {
+                            landingLat = (double)mjAbsoluteVectorLat.GetValue(endPosition);
+                            landingLon = (double)mjAbsoluteVectorLon.GetValue(endPosition);
+                            landingAlt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, landingLat, landingLon);
+
+                            object target = mjCoreTarget.GetValue(masterMechJeb);
+                            object targetLatField = mjTargetLatitude.GetValue(target);
+                            object targetLonField = mjTargetLongitude.GetValue(target);
+                            double targetLat = (double)mjAbsoluteVectorToDouble.Invoke(null, new object[] {targetLatField});
+                            double targetLon = (double)mjAbsoluteVectorToDouble.Invoke(null, new object[] {targetLonField});
+                            double targetAlt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, targetLat, targetLon);
+
+                            landingErr = Vector3d.Distance(vessel.mainBody.GetRelSurfacePosition(landingLat, landingLon, landingAlt),
+                                                vessel.mainBody.GetRelSurfacePosition(targetLat, targetLon, targetAlt));
+                        }
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                JUtil.LogErrorMessage(this, "Exception trap in GetLandingError(): {0}", e);
+            }
+        }
+
+        /// <summary>
+        /// Updates dV stats (dV and dVStage)
+        /// </summary>
+        private void UpdateDeltaVStats()
+        {
+            try
+            {
+                object mjCore = GetMasterMechJeb();
+                if (mjCore != null)
+                {
+                    object stagestats = mjGetComputerModule.Invoke(mjCore, new object[] { "MechJebModuleStageStats" });
+
+                    mjRequestUpdate.Invoke(stagestats, new object[] { this });
+
+                    object atmStatsO = mjAtmStageStats.GetValue(stagestats);
+                    object vacStatsO = mjVacStageStats.GetValue(stagestats);
+
+                    if (atmStatsO != null && vacStatsO != null)
+                    {
+                        object[] atmStats = (object[])(atmStatsO);
+                        object[] vacStats = (object[])(vacStatsO);
+
+                        if (atmStats.Length > 0 && vacStats.Length == atmStats.Length)
+                        {
+                            double dVVac = 0.0, dVAtm = 0.0;
+                            double dVVacFinal = 0.0, dVAtmFinal = 0.0;
+
+                            for(int i=0; i<atmStats.Length; ++i)
+                            {
+                                double atm = (double)mjStageDv.GetValue(atmStats[i]);
+                                double vac = (double)mjStageDv.GetValue(vacStats[i]);
+                                dVAtm += atm;
+                                dVVac += vac;
+
+                                if(i == (atmStats.Length-1))
+                                {
+                                    dVAtmFinal = atm;
+                                    dVVacFinal = vac;
+                                }
+                            }
+
+                            deltaV = UtilMath.LerpUnclamped(dVVac, dVAtm, vessel.atmDensity);
+                            deltaVStage = UtilMath.LerpUnclamped(dVVacFinal, dVAtmFinal, vessel.atmDensity);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "Exception trap in UpdateDeltaVStats(): {0}", e);
+            }
+        }
         #endregion
 
         #region Defined Variable queries
@@ -342,45 +456,25 @@ namespace JSI
         /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
         public double GetLandingError()
         {
-            double landingError = -1.0;
             if (mjFound)
             {
-                try
+                if (moduleInvalidated)
                 {
-                    object masterMechJeb = GetMasterMechJeb();
-                    object result = GetLandingResults(masterMechJeb);
-                    if(result != null)
-                    {
-                        object outcome = mjReentryOutcome.GetValue(result);
-                        if (outcome != null && outcome.ToString() == "LANDED")
-                        {
-                            object endPosition = mjReentryEndPosition.GetValue(result);
-                            if (endPosition != null)
-                            {
-                                double lat = (double)mjAbsoluteVectorLat.GetValue(endPosition);
-                                double lon = (double)mjAbsoluteVectorLon.GetValue(endPosition);
-                                double alt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, lat, lon);
-
-                                object target = mjCoreTarget.GetValue(masterMechJeb);
-                                object targetLatField = mjTargetLatitude.GetValue(target);
-                                object targetLonField = mjTargetLongitude.GetValue(target);
-                                double targetLat = (double)mjAbsoluteVectorToDouble.Invoke(null, new object[] {targetLatField});
-                                double targetLon = (double)mjAbsoluteVectorToDouble.Invoke(null, new object[] {targetLonField});
-                                double targetAlt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, targetLat, targetLon);
-
-                                landingError = Vector3d.Distance(vessel.mainBody.GetRelSurfacePosition(lat, lon, alt),
-                                                   vessel.mainBody.GetRelSurfacePosition(targetLat, targetLon, targetAlt));
-                            }
-                        }
-                    }
+                    InvalidateResults();
+                    moduleInvalidated = false;
                 }
-                catch(Exception e)
+
+                if (landingCurrent == false)
                 {
-                    JUtil.LogErrorMessage(this, "Exception trap in GetLandingError(): {0}", e);
+                    UpdateLandingStats();
                 }
+
+                return landingErr;
             }
-
-            return landingError;
+            else
+            {
+                return -1.0;
+            }
         }
 
         /// <summary>
@@ -389,55 +483,25 @@ namespace JSI
         /// <returns>Returns NaN if MJ is unavailable.</returns>
         public double GetDeltaV()
         {
-            double dV = double.NaN;
             if (mjFound)
             {
-                try
+                if (moduleInvalidated)
                 {
-                    object mjCore = GetMasterMechJeb();
-                    if (mjCore != null)
-                    {
-                        object stagestats = mjGetComputerModule.Invoke(mjCore, new object[] {"MechJebModuleStageStats"});
-
-                        mjRequestUpdate.Invoke(stagestats, new object[] { this });
-
-                        object atmStatsO = mjAtmStageStats.GetValue(stagestats);
-                        object vacStatsO = mjVacStageStats.GetValue(stagestats);
-
-                        if(atmStatsO != null && vacStatsO != null)
-                        {
-                            object[] atmStats = (object[])(atmStatsO);
-                            object[] vacStats = (object[])(vacStatsO);
-
-                            if (atmStats.Length > 0 && vacStats.Length > 0)
-                            {
-                                double dVatm = 0.0;
-                                double dVvac = 0.0;
-
-                                foreach (object stage in atmStats)
-                                {
-                                    dVatm += (double)mjStageDv.GetValue(stage);
-                                }
-                                foreach (object stage in vacStats)
-                                {
-                                    dVvac += (double)mjStageDv.GetValue(stage);
-                                }
-                                dV = UtilMath.LerpUnclamped(dVvac, dVatm, vessel.atmDensity);
-                            }
-                            else
-                            {
-                                dV = 0.0;
-                            }
-                        }
-                    }
+                    InvalidateResults();
+                    moduleInvalidated = false;
                 }
-                catch (Exception e)
+
+                if (deltaVCurrent == false)
                 {
-                    JUtil.LogErrorMessage(this, "Exception trap in GetDeltaV(): {0}", e);
+                    UpdateDeltaVStats();
                 }
+
+                return deltaV;
             }
-
-            return dV;
+            else
+            {
+                return double.NaN;
+            }
         }
 
         /// <summary>
@@ -446,47 +510,25 @@ namespace JSI
         /// <returns>Returns NaN if MJ is unavailable.</returns>
         public double GetStageDeltaV()
         {
-            double dV = double.NaN;
             if (mjFound)
             {
-                try
+                if (moduleInvalidated)
                 {
-                    object mjCore = GetMasterMechJeb();
-                    if (mjCore != null)
-                    {
-                        object stagestats = mjGetComputerModule.Invoke(mjCore, new object[] { "MechJebModuleStageStats" });
-
-                        mjRequestUpdate.Invoke(stagestats, new object[] { this });
-
-                        object atmStatsO = mjAtmStageStats.GetValue(stagestats);
-                        object vacStatsO = mjVacStageStats.GetValue(stagestats);
-
-                        if (atmStatsO != null && vacStatsO != null)
-                        {
-                            object[] atmStats = (object[])(atmStatsO);
-                            object[] vacStats = (object[])(vacStatsO);
-
-                            if (atmStats.Length > 0 && vacStats.Length > 0)
-                            {
-                                double dVatm = (double)mjStageDv.GetValue(atmStats[atmStats.Length-1]);
-                                double dVvac = (double)mjStageDv.GetValue(vacStats[vacStats.Length - 1]);
-
-                                dV = UtilMath.LerpUnclamped(dVvac, dVatm, vessel.atmDensity);
-                            }
-                            else
-                            {
-                                dV = 0.0;
-                            }
-                        }
-                    }
+                    InvalidateResults();
+                    moduleInvalidated = false;
                 }
-                catch (Exception e)
+
+                if(deltaVCurrent == false)
                 {
-                    JUtil.LogErrorMessage(this, "Exception trap in GetStageDeltaV(): {0}", e);
+                    UpdateDeltaVStats();
                 }
+
+                return deltaVStage;
             }
-
-            return dV;
+            else
+            {
+                return double.NaN;
+            }
         }
         #endregion
     }

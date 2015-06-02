@@ -192,9 +192,7 @@ namespace JSI
             }
             else if (node.HasValue("stateMethod"))
             {
-                string stateMethod;
-                stateMethod = node.GetValue("stateMethod").Trim();
-                Func<bool> stateFunction = (Func<bool>)JUtil.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
+                Func<bool> stateFunction = (Func<bool>)comp.GetMethod(node.GetValue("stateMethod").Trim(), thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
                     scaleEnds[2] = new VariableOrNumber(stateFunction, this);
@@ -482,7 +480,7 @@ namespace JSI
             var scaleResults = new float[3];
             for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i]))
+                if (!scaleEnds[i].Get(out scaleResults[i], comp))
                 {
                     return;
                 }

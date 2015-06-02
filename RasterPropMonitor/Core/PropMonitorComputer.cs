@@ -233,6 +233,8 @@ namespace JSI
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
 
+        private List<IJSIModule> installedModules = new List<IJSIModule>();
+
         // MechJeb reflections
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateDeltaV;
@@ -386,7 +388,6 @@ namespace JSI
 
 
                 // Now let's parse our stored strings...
-
                 if (!string.IsNullOrEmpty(storedStrings))
                 {
                     storedStringsArray = storedStrings.Split('|');
@@ -398,7 +399,72 @@ namespace JSI
                 persistence = new PersistenceAccessor(this);
 
                 protractor = new Protractor(this);
+
+                installedModules.Add(new JSIParachute(vessel));
+                installedModules.Add(new JSIMechJeb(vessel));
+                installedModules.Add(new JSIInternalRPMButtons(vessel));
             }
+        }
+
+        public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
+        {
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2)
+            {
+                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+
+            IJSIModule jsiModule = null;
+            foreach(IJSIModule module in installedModules)
+            {
+                if(module.GetType().Name == tokens[0])
+                {
+                    jsiModule = module;
+                    break;
+                }
+            }
+
+            var methodInfo = delegateType.GetMethod("Invoke");
+            if (jsiModule == null)
+            {
+                // Fall back - this method isn't part of the core RPM system
+                return JUtil.GetMethod(packedMethod, internalProp, delegateType);
+            }
+
+            Type returnType = delegateType.GetMethod("Invoke").ReturnType;
+            Delegate stateCall = null;
+            foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+            {
+                if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
+                {
+                    stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                }
+            }
+
+            return stateCall;
+        }
+
+        private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
+        {
+            if(method1.ReturnType == method2.ReturnType)
+            {
+                var m1Parms = method1.GetParameters();
+                var m2Parms = method2.GetParameters();
+                if(m1Parms.Length == m2Parms.Length)
+                {
+                    for(int i=0; i<m1Parms.Length; ++i)
+                    {
+                        if(m1Parms[i].GetType() != m2Parms[i].GetType())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override void OnStart(PartModule.StartState state)
@@ -458,13 +524,21 @@ namespace JSI
         public override void OnUpdate()
         {
             if (!JUtil.IsActiveVessel(vessel))
+            {
                 return;
+            }
 
             if (!UpdateCheck())
+            {
                 return;
+            }
 
             // We clear the cache every frame.
             resultCache.Clear();
+            foreach(IJSIModule module in installedModules)
+            {
+                module.Invalidate();
+            }
 
             FetchCommonData();
         }
@@ -1254,7 +1328,6 @@ namespace JSI
                             {
                                 propToUse = part.internalModel.props[0];
                             }
-                            JUtil.LogMessage(this, "I am adding {0} to a {2} so I can answer {1}", internalModule[0], input, propToUse.name);
                         }
 
                         if (propToUse == null)
@@ -1264,10 +1337,10 @@ namespace JSI
                             return -1;
                         }
 
-                        Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<bool>));
+                        Func<bool> pluginCall = (Func<bool>)GetMethod(tokens[1], propToUse, typeof(Func<bool>));
                         if (pluginCall == null)
                         {
-                            Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<double>));
+                            Func<double> pluginNumericCall = (Func<double>)GetMethod(tokens[1], propToUse, typeof(Func<double>));
 
                             if(pluginNumericCall != null)
                             {
@@ -2399,7 +2472,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
                 
-                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(Func<double>));
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(Func<double>));
                 if(accessor != null)
                 {
                     double value = accessor();
@@ -2426,7 +2499,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
 
-                accessor = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(Func<double>));
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(Func<double>));
                 if (accessor != null)
                 {
                     double value = accessor();
@@ -2451,7 +2524,7 @@ namespace JSI
         {
             if (evaluateLandingError == null)
             {
-                evaluateLandingError = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(Func<double>));
+                evaluateLandingError = (Func<double>)GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(Func<double>));
             }
 
             return evaluateLandingError();
@@ -2463,7 +2536,7 @@ namespace JSI
             {
                 Func<bool> accessor = null;
 
-                accessor = (Func<bool>)JUtil.GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(Func<bool>));
+                accessor = (Func<bool>)GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(Func<bool>));
                 if (accessor == null)
                 {
                     accessor = JUtil.ReturnFalse;
