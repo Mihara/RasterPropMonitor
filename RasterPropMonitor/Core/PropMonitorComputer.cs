@@ -237,6 +237,7 @@ namespace JSI
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
+        private Func<double> evaluateLandingError;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -1530,8 +1531,7 @@ namespace JSI
                 case "MASSPROPELLANTSTAGE":
                     return resources.PropellantMass(true);
 
-                // The primitive delta V calculation.
-
+                // The delta V calculation.
                 case "DELTAV":
                     return DeltaV();
                 case "DELTAVSTAGE":
@@ -2068,6 +2068,12 @@ namespace JSI
                     protractor.Update(vessel, targetOrbit);
                     return protractor.TargetBodyDeltaV;
 
+                case "PREDICTEDLANDINGLATITUDE":
+                case "PREDICTEDLANDINGLONGITUDE":
+                    return -1.0;
+                case "PREDICTEDLANDINGERROR":
+                    return LandingError();
+
                 // FLight control status
                 case "THROTTLE":
                     return vessel.ctrlState.mainThrottle;
@@ -2188,7 +2194,7 @@ namespace JSI
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
                 case "MECHJEBAVAILABLE":
-                    return MechJebAvailable();
+                    return MechJebAvailable().GetHashCode();
 
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":
@@ -2439,6 +2445,16 @@ namespace JSI
             }
 
             return evaluateDeltaVStage();
+        }
+
+        private double LandingError()
+        {
+            if (evaluateLandingError == null)
+            {
+                evaluateLandingError = (Func<double>)JUtil.GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(double), typeof(Func<double>));
+            }
+
+            return evaluateLandingError();
         }
 
         private bool MechJebAvailable()
