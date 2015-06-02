@@ -481,12 +481,28 @@ namespace JSI
         public static void LogMessage(object caller, string line, params object[] list)
         {
             if (debugLoggingEnabled)
-                Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+            {
+                if (caller != null)
+                {
+                    Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+                }
+                else
+                {
+                    Debug.Log(String.Format("RasterPropMonitor: " + line, list));
+                }
+            }
         }
 
         public static void LogErrorMessage(object caller, string line, params object[] list)
         {
-            Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
+            if (caller != null)
+            {
+                Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
+            }
+            else
+            {
+                Debug.LogError(String.Format("RasterPropMonitor: " + line, list));
+            }
         }
 
         // Working in a generic to make that a generic function for all numbers is too much work
