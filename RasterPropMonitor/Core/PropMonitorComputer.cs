@@ -2496,7 +2496,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
 
-                accessor = (Func<double>)GetMethod("JSIMechJeb:GetDeltaVStage", part.internalModel.props[0], typeof(Func<double>));
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetStageDeltaV", part.internalModel.props[0], typeof(Func<double>));
                 if (accessor != null)
                 {
                     double value = accessor();
