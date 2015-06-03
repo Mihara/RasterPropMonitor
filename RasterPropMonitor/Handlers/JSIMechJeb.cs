@@ -9,10 +9,6 @@ namespace JSI
     /// <summary>
     /// JSIMechJeb provides an interface with the MechJeb plugin using
     /// reflection, which allows us to avoid the need for hard dependencies.
-    /// 
-    /// TODO: Add an Update method, and cache the results, instead of computing
-    /// on the fly.  Even better: Move these methods out of InternalModule, and
-    /// have RPMC instantiate them as child objects.
     /// </summary>
     internal class JSIMechJeb : IJSIModule
     {
@@ -84,36 +80,37 @@ namespace JSI
         {
             try
             {
-                // MOARdV TODO: Get the MechJeb assembly once, up front.  Stop iterating over all assemblies repeatedly.
-                // assembly name is MechJeb2
+                var loadedMechJebAssy = AssemblyLoader.loadedAssemblies.FirstOrDefault(a => a.name == "MechJeb2");
+
+                if(loadedMechJebAssy == null)
+                {
+                    mjFound = false;
+                    return;
+                }
 
                 //--- Load all the types
-                mjMechJebCore_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjMechJebCore_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebCore");
                 if (mjMechJebCore_t == null)
                 {
                     throw new ArgumentNullException("mjMechJebCore_t");
                 }
 
-                Type mjVesselExtensions = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                Type mjVesselExtensions = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.VesselExtensions");
                 if (mjVesselExtensions == null)
                 {
                     throw new ArgumentNullException("mjVesselExtensions");
                 }
 
-                mjModuleLandingPredictions_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjModuleLandingPredictions_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleLandingPredictions");
                 if (mjModuleLandingPredictions_t == null)
                 {
                     throw new ArgumentNullException("mjModuleLandingPredictions_t");
                 }
 
-                Type mjReentrySim_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                Type mjReentrySim_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.ReentrySimulation");
                 if (mjReentrySim_t == null)
                 {
@@ -126,16 +123,14 @@ namespace JSI
                     throw new ArgumentNullException("mjReentryResult_t");
                 }
 
-                mjModuleStageStats_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjModuleStageStats_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleStageStats");
                 if (mjModuleStageStats_t == null)
                 {
                     throw new ArgumentNullException("mjModuleStageStats_t");
                 }
 
-                mjAbsoluteVector_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjAbsoluteVector_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.AbsoluteVector");
                 if (mjAbsoluteVector_t == null)
                 {
@@ -144,24 +139,21 @@ namespace JSI
 
                 // Because KerbalEngineer.VesselSimulator.Stage is in KER and
                 // MJ, we need to select the one in MechJeb.
-                mjStage_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjStage_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "KerbalEngineer.VesselSimulator.Stage" && t.Assembly == mjMechJebCore_t.Assembly);
                 if (mjStage_t == null)
                 {
                     throw new ArgumentNullException("mjStage_t");
                 }
 
-                mjModuleTargetController_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjModuleTargetController_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleTargetController");
                 if (mjModuleTargetController_t == null)
                 {
                     throw new ArgumentNullException("mjModuleTargetController_t");
                 }
 
-                mjEditableAngle_t = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
+                mjEditableAngle_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.EditableAngle");
                 if (mjEditableAngle_t == null)
                 {
@@ -411,26 +403,23 @@ namespace JSI
 
                         if (atmStats.Length > 0 && vacStats.Length == atmStats.Length)
                         {
-                            double dVVac = 0.0, dVAtm = 0.0;
-                            double dVVacFinal = 0.0, dVAtmFinal = 0.0;
+                            double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
+
+                            deltaV = deltaVStage = 0.0;
 
                             for(int i=0; i<atmStats.Length; ++i)
                             {
                                 double atm = (double)mjStageDv.GetValue(atmStats[i]);
                                 double vac = (double)mjStageDv.GetValue(vacStats[i]);
-                                dVAtm += atm;
-                                dVVac += vac;
+                                double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
+
+                                deltaV += stagedV;
 
                                 if(i == (atmStats.Length-1))
                                 {
-                                    dVAtmFinal = atm;
-                                    dVVacFinal = vac;
+                                    deltaVStage = stagedV;
                                 }
                             }
-
-                            double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
-                            deltaV = UtilMath.LerpUnclamped(dVVac, dVAtm, atmospheresLocal);
-                            deltaVStage = UtilMath.LerpUnclamped(dVVacFinal, dVAtmFinal, atmospheresLocal);
                         }
                     }
                 }
