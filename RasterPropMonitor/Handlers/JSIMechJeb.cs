@@ -84,6 +84,9 @@ namespace JSI
         {
             try
             {
+                // MOARdV TODO: Get the MechJeb assembly once, up front.  Stop iterating over all assemblies repeatedly.
+                // assembly name is MechJeb2
+
                 //--- Load all the types
                 mjMechJebCore_t = AssemblyLoader.loadedAssemblies.SelectMany(
                     a => a.assembly.GetExportedTypes())
@@ -425,8 +428,9 @@ namespace JSI
                                 }
                             }
 
-                            deltaV = UtilMath.LerpUnclamped(dVVac, dVAtm, vessel.atmDensity);
-                            deltaVStage = UtilMath.LerpUnclamped(dVVacFinal, dVAtmFinal, vessel.atmDensity);
+                            double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
+                            deltaV = UtilMath.LerpUnclamped(dVVac, dVAtm, atmospheresLocal);
+                            deltaVStage = UtilMath.LerpUnclamped(dVVacFinal, dVAtmFinal, atmospheresLocal);
                         }
                     }
                 }
