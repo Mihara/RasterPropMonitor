@@ -179,7 +179,6 @@ namespace JSI
         private double localGeeASL, localGeeDirect;
         private double standardAtmosphere;
         private float slopeAngle;
-        private double atmPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
         private float heatShieldTemperature;
         private float heatShieldFlux;
@@ -747,8 +746,6 @@ namespace JSI
             }
 
             horzVelocity = (VelocityVesselSurface - (speedVertical * up)).magnitude;
-
-            atmPressure = FlightGlobals.getStaticPressure(AltitudeASL, vessel.mainBody);
 
             if (target != null)
             {
@@ -1578,7 +1575,7 @@ namespace JSI
 
                 // Atmospheric values
                 case "ATMPRESSURE":
-                    return atmPressure;
+                    return vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
@@ -1586,7 +1583,7 @@ namespace JSI
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
-                        return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
+                        return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
                         FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0d, 1d);
                     }
                     return 0d;
