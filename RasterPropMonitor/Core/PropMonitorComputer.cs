@@ -402,6 +402,7 @@ namespace JSI
                 installedModules.Add(new JSIParachute(vessel));
                 installedModules.Add(new JSIMechJeb(vessel));
                 installedModules.Add(new JSIInternalRPMButtons(vessel));
+                installedModules.Add(new JSIGimbal(vessel));
             }
         }
 
