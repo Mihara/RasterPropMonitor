@@ -12,6 +12,7 @@ namespace JSI
     /// </summary>
     internal class JSIMechJeb : IJSIModule
     {
+        #region Reflection Definitions
         // MechJebCore
         private static readonly Type mjMechJebCore_t;
         // MechJebCore.GetComputerModule(string)
@@ -20,7 +21,6 @@ namespace JSI
         private static readonly FieldInfo mjCoreTarget;
 
         // AbsoluteVector
-        private static readonly Type mjAbsoluteVector_t;
         // AbsoluteVector.latitude
         private static readonly FieldInfo mjAbsoluteVectorLat;
         // AbsoluteVector.longitude
@@ -28,25 +28,21 @@ namespace JSI
         // AbsoluteVector.(double)
         private static readonly MethodInfo mjAbsoluteVectorToDouble;
 
-        // EditableAngle
-        private static readonly Type mjEditableAngle_t;
-
         // MechJebModuleLandingPredictions
-        private static readonly Type mjModuleLandingPredictions_t;
         // MechJebModuleLandingPredictions.GetResult()
         private static readonly MethodInfo mjPredictionsGetResult;
-        // MechJebModuleLandingPredictions.enabled
-        private static readonly MethodInfo mjPredictionsEnabled;
 
         // ReentrySimulation.Result
-        private static readonly Type mjReentryResult_t;
         // ReentrySimulation.Result.outcome
         private static readonly FieldInfo mjReentryOutcome;
         // ReentrySimulation.Result.endPosition
         private static readonly FieldInfo mjReentryEndPosition;
 
+        // ComputerModule
+        // ComputerModule.enabled (get)
+        private static readonly MethodInfo mjModuleEnabled;
+
         // MechJebModuleStageStats
-        private static readonly Type mjModuleStageStats_t;
         // MechJebModuleStageStats.RequestUpdate()
         private static readonly MethodInfo mjRequestUpdate;
         // MechJebModuleStageStats.vacStats[]
@@ -55,19 +51,18 @@ namespace JSI
         private static readonly FieldInfo mjAtmStageStats;
 
         // MechJebModuleTargetController
-        private static readonly Type mjModuleTargetController_t;
         // MechJebModuleTargetController.targetLatitude
         private static readonly FieldInfo mjTargetLongitude;
         // MechJebModuleTargetController.targetLatitude
         private static readonly FieldInfo mjTargetLatitude;
 
         // KER VesselSimulator.Stage (MJ version)
-        private static readonly Type mjStage_t;
         // VesselSimulator.Stage.deltaV
         private static readonly FieldInfo mjStageDv;
 
         // VesselExtensions.GetMasterMechJeb()
         private static readonly MethodInfo mjGetMasterMechJeb;
+        #endregion
 
         private static readonly bool mjFound;
 
@@ -88,72 +83,148 @@ namespace JSI
                     return;
                 }
 
-                //--- Load all the types
+                //--- Process all the reflection info
+                // MechJebCore
                 mjMechJebCore_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebCore");
                 if (mjMechJebCore_t == null)
                 {
                     throw new ArgumentNullException("mjMechJebCore_t");
                 }
-
-                Type mjVesselExtensions = loadedMechJebAssy.assembly.GetExportedTypes()
-                    .SingleOrDefault(t => t.FullName == "MuMech.VesselExtensions");
-                if (mjVesselExtensions == null)
+                mjGetComputerModule = mjMechJebCore_t.GetMethod("GetComputerModule", new Type[] { typeof(string) });
+                if (mjGetComputerModule == null)
                 {
-                    throw new ArgumentNullException("mjVesselExtensions");
+                    throw new ArgumentNullException("mjGetComputerModule");
+                }
+                mjCoreTarget = mjMechJebCore_t.GetField("target", BindingFlags.Instance | BindingFlags.Public);
+                if (mjCoreTarget == null)
+                {
+                    throw new ArgumentNullException("mjCoreTarget");
                 }
 
-                mjModuleLandingPredictions_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                // VesselExtensions
+                Type mjVesselExtensions_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.VesselExtensions");
+                if (mjVesselExtensions_t == null)
+                {
+                    throw new ArgumentNullException("mjVesselExtensions_t");
+                }
+                mjGetMasterMechJeb = mjVesselExtensions_t.GetMethod("GetMasterMechJeb", BindingFlags.Static | BindingFlags.Public);
+                if (mjGetMasterMechJeb == null)
+                {
+                    throw new ArgumentNullException("mjGetMasterMechJeb");
+                }
+
+                // MechJebModuleLandingPredictions
+                Type mjModuleLandingPredictions_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleLandingPredictions");
                 if (mjModuleLandingPredictions_t == null)
                 {
                     throw new ArgumentNullException("mjModuleLandingPredictions_t");
                 }
+                mjPredictionsGetResult = mjModuleLandingPredictions_t.GetMethod("GetResult", BindingFlags.Instance | BindingFlags.Public);
+                if (mjPredictionsGetResult == null)
+                {
+                    throw new ArgumentNullException("mjPredictionsGetResult");
+                }
 
+                // MuMech.ReentrySimulation.Result
                 Type mjReentrySim_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.ReentrySimulation");
                 if (mjReentrySim_t == null)
                 {
                     throw new ArgumentNullException("mjReentrySim_t");
                 }
-
-                mjReentryResult_t = mjReentrySim_t.GetNestedType("Result");
+                Type mjReentryResult_t = mjReentrySim_t.GetNestedType("Result");
                 if (mjReentryResult_t == null)
                 {
                     throw new ArgumentNullException("mjReentryResult_t");
                 }
+                mjReentryOutcome = mjReentryResult_t.GetField("outcome", BindingFlags.Instance | BindingFlags.Public);
+                if (mjReentryOutcome == null)
+                {
+                    throw new ArgumentNullException("mjReentryOutcome");
+                }
+                mjReentryEndPosition = mjReentryResult_t.GetField("endPosition", BindingFlags.Instance | BindingFlags.Public);
+                if (mjReentryEndPosition == null)
+                {
+                    throw new ArgumentNullException("mjReentryEndPosition");
+                }
 
-                mjModuleStageStats_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                // MechJebModuleStageStats
+                Type mjModuleStageStats_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleStageStats");
                 if (mjModuleStageStats_t == null)
                 {
                     throw new ArgumentNullException("mjModuleStageStats_t");
                 }
+                mjRequestUpdate = mjModuleStageStats_t.GetMethod("RequestUpdate", BindingFlags.Instance | BindingFlags.Public);
+                if (mjRequestUpdate == null)
+                {
+                    throw new ArgumentNullException("mjRequestUpdate");
+                }
+                mjVacStageStats = mjModuleStageStats_t.GetField("vacStats", BindingFlags.Instance | BindingFlags.Public);
+                if (mjVacStageStats == null)
+                {
+                    throw new ArgumentNullException("mjVacStageStats");
+                }
+                mjAtmStageStats = mjModuleStageStats_t.GetField("atmoStats", BindingFlags.Instance | BindingFlags.Public);
+                if (mjAtmStageStats == null)
+                {
+                    throw new ArgumentNullException("mjAtmStageStats");
+                }
 
-                mjAbsoluteVector_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                // AbsoluteVector
+                Type mjAbsoluteVector_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.AbsoluteVector");
                 if (mjAbsoluteVector_t == null)
                 {
                     throw new ArgumentNullException("mjAbsoluteVector_t");
                 }
+                mjAbsoluteVectorLat = mjAbsoluteVector_t.GetField("latitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjAbsoluteVectorLat == null)
+                {
+                    throw new ArgumentNullException("mjAbsoluteVectorLat");
+                }
+                mjAbsoluteVectorLon = mjAbsoluteVector_t.GetField("longitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjAbsoluteVectorLon == null)
+                {
+                    throw new ArgumentNullException("mjAbsoluteVectorLon");
+                }
 
-                // Because KerbalEngineer.VesselSimulator.Stage is in KER and
-                // MJ, we need to select the one in MechJeb.
-                mjStage_t = loadedMechJebAssy.assembly.GetExportedTypes()
-                    .SingleOrDefault(t => t.FullName == "KerbalEngineer.VesselSimulator.Stage" && t.Assembly == mjMechJebCore_t.Assembly);
+                // KerbalEngineer.VesselSimulator.Stage
+                Type mjStage_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "KerbalEngineer.VesselSimulator.Stage");
                 if (mjStage_t == null)
                 {
                     throw new ArgumentNullException("mjStage_t");
                 }
+                mjStageDv = mjStage_t.GetField("deltaV", BindingFlags.Instance | BindingFlags.Public);
+                if (mjStageDv == null)
+                {
+                    throw new ArgumentNullException("mjStageDv");
+                }
 
-                mjModuleTargetController_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                // MechJebModuleTargetController
+                Type mjModuleTargetController_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleTargetController");
                 if (mjModuleTargetController_t == null)
                 {
                     throw new ArgumentNullException("mjModuleTargetController_t");
                 }
+                mjTargetLongitude = mjModuleTargetController_t.GetField("targetLongitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjTargetLongitude == null)
+                {
+                    throw new ArgumentNullException("mjTargetLongitude");
+                }
+                mjTargetLatitude = mjModuleTargetController_t.GetField("targetLatitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjTargetLatitude == null)
+                {
+                    throw new ArgumentNullException("mjTargetLatitude");
+                }
 
-                mjEditableAngle_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                // EditableAngle
+                Type mjEditableAngle_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.EditableAngle");
                 if (mjEditableAngle_t == null)
                 {
@@ -173,100 +244,17 @@ namespace JSI
                     throw new ArgumentNullException("mjAbsoluteVectorToDouble");
                 }
 
-                //--- Get the methods we need to use
-                mjGetComputerModule = mjMechJebCore_t.GetMethod("GetComputerModule", new Type[] { typeof(string) });
-                if (mjGetComputerModule == null)
+                // ComputerModule
+                Type mjComputerModule_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.ComputerModule");
+                PropertyInfo mjModuleEnabledProperty = mjComputerModule_t.GetProperty("enabled", BindingFlags.Instance | BindingFlags.Public);
+                if (mjModuleEnabledProperty != null)
                 {
-                    throw new ArgumentNullException("mjGetComputerModule");
+                    mjModuleEnabled = mjModuleEnabledProperty.GetGetMethod();
                 }
-
-                mjGetMasterMechJeb = mjVesselExtensions.GetMethod("GetMasterMechJeb", BindingFlags.Static | BindingFlags.Public);
-                if (mjGetMasterMechJeb == null)
+                if (mjModuleEnabled == null)
                 {
-                    throw new ArgumentNullException("mjGetMasterMechJeb");
-                }
-
-                mjRequestUpdate = mjModuleStageStats_t.GetMethod("RequestUpdate", BindingFlags.Instance | BindingFlags.Public);
-                if (mjRequestUpdate == null)
-                {
-                    throw new ArgumentNullException("mjRequestUpdate");
-                }
-
-                mjPredictionsGetResult = mjModuleLandingPredictions_t.GetMethod("GetResult", BindingFlags.Instance | BindingFlags.Public);
-                if (mjPredictionsGetResult == null)
-                {
-                    throw new ArgumentNullException("mjPredictionsGetResult");
-                }
-
-                PropertyInfo mjPredictionsEnabledProperty = mjModuleLandingPredictions_t.GetProperty("enabled", BindingFlags.Instance | BindingFlags.Public);
-                if(mjPredictionsEnabledProperty != null)
-                {
-                    mjPredictionsEnabled = mjPredictionsEnabledProperty.GetGetMethod();
-                }
-                if (mjPredictionsEnabled == null)
-                {
-                    throw new ArgumentNullException("mjPredictionsEnabled");
-                }
-
-                //--- And get the fields
-                mjVacStageStats = mjModuleStageStats_t.GetField("vacStats", BindingFlags.Instance | BindingFlags.Public);
-                if (mjVacStageStats == null)
-                {
-                    throw new ArgumentNullException("mjVacStageStats");
-                }
-
-                mjAtmStageStats = mjModuleStageStats_t.GetField("atmoStats", BindingFlags.Instance | BindingFlags.Public);
-                if (mjAtmStageStats == null)
-                {
-                    throw new ArgumentNullException("mjAtmStageStats");
-                }
-
-                mjStageDv = mjStage_t.GetField("deltaV", BindingFlags.Instance | BindingFlags.Public);
-                if(mjStageDv == null)
-                {
-                    throw new ArgumentNullException("mjStageDv");
-                }
-
-                mjReentryOutcome = mjReentryResult_t.GetField("outcome", BindingFlags.Instance | BindingFlags.Public);
-                if (mjReentryOutcome == null)
-                {
-                    throw new ArgumentNullException("mjReentryOutcome");
-                }
-
-                mjReentryEndPosition = mjReentryResult_t.GetField("endPosition", BindingFlags.Instance | BindingFlags.Public);
-                if (mjReentryEndPosition == null)
-                {
-                    throw new ArgumentNullException("mjReentryEndPosition");
-                }
-
-                mjAbsoluteVectorLat = mjAbsoluteVector_t.GetField("latitude", BindingFlags.Instance | BindingFlags.Public);
-                if (mjAbsoluteVectorLat == null)
-                {
-                    throw new ArgumentNullException("mjAbsoluteVectorLat");
-                }
-
-                mjAbsoluteVectorLon = mjAbsoluteVector_t.GetField("longitude", BindingFlags.Instance | BindingFlags.Public);
-                if (mjAbsoluteVectorLon == null)
-                {
-                    throw new ArgumentNullException("mjAbsoluteVectorLon");
-                }
-
-                mjTargetLongitude = mjModuleTargetController_t.GetField("targetLongitude", BindingFlags.Instance | BindingFlags.Public);
-                if (mjTargetLongitude == null)
-                {
-                    throw new ArgumentNullException("mjTargetLongitude");
-                }
-
-                mjTargetLatitude = mjModuleTargetController_t.GetField("targetLatitude", BindingFlags.Instance | BindingFlags.Public);
-                if (mjTargetLatitude == null)
-                {
-                    throw new ArgumentNullException("mjTargetLatitude");
-                }
-
-                mjCoreTarget = mjMechJebCore_t.GetField("target", BindingFlags.Instance | BindingFlags.Public);
-                if (mjCoreTarget == null)
-                {
-                    throw new ArgumentNullException("mjCoreTarget");
+                    throw new ArgumentNullException("mjModuleEnabled");
                 }
 
                 mjFound = true;
@@ -321,24 +309,38 @@ namespace JSI
         }
 
         /// <summary>
+        /// Fetch a computer module from the MJ core
+        /// </summary>
+        /// <param name="masterMechJeb"></param>
+        /// <param name="computerModule"></param>
+        /// <returns></returns>
+        private object GetComputerModule(object masterMechJeb, string computerModule)
+        {
+            return mjGetComputerModule.Invoke(masterMechJeb, new object[] { computerModule });
+        }
+
+        private bool ModuleEnabled(object module)
+        {
+            return (bool)mjModuleEnabled.Invoke(module, null);
+        }
+
+        /// <summary>
         /// Return the latest landing simulation results, or null if there aren't any.
         /// </summary>
         /// <returns></returns>
         private object GetLandingResults(object masterMechJeb)
         {
-            object mjCore = (masterMechJeb == null) ? GetMasterMechJeb() : masterMechJeb;
-            if (mjCore != null)
+            object predictor = GetComputerModule(masterMechJeb, "MechJebModuleLandingPredictions");
+            if (predictor != null && ModuleEnabled(predictor) == true)
             {
-                object predictor = mjGetComputerModule.Invoke(mjCore, new object[] { "MechJebModuleLandingPredictions" });
-                if (predictor != null && (bool)mjPredictionsEnabled.Invoke(predictor, null) == true)
-                {
-                    return mjPredictionsGetResult.Invoke(predictor, null);
-                }
+                return mjPredictionsGetResult.Invoke(predictor, null);
             }
 
             return null;
         }
-        
+        #endregion
+
+        #region Updater methods
         /// <summary>
         /// Update the landing prediction stats
         /// </summary>
@@ -358,6 +360,17 @@ namespace JSI
                         {
                             landingLat = (double)mjAbsoluteVectorLat.GetValue(endPosition);
                             landingLon = (double)mjAbsoluteVectorLon.GetValue(endPosition);
+                            // Small fudge factor - we define 0, 0 as "invalid", so always make sure
+                            // this value is just off of 0.  This is an error of about 0* 0' 0.4" for
+                            // this case only
+                            if (landingLat == 0.0)
+                            {
+                                landingLat = 0.0001;
+                            }
+                            if (landingLon == 0.0)
+                            {
+                                landingLon = 0.0001;
+                            }
                             landingAlt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, landingLat, landingLon);
 
                             object target = mjCoreTarget.GetValue(masterMechJeb);
@@ -389,7 +402,7 @@ namespace JSI
                 object mjCore = GetMasterMechJeb();
                 if (mjCore != null)
                 {
-                    object stagestats = mjGetComputerModule.Invoke(mjCore, new object[] { "MechJebModuleStageStats" });
+                    object stagestats = GetComputerModule(mjCore, "MechJebModuleStageStats");
 
                     mjRequestUpdate.Invoke(stagestats, new object[] { this });
 
@@ -431,7 +444,7 @@ namespace JSI
         }
         #endregion
 
-        #region Defined Variable queries
+        #region External interface
         /// <summary>
         /// Returns whether we've been able to link with MechJeb.  While this
         /// really should be static, it isn't, since RPMC always assumes it
@@ -467,6 +480,87 @@ namespace JSI
             else
             {
                 return -1.0;
+            }
+        }
+
+        /// <summary>
+        /// Returns the predicted latitude at landing.
+        /// </summary>
+        /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
+        public double GetLandingLatitude()
+        {
+            if (mjFound)
+            {
+                if (moduleInvalidated)
+                {
+                    InvalidateResults();
+                    moduleInvalidated = false;
+                }
+
+                if (landingCurrent == false)
+                {
+                    UpdateLandingStats();
+                }
+
+                return landingLat;
+            }
+            else
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Returns the predicted longitude at landing.
+        /// </summary>
+        /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
+        public double GetLandingLongitude()
+        {
+            if (mjFound)
+            {
+                if (moduleInvalidated)
+                {
+                    InvalidateResults();
+                    moduleInvalidated = false;
+                }
+
+                if (landingCurrent == false)
+                {
+                    UpdateLandingStats();
+                }
+
+                return landingLon;
+            }
+            else
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Returns the predicted altitude at landing.
+        /// </summary>
+        /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
+        public double GetLandingAltitude()
+        {
+            if (mjFound)
+            {
+                if (moduleInvalidated)
+                {
+                    InvalidateResults();
+                    moduleInvalidated = false;
+                }
+
+                if (landingCurrent == false)
+                {
+                    UpdateLandingStats();
+                }
+
+                return landingAlt;
+            }
+            else
+            {
+                return 0.0;
             }
         }
 

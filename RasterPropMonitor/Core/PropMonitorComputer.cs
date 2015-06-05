@@ -239,6 +239,9 @@ namespace JSI
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
         private Func<double> evaluateLandingError;
+        private Func<double> evaluateLandingAltitude;
+        private Func<double> evaluateLandingLatitude;
+        private Func<double> evaluateLandingLongitude;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -962,11 +965,19 @@ namespace JSI
                             heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
                         }
                     }
-                    else if (pm is ModuleScienceExperiment)
-                    {
-                        var thatExperiment = pm as ModuleScienceExperiment;
-                        //JUtil.LogMessage(this, "Experiment: {0} in {1}", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name);
-                    }
+                    //else if (pm is ModuleScienceExperiment)
+                    //{
+                    //    var thatExperiment = pm as ModuleScienceExperiment;
+                    //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
+                    //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
+                    //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
+                    //}
+                    //else if (pm is ModuleScienceContainer)
+                    //{
+                    //    var thatContainer = pm as ModuleScienceContainer;
+                    //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
+                    //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
+                    //}
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -2139,9 +2150,12 @@ namespace JSI
                     protractor.Update(vessel, targetOrbit);
                     return protractor.TargetBodyDeltaV;
 
+                case "PREDICTEDLANDINGALTITUDE":
+                    return LandingAltitude();
                 case "PREDICTEDLANDINGLATITUDE":
+                    return LandingLatitude();
                 case "PREDICTEDLANDINGLONGITUDE":
-                    return -1.0;
+                    return LandingLongitude();
                 case "PREDICTEDLANDINGERROR":
                     return LandingError();
 
@@ -2526,6 +2540,36 @@ namespace JSI
             }
 
             return evaluateLandingError();
+        }
+
+        private double LandingAltitude()
+        {
+            if (evaluateLandingAltitude == null)
+            {
+                evaluateLandingAltitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingAltitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingAltitude();
+        }
+
+        private double LandingLatitude()
+        {
+            if (evaluateLandingLatitude == null)
+            {
+                evaluateLandingLatitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingLatitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingLatitude();
+        }
+
+        private double LandingLongitude()
+        {
+            if (evaluateLandingLongitude == null)
+            {
+                evaluateLandingLongitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingLongitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingLongitude();
         }
 
         private bool MechJebAvailable()
