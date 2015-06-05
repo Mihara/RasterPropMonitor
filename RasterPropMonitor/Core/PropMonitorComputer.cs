@@ -418,6 +418,11 @@ namespace JSI
                 throw new ArgumentException("stateMethod incorrectly formatted");
             }
 
+            // Backwards compatibility:
+            if(tokens[0] == "MechJebRPMButtons")
+            {
+                tokens[0] = "JSIMechJeb";
+            }
             IJSIModule jsiModule = null;
             foreach(IJSIModule module in installedModules)
             {
