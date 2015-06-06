@@ -21,6 +21,8 @@ namespace JSI
         private static readonly FieldInfo mjCoreTarget;
         // MechJebCore.node
         private static readonly FieldInfo mjCoreNode;
+        // MechJebCore.attitude
+        private static readonly FieldInfo mjCoreAttitude;
 
         // AbsoluteVector
         // AbsoluteVector.latitude
@@ -74,6 +76,10 @@ namespace JSI
         private static readonly FieldInfo mjSmartassForceRol;
         // MechJebModuleSmartASS.rol
         private static readonly FieldInfo mjSmartassRol;
+        // MechJebModuleSmartASS.ModeTexts
+        public static readonly string[] ModeTexts;
+        // MechJebModuleSmartASS.TargetTexts
+        public static readonly string[] TargetTexts;
 
         // MechJebModuleNodeExecutor
         // MechJebModuleNodeExecutor.ExecuteOneNode(obj controller)
@@ -90,6 +96,8 @@ namespace JSI
         private static readonly MethodInfo mjAddUser;
         // UserPool.Remove
         private static readonly MethodInfo mjRemoveUser;
+        // UserPool.Contains
+        private static readonly MethodInfo mjContainsUser;
 
         // MechJebModuleLandingAutopilot
         // MechJebModuleLandingAutopilot.LandAtPositionTarget
@@ -115,6 +123,8 @@ namespace JSI
         private static readonly MethodInfo mjDeltaVAndTimeForHohmannTransfer;
         // OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection
         private static readonly MethodInfo mjDeltaVAndTimeForInterplanetaryTransferEjection;
+        // OrbitalManeuverCalculator.DeltaVToCircularize
+        private static readonly MethodInfo mjDeltaVToCircularize;
         #endregion
 
         #region MechJeb enum imports
@@ -152,6 +162,23 @@ namespace JSI
             HORIZONTAL_PLUS = 20,
             HORIZONTAL_MINUS = 21,
             VERTICAL_PLUS = 22,
+        }
+
+        // Imported directly from MJ
+        public static readonly Mode[] Target2Mode = new Mode[] { Mode.ORBITAL, Mode.ORBITAL, Mode.ORBITAL, Mode.SURFACE, Mode.ORBITAL, Mode.ORBITAL, Mode.ORBITAL, Mode.ORBITAL, Mode.ORBITAL, Mode.ORBITAL, Mode.TARGET, Mode.TARGET, Mode.TARGET, Mode.TARGET, Mode.TARGET, Mode.TARGET, Mode.ADVANCED, Mode.AUTO, Mode.SURFACE, Mode.SURFACE, Mode.SURFACE, Mode.SURFACE, Mode.SURFACE };
+
+        public enum TimeReference
+        {
+            COMPUTED = 0,
+            X_FROM_NOW = 1,
+            APOAPSIS = 2,
+            PERIAPSIS = 3,
+            ALTITUDE = 4,
+            EQ_ASCENDING = 5,
+            EQ_DESCENDING = 6,
+            REL_ASCENDING = 7,
+            REL_DESCENDING = 8,
+            CLOSEST_APPROACH = 9,
         }
         #endregion
         private static readonly bool mjFound;
@@ -195,6 +222,11 @@ namespace JSI
                 if (mjCoreNode == null)
                 {
                     throw new NotImplementedException("mjCoreNode");
+                }
+                mjCoreAttitude = mjMechJebCore_t.GetField("attitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjCoreAttitude == null)
+                {
+                    throw new NotImplementedException("mjCoreAttitude");
                 }
 
                 // VesselExtensions
@@ -402,6 +434,11 @@ namespace JSI
                 {
                     throw new NotImplementedException("mjRemoveUser");
                 }
+                mjContainsUser = mjUserPool_t.GetMethod("Contains", BindingFlags.Instance | BindingFlags.Public);
+                if (mjContainsUser == null)
+                {
+                    throw new NotImplementedException("mjContainsUser");
+                }
 
                 // MechJebModuleNodeExecutor
                 Type mjNodeExecutor_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -436,7 +473,7 @@ namespace JSI
                     throw new NotImplementedException("mjStopLanding");
                 }
 
-                // mjSmartassTarget
+                // MechJebModuleSmartASS
                 Type mjSmartass_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleSmartASS");
                 mjSmartassTarget = mjSmartass_t.GetField("target", BindingFlags.Instance | BindingFlags.Public);
@@ -458,6 +495,18 @@ namespace JSI
                 if (mjSmartassRol == null)
                 {
                     throw new NotImplementedException("mjSmartassRol");
+                }
+                FieldInfo TargetTextsInfo = mjSmartass_t.GetField("TargetTexts", BindingFlags.Static | BindingFlags.Public);
+                TargetTexts = (string[])TargetTextsInfo.GetValue(null);
+                if (TargetTexts == null)
+                {
+                    throw new NotImplementedException("TargetTexts");
+                }
+                FieldInfo ModeTextsInfo = mjSmartass_t.GetField("ModeTexts", BindingFlags.Static | BindingFlags.Public);
+                ModeTexts = (string[])ModeTextsInfo.GetValue(null);
+                if (ModeTexts == null)
+                {
+                    throw new NotImplementedException("ModeTexts");
                 }
 
                 // EditableDouble
@@ -490,6 +539,11 @@ namespace JSI
                 if (mjDeltaVAndTimeForInterplanetaryTransferEjection == null)
                 {
                     throw new NotImplementedException("mjDeltaVAndTimeForInterplanetaryTransferEjection");
+                }
+                mjDeltaVToCircularize = mjOrbitalManeuverCalculator_t.GetMethod("DeltaVToCircularize", BindingFlags.Static | BindingFlags.Public);
+                if (mjDeltaVToCircularize == null)
+                {
+                    throw new NotImplementedException("mjDeltaVToCircularize");
                 }
 
                 mjFound = true;
@@ -591,6 +645,36 @@ namespace JSI
             }
 
             return null;
+        }
+
+        private void EnactTargetAction(Target action)
+        {
+            object activeJeb = GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
+
+            JUtil.LogMessage(this, "EnactTargetAction {0}", action);
+            if (activeSmartass != null)
+            {
+                mjSmartassTarget.SetValue(activeSmartass, (int)action);
+
+                mjSmartassEngage.Invoke(activeSmartass, new object[] { true });
+            }
+        }
+
+        private bool ReturnTargetState(Target action)
+        {
+            object activeJeb = GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
+
+            if (activeSmartass != null)
+            {
+                object target = mjSmartassTarget.GetValue(activeSmartass);
+                return (int)action == (int)target;
+            }
+            else
+            {
+                return false;
+            }
         }
         #endregion
 
@@ -708,6 +792,32 @@ namespace JSI
         public bool GetMechJebAvailable()
         {
             return mjFound;
+        }
+
+        public void SetSmartassMode(Target t)
+        {
+            EnactTargetAction(t);
+        }
+
+        /// <summary>
+        /// Return the current Smartass mode
+        /// </summary>
+        /// <returns></returns>
+        public int GetSmartassMode()
+        {
+            if (mjFound)
+            {
+                object activeJeb = GetMasterMechJeb();
+                object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
+
+                if (activeSmartass != null)
+                {
+                    object target = mjSmartassTarget.GetValue(activeSmartass);
+                    return (int)target;
+                }
+            }
+
+            return (int)Target.OFF;
         }
 
         /// <summary>
@@ -871,9 +981,130 @@ namespace JSI
                 return double.NaN;
             }
         }
+
+        public double GetForceRollAngle()
+        {
+            object mjCore = GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            if (activeSmartass != null)
+            {
+                object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
+                object rolValue = mjSmartassRol.GetValue(activeSmartass);
+                return (double)mjGetEditableDouble.Invoke(rolValue, null);
+            }
+            else
+            {
+                return 0.0;
+            }
+
+        }
+
+        /// <summary>
+        /// Returns true when the current MJ target is a ground target.
+        /// </summary>
+        /// <returns></returns>
+        public bool PositionTargetExists()
+        {
+            object mjCore = GetMasterMechJeb();
+            object target = mjCoreTarget.GetValue(mjCore);
+            if ((bool)mjGetPositionTargetExists.Invoke(target, null))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns true when any autopilots are enabled (and thus Smartass is
+        /// in "AUTO" mode).
+        /// </summary>
+        /// <returns></returns>
+        public bool AutopilotEnabled()
+        {
+            // It appears the SmartASS module does not know if MJ is in
+            // automatic pilot mode (like Ascent Guidance or Landing
+            // Guidance) without querying indirectly like this.
+            // MOARdV BUG: This doesn't seem to work if any of the
+            // attitude settings are active (like "Prograde").
+            //if (activeJeb.attitude.enabled && !activeJeb.attitude.users.Contains(activeSmartass))
+            object mjCore = GetMasterMechJeb();
+            object attitude = mjCoreAttitude.GetValue(mjCore);
+            if (ModuleEnabled(attitude))
+            {
+                object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+                object users = mjModuleUsers.GetValue(attitude);
+                return (bool)mjContainsUser.Invoke(users, new object[] { activeSmartass });
+            }
+
+            return false;
+        }
+
+        private bool ForceRollState(double roll)
+        {
+            object mjCore = GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            if (activeSmartass != null)
+            {
+                object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
+                object rolValue = mjSmartassRol.GetValue(activeSmartass);
+                double rol = (double)mjGetEditableDouble.Invoke(rolValue, null);
+
+                return (bool)forceRol && (Math.Abs(roll - rol) < 0.5);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public bool GetModuleExists(string moduleName)
+        {
+            object mjCore = GetMasterMechJeb();
+            object module = GetComputerModule(mjCore, moduleName);
+
+            return (module != null);
+        }
+
+        public void ForceRoll(bool state, double roll)
+        {
+            object mjCore = GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            if (activeSmartass != null)
+            {
+                if (state)
+                {
+                    object rolValue = mjSmartassRol.GetValue(activeSmartass);
+                    mjSetEditableDouble.Invoke(rolValue, new object[] { roll });
+                    mjSmartassRol.SetValue(activeSmartass, rolValue);
+                }
+                mjSmartassForceRol.SetValue(activeSmartass, state);
+                mjSmartassEngage.Invoke(activeSmartass, new object[] { true });
+            }
+        }
+
+        public void CircularizeAt(double UT)
+        {
+            Vector3d dV;
+
+            dV = (Vector3d)mjDeltaVToCircularize.Invoke(null, new object[] { vessel.orbit, UT });
+
+            if (vessel.patchedConicSolver != null)
+            {
+                while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+                {
+                    vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+                }
+            }
+
+            mjPlaceManeuverNode.Invoke(null, new object[] { vessel, vessel.orbit, dV, UT });
+        }
         #endregion
 
         #region MechJebRPMButtons
+
         /// <summary>
         /// Enables / disable "Execute One Node"
         /// </summary>
@@ -956,6 +1187,37 @@ namespace JSI
             return ModuleEnabled(ap);
         }
 
+        public void ButtonDockingGuidance(bool state)
+        {
+            object mjCore = GetMasterMechJeb();
+            object autopilot = GetComputerModule(mjCore, "MechJebModuleDockingAutopilot");
+            object autopilotController = GetComputerModule(mjCore, "MechJebModuleDockingGuidance");
+
+            if (autopilot != null && autopilotController != null)
+            {
+                object users = mjModuleUsers.GetValue(autopilot);
+                if (users == null)
+                {
+                    throw new NotImplementedException("mjModuleUsers(autopilot) was null");
+                }
+                if (ModuleEnabled(autopilot))
+                {
+                    mjRemoveUser.Invoke(users, new object[] { autopilotController });
+                }
+                else if (FlightGlobals.fetch.VesselTarget is ModuleDockingNode)
+                {
+                    mjAddUser.Invoke(users, new object[] { autopilotController });
+                }
+            }
+        }
+
+        public bool ButtonDockingGuidanceState()
+        {
+            object mjCore = GetMasterMechJeb();
+            object ap = GetComputerModule(mjCore, "MechJebModuleDockingAutopilot");
+            return ModuleEnabled(ap);
+        }
+
         /// <summary>
         /// Plot a Hohmann transfer to the current target.  This is an instant
         /// fire-and-forget function, not a toggle switch
@@ -981,14 +1243,12 @@ namespace JSI
                 object[] args = new object[] { o, targetOrbit, Planetarium.GetUniversalTime(), nodeUT };
                 dV = (Vector3d)mjDeltaVAndTimeForHohmannTransfer.Invoke(null, args);
                 nodeUT = (double)args[3];
-                //dV = OrbitalManeuverCalculator.DeltaVAndTimeForHohmannTransfer(o, targetOrbit, Planetarium.GetUniversalTime(), out nodeUT);
             }
             else
             {
                 object[] args = new object[] { o, Planetarium.GetUniversalTime(), targetOrbit, true, nodeUT };
                 dV = (Vector3d)mjDeltaVAndTimeForInterplanetaryTransferEjection.Invoke(null, args);
                 nodeUT = (double)args[4];
-                //dV = OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection(o, Planetarium.GetUniversalTime(), targetOrbit, true, out nodeUT);
             }
 
             if (vessel.patchedConicSolver != null)
@@ -1008,6 +1268,11 @@ namespace JSI
         /// <returns>true if a transfer can be plotted, false if not</returns>
         public bool ButtonPlotHohmannTransferState()
         {
+            if (!mjFound)
+            {
+                return false;
+            }
+
             object activeJeb = GetMasterMechJeb();
 
             object target = mjCoreTarget.GetValue(activeJeb);
@@ -1143,41 +1408,6 @@ namespace JSI
             {
                 object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
                 return (bool)forceRol;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private void ForceRoll(bool state, double roll)
-        {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
-            if (activeSmartass != null)
-            {
-                if (state)
-                {
-                    object rolValue = mjSmartassRol.GetValue(activeSmartass);
-                    mjSetEditableDouble.Invoke(rolValue, new object[] { roll });
-                    mjSmartassRol.SetValue(activeSmartass, rolValue);
-                }
-                mjSmartassForceRol.SetValue(activeSmartass, state);
-                mjSmartassEngage.Invoke(activeSmartass, new object[] { true });
-            }
-        }
-
-        private bool ForceRollState(double roll)
-        {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
-            if (activeSmartass != null)
-            {
-                object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
-                object rolValue = mjSmartassRol.GetValue(activeSmartass);
-                double rol = (double)mjGetEditableDouble.Invoke(rolValue, null);
-
-                return (bool)forceRol && (Math.Abs(roll - rol) < 0.5);
             }
             else
             {
@@ -1594,37 +1824,6 @@ namespace JSI
         public bool ButtonParMinusState()
         {
             return ReturnTargetState(Target.PARALLEL_MINUS);
-        }
-
-        // and these are the two functions that actually do the SmartASS work...
-        private void EnactTargetAction(Target action)
-        {
-            object activeJeb = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
-
-            JUtil.LogMessage(this, "EnactTargetAction {0}", action);
-            if (activeSmartass != null)
-            {
-                mjSmartassTarget.SetValue(activeSmartass, (int)action);
-
-                mjSmartassEngage.Invoke(activeSmartass, new object[] { true });
-            }
-        }
-
-        private bool ReturnTargetState(Target action)
-        {
-            object activeJeb = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
-
-            if (activeSmartass != null)
-            {
-                object target = mjSmartassTarget.GetValue(activeSmartass);
-                return (int)action == (int)target;
-            }
-            else
-            {
-                return false;
-            }
         }
 
         #endregion
