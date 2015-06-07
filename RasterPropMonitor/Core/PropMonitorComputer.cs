@@ -570,25 +570,6 @@ namespace JSI
             }
         }
 
-        private static float GetCurrentThrust(ModuleEnginesFX engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-                else
-                {
-                    return engine.finalThrust;
-                }
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
         private static float GetMaximumThrust(ModuleEngines engine)
         {
             if (engine != null)
@@ -609,46 +590,7 @@ namespace JSI
             }
         }
 
-        private static float GetMaximumThrust(ModuleEnginesFX engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-
-                float vacISP = engine.atmosphereCurve.Evaluate(0.0f);
-                float maxThrustAtAltitude = engine.maxThrust * engine.realIsp / vacISP;
-
-                return maxThrustAtAltitude * (engine.thrustPercentage / 100.0f);
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
         private static float GetRealIsp(ModuleEngines engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-                else
-                {
-                    return engine.realIsp;
-                }
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
-        private static float GetRealIsp(ModuleEnginesFX engine)
         {
             if (engine != null)
             {
@@ -919,7 +861,7 @@ namespace JSI
                         continue;
                     }
 
-                    if (pm is ModuleEngines)
+                    if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
                         anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
@@ -935,26 +877,6 @@ namespace JSI
                         }
 
                         foreach (Propellant thatResource in thatEngineModule.propellants)
-                        {
-                            resources.MarkPropellant(thatResource);
-                        }
-                    }
-                    else if (pm is ModuleEnginesFX)
-                    {
-                        var thatEngineModuleFX = pm as ModuleEnginesFX;
-                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
-                        anyEnginesFlameout |= (thatEngineModuleFX.isActiveAndEnabled && thatEngineModuleFX.flameout);
-
-                        totalCurrentThrust += GetCurrentThrust(thatEngineModuleFX);
-                        float maxThrust = GetMaximumThrust(thatEngineModuleFX);
-                        totalMaximumThrust += maxThrust;
-                        float realIsp = GetRealIsp(thatEngineModuleFX);
-                        if (realIsp > 0)
-                        {
-                            averageIspContribution += maxThrust / realIsp;
-                        }
-
-                        foreach (Propellant thatResource in thatEngineModuleFX.propellants)
                         {
                             resources.MarkPropellant(thatResource);
                         }
