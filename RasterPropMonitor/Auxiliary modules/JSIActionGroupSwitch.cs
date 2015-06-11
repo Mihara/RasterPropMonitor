@@ -106,43 +106,6 @@ namespace JSI
         private float consumeWhileActiveAmount;
         private bool forcedShutdown;
 
-        private static bool InstantiateHandler(ConfigNode node, InternalModule ourSwitch, out Action<bool> actionCall, out Func<bool> stateCall)
-        {
-            actionCall = null;
-            stateCall = null;
-            var handlerConfiguration = new ConfigNode("MODULE");
-            node.CopyTo(handlerConfiguration);
-            string moduleName = node.GetValue("name");
-            string stateMethod = string.Empty;
-            if (node.HasValue("stateMethod"))
-                stateMethod = node.GetValue("stateMethod");
-
-            InternalModule thatModule = null;
-            foreach (InternalModule potentialModule in ourSwitch.internalProp.internalModules)
-                if (potentialModule.ClassName == moduleName)
-                {
-                    thatModule = potentialModule;
-                    break;
-                }
-
-            if (thatModule == null)
-                thatModule = ourSwitch.internalProp.AddModule(handlerConfiguration);
-            if (thatModule == null)
-                return false;
-            foreach (MethodInfo m in thatModule.GetType().GetMethods())
-            {
-                if (m.Name == node.GetValue("actionMethod"))
-                {
-                    actionCall = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), thatModule, m);
-                }
-                if (!string.IsNullOrEmpty(stateMethod) && m.Name == stateMethod)
-                {
-                    stateCall = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), thatModule, m);
-                }
-            }
-            return actionCall != null;
-        }
-
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -247,6 +210,9 @@ namespace JSI
                             break;
                         case "plugin":
                             persistentVarName = string.Empty;
+                            comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                            comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                             {
                                 if (node.GetValue("name") == internalProp.propName)
@@ -255,12 +221,20 @@ namespace JSI
                                     {
                                         if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod"))
                                         {
-                                            if (!InstantiateHandler(pluginConfig, this, out actionHandler, out stateHandler))
+                                            string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("actionMethod").Trim();
+                                            actionHandler = (Action<bool>)comp.GetMethod(action, internalProp, typeof(Action<bool>));
+
+                                            if (actionHandler == null)
                                             {
                                                 JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
                                             }
                                             else
                                             {
+                                                if (pluginConfig.HasValue("stateMethod"))
+                                                {
+                                                    string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
+                                                    stateHandler = (Func<bool>)comp.GetMethod(state, internalProp, typeof(Func<bool>));
+                                                }
                                                 isPluginAction = true;
                                                 break;
                                             }
@@ -291,8 +265,11 @@ namespace JSI
 
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
-                    comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                    comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+                    if (comp == null)
+                    {
+                        comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                        comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+                    }
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {
@@ -302,7 +279,6 @@ namespace JSI
                         {
                             masterRange[0] = new VariableOrNumber(range[0], this);
                             masterRange[1] = new VariableOrNumber(range[1], this);
-                            JUtil.LogMessage(this, "Configured masterVariable");
                         }
                         else
                         {

@@ -7,8 +7,10 @@ namespace JSI
     /// Provides a built-in plugin to execute tasks that can be done in the
     /// core RPM without plugin assistance.
     /// </summary>
-    public class JSIInternalRPMButtons : InternalModule
+    public class JSIInternalRPMButtons : IJSIModule
     {
+        public JSIInternalRPMButtons(Vessel _vessel) : base(_vessel) { }
+
         /// <summary>
         /// Turns on the flowState for all resources on the ship.
         /// </summary>
@@ -176,7 +178,7 @@ namespace JSI
         private void ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode newMode)
         {
             // find the UI object on screen
-            RUIToggleButton[] SASbtns = FindObjectOfType<VesselAutopilotUI>().modeButtons;
+            RUIToggleButton[] SASbtns = UnityEngine.Object.FindObjectOfType<VesselAutopilotUI>().modeButtons;
             // set our mode, note it takes the mode as an int, generally top to bottom, left to right, as seen on the screen. Maneuver node being the exception, it is 9
             SASbtns.ElementAt<RUIToggleButton>((int)newMode).SetTrue(true, true);
         }
