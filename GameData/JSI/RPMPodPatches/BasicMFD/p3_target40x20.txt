@@ -17,4 +17,4 @@
 {2:;"                                        ";""} Y:{0:SIP_8.3}m/s              Y:{1:SIP_6.3}m $&$TGTRELY TARGETDISTANCEY TARGETEXISTS
 {2:;"                                        ";""} Z:{0:SIP_8.3}m/s              Z:{1:SIP_6.3}m $&$TGTRELZ TARGETDISTANCEZ TARGETEXISTS
 ________________________________________
-SAS:{0,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| RCS:{1,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| {2:####.##;;"[#ff0000ff]!Empty!"}$&$ SAS RCS MONOPROP
+SAS:{0,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| RCS:{1,-6:"[#00ff00ff]Active[#ffffffff]";0;Off}| {2:####.##;;"[#ff0000ff]!Empty!"}$&$ SAS RCS SYSR_MONOPROPELLANT
