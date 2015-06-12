@@ -193,6 +193,10 @@ namespace JSI
         {
             get
             {
+                if(persistence == null)
+                {
+                    persistence = new PersistenceAccessor(this);
+                }
                 return persistence;
             }
         }
@@ -398,7 +402,10 @@ namespace JSI
                 // We instantiate plugins late.
                 plugins = new ExternalVariableHandlers(this);
 
-                persistence = new PersistenceAccessor(this);
+                if (persistence == null)
+                {
+                    persistence = new PersistenceAccessor(this);
+                }
 
                 protractor = new Protractor(this);
 
