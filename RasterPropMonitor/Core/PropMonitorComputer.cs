@@ -179,7 +179,6 @@ namespace JSI
         private double localGeeASL, localGeeDirect;
         private double standardAtmosphere;
         private float slopeAngle;
-        private double atmPressure;
         private readonly double upperAtmosphereLimit = Math.Log(100000);
         private float heatShieldTemperature;
         private float heatShieldFlux;
@@ -194,6 +193,10 @@ namespace JSI
         {
             get
             {
+                if(persistence == null)
+                {
+                    persistence = new PersistenceAccessor(this);
+                }
                 return persistence;
             }
         }
@@ -230,7 +233,19 @@ namespace JSI
 
         private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
         private Dictionary<string, MappedVariable> mappedVariables = new Dictionary<string, MappedVariable>();
-        private Dictionary<string, Func<bool>> pluginVariables = new Dictionary<string, Func<bool>>();
+        private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
+        private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
+
+        private List<IJSIModule> installedModules = new List<IJSIModule>();
+
+        // MechJeb reflections
+        private Func<bool> evaluateMechJebAvailable;
+        private Func<double> evaluateDeltaV;
+        private Func<double> evaluateDeltaVStage;
+        private Func<double> evaluateLandingError;
+        private Func<double> evaluateLandingAltitude;
+        private Func<double> evaluateLandingLatitude;
+        private Func<double> evaluateLandingLongitude;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -379,7 +394,6 @@ namespace JSI
 
 
                 // Now let's parse our stored strings...
-
                 if (!string.IsNullOrEmpty(storedStrings))
                 {
                     storedStringsArray = storedStrings.Split('|');
@@ -388,10 +402,84 @@ namespace JSI
                 // We instantiate plugins late.
                 plugins = new ExternalVariableHandlers(this);
 
-                persistence = new PersistenceAccessor(this);
+                if (persistence == null)
+                {
+                    persistence = new PersistenceAccessor(this);
+                }
 
                 protractor = new Protractor(this);
+
+                installedModules.Add(new JSIParachute(vessel));
+                installedModules.Add(new JSIMechJeb(vessel));
+                installedModules.Add(new JSIInternalRPMButtons(vessel));
+                installedModules.Add(new JSIGimbal(vessel));
             }
+        }
+
+        public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
+        {
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2)
+            {
+                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+
+            // Backwards compatibility:
+            if(tokens[0] == "MechJebRPMButtons")
+            {
+                tokens[0] = "JSIMechJeb";
+            }
+            IJSIModule jsiModule = null;
+            foreach(IJSIModule module in installedModules)
+            {
+                if(module.GetType().Name == tokens[0])
+                {
+                    jsiModule = module;
+                    break;
+                }
+            }
+
+            var methodInfo = delegateType.GetMethod("Invoke");
+            if (jsiModule == null)
+            {
+                // Fall back - this method isn't part of the core RPM system
+                return JUtil.GetMethod(packedMethod, internalProp, delegateType);
+            }
+
+            Type returnType = delegateType.GetMethod("Invoke").ReturnType;
+            Delegate stateCall = null;
+            foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+            {
+                if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
+                {
+                    stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                }
+            }
+
+            return stateCall;
+        }
+
+        private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
+        {
+            if(method1.ReturnType == method2.ReturnType)
+            {
+                var m1Parms = method1.GetParameters();
+                var m2Parms = method2.GetParameters();
+                if(m1Parms.Length == m2Parms.Length)
+                {
+                    for(int i=0; i<m1Parms.Length; ++i)
+                    {
+                        if(m1Parms[i].GetType() != m2Parms[i].GetType())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override void OnStart(PartModule.StartState state)
@@ -451,37 +539,26 @@ namespace JSI
         public override void OnUpdate()
         {
             if (!JUtil.IsActiveVessel(vessel))
+            {
                 return;
+            }
 
             if (!UpdateCheck())
+            {
                 return;
+            }
 
             // We clear the cache every frame.
             resultCache.Clear();
+            foreach(IJSIModule module in installedModules)
+            {
+                module.Invalidate();
+            }
 
             FetchCommonData();
         }
 
         private static float GetCurrentThrust(ModuleEngines engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-                else
-                {
-                    return engine.finalThrust;
-                }
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
-        private static float GetCurrentThrust(ModuleEnginesFX engine)
         {
             if (engine != null)
             {
@@ -520,46 +597,7 @@ namespace JSI
             }
         }
 
-        private static float GetMaximumThrust(ModuleEnginesFX engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-
-                float vacISP = engine.atmosphereCurve.Evaluate(0.0f);
-                float maxThrustAtAltitude = engine.maxThrust * engine.realIsp / vacISP;
-
-                return maxThrustAtAltitude * (engine.thrustPercentage / 100.0f);
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
         private static float GetRealIsp(ModuleEngines engine)
-        {
-            if (engine != null)
-            {
-                if ((!engine.EngineIgnited) || (!engine.isEnabled) || (!engine.isOperational))
-                {
-                    return 0.0f;
-                }
-                else
-                {
-                    return engine.realIsp;
-                }
-            }
-            else
-            {
-                return 0.0f;
-            }
-        }
-
-        private static float GetRealIsp(ModuleEnginesFX engine)
         {
             if (engine != null)
             {
@@ -666,8 +704,6 @@ namespace JSI
             }
 
             horzVelocity = (VelocityVesselSurface - (speedVertical * up)).magnitude;
-
-            atmPressure = FlightGlobals.getStaticPressure(AltitudeASL, vessel.mainBody);
 
             if (target != null)
             {
@@ -832,7 +868,7 @@ namespace JSI
                         continue;
                     }
 
-                    if (pm is ModuleEngines)
+                    if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
                         anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
@@ -852,26 +888,6 @@ namespace JSI
                             resources.MarkPropellant(thatResource);
                         }
                     }
-                    else if (pm is ModuleEnginesFX)
-                    {
-                        var thatEngineModuleFX = pm as ModuleEnginesFX;
-                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
-                        anyEnginesFlameout |= (thatEngineModuleFX.isActiveAndEnabled && thatEngineModuleFX.flameout);
-
-                        totalCurrentThrust += GetCurrentThrust(thatEngineModuleFX);
-                        float maxThrust = GetMaximumThrust(thatEngineModuleFX);
-                        totalMaximumThrust += maxThrust;
-                        float realIsp = GetRealIsp(thatEngineModuleFX);
-                        if (realIsp > 0)
-                        {
-                            averageIspContribution += maxThrust / realIsp;
-                        }
-
-                        foreach (Propellant thatResource in thatEngineModuleFX.propellants)
-                        {
-                            resources.MarkPropellant(thatResource);
-                        }
-                    }
                     else if (pm is ModuleAblator)
                     {
                         var thatAblator = pm as ModuleAblator;
@@ -883,11 +899,19 @@ namespace JSI
                             heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
                         }
                     }
-                    else if (pm is ModuleScienceExperiment)
-                    {
-                        var thatExperiment = pm as ModuleScienceExperiment;
-                        //JUtil.LogMessage(this, "Experiment: {0} in {1}", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name);
-                    }
+                    //else if (pm is ModuleScienceExperiment)
+                    //{
+                    //    var thatExperiment = pm as ModuleScienceExperiment;
+                    //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
+                    //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
+                    //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
+                    //}
+                    //else if (pm is ModuleScienceContainer)
+                    //{
+                    //    var thatContainer = pm as ModuleScienceContainer;
+                    //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
+                    //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
+                    //}
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -1184,9 +1208,9 @@ namespace JSI
                 // Plugin variables.  Let's get crazy!
                 if (tokens.Length == 2 && tokens[0] == "PLUGIN")
                 {
-                    if (pluginVariables.ContainsKey(tokens[1]))
+                    if (pluginBoolVariables.ContainsKey(tokens[1]))
                     {
-                        Func<bool> pluginCall = pluginVariables[tokens[1]];
+                        Func<bool> pluginCall = pluginBoolVariables[tokens[1]];
                         if (pluginCall != null)
                         {
                             return pluginCall().GetHashCode();
@@ -1194,6 +1218,18 @@ namespace JSI
                         else
                         {
                             return -1;
+                        }
+                    }
+                    else if(pluginDoubleVariables.ContainsKey(tokens[1]))
+                    {
+                        Func<double> pluginCall = pluginDoubleVariables[tokens[1]];
+                        if (pluginCall != null)
+                        {
+                            return pluginCall();
+                        }
+                        else
+                        {
+                            return double.NaN;
                         }
                     }
                     else
@@ -1223,7 +1259,7 @@ namespace JSI
                             if (part.internalModel.props.Count == 0)
                             {
                                 JUtil.LogErrorMessage(this, "How did RPM get invoked in an IVA with no props?");
-                                pluginVariables.Add(tokens[1], null);
+                                pluginBoolVariables.Add(tokens[1], null);
                                 return float.NaN;
                             }
 
@@ -1235,26 +1271,38 @@ namespace JSI
                             {
                                 propToUse = part.internalModel.props[0];
                             }
-                            JUtil.LogMessage(this, "I am adding {0} to a {2} so I can answer {1}", internalModule[0], input, propToUse.name);
                         }
 
                         if (propToUse == null)
                         {
                             JUtil.LogErrorMessage(this, "Wait - propToUse is still null?");
-                            pluginVariables.Add(tokens[1], null);
+                            pluginBoolVariables.Add(tokens[1], null);
                             return -1;
                         }
 
-                        Func<bool> pluginCall = JUtil.GetStateMethod(tokens[1], propToUse);
-                        pluginVariables.Add(tokens[1], pluginCall);
-
-                        if (pluginCall != null)
+                        Func<bool> pluginCall = (Func<bool>)GetMethod(tokens[1], propToUse, typeof(Func<bool>));
+                        if (pluginCall == null)
                         {
-                            return pluginCall().GetHashCode();
+                            Func<double> pluginNumericCall = (Func<double>)GetMethod(tokens[1], propToUse, typeof(Func<double>));
+
+                            if(pluginNumericCall != null)
+                            {
+                                JUtil.LogMessage(this, "Adding {0} as a Func<double>", tokens[1]);
+                                pluginDoubleVariables.Add(tokens[1], pluginNumericCall);
+                                return pluginNumericCall();
+                            }
+                            else
+                            {
+                                pluginBoolVariables.Add(tokens[1], null);
+                                return -1;
+                            }
                         }
                         else
                         {
-                            return -1;
+                            JUtil.LogMessage(this, "Adding {0} as a Func<bool>", tokens[1]);
+                            pluginBoolVariables.Add(tokens[1], pluginCall);
+
+                            return pluginCall().GetHashCode();
                         }
                     }
                 }
@@ -1473,7 +1521,7 @@ namespace JSI
 
                 // Atmospheric values
                 case "ATMPRESSURE":
-                    return atmPressure;
+                    return vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
@@ -1481,7 +1529,7 @@ namespace JSI
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
-                        return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(atmPressure, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
+                        return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
                         FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0d, 1d);
                     }
                     return 0d;
@@ -1499,12 +1547,11 @@ namespace JSI
                 case "MASSPROPELLANTSTAGE":
                     return resources.PropellantMass(true);
 
-                // The primitive delta V calculation.
-
+                // The delta V calculation.
                 case "DELTAV":
-                    return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
+                    return DeltaV();
                 case "DELTAVSTAGE":
-                    return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
+                    return DeltaVStage();
 
                 // Thrust and related
                 case "THRUST":
@@ -2037,6 +2084,15 @@ namespace JSI
                     protractor.Update(vessel, targetOrbit);
                     return protractor.TargetBodyDeltaV;
 
+                case "PREDICTEDLANDINGALTITUDE":
+                    return LandingAltitude();
+                case "PREDICTEDLANDINGLATITUDE":
+                    return LandingLatitude();
+                case "PREDICTEDLANDINGLONGITUDE":
+                    return LandingLongitude();
+                case "PREDICTEDLANDINGERROR":
+                    return LandingError();
+
                 // FLight control status
                 case "THROTTLE":
                     return vessel.ctrlState.mainThrottle;
@@ -2155,6 +2211,9 @@ namespace JSI
                 // That would return only the "AssemblyVersion" version which in our case does not change anymore.
                 // We use "AsssemblyFileVersion" for actual version numbers now to facilitate hardlinking.
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();
+
+                case "MECHJEBAVAILABLE":
+                    return MechJebAvailable().GetHashCode();
 
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":
@@ -2341,6 +2400,128 @@ namespace JSI
 
             // Didn't recognise anything so we return the string we got, that helps debugging.
             return input;
+        }
+
+        private double FallbackEvaluateDeltaV()
+        {
+            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
+        }
+
+        private double FallbackEvaluateDeltaVStage()
+        {
+            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
+        }
+
+        private double DeltaV()
+        {
+            if(evaluateDeltaV == null)
+            {
+                Func<double> accessor = null;
+                
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(Func<double>));
+                if(accessor != null)
+                {
+                    double value = accessor();
+                    if(double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDeltaV;
+                }
+
+                evaluateDeltaV = accessor;
+            }
+
+            return evaluateDeltaV();
+        }
+
+        private double DeltaVStage()
+        {
+            if (evaluateDeltaVStage == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetStageDeltaV", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDeltaVStage;
+                }
+
+                evaluateDeltaVStage = accessor;
+            }
+
+            return evaluateDeltaVStage();
+        }
+
+        private double LandingError()
+        {
+            if (evaluateLandingError == null)
+            {
+                evaluateLandingError = (Func<double>)GetMethod("JSIMechJeb:GetLandingError", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingError();
+        }
+
+        private double LandingAltitude()
+        {
+            if (evaluateLandingAltitude == null)
+            {
+                evaluateLandingAltitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingAltitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingAltitude();
+        }
+
+        private double LandingLatitude()
+        {
+            if (evaluateLandingLatitude == null)
+            {
+                evaluateLandingLatitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingLatitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingLatitude();
+        }
+
+        private double LandingLongitude()
+        {
+            if (evaluateLandingLongitude == null)
+            {
+                evaluateLandingLongitude = (Func<double>)GetMethod("JSIMechJeb:GetLandingLongitude", part.internalModel.props[0], typeof(Func<double>));
+            }
+
+            return evaluateLandingLongitude();
+        }
+
+        private bool MechJebAvailable()
+        {
+            if (evaluateMechJebAvailable == null)
+            {
+                Func<bool> accessor = null;
+
+                accessor = (Func<bool>)GetMethod("JSIMechJeb:GetMechJebAvailable", part.internalModel.props[0], typeof(Func<bool>));
+                if (accessor == null)
+                {
+                    accessor = JUtil.ReturnFalse;
+                }
+
+                evaluateMechJebAvailable = accessor;
+            }
+
+            return evaluateMechJebAvailable();
         }
 
         private class ResourceNameLengthComparer : IComparer<String>
