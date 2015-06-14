@@ -47,7 +47,7 @@ namespace JSI
         }
 
         // Craft-relative basis vectors
-        private Vector3d forward
+        public Vector3d Forward
         {
             get
             {
@@ -675,7 +675,7 @@ namespace JSI
             // If the craft is rolled sharply to the side, we have to re-do our basis.
             if (surfaceForward.sqrMagnitude < 0.5)
             {
-                surfaceRight = Vector3d.Cross(forward, up);
+                surfaceRight = Vector3d.Cross(Forward, up);
                 surfaceForward = Vector3d.Cross(up, surfaceRight);
             }
             else
@@ -1979,7 +1979,7 @@ namespace JSI
                         if (targetDockingNode != null)
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
                         if (target is Vessel)
-                            return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
+                            return JUtil.NormalAngle(-target.GetFwdVector(), Forward, up);
                         return 0d;
                     }
                     return 0d;
@@ -1990,7 +1990,7 @@ namespace JSI
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
                         if (target is Vessel)
                         {
-                            JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
+                            JUtil.NormalAngle(-target.GetFwdVector(), Forward, -right);
                         }
                         return 0d;
                     }
@@ -2002,7 +2002,7 @@ namespace JSI
                             return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
                         if (target is Vessel)
                         {
-                            return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
+                            return JUtil.NormalAngle(target.GetTransform().up, up, -Forward);
                         }
                         return 0d;
                     }
@@ -2228,8 +2228,8 @@ namespace JSI
                     return (speedVerticalRounded < 0 && altitudeBottom < 100 && slopeAngle > 15).GetHashCode();
                 case "DOCKINGANGLEALARM":
                     return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
-                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
+                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, up)) > 1.5 ||
+                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, -right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
                     return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
