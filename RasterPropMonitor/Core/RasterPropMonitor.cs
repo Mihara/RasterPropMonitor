@@ -129,16 +129,21 @@ namespace JSI
         // This function courtesy of EnhancedNavBall.
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
+            return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), drawingLayer);
+        }
+
+        internal static GameObject CreateSimplePlane(string name, Vector2 vectorSize, int drawingLayer)
+        {
             var mesh = new Mesh();
 
             var obj = new GameObject(name);
             MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
             obj.AddComponent<MeshRenderer>();
 
-            var p0 = new Vector3(-vectorSize, 0.0f, vectorSize);
-            var p1 = new Vector3(vectorSize, 0.0f, vectorSize);
-            var p2 = new Vector3(-vectorSize, 0.0f, -vectorSize);
-            var p3 = new Vector3(vectorSize, 0.0f, -vectorSize);
+            var p0 = new Vector3(-vectorSize.x, 0.0f, vectorSize.y);
+            var p1 = new Vector3(vectorSize.x, 0.0f, vectorSize.y);
+            var p2 = new Vector3(-vectorSize.x, 0.0f, -vectorSize.y);
+            var p3 = new Vector3(vectorSize.x, 0.0f, -vectorSize.y);
 
             mesh.vertices = new[] 
             {
@@ -411,7 +416,6 @@ namespace JSI
 
         private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
         {
-
             if (fontCharacters.ContainsKey(letter))
             {
                 // This is complicated.
