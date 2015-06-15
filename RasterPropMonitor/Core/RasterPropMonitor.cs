@@ -129,10 +129,10 @@ namespace JSI
         // This function courtesy of EnhancedNavBall.
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
-            return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), drawingLayer);
+            return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
         }
 
-        internal static GameObject CreateSimplePlane(string name, Vector2 vectorSize, int drawingLayer)
+        internal static GameObject CreateSimplePlane(string name, Vector2 vectorSize, Rect textureCoords, int drawingLayer)
         {
             var mesh = new Mesh();
 
@@ -157,10 +157,10 @@ namespace JSI
                 3, 4, 5
             };
 
-            var uv1 = new Vector2(0.0f, 0.0f);
-            var uv2 = new Vector2(1.0f, 1.0f);
-            var uv3 = new Vector2(0.0f, 1.0f);
-            var uv4 = new Vector2(1.0f, 0.0f);
+            var uv1 = new Vector2(textureCoords.xMin, textureCoords.yMin);
+            var uv2 = new Vector2(textureCoords.xMax, textureCoords.yMax);
+            var uv3 = new Vector2(textureCoords.xMin, textureCoords.yMax);
+            var uv4 = new Vector2(textureCoords.xMax, textureCoords.yMin);
 
             mesh.uv = new[] 
             {

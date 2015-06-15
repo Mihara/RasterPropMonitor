@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace JSI
@@ -8,21 +10,21 @@ namespace JSI
      * for use in aircraft.  Instead of a spherical nav ball, pitch and roll
      * are displayed with a "ladder" (texture).  Strips also provide heading
      * information.
-     * As an experiment, I'll see if we can handle drawing a camera view
-     * beneath the HUD, too.
      ************************************************************************/
     class JSIHeadsUpDisplay : InternalModule
     {
         [KSPField]
-        public string cameraTransform = string.Empty;
-        private FlyingCamera cameraObject;
+        public int drawingLayer = 17;
+
         [KSPField]
         public string backgroundColor = "0,0,0,0";
         private Color32 backgroundColorValue;
-        // MOARdV: Assuming (for now) the camera will not zoom.  FoV is needed
-        // for both the camera render, and to know how to scale the HUD ladder.
+
+        // Static overlay
         [KSPField]
-        public float hudFov = 60.0f;
+        public string staticOverlay = string.Empty;
+
+        // Ladder
         [KSPField]
         public Vector2 horizonSize = new Vector2(64.0f, 32.0f);
         [KSPField]
@@ -31,172 +33,231 @@ namespace JSI
         public bool use360horizon = true;
         [KSPField] // Number of texels of the horizon texture to draw (width).
         public Vector2 horizonTextureSize = new Vector2(1f, 1f);
+
         [KSPField]
         public string headingBar = string.Empty;
         [KSPField] // x,y, width, height in pixels
-        public Vector4 headingBarPosition = new Vector4(0f, 0f, 64f, 32f);
+        public Vector4 headingBarPosition = new Vector4(0f, 0f, 0f, 0f);
+        [KSPField]
+        public float headingBarWidth = 0.0f;
+        private float headingBarTextureWidth;
+
         [KSPField]
         public bool showHeadingBarPrograde = true;
         [KSPField]
-        public float headingBarWidth = 64;
-        [KSPField] // Texture to use
-        public string vertBar1Texture = string.Empty;
-        [KSPField] // Position and size of the bar, in pixels
-        public Vector4 vertBar1Position = new Vector4(0f, 0f, 64f, 320f);
-        [KSPField] // minimum and maximum values
-        public Vector2 vertBar1Limit = new Vector2(0f, 10000f);
-        [KSPField] // lower and upper bound of the texture, in pixels.  Defaults are useless...
-        public Vector2 vertBar1TextureLimit = new Vector2(0.0f, 1.0f);
-        [KSPField] // Number of texels to draw (vertically) for this bar.
-        public float vertBar1TextureSize = 0.5f;
-        [KSPField]
-        public string vertBar1Variable = string.Empty;
-        [KSPField]
-        public bool vertBar1UseLog10 = true;
-        [KSPField] // Texture to use
-        public string vertBar2Texture = string.Empty;
-        [KSPField] // Position and size of the bar, in pixels
-        public Vector4 vertBar2Position = new Vector4(0f, 0f, 64f, 320f);
-        [KSPField] // minimum and maximum values
-        public Vector2 vertBar2Limit = new Vector2(-10000f, 10000f);
-        [KSPField] // lower and upper bound of the texture, in pixels.  Defaults are useless...
-        public Vector2 vertBar2TextureLimit = new Vector2(0.0f, 1.0f);
-        [KSPField] // Amount of boundary on the texture (offset added to the current value's texture coordinate, to limit how much of the strip is visible)
-        public float vertBar2TextureSize = 0.5f;
-        [KSPField]
-        public string vertBar2Variable = string.Empty;
-        [KSPField]
-        public bool vertBar2UseLog10 = true;
-        [KSPField]
-        public string staticOverlay = string.Empty;
+        public bool showLadderPrograde = true;
         [KSPField]
         public string progradeColor = string.Empty;
         private Color progradeColorValue = new Color(0.84f, 0.98f, 0);
         [KSPField]
         public float iconPixelSize = 64f;
 
-        private Material ladderMaterial;
-        private Material headingMaterial;
-        private Material overlayMaterial;
-        private Material vertBar1Material;
-        private Material vertBar2Material;
-        private Material iconMaterial;
-        private Texture2D gizmoTexture;
+        // Vertical bars
+        [KSPField]
+        public string verticalBar = string.Empty;
+        private List<VerticalBar> verticalBars = new List<VerticalBar>();
+
+        private GameObject cameraBody;
+        private Camera hudCamera;
+
         private RasterPropMonitorComputer comp;
+
+        private GameObject ladderMesh;
+        private GameObject progradeLadderIcon;
+        private GameObject overlayMesh;
+        private GameObject headingMesh;
+        private GameObject progradeHeadingIcon;
+        private float progradeHeadingIconOrigin;
+
+        private float lastRoll = 0.0f;
+
         private bool startupComplete;
+        private bool firstRenderComplete;
 
-        public bool RenderHUD(RenderTexture screen, float cameraAspect)
+
+        /// <summary>
+        /// Initialize the renderable game objects for the HUD.
+        /// </summary>
+        /// <param name="screenWidth"></param>
+        /// <param name="screenHeight"></param>
+        void InitializeRenderables(float screenWidth, float screenHeight)
         {
-            if (screen == null || !startupComplete || HighLogic.LoadedSceneIsEditor)
+            Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+
+            if (!string.IsNullOrEmpty(staticOverlay))
             {
-                return false;
+                Material overlayMaterial = new Material(displayShader);
+                overlayMaterial.color = Color.white;
+                Texture overlayTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
+                overlayMaterial.mainTexture = overlayTexture;
+
+                overlayMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
+                overlayMesh.transform.position = new Vector3(0, 0, 1.5f);
+                overlayMesh.renderer.material = overlayMaterial;
+                overlayMesh.transform.parent = cameraBody.transform;
+                overlayMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+                JUtil.ShowHide(false, overlayMesh);
             }
 
-            // Clear the background, if configured.
-            GL.Clear(true, true, backgroundColorValue);
-
-            // Configure the camera, if configured.
-            // MOARdV: Might be worthwhile to refactor the flying camera so
-            // it is created in Start (like new FlyingCamera(part, cameraTransform)),
-            // and pass the screen, FoV, and aspect ratio (or just screen and
-            // FoV) as Render parameters, so there's no need to test if the
-            // camera's been created every render call.
-            if (cameraObject == null && !string.IsNullOrEmpty(cameraTransform))
+            if (!string.IsNullOrEmpty(horizonTexture))
             {
-                cameraObject = new FlyingCamera(part, screen, cameraAspect);
-                cameraObject.PointCamera(cameraTransform, hudFov);
+                Material ladderMaterial = new Material(displayShader);
+                ladderMaterial.color = Color.white;
+                ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
+                if (ladderMaterial.mainTexture != null)
+                {
+                    horizonTextureSize.x = 0.5f * (horizonTextureSize.x / ladderMaterial.mainTexture.width);
+                    horizonTextureSize.y = 0.5f * (horizonTextureSize.y / ladderMaterial.mainTexture.height);
+
+                    ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
+
+                    ladderMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                    ladderMesh.transform.position = new Vector3(0, 0, 1.5f);
+                    ladderMesh.renderer.material = ladderMaterial;
+                    ladderMesh.transform.parent = cameraBody.transform;
+                    ladderMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+                    JUtil.ShowHide(false, ladderMesh);
+
+                    if (progradeColorValue.a > 0.0f && showLadderPrograde)
+                    {
+                        Material progradeIconMaterial = new Material(displayShader);
+                        progradeIconMaterial.color = Color.white;
+                        progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+
+                        progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
+                        progradeLadderIcon.renderer.material = progradeIconMaterial;
+                        progradeLadderIcon.transform.parent = ladderMesh.transform;
+                        progradeLadderIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+                        MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
+
+                        meshFilter.mesh.colors = new[]
+                        {
+                            progradeColorValue, progradeColorValue, progradeColorValue,
+                            progradeColorValue, progradeColorValue, progradeColorValue
+                        };
+                    }
+                }
             }
 
-            // Draw the camera's view, if configured.
-            if (cameraObject != null)
+            if (!string.IsNullOrEmpty(headingBar))
             {
-                cameraObject.Render();
+                Material headingMaterial = new Material(displayShader);
+                headingMaterial.color = Color.white;
+                headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
+                if (headingMaterial.mainTexture != null)
+                {
+                    headingBarTextureWidth = 0.5f * (headingBarWidth / (float)headingMaterial.mainTexture.width);
+
+                    headingMaterial.mainTexture.wrapMode = TextureWrapMode.Repeat;
+
+                    headingMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                    headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                    headingMesh.renderer.material = headingMaterial;
+                    headingMesh.transform.parent = cameraBody.transform;
+                    headingMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+                    JUtil.ShowHide(false, headingMesh);
+
+                    if (progradeColorValue.a > 0.0f && showHeadingBarPrograde)
+                    {
+                        Material progradeIconMaterial = new Material(displayShader);
+                        progradeIconMaterial.color = Color.white;
+                        progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+
+                        progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
+
+                        progradeHeadingIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                        progradeHeadingIcon.renderer.material = progradeIconMaterial;
+                        progradeHeadingIcon.transform.parent = headingMesh.transform;
+                        progradeHeadingIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+                        MeshFilter meshFilter = progradeHeadingIcon.GetComponent<MeshFilter>();
+
+                        meshFilter.mesh.colors = new[]
+                        {
+                            progradeColorValue, progradeColorValue, progradeColorValue,
+                            progradeColorValue, progradeColorValue, progradeColorValue
+                        };
+                    }
+                }
             }
 
-            // Configure the matrix so that the origin is the center of the screen.
-            GL.PushMatrix();
-
-            // Draw the HUD ladder
-            // MOARdV note, 2014/03/19: swapping the y values, to invert the
-            // coordinates so the prograde icon is right-side up.
-            GL.LoadPixelMatrix(-horizonSize.x * 0.5f, horizonSize.x * 0.5f, horizonSize.y * 0.5f, -horizonSize.y * 0.5f);
-            GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
-
-            Vector3 coM = vessel.findWorldCenterOfMass();
-            Vector3 up = comp.Up;
-            Vector3 forward = vessel.GetTransform().up;
-            Vector3 right = vessel.GetTransform().right;
-            Vector3 top = Vector3.Cross(right, forward);
-            Vector3 north = comp.North;
-
-            Vector3d velocityVesselSurface = comp.VelocityVesselSurface;
-            Vector3 velocityVesselSurfaceUnit = velocityVesselSurface.normalized;
-
-            if (ladderMaterial)
+            if (!string.IsNullOrEmpty(verticalBar))
             {
-                // Figure out the texture coordinate scaling for the ladder.
-                float ladderTextureOffset = horizonTextureSize.y / ladderMaterial.mainTexture.height;
-
-                float cosUp = Vector3.Dot(forward, up);
-                float cosRoll = Vector3.Dot(top, up);
-                float sinRoll = Vector3.Dot(right, up);
-
-                var normalizedRoll = new Vector2(cosRoll, sinRoll);
-                normalizedRoll.Normalize();
-                if (normalizedRoll.magnitude < 0.99f)
+                ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("JSIHUD_VERTICAL_BAR");
+                string[] vBars = verticalBar.Split(';');
+                for (int i = 0; i < vBars.Length; ++i)
                 {
-                    // If we're hitting +/- 90 nearly perfectly, the sin and cos will
-                    // be too far out of whack to normalize.  Arbitrarily pick
-                    // a roll of 0.0.
-                    normalizedRoll.x = 1.0f;
-                    normalizedRoll.y = 0.0f;
+                    for (int j = 0; j < nodes.Length; ++j)
+                    {
+                        if (nodes[j].HasValue("name") && vBars[i] == nodes[j].GetValue("name"))
+                        {
+                            try
+                            {
+                                VerticalBar vb = new VerticalBar(nodes[j], screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
+                                verticalBars.Add(vb);
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Error parsing JSIHUD_VERTICAL_BAR: {0}", e);
+                            }
+                            break;
+                        }
+                    }
                 }
-                cosRoll = normalizedRoll.x;
-                sinRoll = normalizedRoll.y;
+            }
+        }
 
-                // Mihara: I'm pretty sure this was negative of what it should actually be, at least according to my mockup.
-                float pitch = -(Mathf.Asin(cosUp) * Mathf.Rad2Deg);
-                if (float.IsNaN(pitch))
-                {
-                    // We get NaN sometimes with cosUp at/near 1.
-                    pitch = -90.0f * Mathf.Sign(cosUp);
-                }
+        /// <summary>
+        /// Update the ladder's texture UVs so it's drawn correctly
+        /// </summary>
+        private void UpdateLadder()
+        {
+            float pitch = 90.0f - Vector3.Angle(comp.Forward, comp.Up);
 
-                float ladderMidpointCoord;
-                if (use360horizon)
-                {
-                    // Straight up is texture coord 0.75;
-                    // Straight down is TC 0.25;
-                    ladderMidpointCoord = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch);
-                }
-                else
-                {
-                    // Straight up is texture coord 1.0;
-                    // Straight down is TC 0.0;
-                    ladderMidpointCoord = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch);
-                }
+            float ladderMidpointCoord;
+            if (use360horizon)
+            {
+                // Straight up is texture coord 0.75;
+                // Straight down is TC 0.25;
+                ladderMidpointCoord = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch);
+            }
+            else
+            {
+                // Straight up is texture coord 1.0;
+                // Straight down is TC 0.0;
+                ladderMidpointCoord = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch);
+            }
 
-                ladderMaterial.SetPass(0);
-                GL.Begin(GL.QUADS);
+            var uv1 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
+            var uv2 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
+            var uv3 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
+            var uv4 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
 
-                // transform -x -y
-                GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
-                GL.Vertex3(cosRoll * horizonSize.x + sinRoll * horizonSize.y, -sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
+            MeshFilter meshFilter = ladderMesh.GetComponent<MeshFilter>();
 
-                // transform +x -y
-                GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord - ladderTextureOffset);
-                GL.Vertex3(-cosRoll * horizonSize.x + sinRoll * horizonSize.y, sinRoll * horizonSize.x + cosRoll * horizonSize.y, 0.0f);
+            meshFilter.mesh.uv = new[] 
+            {
+                uv1, uv4, uv3,
+                uv4, uv2, uv3
+            };
 
-                // transform +x +y
-                GL.TexCoord2(0.5f - horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
-                GL.Vertex3(-cosRoll * horizonSize.x - sinRoll * horizonSize.y, sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
+            Quaternion rotationVesselSurface = comp.RotationVesselSurface;
+            float roll = rotationVesselSurface.eulerAngles.z;
 
-                // transform -x +y
-                GL.TexCoord2(0.5f + horizonTextureSize.x, ladderMidpointCoord + ladderTextureOffset);
-                GL.Vertex3(cosRoll * horizonSize.x - sinRoll * horizonSize.y, -sinRoll * horizonSize.x - cosRoll * horizonSize.y, 0.0f);
-                GL.End();
+            ladderMesh.transform.Rotate(new Vector3(0.0f, 1.0f, 0.0f), lastRoll - roll);
 
-                float AoA = velocityVesselSurfaceUnit.AngleInPlane(right, forward);
+            lastRoll = roll;
+
+            if (progradeLadderIcon != null)
+            {
+                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.Right, comp.Forward);
                 float AoATC;
                 if (use360horizon)
                 {
@@ -212,226 +273,281 @@ namespace JSI
                 }
 
                 float Ypos = JUtil.DualLerp(
-                                 -horizonSize.y, horizonSize.y,
-                                 ladderMidpointCoord - ladderTextureOffset, ladderMidpointCoord + ladderTextureOffset,
+                                 horizonSize.y * 0.5f, -horizonSize.y * 0.5f,
+                                 ladderMidpointCoord - horizonTextureSize.y, ladderMidpointCoord + horizonTextureSize.y,
                                  AoATC);
 
-                // Placing the icon on the (0, Ypos) location, so simplify the transform.
-                DrawIcon(-sinRoll * Ypos, -cosRoll * Ypos, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
+                Vector3 position = progradeLadderIcon.transform.position;
+                position.y = Ypos;
+                progradeLadderIcon.transform.position = position;
+
+                JUtil.ShowHide(true, progradeLadderIcon);
             }
+        }
 
-            // Draw the rest of the HUD stuff (0,0) is the top left corner of the screen.
-            GL.LoadPixelMatrix(0, screen.width, screen.height, 0);
-            GL.Viewport(new Rect(0, 0, screen.width, screen.height));
+        /// <summary>
+        /// Update the compass / heading bar
+        /// </summary>
+        private void UpdateHeading()
+        {
+            float heading = comp.RotationVesselSurface.eulerAngles.y / 360.0f;
 
-            if (headingMaterial != null)
+            var uv1 = new Vector2(heading - headingBarTextureWidth, 0.0f);
+            var uv2 = new Vector2(heading + headingBarTextureWidth, 1.0f);
+            var uv3 = new Vector2(heading - headingBarTextureWidth, 1.0f);
+            var uv4 = new Vector2(heading + headingBarTextureWidth, 0.0f);
+
+            MeshFilter meshFilter = headingMesh.GetComponent<MeshFilter>();
+
+            meshFilter.mesh.uv = new[] 
             {
-                Quaternion rotationSurface = Quaternion.LookRotation(north, up);
-                Quaternion rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
-                float headingTexture = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y);
-                float headingTextureOffset = (headingBarWidth / headingMaterial.mainTexture.width) / 2;
+                uv1, uv4, uv3,
+                uv4, uv2, uv3
+            };
 
-                headingMaterial.SetPass(0);
-                GL.Begin(GL.QUADS);
-                GL.TexCoord2(headingTexture - headingTextureOffset, 1.0f);
-                GL.Vertex3(headingBarPosition.x, headingBarPosition.y, 0.0f);
-                GL.TexCoord2(headingTexture + headingTextureOffset, 1.0f);
-                GL.Vertex3(headingBarPosition.x + headingBarPosition.z, headingBarPosition.y, 0.0f);
-                GL.TexCoord2(headingTexture + headingTextureOffset, 0.0f);
-                GL.Vertex3(headingBarPosition.x + headingBarPosition.z, headingBarPosition.y + headingBarPosition.w, 0.0f);
-                GL.TexCoord2(headingTexture - headingTextureOffset, 0.0f);
-                GL.Vertex3(headingBarPosition.x, headingBarPosition.y + headingBarPosition.w, 0.0f);
-                GL.End();
-
-                if (showHeadingBarPrograde)
-                {
-                    float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(up, forward);
-                    float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
-                    float slipIconX = JUtil.DualLerp(headingBarPosition.x, headingBarPosition.x + headingBarPosition.z, headingTexture - headingTextureOffset, headingTexture + headingTextureOffset, slipTC);
-                    DrawIcon(slipIconX, headingBarPosition.y + headingBarPosition.w * 0.5f, GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), progradeColorValue);
-                }
-            }
-
-            if (vertBar1Material != null)
+            if (progradeHeadingIcon != null)
             {
-                float value = comp.ProcessVariable(vertBar1Variable, internalProp.propID).MassageToFloat();
-                if (float.IsNaN(value))
-                {
-                    value = 0.0f;
-                }
+                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(comp.Up, comp.Forward);
+                float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, comp.RotationVesselSurface.eulerAngles.y + slipAngle);
+                float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
-                if (vertBar1UseLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
+                Vector3 position = progradeHeadingIcon.transform.position;
+                position.x = slipIconX;
+                progradeHeadingIcon.transform.position = position;
 
-                float vertBar1TexCoord = JUtil.DualLerp(vertBar1TextureLimit.x, vertBar1TextureLimit.y, vertBar1Limit.x, vertBar1Limit.y, value);
-
-                vertBar1Material.SetPass(0);
-                GL.Begin(GL.QUADS);
-                GL.TexCoord2(0.0f, vertBar1TexCoord + vertBar1TextureSize);
-                GL.Vertex3(vertBar1Position.x, vertBar1Position.y, 0.0f);
-                GL.TexCoord2(1.0f, vertBar1TexCoord + vertBar1TextureSize);
-                GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y, 0.0f);
-                GL.TexCoord2(1.0f, vertBar1TexCoord - vertBar1TextureSize);
-                GL.Vertex3(vertBar1Position.x + vertBar1Position.z, vertBar1Position.y + vertBar1Position.w, 0.0f);
-                GL.TexCoord2(0.0f, vertBar1TexCoord - vertBar1TextureSize);
-                GL.Vertex3(vertBar1Position.x, vertBar1Position.y + vertBar1Position.w, 0.0f);
-                GL.End();
+                JUtil.ShowHide(true, progradeHeadingIcon);
             }
+        }
 
-            if (vertBar2Material != null)
+        public bool RenderHUD(RenderTexture screen, float cameraAspect)
+        {
+            if (screen == null || !startupComplete || HighLogic.LoadedSceneIsEditor)
             {
-                float value = comp.ProcessVariable(vertBar2Variable, internalProp.propID).MassageToFloat();
-                if (float.IsNaN(value))
-                {
-                    value = 0.0f;
-                }
-
-                if (vertBar2UseLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
-
-                float vertBar2TexCoord = JUtil.DualLerp(vertBar2TextureLimit.x, vertBar2TextureLimit.y, vertBar2Limit.x, vertBar2Limit.y, value);
-
-                vertBar2Material.SetPass(0);
-                GL.Begin(GL.QUADS);
-                GL.TexCoord2(0.0f, vertBar2TexCoord + vertBar2TextureSize);
-                GL.Vertex3(vertBar2Position.x, vertBar2Position.y, 0.0f);
-                GL.TexCoord2(1.0f, vertBar2TexCoord + vertBar2TextureSize);
-                GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y, 0.0f);
-                GL.TexCoord2(1.0f, vertBar2TexCoord - vertBar2TextureSize);
-                GL.Vertex3(vertBar2Position.x + vertBar2Position.z, vertBar2Position.y + vertBar2Position.w, 0.0f);
-                GL.TexCoord2(0.0f, vertBar2TexCoord - vertBar2TextureSize);
-                GL.Vertex3(vertBar2Position.x, vertBar2Position.y + vertBar2Position.w, 0.0f);
-                GL.End();
+                return false;
             }
 
-            if (overlayMaterial != null)
+            if (!firstRenderComplete)
             {
-                overlayMaterial.SetPass(0);
-                GL.Begin(GL.QUADS);
-                GL.TexCoord2(0.0f, 1.0f);
-                GL.Vertex3(0.0f, 0.0f, 0.0f);
-                GL.TexCoord2(1.0f, 1.0f);
-                GL.Vertex3(screen.width, 0.0f, 0.0f);
-                GL.TexCoord2(1.0f, 0.0f);
-                GL.Vertex3(screen.width, screen.height, 0.0f);
-                GL.TexCoord2(0.0f, 0.0f);
-                GL.Vertex3(0.0f, screen.height, 0.0f);
-                GL.End();
+                firstRenderComplete = true;
+                hudCamera.orthographicSize = (float)(screen.width) * 0.5f;
+                InitializeRenderables((float)screen.width, (float)screen.height);
             }
 
-            GL.PopMatrix();
+            for (int i = 0; i < verticalBars.Count; ++i)
+            {
+                verticalBars[i].Update(comp);
+            }
+
+            GL.Clear(true, true, backgroundColorValue);
+
+            hudCamera.targetTexture = screen;
+
+            // MOARdV TODO: I don't think this does anything...
+            GL.Color(Color.white);
+
+            if (headingMesh != null)
+            {
+                UpdateHeading();
+                JUtil.ShowHide(true, headingMesh);
+            }
+
+            if (ladderMesh != null)
+            {
+                // Viewport doesn't work with this, AFAICT
+                //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
+                // Fix up UVs, apply rotation.
+                UpdateLadder();
+                JUtil.ShowHide(true, ladderMesh);
+                //hudCamera.Render();
+                //JUtil.ShowHide(false, ladderMesh);
+                //GL.Viewport(new Rect(0, 0, screen.width, screen.height));
+            }
+
+            if (overlayMesh != null)
+            {
+                JUtil.ShowHide(true, overlayMesh);
+            }
+
+            hudCamera.Render();
+
+            JUtil.ShowHide(false, overlayMesh, ladderMesh, headingMesh, progradeLadderIcon, progradeHeadingIcon);
+            for (int i = 0; i < verticalBars.Count; ++i)
+            {
+                JUtil.ShowHide(false, verticalBars[i].barObject);
+            }
 
             return true;
         }
 
         public void Start()
         {
-
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
             try
             {
                 backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
-                Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
-                ladderMaterial = new Material(unlit);
-                ladderMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                if (!String.IsNullOrEmpty(horizonTexture))
-                {
-                    ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
-                    if (ladderMaterial.mainTexture != null)
-                    {
-                        horizonTextureSize.x = horizonTextureSize.x / ladderMaterial.mainTexture.width;
-                        ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                    }
-                }
-
-                if (!String.IsNullOrEmpty(headingBar))
-                {
-                    headingMaterial = new Material(unlit);
-                    headingMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                    headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
-                }
-
-                if (!String.IsNullOrEmpty(staticOverlay))
-                {
-                    overlayMaterial = new Material(unlit);
-                    overlayMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                    overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
-                }
-
-                if (!String.IsNullOrEmpty(vertBar1Texture) && !String.IsNullOrEmpty(vertBar1Variable))
-                {
-                    vertBar1Material = new Material(unlit);
-                    vertBar1Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                    vertBar1Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar1Texture.EnforceSlashes(), false);
-                    if (vertBar1Material.mainTexture != null)
-                    {
-                        float height = (float)vertBar1Material.mainTexture.height;
-                        vertBar1TextureLimit.x = 1.0f - (vertBar1TextureLimit.x / height);
-                        vertBar1TextureLimit.y = 1.0f - (vertBar1TextureLimit.y / height);
-                        vertBar1TextureSize = 0.5f * (vertBar1TextureSize / height);
-                        vertBar1Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                    }
-                }
-
-                if (!String.IsNullOrEmpty(vertBar2Texture) && !String.IsNullOrEmpty(vertBar2Variable))
-                {
-                    vertBar2Material = new Material(unlit);
-                    vertBar2Material.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                    vertBar2Material.mainTexture = GameDatabase.Instance.GetTexture(vertBar2Texture.EnforceSlashes(), false);
-                    if (vertBar2Material.mainTexture != null)
-                    {
-                        float height = (float)vertBar2Material.mainTexture.height;
-                        vertBar2TextureLimit.x = 1.0f - (vertBar2TextureLimit.x / height);
-                        vertBar2TextureLimit.y = 1.0f - (vertBar2TextureLimit.y / height);
-                        vertBar2TextureSize = 0.5f * (vertBar2TextureSize / height);
-                        vertBar2Material.mainTexture.wrapMode = TextureWrapMode.Clamp;
-                    }
-                }
-
-                if (vertBar1UseLog10)
-                {
-                    vertBar1Limit.x = JUtil.PseudoLog10(vertBar1Limit.x);
-                    vertBar1Limit.y = JUtil.PseudoLog10(vertBar1Limit.y);
-                }
-
-                if (vertBar2UseLog10)
-                {
-                    vertBar2Limit.x = JUtil.PseudoLog10(vertBar2Limit.x);
-                    vertBar2Limit.y = JUtil.PseudoLog10(vertBar2Limit.y);
-                }
+                cameraBody = new GameObject();
+                cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
+                cameraBody.layer = drawingLayer;
+                hudCamera = cameraBody.AddComponent<Camera>();
+                hudCamera.enabled = false;
+                hudCamera.orthographic = true;
+                hudCamera.eventMask = 0;
+                hudCamera.farClipPlane = 3f;
+                hudCamera.orthographicSize = 1.0f;
+                hudCamera.cullingMask = 1 << drawingLayer;
+                // does this actually work?
+                hudCamera.backgroundColor = backgroundColorValue;
+                hudCamera.clearFlags = CameraClearFlags.Depth | CameraClearFlags.Color;
+                hudCamera.transform.position = Vector3.zero; // new Vector3(0.0f, 0.0f, 2.0f);
+                hudCamera.transform.LookAt(new Vector3(0.0f, 0.0f, 1.5f), Vector3.up);
 
                 if (!string.IsNullOrEmpty(progradeColor))
                 {
                     progradeColorValue = ConfigNode.ParseColor32(progradeColor);
                 }
 
-                comp = RasterPropMonitorComputer.Instantiate(internalProp);
-
-                iconMaterial = new Material(unlit);
-                iconMaterial.color = new Color(0.5f, 0.5f, 0.5f, 1.0f);
-                gizmoTexture = JUtil.GetGizmoTexture();
-
-                startupComplete = true;
+                // use the RPM comp's centralized database so we're not 
+                // repeatedly doing computation.
+                comp = RasterPropMonitorComputer.Instantiate(this.part);
+                // We don't really care about the text refresh rate, but the
+                // HUD does care about data refresh rates.
+                comp.UpdateRefreshRates(10000, 1);
             }
-            catch
+            catch (Exception e)
             {
+                JUtil.LogErrorMessage(this, "Start() failed with an exception: {0}", e);
                 JUtil.AnnoyUser(this);
                 throw;
             }
+
+            startupComplete = true;
+        }
+    }
+
+    class VerticalBar
+    {
+        private VariableOrNumber variable;
+        private Vector2 scale;
+        private Vector2 textureLimit;
+        public readonly GameObject barObject;
+        private float textureSize;
+        private bool useLog10;
+
+        internal VerticalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
+        {
+            JUtil.LogMessage(this, "Configuring for {0}", node.GetValue("name"));
+            if (!node.HasValue("variableName"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing variableName");
+            }
+            variable = new VariableOrNumber(node.GetValue("variableName"), this);
+
+            if (!node.HasValue("texture"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing texture");
+            }
+
+            Texture2D tex = GameDatabase.Instance.GetTexture(node.GetValue("texture"), false);
+            if (tex == null)
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " texture " + node.GetValue("texture") + " can't be loaded.");
+            }
+            tex.wrapMode = TextureWrapMode.Clamp;
+
+            if (node.HasValue("useLog10") && bool.TryParse(node.GetValue("useLog10"), out useLog10) == false)
+            {
+                // I think this is redundant
+                useLog10 = false;
+            }
+
+            if (!node.HasValue("scale"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing scale");
+            }
+
+            scale = ConfigNode.ParseVector2(node.GetValue("scale"));
+            if (useLog10)
+            {
+                scale.x = JUtil.PseudoLog10(scale.x);
+                scale.y = JUtil.PseudoLog10(scale.y);
+            }
+
+            if (!node.HasValue("textureSize"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing textureSize");
+            }
+
+            if (!float.TryParse(node.GetValue("textureSize"), out textureSize))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " failed parsing textureSize");
+            }
+
+            textureSize = 0.5f * textureSize / (float)tex.height;
+
+            if (!node.HasValue("textureLimit"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing textureLimit");
+            }
+
+            textureLimit = ConfigNode.ParseVector2(node.GetValue("textureLimit"));
+            textureLimit.x = 1.0f - textureLimit.x / (float)tex.height;
+            textureLimit.y = 1.0f - textureLimit.y / (float)tex.height;
+
+            if (!node.HasValue("position"))
+            {
+                throw new Exception("VerticalBar " + node.GetValue("name") + " missing position");
+            }
+
+            Vector4 position = ConfigNode.ParseVector4(node.GetValue("position"));
+
+            barObject = RasterPropMonitor.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+
+            Material barMaterial = new Material(displayShader);
+            barMaterial.color = Color.white;
+            barMaterial.mainTexture = tex;
+
+            // Position in camera space has (0, 0) in the center, so we need to
+            // translate everything appropriately.  Y is odd since the coordinates
+            // supplied are Left-Handed (0Y on top, growing down), not RH.
+            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.5f);
+            barObject.renderer.material = barMaterial;
+            barObject.transform.parent = cameraBody.transform;
+            barObject.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+
+            JUtil.ShowHide(true, barObject);
         }
 
-        private void DrawIcon(float xPos, float yPos, Rect texCoord, Color iconColor)
+        internal void Update(RasterPropMonitorComputer comp)
         {
-            var position = new Rect(xPos - iconPixelSize * 0.5f, yPos - iconPixelSize * 0.5f,
-                               iconPixelSize, iconPixelSize);
+            float value;
+            if (variable.Get(out value, comp))
+            {
+                if (useLog10)
+                {
+                    value = JUtil.PseudoLog10(value);
+                }
+                float yOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-            Graphics.DrawTexture(position, gizmoTexture, texCoord, 0, 0, 0, 0, iconColor, iconMaterial);
+                var uv1 = new Vector2(0.0f, yOffset - textureSize);
+                var uv2 = new Vector2(1.0f, yOffset + textureSize);
+                var uv3 = new Vector2(0.0f, yOffset + textureSize);
+                var uv4 = new Vector2(1.0f, yOffset - textureSize);
+
+                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+
+                meshFilter.mesh.uv = new[] 
+                {
+                    uv1, uv4, uv3,
+                    uv4, uv2, uv3
+                };
+
+                JUtil.ShowHide(true, barObject);
+            }
         }
     }
 }
