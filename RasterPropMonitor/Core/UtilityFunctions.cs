@@ -332,6 +332,21 @@ namespace JSI
             return embeddedShader;
         }
 
+        internal static void ShowHide(bool status, params GameObject[] objects)
+        {
+            for (int i = 0; i < objects.Length; ++i)
+            {
+                if (objects[i] != null)
+                {
+                    objects[i].SetActive(status);
+                    if (objects[i].renderer != null)
+                    {
+                        objects[i].renderer.enabled = status;
+                    }
+                }
+            }
+        }
+
         public static bool IsPodTransparent(Part thatPart)
         {
             foreach (PartModule thatModule in thatPart.Modules)
