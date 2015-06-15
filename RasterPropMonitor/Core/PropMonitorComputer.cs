@@ -54,7 +54,7 @@ namespace JSI
                 return vessel.GetTransform().up;
             }
         }
-        private Vector3d right
+        public Vector3d Right
         {
             get
             {
@@ -671,7 +671,7 @@ namespace JSI
             rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            surfaceForward = Vector3d.Cross(up, right);
+            surfaceForward = Vector3d.Cross(up, Right);
             // If the craft is rolled sharply to the side, we have to re-do our basis.
             if (surfaceForward.sqrMagnitude < 0.5)
             {
@@ -1990,7 +1990,7 @@ namespace JSI
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
                         if (target is Vessel)
                         {
-                            JUtil.NormalAngle(-target.GetFwdVector(), Forward, -right);
+                            JUtil.NormalAngle(-target.GetFwdVector(), Forward, -Right);
                         }
                         return 0d;
                     }
@@ -2229,7 +2229,7 @@ namespace JSI
                 case "DOCKINGANGLEALARM":
                     return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
                     (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, up)) > 1.5 ||
-                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, -right)) > 1.5)).GetHashCode();
+                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, -Right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
                     return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
