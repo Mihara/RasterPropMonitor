@@ -129,16 +129,21 @@ namespace JSI
         // This function courtesy of EnhancedNavBall.
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
+            return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+        }
+
+        internal static GameObject CreateSimplePlane(string name, Vector2 vectorSize, Rect textureCoords, int drawingLayer)
+        {
             var mesh = new Mesh();
 
             var obj = new GameObject(name);
             MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
             obj.AddComponent<MeshRenderer>();
 
-            var p0 = new Vector3(-vectorSize, 0.0f, vectorSize);
-            var p1 = new Vector3(vectorSize, 0.0f, vectorSize);
-            var p2 = new Vector3(-vectorSize, 0.0f, -vectorSize);
-            var p3 = new Vector3(vectorSize, 0.0f, -vectorSize);
+            var p0 = new Vector3(-vectorSize.x, 0.0f, vectorSize.y);
+            var p1 = new Vector3(vectorSize.x, 0.0f, vectorSize.y);
+            var p2 = new Vector3(-vectorSize.x, 0.0f, -vectorSize.y);
+            var p3 = new Vector3(vectorSize.x, 0.0f, -vectorSize.y);
 
             mesh.vertices = new[] 
             {
@@ -152,10 +157,10 @@ namespace JSI
                 3, 4, 5
             };
 
-            var uv1 = new Vector2(0.0f, 0.0f);
-            var uv2 = new Vector2(1.0f, 1.0f);
-            var uv3 = new Vector2(0.0f, 1.0f);
-            var uv4 = new Vector2(1.0f, 0.0f);
+            var uv1 = new Vector2(textureCoords.xMin, textureCoords.yMin);
+            var uv2 = new Vector2(textureCoords.xMax, textureCoords.yMax);
+            var uv3 = new Vector2(textureCoords.xMin, textureCoords.yMax);
+            var uv4 = new Vector2(textureCoords.xMax, textureCoords.yMin);
 
             mesh.uv = new[] 
             {
@@ -411,7 +416,6 @@ namespace JSI
 
         private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
         {
-
             if (fontCharacters.ContainsKey(letter))
             {
                 // This is complicated.

@@ -392,6 +392,10 @@ namespace JSI
                         break;
                     case Mode.LoopingAnimation:
                         anim[animationName].speed = animationSpeed;
+                        if(!anim.IsPlaying(animationName))
+                        {
+                            anim.Play(animationName);
+                        }
                         break;
                     case Mode.Rotation:
                         controlledTransform.localRotation = initialRotation * (reverse ? rotationEnd : rotationStart);
@@ -420,12 +424,15 @@ namespace JSI
             if (resourceAmount > 0.0f)
             {
                 float requesting = (resourceAmount * TimeWarp.deltaTime);
-                float extracted = part.RequestResource("ElectricCharge", requesting);
-                if (Mathf.Abs(requesting - extracted) < Mathf.Abs(0.5f * requesting))
+                if (requesting > 0.0f)
                 {
-                    // Insufficient power - shut down
-                    TurnOff();
-                    return; // early, so we don't thinl it's on
+                    float extracted = part.RequestResource("ElectricCharge", requesting);
+                    if (extracted < 0.5f * requesting)
+                    {
+                        // Insufficient power - shut down
+                        TurnOff();
+                        return; // early, so we don't think it's on
+                    }
                 }
             }
             currentState = true;

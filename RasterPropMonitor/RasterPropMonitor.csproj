@@ -171,6 +171,10 @@
     </MonoDevelop>
   </ProjectExtensions>
   <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Shaders\RPM-DisplayShader-compiled.shader" />
+    <None Include="Shaders\RPM-DisplayShader.shader" />
+  </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>copy $(TargetPath) $(SolutionDir)GameData\JSI\RasterPropMonitor\Plugins\</PostBuildEvent>
   </PropertyGroup>

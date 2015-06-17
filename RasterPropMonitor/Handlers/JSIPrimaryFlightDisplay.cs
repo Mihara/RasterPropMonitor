@@ -155,7 +155,7 @@ namespace JSI
                 Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
                 MoveMarker(markerManeuver, burnVector.normalized, maneuverColorValue, gymbal);
                 MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColorValue, gymbal);
-                ShowHide(true, markerManeuver, markerManeuverMinus);
+                JUtil.ShowHide(true, markerManeuver, markerManeuverMinus);
             }
 
             /* Feature disabled until I can get a career game going and get a waypoint contract.
@@ -169,7 +169,7 @@ namespace JSI
                 Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
                 Vector3d waypointDirection = (waypointPosition - comp.CoM).normalized;
                 MoveMarker(markerNavWaypoint, waypointDirection, material.color, gymbal);
-                ShowHide(true, markerNavWaypoint);
+                JUtil.ShowHide(true, markerNavWaypoint);
             }
             */
 
@@ -194,9 +194,9 @@ namespace JSI
                         angle = -angle;
                     MoveMarker(markerDockingAlignment, targetOrientationVector, dockingColorValue, gymbal);
                     markerDockingAlignment.transform.Rotate(Vector3.up, -angle);
-                    ShowHide(true, markerDockingAlignment);
+                    JUtil.ShowHide(true, markerDockingAlignment);
                 }
-                ShowHide(true, markerTarget, markerTargetMinus);
+                JUtil.ShowHide(true, markerTarget, markerTargetMinus);
             }
 
 
@@ -204,12 +204,12 @@ namespace JSI
             int backupQuality = QualitySettings.pixelLightCount;
             QualitySettings.pixelLightCount = 0;
 
-            ShowHide(true,
+            JUtil.ShowHide(true,
                 cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
                 markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
             ballCamera.Render();
             QualitySettings.pixelLightCount = backupQuality;
-            ShowHide(false,
+            JUtil.ShowHide(false,
                 cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
                 markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
                 markerNormal, markerNormalMinus, markerRadial, markerRadialMinus, markerDockingAlignment, markerNavWaypoint);
@@ -258,7 +258,7 @@ namespace JSI
             marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
             marker.renderer.material.color = nativeColor;
             marker.transform.position = Vector3.zero;
-            ShowHide(false, marker);
+            JUtil.ShowHide(false, marker);
             return marker;
         }
 
@@ -401,7 +401,7 @@ namespace JSI
                     heading.FaceCamera();
                 }
 
-                ShowHide(false, navBall, cameraBody, overlay, heading);
+                JUtil.ShowHide(false, navBall, cameraBody, overlay, heading);
 
                 // use the RPM comp's centralized database so we're not 
                 // repeatedly doing computation.
@@ -416,19 +416,6 @@ namespace JSI
             {
                 JUtil.AnnoyUser(this);
                 throw;
-            }
-        }
-
-        private static void ShowHide(bool status, params GameObject[] objects)
-        {
-            foreach (GameObject thatObject in objects)
-            {
-                if (thatObject != null)
-                {
-                    thatObject.SetActive(status);
-                    if (thatObject.renderer != null)
-                        thatObject.renderer.enabled = status;
-                }
             }
         }
     }
