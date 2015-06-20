@@ -95,7 +95,6 @@ namespace JSI
                 overlayMesh.transform.position = new Vector3(0, 0, 1.5f);
                 overlayMesh.renderer.material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
-                overlayMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                 JUtil.ShowHide(false, overlayMesh);
             }
@@ -116,7 +115,6 @@ namespace JSI
                     ladderMesh.transform.position = new Vector3(0, 0, 1.5f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
-                    ladderMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                     JUtil.ShowHide(false, ladderMesh);
 
@@ -130,7 +128,6 @@ namespace JSI
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = ladderMesh.transform;
-                        progradeLadderIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                         MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
 
@@ -158,7 +155,6 @@ namespace JSI
                     headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
                     headingMesh.renderer.material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
-                    headingMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                     JUtil.ShowHide(false, headingMesh);
 
@@ -174,7 +170,6 @@ namespace JSI
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
-                        progradeHeadingIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                         MeshFilter meshFilter = progradeHeadingIcon.GetComponent<MeshFilter>();
 
@@ -250,7 +245,7 @@ namespace JSI
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             float roll = rotationVesselSurface.eulerAngles.z;
 
-            ladderMesh.transform.Rotate(new Vector3(0.0f, 1.0f, 0.0f), lastRoll - roll);
+            ladderMesh.transform.Rotate(new Vector3(0.0f, 0.0f, 1.0f), lastRoll - roll);
 
             lastRoll = roll;
 
@@ -403,7 +398,7 @@ namespace JSI
                 // does this actually work?
                 hudCamera.backgroundColor = backgroundColorValue;
                 hudCamera.clearFlags = CameraClearFlags.Depth | CameraClearFlags.Color;
-                hudCamera.transform.position = Vector3.zero; // new Vector3(0.0f, 0.0f, 2.0f);
+                hudCamera.transform.position = Vector3.zero;
                 hudCamera.transform.LookAt(new Vector3(0.0f, 0.0f, 1.5f), Vector3.up);
 
                 if (!string.IsNullOrEmpty(progradeColor))
@@ -517,7 +512,6 @@ namespace JSI
             barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.5f);
             barObject.renderer.material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
-            barObject.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
             JUtil.ShowHide(true, barObject);
         }
