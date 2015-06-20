@@ -127,7 +127,7 @@ namespace JSI
                         progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
-                        progradeLadderIcon.transform.parent = ladderMesh.transform;
+                        progradeLadderIcon.transform.parent = cameraBody.transform;
 
                         MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
 
@@ -229,6 +229,8 @@ namespace JSI
                 ladderMidpointCoord = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch);
             }
 
+            // MOARdV TODO: These can be done without manually editing the 
+            // mesh filter.  I need to look up the game object texture stuff.
             var uv1 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
             var uv2 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
             var uv3 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
@@ -252,28 +254,50 @@ namespace JSI
             if (progradeLadderIcon != null)
             {
                 Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
-                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.Right, comp.Forward);
+                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.SurfaceForward, comp.SurfaceRight);
+
+                // I'm just feeling stupid today - I know there's a better way
+                // to adjust these values.
+                if (AoA < -180.0f)
+                {
+                    AoA = -180.0f - AoA;
+                }
+                else if(AoA > 180.0f)
+                {
+                    AoA = 180.0f - AoA;
+                }
+
+                if (AoA > 90.0f)
+                {
+                    AoA = 180.0f - AoA;
+                }
+                else if (AoA < -90.0f)
+                {
+                    AoA = -180.0f - AoA;
+                }
+
                 float AoATC;
                 if (use360horizon)
                 {
                     // Straight up is texture coord 0.75;
                     // Straight down is TC 0.25;
-                    AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch + AoA);
+                    AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, AoA);
                 }
                 else
                 {
                     // Straight up is texture coord 1.0;
                     // Straight down is TC 0.0;
-                    AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch + AoA);
+                    AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, AoA);
                 }
 
                 float Ypos = JUtil.DualLerp(
-                                 horizonSize.y * 0.5f, -horizonSize.y * 0.5f,
+                                 -horizonSize.y * 0.5f, horizonSize.y * 0.5f,
                                  ladderMidpointCoord - horizonTextureSize.y, ladderMidpointCoord + horizonTextureSize.y,
                                  AoATC);
 
                 Vector3 position = progradeLadderIcon.transform.position;
-                position.y = Ypos;
+                position.x = Ypos * Mathf.Sin(roll * Mathf.Deg2Rad);
+                position.y = Ypos * Mathf.Cos(roll * Mathf.Deg2Rad);
                 progradeLadderIcon.transform.position = position;
 
                 JUtil.ShowHide(true, progradeLadderIcon);

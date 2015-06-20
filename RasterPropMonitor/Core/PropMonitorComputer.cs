@@ -83,9 +83,23 @@ namespace JSI
         // If up x right is a degenerate vector (rolled on the side), we use
         // the forward vector to compose a new basis
         private Vector3d surfaceRight;
+        public Vector3d SurfaceRight
+        {
+            get
+            {
+                return surfaceRight;
+            }
+        }
         // surfaceForward is the cross of the up vector and right vector, so
         // that surface velocity can be decomposed to surface-relative components.
         private Vector3d surfaceForward;
+        public Vector3d SurfaceForward
+        {
+            get
+            {
+                return surfaceForward;
+            }
+        }
 
         private Quaternion rotationVesselSurface;
         public Quaternion RotationVesselSurface
