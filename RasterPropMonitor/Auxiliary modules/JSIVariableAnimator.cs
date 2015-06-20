@@ -27,7 +27,9 @@ namespace JSI
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             try
             {
@@ -82,25 +84,29 @@ namespace JSI
             }
         }
 
-        public override void OnUpdate()
+        public void Update()
         {
             if (!JUtil.IsActiveVessel(vessel))
+            {
                 return;
+            }
 
             if (!JUtil.VesselIsInIVA(vessel))
             {
-                foreach (VariableAnimationSet unit in variableSets)
+                for (int unit = 0; unit < variableSets.Count; ++unit)
                 {
-                    unit.MuteSoundWhileOutOfIVA();
+                    variableSets[unit].MuteSoundWhileOutOfIVA();
                 }
             }
 
             if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
-                return;
-
-            foreach (VariableAnimationSet unit in variableSets)
             {
-                unit.Update();
+                return;
+            }
+
+            for (int unit=0; unit < variableSets.Count; ++unit)
+            {
+                variableSets[unit].Update();
             }
         }
 
@@ -241,19 +247,25 @@ namespace JSI
                 {
                     anim = anims[0];
                     anim.enabled = true;
-                    anim[animationName].speed = 0;
-                    anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                    var state = anim[animationName];
+                    state.speed = 0;
+                    //anim[animationName].speed = 0;
+                    state.normalizedTime = reverse ? 1f : 0f;
+                    //anim[animationName].normalizedTime = reverse ? 1f : 0f;
                     looping = node.HasValue("loopingAnimation");
                     if (looping)
                     {
-                        anim[animationName].wrapMode = WrapMode.Loop;
+                        state.wrapMode = WrapMode.Loop;
+                        //anim[animationName].wrapMode = WrapMode.Loop;
                         anim.wrapMode = WrapMode.Loop;
-                        anim[animationName].speed = animationSpeed;
+                        state.speed = animationSpeed;
+                        //anim[animationName].speed = animationSpeed;
                         mode = Mode.LoopingAnimation;
                     }
                     else
                     {
-                        anim[animationName].wrapMode = WrapMode.Once;
+                        state.wrapMode = WrapMode.Once;
+                        //anim[animationName].wrapMode = WrapMode.Once;
                         mode = Mode.Animation;
                     }
                     anim.Play();
@@ -452,8 +464,13 @@ namespace JSI
                         anim[animationName].normalizedTime = reverse ? 1f : 0f;
                         break;
                     case Mode.LoopingAnimation:
-                        anim[animationName].speed = 0.0f;
-                        anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                        if(anim.IsPlaying(animationName))
+                        {
+                            anim.Stop(animationName);
+                            anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                        }
+                        //anim[animationName].speed = 0.0f;
+                        //anim[animationName].normalizedTime = reverse ? 1f : 0f;
                         break;
                     case Mode.Rotation:
                         controlledTransform.localRotation = initialRotation * (reverse ? rotationStart : rotationEnd);

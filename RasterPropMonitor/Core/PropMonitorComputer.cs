@@ -207,7 +207,7 @@ namespace JSI
         {
             get
             {
-                if(persistence == null)
+                if (persistence == null)
                 {
                     persistence = new PersistenceAccessor(this);
                 }
@@ -252,7 +252,7 @@ namespace JSI
 
         private List<IJSIModule> installedModules = new List<IJSIModule>();
 
-        // MechJeb reflections
+        // Plugin evaluator reflections
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
@@ -260,9 +260,11 @@ namespace JSI
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
         private Func<double> evaluateLandingLongitude;
+        private Func<double> evaluateTerminalVelocity;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
+
         // Public functions:
         // Request the instance, create it if one doesn't exist:
         public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
@@ -440,14 +442,14 @@ namespace JSI
             }
 
             // Backwards compatibility:
-            if(tokens[0] == "MechJebRPMButtons")
+            if (tokens[0] == "MechJebRPMButtons")
             {
                 tokens[0] = "JSIMechJeb";
             }
             IJSIModule jsiModule = null;
-            foreach(IJSIModule module in installedModules)
+            foreach (IJSIModule module in installedModules)
             {
-                if(module.GetType().Name == tokens[0])
+                if (module.GetType().Name == tokens[0])
                 {
                     jsiModule = module;
                     break;
@@ -476,15 +478,15 @@ namespace JSI
 
         private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
         {
-            if(method1.ReturnType == method2.ReturnType)
+            if (method1.ReturnType == method2.ReturnType)
             {
                 var m1Parms = method1.GetParameters();
                 var m2Parms = method2.GetParameters();
-                if(m1Parms.Length == m2Parms.Length)
+                if (m1Parms.Length == m2Parms.Length)
                 {
-                    for(int i=0; i<m1Parms.Length; ++i)
+                    for (int i = 0; i < m1Parms.Length; ++i)
                     {
-                        if(m1Parms[i].GetType() != m2Parms[i].GetType())
+                        if (m1Parms[i].GetType() != m2Parms[i].GetType())
                         {
                             return false;
                         }
@@ -564,7 +566,7 @@ namespace JSI
 
             // We clear the cache every frame.
             resultCache.Clear();
-            foreach(IJSIModule module in installedModules)
+            foreach (IJSIModule module in installedModules)
             {
                 module.Invalidate();
             }
@@ -1234,7 +1236,7 @@ namespace JSI
                             return -1;
                         }
                     }
-                    else if(pluginDoubleVariables.ContainsKey(tokens[1]))
+                    else if (pluginDoubleVariables.ContainsKey(tokens[1]))
                     {
                         Func<double> pluginCall = pluginDoubleVariables[tokens[1]];
                         if (pluginCall != null)
@@ -1299,7 +1301,7 @@ namespace JSI
                         {
                             Func<double> pluginNumericCall = (Func<double>)GetMethod(tokens[1], propToUse, typeof(Func<double>));
 
-                            if(pluginNumericCall != null)
+                            if (pluginNumericCall != null)
                             {
                                 JUtil.LogMessage(this, "Adding {0} as a Func<double>", tokens[1]);
                                 pluginDoubleVariables.Add(tokens[1], pluginNumericCall);
@@ -1410,6 +1412,8 @@ namespace JSI
                     return JUtil.PseudoLog10(speedVertical);
                 case "VERTSPEEDROUNDED":
                     return speedVerticalRounded;
+                case "TERMINALVELOCITY":
+                    return TerminalVelocity();
                 case "SURFSPEED":
                     return VelocityVesselSurface.magnitude;
                 case "SURFSPEEDMACH":
@@ -1514,11 +1518,15 @@ namespace JSI
                     return JUtil.PseudoLog10(altitudeTrue);
                 case "RADARALTOCEAN":
                     if (vessel.mainBody.ocean)
+                    {
                         return Math.Min(AltitudeASL, altitudeTrue);
+                    }
                     return altitudeTrue;
                 case "RADARALTOCEANLOG10":
                     if (vessel.mainBody.ocean)
+                    {
                         return JUtil.PseudoLog10(Math.Min(AltitudeASL, altitudeTrue));
+                    }
                     return JUtil.PseudoLog10(altitudeTrue);
                 case "ALTITUDEBOTTOM":
                     return altitudeBottom;
@@ -1596,15 +1604,21 @@ namespace JSI
                 // Maneuvers
                 case "MNODETIMESECS":
                     if (node != null)
+                    {
                         return -(node.UT - Time);
+                    }
                     return double.NaN;
                 case "MNODEDV":
                     if (node != null)
+                    {
                         return node.GetBurnVector(vessel.orbit).magnitude;
+                    }
                     return 0d;
                 case "MNODEBURNTIMESECS":
                     if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
+                    {
                         return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
+                    }
                     return double.NaN;
                 case "MNODEEXISTS":
                     return node == null ? -1d : 1d;
@@ -1618,19 +1632,27 @@ namespace JSI
                     return double.NaN;
                 case "APOAPSIS":
                     if (orbitSensibility)
+                    {
                         return vessel.orbit.ApA;
+                    }
                     return double.NaN;
                 case "INCLINATION":
                     if (orbitSensibility)
+                    {
                         return vessel.orbit.inclination;
+                    }
                     return double.NaN;
                 case "ECCENTRICITY":
                     if (orbitSensibility)
+                    {
                         return vessel.orbit.eccentricity;
+                    }
                     return double.NaN;
                 case "SEMIMAJORAXIS":
                     if (orbitSensibility)
+                    {
                         return vessel.orbit.semiMajorAxis;
+                    }
                     return double.NaN;
 
                 case "ORBPERIODSECS":
@@ -2416,6 +2438,8 @@ namespace JSI
             return input;
         }
 
+        //--- Fallback evaluators
+        #region FallbackEvaluators
         private double FallbackEvaluateDeltaV()
         {
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
@@ -2426,17 +2450,81 @@ namespace JSI
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
         }
 
+        private double FallbackTerminalVelocity()
+        {
+            // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
+            if (AltitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
+            {
+                return float.MaxValue;
+            }
+
+            Vector3d pureDragV = Vector3d.zero, pureLiftV = Vector3d.zero;
+
+            for (int i = 0; i < vessel.parts.Count; i++)
+            {
+                Part p = vessel.parts[i];
+
+                pureDragV += -p.dragVectorDir * p.dragScalar;
+
+                if (!p.hasLiftModule)
+                {
+                    Vector3 bodyLift = p.transform.rotation * (p.bodyLiftScalar * p.DragCubes.LiftForce);
+                    bodyLift = Vector3.ProjectOnPlane(bodyLift, -p.dragVectorDir);
+                    pureLiftV += bodyLift;
+
+                    for (int m = 0; m < p.Modules.Count; m++)
+                    {
+                        PartModule pm = p.Modules[m];
+                        if (!pm.isEnabled)
+                        {
+                            continue;
+                        }
+
+                        if (pm is ModuleControlSurface)
+                        {
+                            ModuleControlSurface cs = (pm as ModuleControlSurface);
+
+
+                            if (p.ShieldedFromAirstream || cs.deploy)
+                                continue;
+
+
+                            pureLiftV += cs.liftForce;
+                            pureDragV += cs.dragForce;
+                        }
+                        else if (pm is ModuleLiftingSurface)
+                        {
+                            ModuleLiftingSurface liftingSurface = (ModuleLiftingSurface)pm;
+                            pureLiftV += liftingSurface.liftForce;
+                            pureDragV += liftingSurface.dragForce;
+                        }
+                    }
+                }
+            }
+
+            pureDragV = pureDragV / totalShipWetMass;
+            pureLiftV = pureLiftV / totalShipWetMass;
+
+            Vector3d force = pureDragV + pureLiftV;
+            double drag = Vector3d.Dot(force, -vessel.srf_velocity.normalized);
+
+            return Math.Sqrt(localGeeDirect / drag) * vessel.srf_velocity.magnitude;
+        }
+        #endregion
+
+        //--- Plugin-enabled evaluators
+        #region PluginEvaluators
         private double DeltaV()
         {
-            if(evaluateDeltaV == null)
+            if (evaluateDeltaV == null)
             {
                 Func<double> accessor = null;
-                
+
                 accessor = (Func<double>)GetMethod("JSIMechJeb:GetDeltaV", part.internalModel.props[0], typeof(Func<double>));
-                if(accessor != null)
+                if (accessor != null)
                 {
                     double value = accessor();
-                    if(double.IsNaN(value))
+                    if (double.IsNaN(value))
                     {
                         accessor = null;
                     }
@@ -2537,6 +2625,17 @@ namespace JSI
 
             return evaluateMechJebAvailable();
         }
+
+        private double TerminalVelocity()
+        {
+            if (evaluateTerminalVelocity == null)
+            {
+                evaluateTerminalVelocity = FallbackTerminalVelocity;
+            }
+
+            return evaluateTerminalVelocity();
+        }
+        #endregion
 
         private class ResourceNameLengthComparer : IComparer<String>
         {
