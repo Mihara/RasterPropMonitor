@@ -190,7 +190,7 @@ namespace JSI
                 {
                     for (int j = 0; j < nodes.Length; ++j)
                     {
-                        if (nodes[j].HasValue("name") && vBars[i] == nodes[j].GetValue("name"))
+                        if (nodes[j].HasValue("name") && vBars[i].Trim() == nodes[j].GetValue("name"))
                         {
                             try
                             {
@@ -373,7 +373,13 @@ namespace JSI
 
             if (ladderMesh != null)
             {
-                // Viewport doesn't work with this, AFAICT
+                // Viewport doesn't work with this, AFAICT.
+                // Anyway, these numbers aren't right for the redesigned HUD.
+                //JUtil.LogMessage(this, "screen is {0} x {1}, horizon size is {2} x {3}, making a rectangle at {4} x {5} with size of {6} x {7}",
+                //    screen.width,screen.height,
+                //    horizonSize.x, horizonSize.y,
+                //    (screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f,
+                //    horizonSize.x, horizonSize.y);
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder();
