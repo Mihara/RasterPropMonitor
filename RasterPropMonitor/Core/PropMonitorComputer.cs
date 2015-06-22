@@ -2470,7 +2470,7 @@ namespace JSI
             // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
             if (AltitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
             {
-                return float.MaxValue;
+                return float.PositiveInfinity;
             }
 
             Vector3d pureDragV = Vector3d.zero, pureLiftV = Vector3d.zero;
@@ -2499,10 +2499,8 @@ namespace JSI
                         {
                             ModuleControlSurface cs = (pm as ModuleControlSurface);
 
-
                             if (p.ShieldedFromAirstream || cs.deploy)
                                 continue;
-
 
                             pureLiftV += cs.liftForce;
                             pureDragV += cs.dragForce;

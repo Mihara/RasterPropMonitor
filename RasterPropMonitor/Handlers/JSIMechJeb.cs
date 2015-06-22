@@ -23,6 +23,8 @@ namespace JSI
         private static readonly FieldInfo mjCoreNode;
         // MechJebCore.attitude
         private static readonly FieldInfo mjCoreAttitude;
+        // MechJebCore.vesselState
+        private static readonly FieldInfo mjCoreVesselState;
 
         // AbsoluteVector
         // AbsoluteVector.latitude
@@ -98,6 +100,10 @@ namespace JSI
         private static readonly MethodInfo mjRemoveUser;
         // UserPool.Contains
         private static readonly MethodInfo mjContainsUser;
+
+        // VesselState
+        // VesselState.TerminalVelocity
+        private static readonly MethodInfo mjTerminalVelocity;
 
         // MechJebModuleLandingAutopilot
         // MechJebModuleLandingAutopilot.LandAtPositionTarget
@@ -228,6 +234,11 @@ namespace JSI
                 {
                     throw new NotImplementedException("mjCoreAttitude");
                 }
+                mjCoreVesselState = mjMechJebCore_t.GetField("vesselState", BindingFlags.Instance | BindingFlags.Public);
+                if (mjCoreVesselState == null)
+                {
+                    throw new NotImplementedException("mjCoreVesselState");
+                }
 
                 // VesselExtensions
                 Type mjVesselExtensions_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -245,6 +256,19 @@ namespace JSI
                 if (mjPlaceManeuverNode == null)
                 {
                     throw new NotImplementedException("mjPlaceManeuverNode");
+                }
+
+                // VesselState
+                Type mjVesselState_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.VesselState");
+                if (mjVesselState_t == null)
+                {
+                    throw new NotImplementedException("mjVesselState_t");
+                }
+                mjTerminalVelocity = mjVesselState_t.GetMethod("TerminalVelocity", BindingFlags.Instance | BindingFlags.Public);
+                if (mjTerminalVelocity == null)
+                {
+                    throw new NotImplementedException("mjTerminalVelocity");
                 }
 
                 // MechJebModuleLandingPredictions
@@ -1001,6 +1025,16 @@ namespace JSI
 
         public double GetTerminalVelocity()
         {
+            if (mjFound)
+            {
+                object mjCore = GetMasterMechJeb();
+                object vesselState = mjCoreVesselState.GetValue(mjCore);
+                if (vesselState != null)
+                {
+                    return (double)mjTerminalVelocity.Invoke(vesselState, null);
+                }
+            }
+
             return double.NaN;
         }
 
