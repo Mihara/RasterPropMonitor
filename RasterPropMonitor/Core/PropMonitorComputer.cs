@@ -66,6 +66,7 @@ namespace JSI
         private Vector3d up;
         public Vector3d Up
         {
+            //FlightGlobals.upAxis 
             get
             {
                 return up;
@@ -757,7 +758,9 @@ namespace JSI
 
                 // If our target is somehow our own celestial body, approach speed is equal to vertical speed.
                 if (targetBody == vessel.mainBody)
+                {
                     approachSpeed = speedVertical;
+                }
                 // In all other cases, that should work. I think.
                 approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
             }
@@ -1782,21 +1785,31 @@ namespace JSI
                     return vessel.mainBody.GetLatitude(CoM);
                 case "LONGITUDE":
                     return JUtil.ClampDegrees180(vessel.mainBody.GetLongitude(CoM));
+                case "TARGETLATITUDE":
                 case "LATITUDETGT":
                     // These targetables definitely don't have any coordinates.
                     if (target == null || target is CelestialBody)
+                    {
                         return double.NaN;
+                    }
                     // These definitely do.
                     if (target is Vessel || target is ModuleDockingNode)
+                    {
                         return target.GetVessel().mainBody.GetLatitude(target.GetTransform().position);
+                    }
                     // We're going to take a guess here and expect MechJeb's PositionTarget and DirectionTarget,
                     // which don't have vessel structures but do have a transform.
                     return vessel.mainBody.GetLatitude(target.GetTransform().position);
+                case "TARGETLONGITUDE":
                 case "LONGITUDETGT":
                     if (target == null || target is CelestialBody)
+                    {
                         return double.NaN;
+                    }
                     if (target is Vessel || target is ModuleDockingNode)
+                    {
                         return JUtil.ClampDegrees180(target.GetVessel().mainBody.GetLongitude(target.GetTransform().position));
+                    }
                     return vessel.mainBody.GetLongitude(target.GetTransform().position);
 
                 // Orientation
@@ -1873,7 +1886,9 @@ namespace JSI
                     return string.Empty;
                 case "TARGETALTITUDE":
                     if (target == null)
+                    {
                         return -1d;
+                    }
                     if (targetVessel != null)
                     {
                         return targetVessel.mainBody.GetAltitude(targetVessel.CoM);
