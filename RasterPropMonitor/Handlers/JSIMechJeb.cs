@@ -999,6 +999,11 @@ namespace JSI
 
         }
 
+        public double GetTerminalVelocity()
+        {
+            return double.NaN;
+        }
+
         /// <summary>
         /// Returns true when the current MJ target is a ground target.
         /// </summary>

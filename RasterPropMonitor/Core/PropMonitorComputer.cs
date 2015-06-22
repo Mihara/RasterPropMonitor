@@ -2645,7 +2645,24 @@ namespace JSI
         {
             if (evaluateTerminalVelocity == null)
             {
-                evaluateTerminalVelocity = FallbackTerminalVelocity;
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIMechJeb:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackTerminalVelocity;
+                }
+
+                evaluateTerminalVelocity = accessor;
             }
 
             return evaluateTerminalVelocity();
