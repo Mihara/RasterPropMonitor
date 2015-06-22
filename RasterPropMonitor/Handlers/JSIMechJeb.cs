@@ -1031,7 +1031,8 @@ namespace JSI
                 object vesselState = mjCoreVesselState.GetValue(mjCore);
                 if (vesselState != null)
                 {
-                    return (double)mjTerminalVelocity.Invoke(vesselState, null);
+                    double value = (double)mjTerminalVelocity.Invoke(vesselState, null);
+                    return (double.IsNaN(value)) ? double.PositiveInfinity : value;
                 }
             }
 
