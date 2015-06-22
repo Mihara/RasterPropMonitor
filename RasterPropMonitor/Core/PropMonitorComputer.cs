@@ -66,7 +66,7 @@ namespace JSI
         private Vector3d up;
         public Vector3d Up
         {
-            //FlightGlobals.upAxis 
+            // MOARdV TODO: FlightGlobals.upAxis?
             get
             {
                 return up;
@@ -110,7 +110,6 @@ namespace JSI
                 return rotationVesselSurface;
             }
         }
-        private Quaternion rotationSurface;
 
         public Vector3d VelocityVesselSurface
         {
@@ -686,7 +685,7 @@ namespace JSI
             localGeeDirect = FlightGlobals.getGeeForceAtPosition(CoM).magnitude;
             up = (CoM - vessel.mainBody.position).normalized;
             north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
-            rotationSurface = Quaternion.LookRotation(north, up);
+            Quaternion rotationSurface = Quaternion.LookRotation(north, up);
             rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
@@ -895,7 +894,7 @@ namespace JSI
                     if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+                        anyEnginesOverheating |= thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9;
                         anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
@@ -916,10 +915,10 @@ namespace JSI
                     {
                         var thatAblator = pm as ModuleAblator;
 
-                        if (thatPart.temperature - thatAblator.ablationTempThresh > hottestShield)
+                        if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
                         {
-                            hottestShield = (float)(thatPart.temperature - thatAblator.ablationTempThresh);
-                            heatShieldTemperature = (float)(thatPart.temperature);
+                            hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
+                            heatShieldTemperature = (float)(thatPart.skinTemperature);
                             heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
                         }
                     }
@@ -998,6 +997,7 @@ namespace JSI
         private void FetchAltitudes()
         {
             altitudeTrue = AltitudeASL - vessel.terrainAltitude;
+            // MOARdV TODO: vessel.heightFromSurface, vessel.heightFromTerrain?
 
             RaycastHit sfc;
             if (Physics.Raycast(CoM, -up, out sfc, (float)AltitudeASL + 10000.0F, 1 << 15))
@@ -2190,6 +2190,10 @@ namespace JSI
                     return part.temperature + KelvinToCelsius;
                 case "PODTEMPERATUREKELVIN":
                     return part.temperature;
+                case "PODSKINTEMPERATURE":
+                    return part.skinTemperature + KelvinToCelsius;
+                case "PODSKINTEMPERATUREKELVIN":
+                    return part.skinTemperature;
                 case "PODMAXTEMPERATURE":
                     return part.maxTemp + KelvinToCelsius;
                 case "PODMAXTEMPERATUREKELVIN":
