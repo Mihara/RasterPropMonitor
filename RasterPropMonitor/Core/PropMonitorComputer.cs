@@ -257,6 +257,7 @@ namespace JSI
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
+        private Func<double> evaluateDynamicPressure;
         private Func<double> evaluateLandingError;
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
@@ -430,6 +431,7 @@ namespace JSI
                 installedModules.Add(new JSIMechJeb(vessel));
                 installedModules.Add(new JSIInternalRPMButtons(vessel));
                 installedModules.Add(new JSIGimbal(vessel));
+                installedModules.Add(new JSIFAR(vessel));
             }
         }
 
@@ -1553,7 +1555,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
-                    return vessel.dynamicPressurekPa * 1000.0;
+                    return DynamicPressure();
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
@@ -1900,12 +1902,12 @@ namespace JSI
                     {
                         return vessel.mainBody.GetAltitude(target.GetTransform().position);
                     }
-                    // MOARdV: I don't think these are needed - I don't remember why we needed targetOrbit
-                    //if (targetOrbit != null)
-                    //{
-                    //    return targetOrbit.altitude;
-                    //}
-                    //return -1d;
+                // MOARdV: I don't think these are needed - I don't remember why we needed targetOrbit
+                //if (targetOrbit != null)
+                //{
+                //    return targetOrbit.altitude;
+                //}
+                //return -1d;
                 case "TARGETSEMIMAJORAXIS":
                     if (target == null)
                         return double.NaN;
@@ -2473,7 +2475,12 @@ namespace JSI
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
         }
 
-        private double FallbackTerminalVelocity()
+        private double FallbackEvaluateDynamicPressure()
+        {
+            return vessel.dynamicPressurekPa;
+        }
+
+        private double FallbackEvaluateTerminalVelocity()
         {
             // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
             if (AltitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
@@ -2589,6 +2596,33 @@ namespace JSI
             return evaluateDeltaVStage();
         }
 
+        private double DynamicPressure()
+        {
+            if (evaluateDynamicPressure == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIFAR:GetDynamicPressure", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDynamicPressure;
+                }
+
+                evaluateDynamicPressure = accessor;
+            }
+
+            return evaluateDynamicPressure();
+        }
+
         private double LandingError()
         {
             if (evaluateLandingError == null)
@@ -2653,7 +2687,7 @@ namespace JSI
             {
                 Func<double> accessor = null;
 
-                accessor = (Func<double>)GetMethod("JSIMechJeb:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                accessor = (Func<double>)GetMethod("JSIFAR:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
                 if (accessor != null)
                 {
                     double value = accessor();
@@ -2665,7 +2699,17 @@ namespace JSI
 
                 if (accessor == null)
                 {
-                    accessor = FallbackTerminalVelocity;
+                    accessor = (Func<double>)GetMethod("JSIMechJeb:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateTerminalVelocity;
                 }
 
                 evaluateTerminalVelocity = accessor;

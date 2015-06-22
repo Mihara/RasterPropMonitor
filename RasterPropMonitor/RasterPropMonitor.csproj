@@ -58,6 +58,7 @@
     <Compile Include="Core\MappedVariable.cs" />
     <Compile Include="Core\Protractor.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
+    <Compile Include="Handlers\JSIFAR.cs" />
     <Compile Include="Handlers\JSIGimbal.cs" />
     <Compile Include="Handlers\JSIGraphingBackground.cs" />
     <Compile Include="Handlers\JSIMechJeb.cs" />
