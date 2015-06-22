@@ -733,15 +733,15 @@ namespace JSI
 
                 targetDistance = Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
 
-                // This is kind of messy.
-                targetOrbitSensibility = false;
-                // All celestial bodies except the sun have orbits that make sense.
-                targetOrbitSensibility |= targetBody != null && targetBody != Planetarium.fetch.Sun;
-
-                if (targetVessel != null)
-                    targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
-                if (targetDockingNode != null)
+                if (targetVessel != null || targetDockingNode != null)
+                {
                     targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
+                }
+                else
+                {
+                    // All celestial bodies except the sun have orbits that make sense.
+                    targetOrbitSensibility = targetBody != null && targetBody != Planetarium.fetch.Sun;
+                }
 
                 targetOrbit = targetOrbitSensibility ? target.GetOrbit() : null;
 
@@ -761,8 +761,11 @@ namespace JSI
                 {
                     approachSpeed = speedVertical;
                 }
-                // In all other cases, that should work. I think.
-                approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                else
+                {
+                    // In all other cases, that should work. I think.
+                    approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                }
             }
             else
             {
@@ -1885,19 +1888,24 @@ namespace JSI
                         return SituationString(target.GetVessel().situation);
                     return string.Empty;
                 case "TARGETALTITUDE":
-                    if (target == null)
+                    if (target == null || target is CelestialBody)
                     {
                         return -1d;
                     }
-                    if (targetVessel != null)
+                    if (target is Vessel || target is ModuleDockingNode)
                     {
-                        return targetVessel.mainBody.GetAltitude(targetVessel.CoM);
+                        return target.GetVessel().mainBody.GetAltitude(target.GetVessel().CoM);
                     }
-                    if (targetOrbit != null)
+                    else
                     {
-                        return targetOrbit.altitude;
+                        return vessel.mainBody.GetAltitude(target.GetTransform().position);
                     }
-                    return -1d;
+                    // MOARdV: I don't think these are needed - I don't remember why we needed targetOrbit
+                    //if (targetOrbit != null)
+                    //{
+                    //    return targetOrbit.altitude;
+                    //}
+                    //return -1d;
                 case "TARGETSEMIMAJORAXIS":
                     if (target == null)
                         return double.NaN;
