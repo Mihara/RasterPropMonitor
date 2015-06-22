@@ -12,21 +12,20 @@ namespace JSI
         [KSPField]
         public string navBallModel = "RasterPropMonitor/Library/Components/NavBall/NavBall";
         [KSPField]
-        public string staticOverlay;
+        public string staticOverlay = string.Empty;
         [KSPField]
-        public string headingBar;
-        [KSPField]
-        public bool ballIsEmissive;
+        public string headingBar = string.Empty;
         [KSPField]
         public string backgroundColor = string.Empty;
         private Color backgroundColorValue = Color.black;
         [KSPField]
         public float ballOpacity = 0.8f;
         [KSPField]
-        public string ballColor = string.Empty;
-        private Color ballColorValue = Color.white;
+        public Vector2 navBallCenter = Vector2.zero;
         [KSPField]
-        public float markerScale = 0.1f;
+        public float navBallDiameter = 1.0f;
+        [KSPField]
+        public float markerSize = 32.0f;
         [KSPField] // x,y, width, height
         public Vector4 headingBarPosition = new Vector4(0, 0.8f, 0.8f, 0.1f);
         [KSPField]
@@ -52,21 +51,22 @@ namespace JSI
         public string dockingColor = string.Empty;
         private Color dockingColorValue = Color.red;
         [KSPField]
-        public float cameraSpan = 1f;
-        [KSPField]
-        public Vector2 cameraShift = Vector2.zero;
-        [KSPField]
         public int speedModeButton = 4;
-        private Texture2D horizonTex;
-        private Material overlayMaterial;
-        private Material headingMaterial;
-        private Texture2D gizmoTexture;
+
+        private readonly Quaternion rotateNavBall = Quaternion.Euler(0.0f, 180.0f, 0.0f);
+
         private NavBall stockNavBall;
-        private GameObject navBall;
         private GameObject cameraBody;
+        private Camera ballCamera;
+
+        private GameObject navBall;
         private GameObject overlay;
         private GameObject heading;
-        private Camera ballCamera;
+
+        private Vector3 navBallOrigin;
+        private float markerDepth;
+        private float navballRadius;
+
         // Markers...
         private GameObject markerPrograde;
         private GameObject markerRetrograde;
@@ -80,44 +80,126 @@ namespace JSI
         private GameObject markerRadialMinus;
         private GameObject markerDockingAlignment;
         private GameObject markerNavWaypoint;
+
         // Misc...
-        private float cameraAspect;
         private bool startupComplete;
+        private bool firstRenderComplete;
 
         // Since most of the values we use for the PFD are also values we
         // compute in the RPM computer, we should just query its values
         // instead of having multiple props doing all of these maths.
         private RasterPropMonitorComputer comp;
 
-        // This is honestly very badly written code, probably the worst of what I have in this project.
-        // Much of it dictated by the fact that I barely, if at all, understand what am I doing in vector mathematics,
-        // the rest is because the problem is all built out of special cases.
-        // Sorry. :)
+        private void ConfigureElements(float screenWidth, float screenHeight)
+        {
+            // How big is the nav ball, anyway?
+            navballRadius = 0.0f;
+            MeshFilter meshFilter = navBall.GetComponent<MeshFilter>();
+            if (meshFilter != null)
+            {
+                // NOTE: I assume this really is a nav*ball*, not something
+                // weird, and that it's centered on the origin.
+                navballRadius = meshFilter.mesh.bounds.size.x * 0.5f;
+                if (!(navballRadius > 0.0f))
+                {
+                    throw new Exception("JSIPrimaryFlightDisplay navball had an invalid size");
+                }
+            }
+            else
+            {
+                throw new Exception("JSIPrimaryFlightDisplay could not get the navball mesh");
+            }
+
+            // Figure out how we have to manipulate the camera to get the
+            // navball in the right place, and in the right size.
+            float cameraSpan = navballRadius * screenWidth / navBallDiameter;
+            float pixelSize = cameraSpan / (screenWidth * 0.5f);
+
+            ballCamera.orthographicSize = cameraSpan;
+
+            float newXPos = navBallCenter.x - screenWidth * 0.5f;
+            float newYPos = screenHeight * 0.5f - navBallCenter.y;
+            navBallOrigin = navBall.transform.position;
+            navBallOrigin.x += newXPos * pixelSize;
+            navBallOrigin.y += newYPos * pixelSize;
+            navBall.transform.position = navBallOrigin;
+            // Because we use this value to offset the markers, we don't
+            // want/need depth info.
+            navBallOrigin.z = 0.0f;
+
+            float overlayDepth = navBall.transform.position.z - navballRadius - 0.1f;
+
+            Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+
+            if (!string.IsNullOrEmpty(staticOverlay))
+            {
+                Material overlayMaterial = new Material(displayShader);
+                overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
+
+                overlay = RasterPropMonitor.CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, cameraSpan, drawingLayer);
+                overlay.layer = drawingLayer;
+                overlay.transform.position = new Vector3(0, 0, overlayDepth);
+                overlay.renderer.material = overlayMaterial;
+                overlay.transform.parent = cameraBody.transform;
+            }
+
+            if (!string.IsNullOrEmpty(headingBar))
+            {
+                Material headingMaterial = new Material(displayShader);
+                headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
+
+                float hbXPos = headingBarPosition.x - screenWidth * 0.5f;
+                float hbYPos = screenHeight * 0.5f - headingBarPosition.y;
+
+                heading = RasterPropMonitor.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, new Vector2(headingBarPosition.z * pixelSize, headingBarPosition.w * pixelSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                heading.transform.position = new Vector3(hbXPos * pixelSize, hbYPos * pixelSize, headingAboveOverlay ? (overlayDepth - 0.1f) : (overlayDepth + 0.1f));
+                heading.transform.parent = cameraBody.transform;
+                heading.renderer.material = headingMaterial;
+                heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
+            }
+
+            Texture2D gizmoTexture = JUtil.GetGizmoTexture();
+            markerDepth = navBall.transform.position.z - navballRadius - 0.05f;
+            float scaledMarkerSize = markerSize * 0.5f * pixelSize;
+            markerPrograde = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, progradeColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerRetrograde = BuildMarker(1, 2, scaledMarkerSize, gizmoTexture, progradeColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerManeuver = BuildMarker(2, 0, scaledMarkerSize, gizmoTexture, maneuverColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerManeuverMinus = BuildMarker(1, 2, scaledMarkerSize, gizmoTexture, maneuverColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerTarget = BuildMarker(2, 1, scaledMarkerSize, gizmoTexture, targetColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerTargetMinus = BuildMarker(2, 2, scaledMarkerSize, gizmoTexture, targetColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerNormal = BuildMarker(0, 0, scaledMarkerSize, gizmoTexture, normalColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerNormalMinus = BuildMarker(1, 0, scaledMarkerSize, gizmoTexture, normalColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerRadial = BuildMarker(1, 1, scaledMarkerSize, gizmoTexture, radialColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerRadialMinus = BuildMarker(0, 1, scaledMarkerSize, gizmoTexture, radialColorValue, drawingLayer, internalProp.propID, displayShader);
+
+            markerDockingAlignment = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, dockingColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerNavWaypoint = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, dockingColorValue, drawingLayer, internalProp.propID, displayShader);
+        }
+
         public bool RenderPFD(RenderTexture screen, float aspect)
         {
             if (screen == null || !startupComplete || HighLogic.LoadedSceneIsEditor)
+            {
                 return false;
+            }
 
             // Analysis disable once CompareOfFloatsByEqualityOperator
-            if (aspect != cameraAspect)
+            if (firstRenderComplete == false)
             {
-                cameraAspect = aspect;
-                ballCamera.aspect = cameraAspect;
+                firstRenderComplete = true;
+                ConfigureElements((float)screen.width, (float)screen.height);
+                ballCamera.aspect = aspect;
             }
+
             GL.Clear(true, true, backgroundColorValue);
 
             ballCamera.targetTexture = screen;
 
-
-            Vector3d velocityVesselOrbit = comp.VelocityVesselOrbit;
-            Vector3d velocityVesselOrbitUnit = velocityVesselOrbit.normalized;
-            Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbit, comp.Up).normalized;
-            Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
-
-            //Vector3d targetDirection = -FlightGlobals.fetch.vesselTargetDirection.normalized;
-            Vector3d targetDirection = FlightGlobals.ship_tgtVelocity.normalized;
-
-            navBall.transform.rotation = MirrorX(stockNavBall.navBall.rotation);
+            // Navball is rotated around the Y axis 180 degrees since the
+            // original implementation had the camera positioned differently.
+            // We still need MirrorX since KSP does something odd with the
+            // gimbal
+            navBall.transform.rotation = (rotateNavBall * MirrorX(stockNavBall.relativeGymbal));
 
             if (heading != null)
             {
@@ -126,35 +208,43 @@ namespace JSI
             }
 
             Quaternion gymbal = stockNavBall.attitudeGymbal;
-            switch (FlightUIController.speedDisplayMode)
-            {
-                case FlightUIController.SpeedDisplayModes.Surface:
-                    {
-                        Vector3d velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
-                        MoveMarker(markerPrograde, velocityVesselSurfaceUnit, progradeColorValue, gymbal);
-                        MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, progradeColorValue, gymbal);
-                    }
-                    break;
-                case FlightUIController.SpeedDisplayModes.Target:
-                    MoveMarker(markerPrograde, targetDirection, progradeColorValue, gymbal);
-                    MoveMarker(markerRetrograde, -targetDirection, progradeColorValue, gymbal);
-                    break;
-                case FlightUIController.SpeedDisplayModes.Orbit:
-                    MoveMarker(markerPrograde, velocityVesselOrbitUnit, progradeColorValue, gymbal);
-                    MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, progradeColorValue, gymbal);
-                    break;
-            }
-            MoveMarker(markerNormal, normalPlus, normalColorValue, gymbal);
-            MoveMarker(markerNormalMinus, -normalPlus, normalColorValue, gymbal);
 
-            MoveMarker(markerRadial, radialPlus, radialColorValue, gymbal);
-            MoveMarker(markerRadialMinus, -radialPlus, radialColorValue, gymbal);
+            if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Orbit)
+            {
+                Vector3d velocityVesselOrbitUnit = comp.VelocityVesselOrbit.normalized;
+                Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbitUnit, comp.Up);
+                Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
+
+                MoveMarker(markerPrograde, velocityVesselOrbitUnit, gymbal);
+                MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, gymbal);
+
+                MoveMarker(markerNormal, normalPlus, gymbal);
+                MoveMarker(markerNormalMinus, -normalPlus, gymbal);
+
+                MoveMarker(markerRadial, radialPlus, gymbal);
+                MoveMarker(markerRadialMinus, -radialPlus, gymbal);
+
+                JUtil.ShowHide(true, markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
+            }
+            else if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Surface)
+            {
+                Vector3d velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                MoveMarker(markerPrograde, velocityVesselSurfaceUnit, gymbal);
+                MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, gymbal);
+            }
+            else // FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Target
+            {
+                Vector3d targetDirection = FlightGlobals.ship_tgtVelocity.normalized;
+
+                MoveMarker(markerPrograde, targetDirection, gymbal);
+                MoveMarker(markerRetrograde, -targetDirection, gymbal);
+            }
 
             if (vessel.patchedConicSolver != null && vessel.patchedConicSolver.maneuverNodes.Count > 0)
             {
-                Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit);
-                MoveMarker(markerManeuver, burnVector.normalized, maneuverColorValue, gymbal);
-                MoveMarker(markerManeuverMinus, -burnVector.normalized, maneuverColorValue, gymbal);
+                Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit).normalized;
+                MoveMarker(markerManeuver, burnVector, gymbal);
+                MoveMarker(markerManeuverMinus, -burnVector, gymbal);
                 JUtil.ShowHide(true, markerManeuver, markerManeuverMinus);
             }
 
@@ -177,8 +267,8 @@ namespace JSI
             if (target != null)
             {
                 Vector3 targetSeparation = comp.TargetSeparation.normalized;
-                MoveMarker(markerTarget, targetSeparation, targetColorValue, gymbal);
-                MoveMarker(markerTargetMinus, -targetSeparation, targetColorValue, gymbal);
+                MoveMarker(markerTarget, targetSeparation, gymbal);
+                MoveMarker(markerTargetMinus, -targetSeparation, gymbal);
                 var targetPort = target as ModuleDockingNode;
                 if (targetPort != null)
                 {
@@ -191,24 +281,19 @@ namespace JSI
                     Vector3 v2 = Vector3.Cross(selfTransform.up, selfTransform.forward);
                     float angle = Vector3.Angle(v1, v2);
                     if (Vector3.Dot(selfTransform.up, Vector3.Cross(v1, v2)) < 0)
+                    {
                         angle = -angle;
-                    MoveMarker(markerDockingAlignment, targetOrientationVector, dockingColorValue, gymbal);
+                    }
+                    MoveMarker(markerDockingAlignment, targetOrientationVector, gymbal);
                     markerDockingAlignment.transform.Rotate(Vector3.up, -angle);
                     JUtil.ShowHide(true, markerDockingAlignment);
                 }
                 JUtil.ShowHide(true, markerTarget, markerTargetMinus);
             }
 
-
-            // This dirty hack reduces the chance that the ball might get affected by internal cabin lighting.
-            int backupQuality = QualitySettings.pixelLightCount;
-            QualitySettings.pixelLightCount = 0;
-
             JUtil.ShowHide(true,
-                cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
-                markerNormal, markerNormalMinus, markerRadial, markerRadialMinus);
+                cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde);
             ballCamera.Render();
-            QualitySettings.pixelLightCount = backupQuality;
             JUtil.ShowHide(false,
                 cameraBody, navBall, overlay, heading, markerPrograde, markerRetrograde,
                 markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus,
@@ -225,40 +310,40 @@ namespace JSI
             }
         }
 
-        private static void MoveMarker(GameObject marker, Vector3 position, Color nativeColor, Quaternion voodooGymbal)
+        private void MoveMarker(GameObject marker, Vector3 position, Quaternion voodooGymbal)
         {
-            const float markerRadius = 0.5f;
-            const float markerPlane = 1.4f;
-            marker.transform.position = FixMarkerPosition(position, voodooGymbal) * markerRadius;
-            marker.renderer.material.color = new Color(nativeColor.r, nativeColor.g, nativeColor.b, (float)(marker.transform.position.z + 0.5));
-            marker.transform.position = new Vector3(marker.transform.position.x, marker.transform.position.y, markerPlane);
-            marker.FaceCamera();
-        }
-
-        private static Vector3 FixMarkerPosition(Vector3 thatVector, Quaternion thatVoodoo)
-        {
-            Vector3 returnVector = thatVoodoo * thatVector;
-            returnVector.x = -returnVector.x;
-            return returnVector;
+            Vector3 newPosition = ((voodooGymbal * position) * navballRadius) + navBallOrigin;
+            marker.renderer.material.SetFloat("_Opacity", Mathf.Clamp01(newPosition.z + 0.5f));
+            marker.transform.position = new Vector3(newPosition.x, newPosition.y, markerDepth);
         }
 
         private static Quaternion MirrorX(Quaternion input)
         {
             // Witchcraft: It's called mirroring the X axis of the quaternion's conjugate.
+            // We have to do this because the KSP navball gimbal is oddly mapped.
             return new Quaternion(input.x, -input.y, -input.z, input.w);
         }
 
-        public GameObject BuildMarker(int iconX, int iconY, Color nativeColor)
+        private static GameObject BuildMarker(int iconX, int iconY, float markerSize, Texture gizmoTexture, Color nativeColor, int drawingLayer, int propID, Shader shader)
         {
-
-            GameObject marker = RasterPropMonitor.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + internalProp.propID, markerScale, drawingLayer);
-            marker.renderer.material = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
+            GameObject marker = RasterPropMonitor.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + propID, markerSize, drawingLayer);
+            marker.renderer.material = new Material(shader);
             marker.renderer.material.mainTexture = gizmoTexture;
             marker.renderer.material.mainTextureScale = Vector2.one / 3f;
             marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
-            marker.renderer.material.color = nativeColor;
+            marker.renderer.material.color = Color.white;
             marker.transform.position = Vector3.zero;
+
+            MeshFilter meshFilter = marker.GetComponent<MeshFilter>();
+
+            meshFilter.mesh.colors = new[]
+                        {
+                            nativeColor, nativeColor, nativeColor,
+                            nativeColor, nativeColor, nativeColor
+                        };
+
             JUtil.ShowHide(false, marker);
+
             return marker;
         }
 
@@ -276,10 +361,6 @@ namespace JSI
                 if (!string.IsNullOrEmpty(backgroundColor))
                 {
                     backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
-                }
-                if (!string.IsNullOrEmpty(ballColor))
-                {
-                    ballColorValue = ConfigNode.ParseColor32(ballColor);
                 }
                 if (!string.IsNullOrEmpty(progradeColor))
                 {
@@ -306,102 +387,50 @@ namespace JSI
                     dockingColorValue = ConfigNode.ParseColor32(dockingColor);
                 }
 
-                Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
-                overlayMaterial = new Material(unlit);
-                overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
-
-                if (!string.IsNullOrEmpty(headingBar))
-                {
-                    headingMaterial = new Material(unlit);
-                    headingMaterial.mainTexture = GameDatabase.Instance.GetTexture(headingBar.EnforceSlashes(), false);
-                }
-                horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
-
-                gizmoTexture = JUtil.GetGizmoTexture();
+                Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
 
                 // Ahaha, that's clever, does it work?
                 stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
                 // ...well, it does, but the result is bizarre,
                 // apparently, because the stock BALL ITSELF IS MIRRORED.
 
-                navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
-                Destroy(navBall.collider);
-                navBall.name = "RPMNB" + navBall.GetInstanceID();
-                navBall.layer = drawingLayer;
-                navBall.transform.position = Vector3.zero;
-                navBall.transform.rotation = Quaternion.identity;
-                navBall.transform.localRotation = Quaternion.identity;
-
-                if (ballIsEmissive)
-                {
-                    navBall.renderer.material.shader = Shader.Find("KSP/Emissive/Diffuse");
-                    navBall.renderer.material.SetTexture("_MainTex", horizonTex);
-                    navBall.renderer.material.SetTextureOffset("_Emissive", navBall.renderer.material.GetTextureOffset("_MainTex"));
-                    navBall.renderer.material.SetTexture("_Emissive", horizonTex);
-                    navBall.renderer.material.SetColor("_EmissiveColor", ballColorValue);
-                }
-                else
-                {
-                    navBall.renderer.material.shader = Shader.Find("KSP/Unlit");
-                    navBall.renderer.material.mainTexture = horizonTex;
-                    navBall.renderer.material.color = ballColorValue;
-                }
-                navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
-
-                markerPrograde = BuildMarker(0, 2, progradeColorValue);
-                markerRetrograde = BuildMarker(1, 2, progradeColorValue);
-                markerManeuver = BuildMarker(2, 0, maneuverColorValue);
-                markerManeuverMinus = BuildMarker(1, 2, maneuverColorValue);
-                markerTarget = BuildMarker(2, 1, targetColorValue);
-                markerTargetMinus = BuildMarker(2, 2, targetColorValue);
-                markerNormal = BuildMarker(0, 0, normalColorValue);
-                markerNormalMinus = BuildMarker(1, 0, normalColorValue);
-                markerRadial = BuildMarker(1, 1, radialColorValue);
-                markerRadialMinus = BuildMarker(0, 1, radialColorValue);
-
-                markerDockingAlignment = BuildMarker(0, 2, dockingColorValue);
-                markerNavWaypoint = BuildMarker(0, 2, dockingColorValue);
-
                 // Non-moving parts...
                 cameraBody = new GameObject();
                 cameraBody.name = "RPMPFD" + cameraBody.GetInstanceID();
                 cameraBody.layer = drawingLayer;
+
+                Vector3 navBallPosition = new Vector3(0.0f, 0.0f, 1.5f);
+
                 ballCamera = cameraBody.AddComponent<Camera>();
                 ballCamera.enabled = false;
                 ballCamera.orthographic = true;
-                ballCamera.clearFlags = CameraClearFlags.Nothing;
                 ballCamera.eventMask = 0;
                 ballCamera.farClipPlane = 3f;
-                ballCamera.orthographicSize = cameraSpan;
+                ballCamera.orthographicSize = 1.0f;
                 ballCamera.cullingMask = 1 << drawingLayer;
                 ballCamera.clearFlags = CameraClearFlags.Depth;
-                // -2,0,0 seems to get the orientation exactly as the ship.
-                // But logically, forward is Z+, right?
-                // Which means that 
-                ballCamera.transform.position = new Vector3(0, 0, 2);
-                ballCamera.transform.LookAt(Vector3.zero, Vector3.up);
-                ballCamera.transform.position = new Vector3(cameraShift.x, cameraShift.y, 2);
+                ballCamera.transparencySortMode = TransparencySortMode.Orthographic;
+                ballCamera.transform.position = Vector3.zero;
+                ballCamera.transform.LookAt(navBallPosition, Vector3.up);
 
-                overlay = RasterPropMonitor.CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, 1f, drawingLayer);
-                overlay.layer = drawingLayer;
-                overlay.transform.position = new Vector3(0, 0, 1.5f);
-                overlay.renderer.material = overlayMaterial;
-                overlay.transform.parent = cameraBody.transform;
-                overlay.FaceCamera();
-
-                if (headingMaterial != null)
+                navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+                Destroy(navBall.collider);
+                navBall.name = "RPMNB" + navBall.GetInstanceID();
+                navBall.layer = drawingLayer;
+                navBall.transform.parent = cameraBody.transform;
+                navBall.transform.position = navBallPosition;
+                navBall.renderer.material.shader = displayShader;
+                Texture2D horizonTex = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
+                if (horizonTex != null)
                 {
-                    heading = RasterPropMonitor.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, 1f, drawingLayer);
-                    heading.layer = drawingLayer;
-                    heading.transform.position = new Vector3(headingBarPosition.x, headingBarPosition.y, headingAboveOverlay ? 1.55f : 1.45f);
-                    heading.transform.parent = cameraBody.transform;
-                    heading.transform.localScale = new Vector3(headingBarPosition.z, 0, headingBarPosition.w);
-                    heading.renderer.material = headingMaterial;
-                    heading.renderer.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
-                    heading.FaceCamera();
+                    navBall.renderer.material.mainTexture = horizonTex;
+                }
+                else
+                {
+                    JUtil.LogErrorMessage(this, "Failed to load horizon texture {0}", horizonTexture);
                 }
 
-                JUtil.ShowHide(false, navBall, cameraBody, overlay, heading);
+                navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
 
                 // use the RPM comp's centralized database so we're not 
                 // repeatedly doing computation.

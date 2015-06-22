@@ -140,10 +140,10 @@ namespace JSI
             MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
             obj.AddComponent<MeshRenderer>();
 
-            var p0 = new Vector3(-vectorSize.x, 0.0f, vectorSize.y);
-            var p1 = new Vector3(vectorSize.x, 0.0f, vectorSize.y);
-            var p2 = new Vector3(-vectorSize.x, 0.0f, -vectorSize.y);
-            var p3 = new Vector3(vectorSize.x, 0.0f, -vectorSize.y);
+            var p0 = new Vector3(-vectorSize.x, -vectorSize.y, 0.0f);
+            var p1 = new Vector3(vectorSize.x, -vectorSize.y, 0.0f);
+            var p2 = new Vector3(-vectorSize.x, vectorSize.y, 0.0f);
+            var p3 = new Vector3(vectorSize.x, vectorSize.y, 0.0f);
 
             mesh.vertices = new[] 
             {
@@ -153,8 +153,8 @@ namespace JSI
 
             mesh.triangles = new[] 
             {
-                0, 1, 2,
-                3, 4, 5
+                1, 0, 2,
+                4, 3, 5
             };
 
             var uv1 = new Vector2(textureCoords.xMin, textureCoords.yMin);

@@ -95,7 +95,6 @@ namespace JSI
                 overlayMesh.transform.position = new Vector3(0, 0, 1.5f);
                 overlayMesh.renderer.material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
-                overlayMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                 JUtil.ShowHide(false, overlayMesh);
             }
@@ -116,7 +115,6 @@ namespace JSI
                     ladderMesh.transform.position = new Vector3(0, 0, 1.5f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
-                    ladderMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                     JUtil.ShowHide(false, ladderMesh);
 
@@ -129,8 +127,7 @@ namespace JSI
                         progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
-                        progradeLadderIcon.transform.parent = ladderMesh.transform;
-                        progradeLadderIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
+                        progradeLadderIcon.transform.parent = cameraBody.transform;
 
                         MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
 
@@ -158,7 +155,6 @@ namespace JSI
                     headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
                     headingMesh.renderer.material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
-                    headingMesh.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                     JUtil.ShowHide(false, headingMesh);
 
@@ -174,7 +170,6 @@ namespace JSI
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
-                        progradeHeadingIcon.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
                         MeshFilter meshFilter = progradeHeadingIcon.GetComponent<MeshFilter>();
 
@@ -195,7 +190,7 @@ namespace JSI
                 {
                     for (int j = 0; j < nodes.Length; ++j)
                     {
-                        if (nodes[j].HasValue("name") && vBars[i] == nodes[j].GetValue("name"))
+                        if (nodes[j].HasValue("name") && vBars[i].Trim() == nodes[j].GetValue("name"))
                         {
                             try
                             {
@@ -234,6 +229,8 @@ namespace JSI
                 ladderMidpointCoord = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch);
             }
 
+            // MOARdV TODO: These can be done without manually editing the 
+            // mesh filter.  I need to look up the game object texture stuff.
             var uv1 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
             var uv2 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
             var uv3 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
@@ -250,35 +247,57 @@ namespace JSI
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             float roll = rotationVesselSurface.eulerAngles.z;
 
-            ladderMesh.transform.Rotate(new Vector3(0.0f, 1.0f, 0.0f), lastRoll - roll);
+            ladderMesh.transform.Rotate(new Vector3(0.0f, 0.0f, 1.0f), lastRoll - roll);
 
             lastRoll = roll;
 
             if (progradeLadderIcon != null)
             {
                 Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
-                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.Right, comp.Forward);
+                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.SurfaceForward, comp.SurfaceRight);
+
+                // I'm just feeling stupid today - I know there's a better way
+                // to adjust these values.
+                if (AoA < -180.0f)
+                {
+                    AoA = -180.0f - AoA;
+                }
+                else if(AoA > 180.0f)
+                {
+                    AoA = 180.0f - AoA;
+                }
+
+                if (AoA > 90.0f)
+                {
+                    AoA = 180.0f - AoA;
+                }
+                else if (AoA < -90.0f)
+                {
+                    AoA = -180.0f - AoA;
+                }
+
                 float AoATC;
                 if (use360horizon)
                 {
                     // Straight up is texture coord 0.75;
                     // Straight down is TC 0.25;
-                    AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, pitch + AoA);
+                    AoATC = JUtil.DualLerp(0.25f, 0.75f, -90f, 90f, AoA);
                 }
                 else
                 {
                     // Straight up is texture coord 1.0;
                     // Straight down is TC 0.0;
-                    AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, pitch + AoA);
+                    AoATC = JUtil.DualLerp(0.0f, 1.0f, -90f, 90f, AoA);
                 }
 
                 float Ypos = JUtil.DualLerp(
-                                 horizonSize.y * 0.5f, -horizonSize.y * 0.5f,
+                                 -horizonSize.y * 0.5f, horizonSize.y * 0.5f,
                                  ladderMidpointCoord - horizonTextureSize.y, ladderMidpointCoord + horizonTextureSize.y,
                                  AoATC);
 
                 Vector3 position = progradeLadderIcon.transform.position;
-                position.y = Ypos;
+                position.x = Ypos * Mathf.Sin(roll * Mathf.Deg2Rad);
+                position.y = Ypos * Mathf.Cos(roll * Mathf.Deg2Rad);
                 progradeLadderIcon.transform.position = position;
 
                 JUtil.ShowHide(true, progradeLadderIcon);
@@ -354,7 +373,13 @@ namespace JSI
 
             if (ladderMesh != null)
             {
-                // Viewport doesn't work with this, AFAICT
+                // Viewport doesn't work with this, AFAICT.
+                // Anyway, these numbers aren't right for the redesigned HUD.
+                //JUtil.LogMessage(this, "screen is {0} x {1}, horizon size is {2} x {3}, making a rectangle at {4} x {5} with size of {6} x {7}",
+                //    screen.width,screen.height,
+                //    horizonSize.x, horizonSize.y,
+                //    (screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f,
+                //    horizonSize.x, horizonSize.y);
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder();
@@ -403,7 +428,7 @@ namespace JSI
                 // does this actually work?
                 hudCamera.backgroundColor = backgroundColorValue;
                 hudCamera.clearFlags = CameraClearFlags.Depth | CameraClearFlags.Color;
-                hudCamera.transform.position = Vector3.zero; // new Vector3(0.0f, 0.0f, 2.0f);
+                hudCamera.transform.position = Vector3.zero;
                 hudCamera.transform.LookAt(new Vector3(0.0f, 0.0f, 1.5f), Vector3.up);
 
                 if (!string.IsNullOrEmpty(progradeColor))
@@ -517,7 +542,6 @@ namespace JSI
             barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.5f);
             barObject.renderer.material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
-            barObject.transform.rotation = Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
             JUtil.ShowHide(true, barObject);
         }

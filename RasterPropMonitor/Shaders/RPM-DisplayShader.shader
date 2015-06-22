@@ -1,25 +1,29 @@
 ﻿
-Shader "RPM/DisplayShaders" 
+Shader "RPM/DisplayShader" 
 {
-	Properties { _MainTex ("Texture", any) = "" {} } 
+	Properties 
+	{ 
+		_MainTex ("Texture", 2D) = "white" {}
+		_Opacity("_Opacity", Range(0,1) ) = 1
+	} 
 
 	SubShader {
 
-		Tags { "ForceSupported" = "True" "RenderType"="Overlay" } 
+		Tags { "RenderType"="Overlay" "Queue" = "Transparent" } 
 		
 		Lighting Off 
 		Blend One OneMinusSrcAlpha 
-		Cull Off 
-		ZWrite Off 
+		Cull Back 
 		Fog { Mode Off } 
+		ZWrite Off 
 		ZTest Always 
 		
 		Pass {	
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
-			#pragma target 2.0
-			// #pragma fragmentoption ARB_precision_hint_fastest
+			#pragma target 3.0
+			#pragma only_renderers d3d9 d3d11 opengl
 
 			#include "UnityCG.cginc"
 
@@ -38,6 +42,7 @@ Shader "RPM/DisplayShaders"
 			sampler2D _MainTex;
 
 			uniform float4 _MainTex_ST;
+			uniform float _Opacity;
 			
 			v2f vert (appdata_t v)
 			{
@@ -51,7 +56,7 @@ Shader "RPM/DisplayShaders"
 			fixed4 frag (v2f i) : COLOR
 			{
 				float4 diffuse = tex2D(_MainTex, i.texcoord);
-				diffuse.a *= i.color.a;
+				diffuse.a *= i.color.a * _Opacity;
 				diffuse.rgb = (diffuse.rgb * i.color.rgb) * diffuse.a;
 				return fixed4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
 			}
