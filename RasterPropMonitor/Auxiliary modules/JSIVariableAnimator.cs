@@ -82,25 +82,29 @@ namespace JSI
             }
         }
 
-        public override void OnUpdate()
+        public void Update()
         {
             if (!JUtil.IsActiveVessel(vessel))
+            {
                 return;
+            }
 
             if (!JUtil.VesselIsInIVA(vessel))
             {
-                foreach (VariableAnimationSet unit in variableSets)
+                for (int unit = 0; unit < variableSets.Count; ++unit)
                 {
-                    unit.MuteSoundWhileOutOfIVA();
+                    variableSets[unit].MuteSoundWhileOutOfIVA();
                 }
             }
 
             if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
-                return;
-
-            foreach (VariableAnimationSet unit in variableSets)
             {
-                unit.Update();
+                return;
+            }
+
+            for (int unit = 0; unit < variableSets.Count; ++unit)
+            {
+                variableSets[unit].Update();
             }
         }
 
@@ -118,13 +122,15 @@ namespace JSI
     {
         private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
         private readonly RasterPropMonitorComputer comp;
-        private readonly Animation anim;
+        private readonly Animation onAnim;
+        private readonly Animation offAnim;
         private readonly bool thresholdMode;
         private readonly FXGroup audioOutput;
         private readonly float alarmSoundVolume;
         private readonly Vector2 threshold = Vector2.zero;
         private readonly bool reverse;
         private readonly string animationName;
+        private readonly string stopAnimationName;
         private readonly float animationSpeed;
         private readonly bool alarmSoundLooping;
         private readonly bool alarmMustPlayOnce;
@@ -239,29 +245,54 @@ namespace JSI
                 Animation[] anims = node.HasValue("animateExterior") ? thisProp.part.FindModelAnimators(animationName) : thisProp.FindModelAnimators(animationName);
                 if (anims.Length > 0)
                 {
-                    anim = anims[0];
-                    anim.enabled = true;
-                    anim[animationName].speed = 0;
-                    anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                    onAnim = anims[0];
+                    onAnim.enabled = true;
+                    onAnim[animationName].speed = 0;
+                    onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
                     looping = node.HasValue("loopingAnimation");
                     if (looping)
                     {
-                        anim[animationName].wrapMode = WrapMode.Loop;
-                        anim.wrapMode = WrapMode.Loop;
-                        anim[animationName].speed = animationSpeed;
+                        onAnim[animationName].wrapMode = WrapMode.Loop;
+                        onAnim.wrapMode = WrapMode.Loop;
+                        onAnim[animationName].speed = animationSpeed;
                         mode = Mode.LoopingAnimation;
                     }
                     else
                     {
-                        anim[animationName].wrapMode = WrapMode.Once;
+                        onAnim[animationName].wrapMode = WrapMode.Once;
                         mode = Mode.Animation;
                     }
-                    anim.Play();
+                    onAnim.Play();
                     alwaysActive = node.HasValue("animateExterior");
                 }
                 else
                 {
                     throw new ArgumentException("Animation could not be found.");
+                }
+
+                if (node.HasValue("stopAnimationName"))
+                {
+                    stopAnimationName = node.GetValue("stopAnimationName");
+                    anims = node.HasValue("animateExterior") ? thisProp.part.FindModelAnimators(stopAnimationName) : thisProp.FindModelAnimators(stopAnimationName);
+                    if (anims.Length > 0)
+                    {
+                        offAnim = anims[0];
+                        offAnim.enabled = true;
+                        offAnim[stopAnimationName].speed = 0;
+                        offAnim[stopAnimationName].normalizedTime = reverse ? 1f : 0f;
+                        if (looping)
+                        {
+                            offAnim[stopAnimationName].wrapMode = WrapMode.Loop;
+                            offAnim.wrapMode = WrapMode.Loop;
+                            offAnim[stopAnimationName].speed = animationSpeed;
+                            mode = Mode.LoopingAnimation;
+                        }
+                        else
+                        {
+                            offAnim[stopAnimationName].wrapMode = WrapMode.Once;
+                            mode = Mode.Animation;
+                        }
+                    }
                 }
             }
             else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject"))
@@ -388,13 +419,13 @@ namespace JSI
                         colorShiftRenderer.material.SetColor(colorName, (reverse ? passiveColor : activeColor));
                         break;
                     case Mode.Animation:
-                        anim[animationName].normalizedTime = reverse ? 0f : 1f;
+                        onAnim[animationName].normalizedTime = reverse ? 0f : 1f;
                         break;
                     case Mode.LoopingAnimation:
-                        anim[animationName].speed = animationSpeed;
-                        if(!anim.IsPlaying(animationName))
+                        onAnim[animationName].speed = animationSpeed;
+                        if (!onAnim.IsPlaying(animationName))
                         {
-                            anim.Play(animationName);
+                            onAnim.Play(animationName);
                         }
                         break;
                     case Mode.Rotation:
@@ -449,11 +480,22 @@ namespace JSI
                         colorShiftRenderer.material.SetColor(colorName, (reverse ? activeColor : passiveColor));
                         break;
                     case Mode.Animation:
-                        anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                        onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
                         break;
                     case Mode.LoopingAnimation:
-                        anim[animationName].speed = 0.0f;
-                        anim[animationName].normalizedTime = reverse ? 1f : 0f;
+                        if (offAnim != null)
+                        {
+                            offAnim[stopAnimationName].speed = animationSpeed;
+                            if (!offAnim.IsPlaying(stopAnimationName))
+                            {
+                                offAnim.Play(stopAnimationName);
+                            }
+                        }
+                        else
+                        {
+                            onAnim[animationName].speed = 0.0f;
+                            onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
+                        }
                         break;
                     case Mode.Rotation:
                         controlledTransform.localRotation = initialRotation * (reverse ? rotationStart : rotationEnd);
@@ -577,7 +619,7 @@ namespace JSI
                         {
                             lerp = reverse ? 1f : 0f;
                         }
-                        anim[animationName].normalizedTime = lerp;
+                        onAnim[animationName].normalizedTime = lerp;
                         break;
                 }
             }
