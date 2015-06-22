@@ -23,7 +23,7 @@ Shader "RPM/DisplayShader"
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma target 3.0
-			#pragma only_renderers d3d9 d3d11 opengl
+			#pragma only_renderers d3d9 d3d11 opengl d3d11_9x
 
 			#include "UnityCG.cginc"
 
