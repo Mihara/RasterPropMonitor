@@ -1823,7 +1823,7 @@ namespace JSI
                 case "PITCH":
                     return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
                 case "ROLL":
-                    return (rotationVesselSurface.eulerAngles.z > 180) ? (rotationVesselSurface.eulerAngles.z - 360.0) : rotationVesselSurface.eulerAngles.z;
+                    return (rotationVesselSurface.eulerAngles.z > 180) ? (360.0 - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
