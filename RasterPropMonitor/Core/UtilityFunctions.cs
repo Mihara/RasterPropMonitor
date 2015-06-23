@@ -706,7 +706,7 @@ namespace JSI
                 audioOutput.audio.maxDistance = 10f;
                 audioOutput.audio.minDistance = 2f;
                 audioOutput.audio.dopplerLevel = 0f;
-                audioOutput.audio.panLevel = 1f;
+                audioOutput.audio.panLevel = 0f;
                 audioOutput.audio.playOnAwake = false;
                 audioOutput.audio.loop = loopState;
                 audioOutput.audio.pitch = 1f;
