@@ -894,7 +894,7 @@ namespace JSI
                     if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9;
+                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.skinTemperature / thatPart.maxTemp > 0.9);
                         anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
