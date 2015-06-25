@@ -254,26 +254,12 @@ namespace JSI
             if (progradeLadderIcon != null)
             {
                 Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
-                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.SurfaceForward, comp.SurfaceRight);
-
-                // I'm just feeling stupid today - I know there's a better way
-                // to adjust these values.
-                if (AoA < -180.0f)
+                Vector3 tmpVec = comp.Up * Vector3.Dot(comp.Up, velocityVesselSurfaceUnit) + comp.SurfaceForward * Vector3.Dot(comp.SurfaceForward, velocityVesselSurfaceUnit);
+                float AoA = Vector3.Dot(tmpVec.normalized, comp.Up);
+                AoA = Mathf.Rad2Deg * Mathf.Asin(AoA);
+                if (float.IsNaN(AoA))
                 {
-                    AoA = -180.0f - AoA;
-                }
-                else if(AoA > 180.0f)
-                {
-                    AoA = 180.0f - AoA;
-                }
-
-                if (AoA > 90.0f)
-                {
-                    AoA = 180.0f - AoA;
-                }
-                else if (AoA < -90.0f)
-                {
-                    AoA = -180.0f - AoA;
+                    AoA = 0.0f;
                 }
 
                 float AoATC;
