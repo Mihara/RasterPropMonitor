@@ -894,7 +894,7 @@ namespace JSI
                     if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.skinTemperature / thatPart.maxTemp > 0.9);
+                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
                         anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
@@ -915,11 +915,17 @@ namespace JSI
                     {
                         var thatAblator = pm as ModuleAblator;
 
+                        // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
+                        // Although it seems odd that the skin temp quickly cools off after re-entry, while the
+                        // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
+                        // of 950K, while the interior eventually reached 345K after the ablator had cooled below
+                        // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
+                        // interior still held 323K.
                         if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
                         {
                             hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
                             heatShieldTemperature = (float)(thatPart.skinTemperature);
-                            heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
+                            heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
                         }
                     }
                     //else if (pm is ModuleScienceExperiment)
