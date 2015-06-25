@@ -389,10 +389,7 @@ namespace JSI
 
                 Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
 
-                // Ahaha, that's clever, does it work?
-                stockNavBall = GameObject.Find("NavBall").GetComponent<NavBall>();
-                // ...well, it does, but the result is bizarre,
-                // apparently, because the stock BALL ITSELF IS MIRRORED.
+                stockNavBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
 
                 // Non-moving parts...
                 cameraBody = new GameObject();
