@@ -47,18 +47,20 @@ namespace JSI
         }
 
         // Craft-relative basis vectors
+        private Vector3d forward;
         public Vector3d Forward
         {
             get
             {
-                return vessel.GetTransform().up;
+                return forward;
             }
         }
+        private Vector3d right;
         public Vector3d Right
         {
             get
             {
-                return vessel.GetTransform().right;
+                return right;
             }
         }
 
@@ -66,20 +68,19 @@ namespace JSI
         private Vector3d up;
         public Vector3d Up
         {
-            // MOARdV TODO: FlightGlobals.upAxis?
             get
             {
                 return up;
             }
         }
-        private Vector3d north;
-        public Vector3d North
-        {
-            get
-            {
-                return north;
-            }
-        }
+        //private Vector3d north;
+        //public Vector3d North
+        //{
+        //    get
+        //    {
+        //        return north;
+        //    }
+        //}
         // surfaceRight is the projection of the right vector onto the surface.
         // If up x right is a degenerate vector (rolled on the side), we use
         // the forward vector to compose a new basis
@@ -166,11 +167,14 @@ namespace JSI
         private ProtoCrewMember[] localCrew;
         private kerbalExpressionSystem[] localCrewMedical;
 
+        private NavBall navBall;
+
+        private double altitudeASL;
         public double AltitudeASL
         {
             get
             {
-                return vessel.mainBody.GetAltitude(vessel.CoM);
+                return altitudeASL;
             }
         }
         private double altitudeTrue;
@@ -425,6 +429,7 @@ namespace JSI
                 }
 
                 protractor = new Protractor(this);
+                navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
 
                 installedModules.Add(new JSIParachute(vessel));
                 installedModules.Add(new JSIMechJeb(vessel));
@@ -681,19 +686,22 @@ namespace JSI
                 FinePrint.WaypointManager.activateNavPoint();
             }
 #endif
+            altitudeASL = vessel.mainBody.GetAltitude(vessel.CoM);
             localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
-            localGeeDirect = FlightGlobals.getGeeForceAtPosition(CoM).magnitude;
-            up = (CoM - vessel.mainBody.position).normalized;
-            north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
-            Quaternion rotationSurface = Quaternion.LookRotation(north, up);
-            rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
+            localGeeDirect = FlightGlobals.getGeeForceAtPosition(vessel.CoM).magnitude;
+            up = FlightGlobals.upAxis;
+            // north isn't actually used anywhere...
+            //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - vessel.CoM, up).normalized;
+            right = vessel.GetTransform().right;
+            forward = vessel.GetTransform().up;
+            rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            surfaceForward = Vector3d.Cross(up, Right);
+            surfaceForward = Vector3d.Cross(up, right);
             // If the craft is rolled sharply to the side, we have to re-do our basis.
             if (surfaceForward.sqrMagnitude < 0.5)
             {
-                surfaceRight = Vector3d.Cross(Forward, up);
+                surfaceRight = Vector3d.Cross(forward, up);
                 surfaceForward = Vector3d.Cross(up, surfaceRight);
             }
             else
@@ -2046,7 +2054,7 @@ namespace JSI
                         if (targetDockingNode != null)
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
                         if (target is Vessel)
-                            return JUtil.NormalAngle(-target.GetFwdVector(), Forward, up);
+                            return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
                         return 0d;
                     }
                     return 0d;
@@ -2057,7 +2065,7 @@ namespace JSI
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
                         if (target is Vessel)
                         {
-                            JUtil.NormalAngle(-target.GetFwdVector(), Forward, -Right);
+                            JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
                         }
                         return 0d;
                     }
@@ -2069,7 +2077,7 @@ namespace JSI
                             return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
                         if (target is Vessel)
                         {
-                            return JUtil.NormalAngle(target.GetTransform().up, up, -Forward);
+                            return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
                         }
                         return 0d;
                     }
@@ -2299,8 +2307,8 @@ namespace JSI
                     return (speedVerticalRounded < 0 && altitudeBottom < 100 && slopeAngle > 15).GetHashCode();
                 case "DOCKINGANGLEALARM":
                     return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, up)) > 1.5 ||
-                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, -Right)) > 1.5)).GetHashCode();
+                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
+                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
                     return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
