@@ -258,6 +258,7 @@ namespace JSI
 
         // Plugin evaluator reflections
         private Func<bool> evaluateMechJebAvailable;
+        private Func<double> evaluateAngleOfAttack;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
         private Func<double> evaluateDynamicPressure;
@@ -265,6 +266,7 @@ namespace JSI
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
         private Func<double> evaluateLandingLongitude;
+        private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
 
         // Processing cache!
@@ -1838,6 +1840,10 @@ namespace JSI
                     return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
                 case "ROLL":
                     return (rotationVesselSurface.eulerAngles.z > 180) ? (360.0 - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
+                case "ANGLEOFATTACK":
+                    return AngleOfAttack();
+                case "SIDESLIP":
+                    return SideSlip();
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
@@ -2483,6 +2489,23 @@ namespace JSI
 
         //--- Fallback evaluators
         #region FallbackEvaluators
+        private double FallbackEvaluateAngleOfAttack()
+        {
+            // Code courtesy FAR.
+            Transform refTransform = vessel.GetTransform();
+            Vector3 velVectorNorm = vessel.srf_velocity.normalized;
+
+            Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.forward * Vector3.Dot(refTransform.forward, velVectorNorm);   //velocity vector projected onto a plane that divides the airplane into left and right halves
+            double AoA = Vector3.Dot(tmpVec.normalized, refTransform.forward);
+            AoA = Mathf.Rad2Deg * Math.Asin(AoA);
+            if (double.IsNaN(AoA))
+            {
+                AoA = 0.0;
+            }
+
+            return AoA;
+        }
+
         private double FallbackEvaluateDeltaV()
         {
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
@@ -2496,6 +2519,23 @@ namespace JSI
         private double FallbackEvaluateDynamicPressure()
         {
             return vessel.dynamicPressurekPa;
+        }
+
+        private double FallbackEvaluateSideSlip()
+        {
+            // Code courtesy FAR.
+            Transform refTransform = vessel.GetTransform();
+            Vector3 velVectorNorm = vessel.srf_velocity.normalized;
+
+            Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.right * Vector3.Dot(refTransform.right, velVectorNorm);     //velocity vector projected onto the vehicle-horizontal plane
+            double sideslipAngle = Vector3.Dot(tmpVec.normalized, refTransform.right);
+            sideslipAngle = Mathf.Rad2Deg * Math.Asin(sideslipAngle);
+            if (double.IsNaN(sideslipAngle))
+            {
+                sideslipAngle = 0.0;
+            }
+
+            return sideslipAngle;
         }
 
         private double FallbackEvaluateTerminalVelocity()
@@ -2560,6 +2600,33 @@ namespace JSI
 
         //--- Plugin-enabled evaluators
         #region PluginEvaluators
+        private double AngleOfAttack()
+        {
+            if(evaluateAngleOfAttack == null)
+            {
+                    Func<double> accessor = null;
+
+                    accessor = (Func<double>)GetMethod("JSIFAR:GetAngleOfAttack", part.internalModel.props[0], typeof(Func<double>));
+                    if (accessor != null)
+                    {
+                        double value = accessor();
+                        if (double.IsNaN(value))
+                        {
+                            accessor = null;
+                        }
+                    }
+
+                    if (accessor == null)
+                    {
+                        accessor = FallbackEvaluateAngleOfAttack;
+                    }
+
+                    evaluateAngleOfAttack = accessor;
+            }
+
+            return evaluateAngleOfAttack();
+        }
+
         private double DeltaV()
         {
             if (evaluateDeltaV == null)
@@ -2697,6 +2764,33 @@ namespace JSI
             }
 
             return evaluateMechJebAvailable();
+        }
+
+        private double SideSlip()
+        {
+            if (evaluateSideSlip == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIFAR:GetSideSlip", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateSideSlip;
+                }
+
+                evaluateSideSlip = accessor;
+            }
+
+            return evaluateSideSlip();
         }
 
         private double TerminalVelocity()
