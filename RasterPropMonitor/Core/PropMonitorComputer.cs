@@ -1219,6 +1219,26 @@ namespace JSI
                         resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], false);
                 }
 
+                // Periodic variables - A value that toggles between 0 and 1 with
+                // the specified (game clock) period.
+                if (tokens.Length > 1 && tokens[0] == "PERIOD")
+                {
+                    if(tokens[1].Substring(tokens[1].Length - 2) == "HZ")
+                    {
+                        double period;
+                        if (double.TryParse(tokens[1].Substring(0, tokens[1].Length - 2), out period) && period > 0.0)
+                        {
+                            double invPeriod = 1.0 / period;
+
+                            double remainder = Planetarium.GetUniversalTime() % invPeriod;
+
+                            return (remainder > invPeriod*0.5).GetHashCode();
+                        }
+                    }
+
+                    return input;
+                }
+
                 // Custom variables - if the first token is CUSTOM, we'll evaluate it here
                 if (tokens.Length > 1 && tokens[0] == "CUSTOM")
                 {
