@@ -92,7 +92,7 @@ namespace JSI
                 overlayMaterial.mainTexture = overlayTexture;
 
                 overlayMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
-                overlayMesh.transform.position = new Vector3(0, 0, 1.5f);
+                overlayMesh.transform.position = new Vector3(0, 0, 1.0f);
                 overlayMesh.renderer.material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
 
@@ -112,7 +112,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(0, 0, 1.5f);
+                    ladderMesh.transform.position = new Vector3(0, 0, 1.4f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
@@ -125,7 +125,7 @@ namespace JSI
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
 
                         progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
-                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
+                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
 
@@ -152,7 +152,7 @@ namespace JSI
                     headingMaterial.mainTexture.wrapMode = TextureWrapMode.Repeat;
 
                     headingMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                    headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.4f);
                     headingMesh.renderer.material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
 
@@ -167,7 +167,7 @@ namespace JSI
                         progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
 
                         progradeHeadingIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
-                        progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                        progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
 
@@ -414,6 +414,7 @@ namespace JSI
                 // does this actually work?
                 hudCamera.backgroundColor = backgroundColorValue;
                 hudCamera.clearFlags = CameraClearFlags.Depth | CameraClearFlags.Color;
+                hudCamera.transparencySortMode = TransparencySortMode.Orthographic;
                 hudCamera.transform.position = Vector3.zero;
                 hudCamera.transform.LookAt(new Vector3(0.0f, 0.0f, 1.5f), Vector3.up);
 
@@ -525,7 +526,7 @@ namespace JSI
             // Position in camera space has (0, 0) in the center, so we need to
             // translate everything appropriately.  Y is odd since the coordinates
             // supplied are Left-Handed (0Y on top, growing down), not RH.
-            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.5f);
+            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.4f);
             barObject.renderer.material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
 
