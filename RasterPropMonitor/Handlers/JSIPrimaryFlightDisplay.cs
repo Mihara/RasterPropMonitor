@@ -327,20 +327,16 @@ namespace JSI
         private static GameObject BuildMarker(int iconX, int iconY, float markerSize, Texture gizmoTexture, Color nativeColor, int drawingLayer, int propID, Shader shader)
         {
             GameObject marker = RasterPropMonitor.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + propID, markerSize, drawingLayer);
-            marker.renderer.material = new Material(shader);
-            marker.renderer.material.mainTexture = gizmoTexture;
-            marker.renderer.material.mainTextureScale = Vector2.one / 3f;
-            marker.renderer.material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
-            marker.renderer.material.color = Color.white;
+
+            Material material = new Material(shader);
+            material.mainTexture = gizmoTexture;
+            material.mainTextureScale = Vector2.one / 3f;
+            material.mainTextureOffset = new Vector2(iconX * (1f / 3f), iconY * (1f / 3f));
+            material.color = Color.white;
+            material.SetVector("_Color", nativeColor);
+            marker.renderer.material = material;
+
             marker.transform.position = Vector3.zero;
-
-            MeshFilter meshFilter = marker.GetComponent<MeshFilter>();
-
-            meshFilter.mesh.colors = new[]
-                        {
-                            nativeColor, nativeColor, nativeColor,
-                            nativeColor, nativeColor, nativeColor
-                        };
 
             JUtil.ShowHide(false, marker);
 
@@ -349,7 +345,6 @@ namespace JSI
 
         public void Start()
         {
-
             if (HighLogic.LoadedSceneIsEditor)
             {
                 return;
@@ -444,5 +439,18 @@ namespace JSI
                 throw;
             }
         }
+
+        //public void OnDestroy()
+        //{
+        //    if (HighLogic.LoadedSceneIsEditor)
+        //    {
+        //        // Nothing configured, nothing to destroy.
+        //        return;
+        //    }
+
+        //    JUtil.DisposeOfGameObjects(new GameObject[] { navBall, overlay, heading, markerPrograde, markerRetrograde,
+        //        markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus, markerNormal, markerNormalMinus,
+        //        markerRadial, markerRadialMinus, markerDockingAlignment, markerNavWaypoint});
+        //}
     }
 }

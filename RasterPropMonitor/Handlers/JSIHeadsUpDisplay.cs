@@ -123,19 +123,12 @@ namespace JSI
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
-
-                        MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
-
-                        meshFilter.mesh.colors = new[]
-                        {
-                            progradeColorValue, progradeColorValue, progradeColorValue,
-                            progradeColorValue, progradeColorValue, progradeColorValue
-                        };
                     }
                 }
             }
@@ -163,6 +156,7 @@ namespace JSI
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
 
@@ -170,14 +164,6 @@ namespace JSI
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
-
-                        MeshFilter meshFilter = progradeHeadingIcon.GetComponent<MeshFilter>();
-
-                        meshFilter.mesh.colors = new[]
-                        {
-                            progradeColorValue, progradeColorValue, progradeColorValue,
-                            progradeColorValue, progradeColorValue, progradeColorValue
-                        };
                     }
                 }
             }
@@ -439,6 +425,21 @@ namespace JSI
 
             startupComplete = true;
         }
+
+        //public void OnDestroy()
+        //{
+        //    if (HighLogic.LoadedSceneIsEditor)
+        //    {
+        //        // Nothing configured, nothing to destroy.
+        //        return;
+        //    }
+
+        //    JUtil.DisposeOfGameObjects(new GameObject[] { ladderMesh, progradeLadderIcon, overlayMesh, headingMesh, progradeHeadingIcon });
+        //    for(int i=0; i<verticalBars.Count; ++i)
+        //    {
+        //        JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
+        //    }
+        //}
     }
 
     class VerticalBar
