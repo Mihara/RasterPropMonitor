@@ -333,17 +333,6 @@ namespace JSI
                 // its internal FuelFlowSimulation.  This sim uses an array of
                 // structs, which entails a couple of extra hoops to jump through
                 // when reading via reflection.
-                foreach (MethodInfo mi in mjVacStageStats.FieldType.GetMethods())
-                {
-                    ParameterInfo[] pi = mi.GetParameters();
-                    StringBuilder sb = new StringBuilder();
-                    foreach (var p in pi)
-                    {
-                        sb.Append(p.ParameterType);
-                        sb.Append(", ");
-                    }
-                    JUtil.LogMessage(null, " - method {1} {0}({2})", mi.Name, mi.ReturnType, sb.ToString());
-                }
                 mjAtmStageStats = mjModuleStageStats_t.GetField("atmoStats", BindingFlags.Instance | BindingFlags.Public);
                 if (mjAtmStageStats == null)
                 {
