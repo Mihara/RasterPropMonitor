@@ -220,6 +220,5 @@ pip-log.txt
 .mr.developer.cfg
 GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll
 GameData/JSI/RasterPropMonitor/Plugins/MechJebRPM.dll
-GameData/ModuleManager.2.6.3.dll
 dev_README.txt
-GameData/ModuleManager.2.6.5.dll
+GameData/ModuleManager.2.6.6.dll
