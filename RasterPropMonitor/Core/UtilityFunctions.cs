@@ -455,6 +455,24 @@ namespace JSI
             return null;
         }
 
+        internal static void DisposeOfGameObjects(GameObject[] objs)
+        {
+            for(int i=0; i<objs.Length; ++i)
+            {
+                if(objs[i] != null)
+                {
+                    MeshFilter meshFilter = objs[i].GetComponent<MeshFilter>();
+                    if (meshFilter != null)
+                    {
+                        UnityEngine.Object.Destroy(meshFilter.mesh);
+                        UnityEngine.Object.Destroy(meshFilter);
+                    }
+                    UnityEngine.Object.Destroy(objs[i].renderer.material);
+                    UnityEngine.Object.Destroy(objs[i]);
+                }
+            }
+        }
+
         internal static bool DoesCameraExist(string name)
         {
             for (int i = 0; i < Camera.allCamerasCount; ++i)
@@ -706,7 +724,7 @@ namespace JSI
                 audioOutput.audio.maxDistance = 10f;
                 audioOutput.audio.minDistance = 2f;
                 audioOutput.audio.dopplerLevel = 0f;
-                audioOutput.audio.panLevel = 1f;
+                audioOutput.audio.panLevel = 0f;
                 audioOutput.audio.playOnAwake = false;
                 audioOutput.audio.loop = loopState;
                 audioOutput.audio.pitch = 1f;

@@ -92,7 +92,7 @@ namespace JSI
                 overlayMaterial.mainTexture = overlayTexture;
 
                 overlayMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
-                overlayMesh.transform.position = new Vector3(0, 0, 1.5f);
+                overlayMesh.transform.position = new Vector3(0, 0, 1.0f);
                 overlayMesh.renderer.material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
 
@@ -112,7 +112,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(0, 0, 1.5f);
+                    ladderMesh.transform.position = new Vector3(0, 0, 1.4f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
@@ -123,19 +123,12 @@ namespace JSI
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
-                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.5f);
+                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
-
-                        MeshFilter meshFilter = progradeLadderIcon.GetComponent<MeshFilter>();
-
-                        meshFilter.mesh.colors = new[]
-                        {
-                            progradeColorValue, progradeColorValue, progradeColorValue,
-                            progradeColorValue, progradeColorValue, progradeColorValue
-                        };
                     }
                 }
             }
@@ -152,7 +145,7 @@ namespace JSI
                     headingMaterial.mainTexture.wrapMode = TextureWrapMode.Repeat;
 
                     headingMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                    headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.4f);
                     headingMesh.renderer.material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
 
@@ -163,21 +156,14 @@ namespace JSI
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
 
                         progradeHeadingIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
-                        progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.5f);
+                        progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
-
-                        MeshFilter meshFilter = progradeHeadingIcon.GetComponent<MeshFilter>();
-
-                        meshFilter.mesh.colors = new[]
-                        {
-                            progradeColorValue, progradeColorValue, progradeColorValue,
-                            progradeColorValue, progradeColorValue, progradeColorValue
-                        };
                     }
                 }
             }
@@ -231,17 +217,14 @@ namespace JSI
 
             // MOARdV TODO: These can be done without manually editing the 
             // mesh filter.  I need to look up the game object texture stuff.
-            var uv1 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
-            var uv2 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
-            var uv3 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
-            var uv4 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
-
             MeshFilter meshFilter = ladderMesh.GetComponent<MeshFilter>();
 
             meshFilter.mesh.uv = new[] 
             {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
+                new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y),
+                new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y),
+                new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y),
+                new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y)
             };
 
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
@@ -254,26 +237,12 @@ namespace JSI
             if (progradeLadderIcon != null)
             {
                 Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
-                float AoA = velocityVesselSurfaceUnit.AngleInPlane(comp.SurfaceForward, comp.SurfaceRight);
-
-                // I'm just feeling stupid today - I know there's a better way
-                // to adjust these values.
-                if (AoA < -180.0f)
+                Vector3 tmpVec = comp.Up * Vector3.Dot(comp.Up, velocityVesselSurfaceUnit) + comp.SurfaceForward * Vector3.Dot(comp.SurfaceForward, velocityVesselSurfaceUnit);
+                float AoA = Vector3.Dot(tmpVec.normalized, comp.Up);
+                AoA = Mathf.Rad2Deg * Mathf.Asin(AoA);
+                if (float.IsNaN(AoA))
                 {
-                    AoA = -180.0f - AoA;
-                }
-                else if(AoA > 180.0f)
-                {
-                    AoA = 180.0f - AoA;
-                }
-
-                if (AoA > 90.0f)
-                {
-                    AoA = 180.0f - AoA;
-                }
-                else if (AoA < -90.0f)
-                {
-                    AoA = -180.0f - AoA;
+                    AoA = 0.0f;
                 }
 
                 float AoATC;
@@ -311,17 +280,14 @@ namespace JSI
         {
             float heading = comp.RotationVesselSurface.eulerAngles.y / 360.0f;
 
-            var uv1 = new Vector2(heading - headingBarTextureWidth, 0.0f);
-            var uv2 = new Vector2(heading + headingBarTextureWidth, 1.0f);
-            var uv3 = new Vector2(heading - headingBarTextureWidth, 1.0f);
-            var uv4 = new Vector2(heading + headingBarTextureWidth, 0.0f);
-
             MeshFilter meshFilter = headingMesh.GetComponent<MeshFilter>();
 
             meshFilter.mesh.uv = new[] 
             {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
+                new Vector2(heading - headingBarTextureWidth, 0.0f),
+                new Vector2(heading + headingBarTextureWidth, 0.0f),
+                new Vector2(heading - headingBarTextureWidth, 1.0f),
+                new Vector2(heading + headingBarTextureWidth, 1.0f)
             };
 
             if (progradeHeadingIcon != null)
@@ -428,6 +394,7 @@ namespace JSI
                 // does this actually work?
                 hudCamera.backgroundColor = backgroundColorValue;
                 hudCamera.clearFlags = CameraClearFlags.Depth | CameraClearFlags.Color;
+                hudCamera.transparencySortMode = TransparencySortMode.Orthographic;
                 hudCamera.transform.position = Vector3.zero;
                 hudCamera.transform.LookAt(new Vector3(0.0f, 0.0f, 1.5f), Vector3.up);
 
@@ -451,6 +418,21 @@ namespace JSI
             }
 
             startupComplete = true;
+        }
+
+        public void OnDestroy()
+        {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                // Nothing configured, nothing to destroy.
+                return;
+            }
+
+            JUtil.DisposeOfGameObjects(new GameObject[] { ladderMesh, progradeLadderIcon, overlayMesh, headingMesh, progradeHeadingIcon });
+            for (int i = 0; i < verticalBars.Count; ++i)
+            {
+                JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
+            }
         }
     }
 
@@ -539,7 +521,7 @@ namespace JSI
             // Position in camera space has (0, 0) in the center, so we need to
             // translate everything appropriately.  Y is odd since the coordinates
             // supplied are Left-Handed (0Y on top, growing down), not RH.
-            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.5f);
+            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.4f);
             barObject.renderer.material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
 
@@ -557,17 +539,14 @@ namespace JSI
                 }
                 float yOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                var uv1 = new Vector2(0.0f, yOffset - textureSize);
-                var uv2 = new Vector2(1.0f, yOffset + textureSize);
-                var uv3 = new Vector2(0.0f, yOffset + textureSize);
-                var uv4 = new Vector2(1.0f, yOffset - textureSize);
-
                 MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
                 meshFilter.mesh.uv = new[] 
                 {
-                    uv1, uv4, uv3,
-                    uv4, uv2, uv3
+                    new Vector2(0.0f, yOffset - textureSize),
+                    new Vector2(1.0f, yOffset - textureSize),
+                    new Vector2(0.0f, yOffset + textureSize),
+                    new Vector2(1.0f, yOffset + textureSize)
                 };
 
                 JUtil.ShowHide(true, barObject);

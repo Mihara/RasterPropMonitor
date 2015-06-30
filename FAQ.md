@@ -4,6 +4,14 @@
 
 RasterPropMonitor is intended to be a toolkit for IVA makers.  It includes updated IVAs for most Squad pods, as well as a handful of other pods, but most of those IVAs were included to demonstrate some of the RPM features.  If your favorite / preferred / currently-being-used IVA does not have an RPM-enhanced version, it's probably because no one has offered to share one that can be included in RPM.  The developers of RPM have to prioritize their time, and maintaining and expanding the features of the plugin will almost always take priority over creating new IVAs.
 
+### CKAN/AVC says (something about versions)
+
+I do not actively support CKAN versioning information.  KerbalStuff has an option to automatically update CKAN when I post a new version, but that is the limit of my involvement with CKAN.
+
+I make efforts to keep the RasterPropMonitor.version file accurate (which affects AVC, and maybe CKAN), but due to the way my release cycles work, there is always a chance that version info on GitHub will be changed before a release takes place.
+
+TL;DR: The current version is always identified on the [forum](http://forum.kerbalspaceprogram.com/threads/117471), [KerbalStuff](https://kerbalstuff.com/mod/734/RasterPropMonitor), and [GitHub](https://github.com/Mihara/RasterPropMonitor/releases) . Any other sources of versioning are secondary, and not authorative.
+
 ### Half the buttons don't work!
 
 Certain buttons are reserved for future expansion, which happens pretty rapidly -- there's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.

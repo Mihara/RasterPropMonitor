@@ -47,18 +47,20 @@ namespace JSI
         }
 
         // Craft-relative basis vectors
+        private Vector3d forward;
         public Vector3d Forward
         {
             get
             {
-                return vessel.GetTransform().up;
+                return forward;
             }
         }
+        private Vector3d right;
         public Vector3d Right
         {
             get
             {
-                return vessel.GetTransform().right;
+                return right;
             }
         }
 
@@ -66,20 +68,19 @@ namespace JSI
         private Vector3d up;
         public Vector3d Up
         {
-            //FlightGlobals.upAxis 
             get
             {
                 return up;
             }
         }
-        private Vector3d north;
-        public Vector3d North
-        {
-            get
-            {
-                return north;
-            }
-        }
+        //private Vector3d north;
+        //public Vector3d North
+        //{
+        //    get
+        //    {
+        //        return north;
+        //    }
+        //}
         // surfaceRight is the projection of the right vector onto the surface.
         // If up x right is a degenerate vector (rolled on the side), we use
         // the forward vector to compose a new basis
@@ -110,7 +111,6 @@ namespace JSI
                 return rotationVesselSurface;
             }
         }
-        private Quaternion rotationSurface;
 
         public Vector3d VelocityVesselSurface
         {
@@ -167,11 +167,14 @@ namespace JSI
         private ProtoCrewMember[] localCrew;
         private kerbalExpressionSystem[] localCrewMedical;
 
+        private NavBall navBall;
+
+        private double altitudeASL;
         public double AltitudeASL
         {
             get
             {
-                return vessel.mainBody.GetAltitude(vessel.CoM);
+                return altitudeASL;
             }
         }
         private double altitudeTrue;
@@ -255,12 +258,15 @@ namespace JSI
 
         // Plugin evaluator reflections
         private Func<bool> evaluateMechJebAvailable;
+        private Func<double> evaluateAngleOfAttack;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
+        private Func<double> evaluateDynamicPressure;
         private Func<double> evaluateLandingError;
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
         private Func<double> evaluateLandingLongitude;
+        private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
 
         // Processing cache!
@@ -425,11 +431,13 @@ namespace JSI
                 }
 
                 protractor = new Protractor(this);
+                navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
 
                 installedModules.Add(new JSIParachute(vessel));
                 installedModules.Add(new JSIMechJeb(vessel));
                 installedModules.Add(new JSIInternalRPMButtons(vessel));
                 installedModules.Add(new JSIGimbal(vessel));
+                installedModules.Add(new JSIFAR(vessel));
             }
         }
 
@@ -680,19 +688,22 @@ namespace JSI
                 FinePrint.WaypointManager.activateNavPoint();
             }
 #endif
+            altitudeASL = vessel.mainBody.GetAltitude(vessel.CoM);
             localGeeASL = vessel.orbit.referenceBody.GeeASL * gee;
-            localGeeDirect = FlightGlobals.getGeeForceAtPosition(CoM).magnitude;
-            up = (CoM - vessel.mainBody.position).normalized;
-            north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
-            rotationSurface = Quaternion.LookRotation(north, up);
-            rotationVesselSurface = Quaternion.Inverse(Quaternion.Euler(90, 0, 0) * Quaternion.Inverse(vessel.GetTransform().rotation) * rotationSurface);
+            localGeeDirect = FlightGlobals.getGeeForceAtPosition(vessel.CoM).magnitude;
+            up = FlightGlobals.upAxis;
+            // north isn't actually used anywhere...
+            //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - vessel.CoM, up).normalized;
+            right = vessel.GetTransform().right;
+            forward = vessel.GetTransform().up;
+            rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            surfaceForward = Vector3d.Cross(up, Right);
+            surfaceForward = Vector3d.Cross(up, right);
             // If the craft is rolled sharply to the side, we have to re-do our basis.
             if (surfaceForward.sqrMagnitude < 0.5)
             {
-                surfaceRight = Vector3d.Cross(Forward, up);
+                surfaceRight = Vector3d.Cross(forward, up);
                 surfaceForward = Vector3d.Cross(up, surfaceRight);
             }
             else
@@ -733,15 +744,15 @@ namespace JSI
 
                 targetDistance = Vector3.Distance(target.GetTransform().position, vessel.GetTransform().position);
 
-                // This is kind of messy.
-                targetOrbitSensibility = false;
-                // All celestial bodies except the sun have orbits that make sense.
-                targetOrbitSensibility |= targetBody != null && targetBody != Planetarium.fetch.Sun;
-
-                if (targetVessel != null)
-                    targetOrbitSensibility = JUtil.OrbitMakesSense(targetVessel);
-                if (targetDockingNode != null)
+                if (targetVessel != null || targetDockingNode != null)
+                {
                     targetOrbitSensibility = JUtil.OrbitMakesSense(target.GetVessel());
+                }
+                else
+                {
+                    // All celestial bodies except the sun have orbits that make sense.
+                    targetOrbitSensibility = targetBody != null && targetBody != Planetarium.fetch.Sun;
+                }
 
                 targetOrbit = targetOrbitSensibility ? target.GetOrbit() : null;
 
@@ -761,8 +772,11 @@ namespace JSI
                 {
                     approachSpeed = speedVertical;
                 }
-                // In all other cases, that should work. I think.
-                approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                else
+                {
+                    // In all other cases, that should work. I think.
+                    approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                }
             }
             else
             {
@@ -890,7 +904,7 @@ namespace JSI
                     if (pm is ModuleEngines || pm is ModuleEnginesFX)
                     {
                         var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= thatPart.temperature / thatPart.maxTemp > 0.9;
+                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
                         anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
@@ -911,11 +925,17 @@ namespace JSI
                     {
                         var thatAblator = pm as ModuleAblator;
 
-                        if (thatPart.temperature - thatAblator.ablationTempThresh > hottestShield)
+                        // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
+                        // Although it seems odd that the skin temp quickly cools off after re-entry, while the
+                        // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
+                        // of 950K, while the interior eventually reached 345K after the ablator had cooled below
+                        // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
+                        // interior still held 323K.
+                        if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
                         {
-                            hottestShield = (float)(thatPart.temperature - thatAblator.ablationTempThresh);
-                            heatShieldTemperature = (float)(thatPart.temperature);
-                            heatShieldFlux = (float)(thatPart.thermalConductionFlux + thatPart.thermalConvectionFlux + thatPart.thermalInternalFlux + thatPart.thermalRadiationFlux);
+                            hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
+                            heatShieldTemperature = (float)(thatPart.skinTemperature);
+                            heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
                         }
                     }
                     //else if (pm is ModuleScienceExperiment)
@@ -993,6 +1013,7 @@ namespace JSI
         private void FetchAltitudes()
         {
             altitudeTrue = AltitudeASL - vessel.terrainAltitude;
+            // MOARdV TODO: vessel.heightFromSurface, vessel.heightFromTerrain?
 
             RaycastHit sfc;
             if (Physics.Raycast(CoM, -up, out sfc, (float)AltitudeASL + 10000.0F, 1 << 15))
@@ -1196,6 +1217,26 @@ namespace JSI
                     return tokens[2].StartsWith("STAGE", StringComparison.Ordinal) ?
                         resources.ListElement(resourcesAlphabetic[resourceID], tokens[2].Substring("STAGE".Length), true) :
                         resources.ListElement(resourcesAlphabetic[resourceID], tokens[2], false);
+                }
+
+                // Periodic variables - A value that toggles between 0 and 1 with
+                // the specified (game clock) period.
+                if (tokens.Length > 1 && tokens[0] == "PERIOD")
+                {
+                    if(tokens[1].Substring(tokens[1].Length - 2) == "HZ")
+                    {
+                        double period;
+                        if (double.TryParse(tokens[1].Substring(0, tokens[1].Length - 2), out period) && period > 0.0)
+                        {
+                            double invPeriod = 1.0 / period;
+
+                            double remainder = Planetarium.GetUniversalTime() % invPeriod;
+
+                            return (remainder > invPeriod*0.5).GetHashCode();
+                        }
+                    }
+
+                    return input;
                 }
 
                 // Custom variables - if the first token is CUSTOM, we'll evaluate it here
@@ -1550,7 +1591,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return vessel.atmDensity;
                 case "DYNAMICPRESSURE":
-                    return vessel.dynamicPressurekPa * 1000.0;
+                    return DynamicPressure();
                 case "ATMOSPHEREDEPTH":
                     if (vessel.mainBody.atmosphere)
                     {
@@ -1818,7 +1859,11 @@ namespace JSI
                 case "PITCH":
                     return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
                 case "ROLL":
-                    return (rotationVesselSurface.eulerAngles.z > 180) ? (rotationVesselSurface.eulerAngles.z - 360.0) : rotationVesselSurface.eulerAngles.z;
+                    return (rotationVesselSurface.eulerAngles.z > 180) ? (360.0 - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
+                case "ANGLEOFATTACK":
+                    return AngleOfAttack();
+                case "SIDESLIP":
+                    return SideSlip();
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
@@ -1885,19 +1930,24 @@ namespace JSI
                         return SituationString(target.GetVessel().situation);
                     return string.Empty;
                 case "TARGETALTITUDE":
-                    if (target == null)
+                    if (target == null || target is CelestialBody)
                     {
                         return -1d;
                     }
-                    if (targetVessel != null)
+                    if (target is Vessel || target is ModuleDockingNode)
                     {
-                        return targetVessel.mainBody.GetAltitude(targetVessel.CoM);
+                        return target.GetVessel().mainBody.GetAltitude(target.GetVessel().CoM);
                     }
-                    if (targetOrbit != null)
+                    else
                     {
-                        return targetOrbit.altitude;
+                        return vessel.mainBody.GetAltitude(target.GetTransform().position);
                     }
-                    return -1d;
+                // MOARdV: I don't think these are needed - I don't remember why we needed targetOrbit
+                //if (targetOrbit != null)
+                //{
+                //    return targetOrbit.altitude;
+                //}
+                //return -1d;
                 case "TARGETSEMIMAJORAXIS":
                     if (target == null)
                         return double.NaN;
@@ -2030,7 +2080,7 @@ namespace JSI
                         if (targetDockingNode != null)
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
                         if (target is Vessel)
-                            return JUtil.NormalAngle(-target.GetFwdVector(), Forward, up);
+                            return JUtil.NormalAngle(-target.GetFwdVector(), forward, up);
                         return 0d;
                     }
                     return 0d;
@@ -2041,7 +2091,7 @@ namespace JSI
                             return JUtil.NormalAngle(-targetDockingNode.GetTransform().forward, FlightGlobals.ActiveVessel.ReferenceTransform.up, -FlightGlobals.ActiveVessel.ReferenceTransform.right);
                         if (target is Vessel)
                         {
-                            JUtil.NormalAngle(-target.GetFwdVector(), Forward, -Right);
+                            JUtil.NormalAngle(-target.GetFwdVector(), forward, -right);
                         }
                         return 0d;
                     }
@@ -2053,7 +2103,7 @@ namespace JSI
                             return (360 - (JUtil.NormalAngle(-targetDockingNode.GetTransform().up, FlightGlobals.ActiveVessel.ReferenceTransform.forward, FlightGlobals.ActiveVessel.ReferenceTransform.up))) % 360;
                         if (target is Vessel)
                         {
-                            return JUtil.NormalAngle(target.GetTransform().up, up, -Forward);
+                            return JUtil.NormalAngle(target.GetTransform().up, up, -forward);
                         }
                         return 0d;
                     }
@@ -2180,6 +2230,10 @@ namespace JSI
                     return part.temperature + KelvinToCelsius;
                 case "PODTEMPERATUREKELVIN":
                     return part.temperature;
+                case "PODSKINTEMPERATURE":
+                    return part.skinTemperature + KelvinToCelsius;
+                case "PODSKINTEMPERATUREKELVIN":
+                    return part.skinTemperature;
                 case "PODMAXTEMPERATURE":
                     return part.maxTemp + KelvinToCelsius;
                 case "PODMAXTEMPERATUREKELVIN":
@@ -2279,8 +2333,8 @@ namespace JSI
                     return (speedVerticalRounded < 0 && altitudeBottom < 100 && slopeAngle > 15).GetHashCode();
                 case "DOCKINGANGLEALARM":
                     return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
-                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, up)) > 1.5 ||
-                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), Forward, -Right)) > 1.5)).GetHashCode();
+                    (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
+                    Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
                     return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
@@ -2455,6 +2509,23 @@ namespace JSI
 
         //--- Fallback evaluators
         #region FallbackEvaluators
+        private double FallbackEvaluateAngleOfAttack()
+        {
+            // Code courtesy FAR.
+            Transform refTransform = vessel.GetTransform();
+            Vector3 velVectorNorm = vessel.srf_velocity.normalized;
+
+            Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.forward * Vector3.Dot(refTransform.forward, velVectorNorm);   //velocity vector projected onto a plane that divides the airplane into left and right halves
+            double AoA = Vector3.Dot(tmpVec.normalized, refTransform.forward);
+            AoA = Mathf.Rad2Deg * Math.Asin(AoA);
+            if (double.IsNaN(AoA))
+            {
+                AoA = 0.0;
+            }
+
+            return AoA;
+        }
+
         private double FallbackEvaluateDeltaV()
         {
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
@@ -2465,12 +2536,34 @@ namespace JSI
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
         }
 
-        private double FallbackTerminalVelocity()
+        private double FallbackEvaluateDynamicPressure()
+        {
+            return vessel.dynamicPressurekPa;
+        }
+
+        private double FallbackEvaluateSideSlip()
+        {
+            // Code courtesy FAR.
+            Transform refTransform = vessel.GetTransform();
+            Vector3 velVectorNorm = vessel.srf_velocity.normalized;
+
+            Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.right * Vector3.Dot(refTransform.right, velVectorNorm);     //velocity vector projected onto the vehicle-horizontal plane
+            double sideslipAngle = Vector3.Dot(tmpVec.normalized, refTransform.right);
+            sideslipAngle = Mathf.Rad2Deg * Math.Asin(sideslipAngle);
+            if (double.IsNaN(sideslipAngle))
+            {
+                sideslipAngle = 0.0;
+            }
+
+            return sideslipAngle;
+        }
+
+        private double FallbackEvaluateTerminalVelocity()
         {
             // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
             if (AltitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
             {
-                return float.MaxValue;
+                return float.PositiveInfinity;
             }
 
             Vector3d pureDragV = Vector3d.zero, pureLiftV = Vector3d.zero;
@@ -2499,10 +2592,8 @@ namespace JSI
                         {
                             ModuleControlSurface cs = (pm as ModuleControlSurface);
 
-
                             if (p.ShieldedFromAirstream || cs.deploy)
                                 continue;
-
 
                             pureLiftV += cs.liftForce;
                             pureDragV += cs.dragForce;
@@ -2529,6 +2620,33 @@ namespace JSI
 
         //--- Plugin-enabled evaluators
         #region PluginEvaluators
+        private double AngleOfAttack()
+        {
+            if(evaluateAngleOfAttack == null)
+            {
+                    Func<double> accessor = null;
+
+                    accessor = (Func<double>)GetMethod("JSIFAR:GetAngleOfAttack", part.internalModel.props[0], typeof(Func<double>));
+                    if (accessor != null)
+                    {
+                        double value = accessor();
+                        if (double.IsNaN(value))
+                        {
+                            accessor = null;
+                        }
+                    }
+
+                    if (accessor == null)
+                    {
+                        accessor = FallbackEvaluateAngleOfAttack;
+                    }
+
+                    evaluateAngleOfAttack = accessor;
+            }
+
+            return evaluateAngleOfAttack();
+        }
+
         private double DeltaV()
         {
             if (evaluateDeltaV == null)
@@ -2581,6 +2699,33 @@ namespace JSI
             }
 
             return evaluateDeltaVStage();
+        }
+
+        private double DynamicPressure()
+        {
+            if (evaluateDynamicPressure == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIFAR:GetDynamicPressure", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateDynamicPressure;
+                }
+
+                evaluateDynamicPressure = accessor;
+            }
+
+            return evaluateDynamicPressure();
         }
 
         private double LandingError()
@@ -2641,13 +2786,13 @@ namespace JSI
             return evaluateMechJebAvailable();
         }
 
-        private double TerminalVelocity()
+        private double SideSlip()
         {
-            if (evaluateTerminalVelocity == null)
+            if (evaluateSideSlip == null)
             {
                 Func<double> accessor = null;
 
-                accessor = (Func<double>)GetMethod("JSIMechJeb:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                accessor = (Func<double>)GetMethod("JSIFAR:GetSideSlip", part.internalModel.props[0], typeof(Func<double>));
                 if (accessor != null)
                 {
                     double value = accessor();
@@ -2659,7 +2804,44 @@ namespace JSI
 
                 if (accessor == null)
                 {
-                    accessor = FallbackTerminalVelocity;
+                    accessor = FallbackEvaluateSideSlip;
+                }
+
+                evaluateSideSlip = accessor;
+            }
+
+            return evaluateSideSlip();
+        }
+
+        private double TerminalVelocity()
+        {
+            if (evaluateTerminalVelocity == null)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetMethod("JSIFAR:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = (Func<double>)GetMethod("JSIMechJeb:GetTerminalVelocity", part.internalModel.props[0], typeof(Func<double>));
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateTerminalVelocity;
                 }
 
                 evaluateTerminalVelocity = accessor;

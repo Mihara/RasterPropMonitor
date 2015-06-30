@@ -160,7 +160,7 @@ namespace JSI
             {
                 if (mjAvailable == false)
                 {
-                    result.AppendLine("Autopilot not found.");
+                    result.AppendLine("MechJeb Autopilot not found.");
                 }
                 else
                 {

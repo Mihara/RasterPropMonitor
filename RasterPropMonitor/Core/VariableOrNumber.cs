@@ -22,6 +22,12 @@ namespace JSI
             }
         }
 
+        public VariableOrNumber(float input, object caller)
+        {
+            owner = caller;
+            value = input;
+        }
+
         public VariableOrNumber(System.Func<bool> stateFunction, object caller)
         {
             this.stateFunction = stateFunction;

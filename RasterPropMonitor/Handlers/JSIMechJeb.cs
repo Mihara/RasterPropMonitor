@@ -23,6 +23,8 @@ namespace JSI
         private static readonly FieldInfo mjCoreNode;
         // MechJebCore.attitude
         private static readonly FieldInfo mjCoreAttitude;
+        // MechJebCore.vesselState
+        private static readonly FieldInfo mjCoreVesselState;
 
         // AbsoluteVector
         // AbsoluteVector.latitude
@@ -87,9 +89,13 @@ namespace JSI
         // MechJebModuleNodeExecutor.Abort()
         private static readonly MethodInfo mjAbortNode;
 
-        // KER VesselSimulator.Stage (MJ version)
-        // VesselSimulator.Stage.deltaV
+        // FuelFlowSimulation.StageStats
+        // FuelFlowSimulation.StageStats.deltaV
         private static readonly FieldInfo mjStageDv;
+        // FuelFlowSimulation.StageStats[].Length
+        private static readonly MethodInfo mjStageStatsGetLength;
+        // FuelFlowSimulation.StageStats[].Get
+        private static readonly MethodInfo mjStageStatsGetIndex;
 
         // UserPool
         // UserPool.Add
@@ -98,6 +104,10 @@ namespace JSI
         private static readonly MethodInfo mjRemoveUser;
         // UserPool.Contains
         private static readonly MethodInfo mjContainsUser;
+
+        // VesselState
+        // VesselState.TerminalVelocity
+        private static readonly MethodInfo mjTerminalVelocity;
 
         // MechJebModuleLandingAutopilot
         // MechJebModuleLandingAutopilot.LandAtPositionTarget
@@ -228,6 +238,11 @@ namespace JSI
                 {
                     throw new NotImplementedException("mjCoreAttitude");
                 }
+                mjCoreVesselState = mjMechJebCore_t.GetField("vesselState", BindingFlags.Instance | BindingFlags.Public);
+                if (mjCoreVesselState == null)
+                {
+                    throw new NotImplementedException("mjCoreVesselState");
+                }
 
                 // VesselExtensions
                 Type mjVesselExtensions_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -245,6 +260,19 @@ namespace JSI
                 if (mjPlaceManeuverNode == null)
                 {
                     throw new NotImplementedException("mjPlaceManeuverNode");
+                }
+
+                // VesselState
+                Type mjVesselState_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.VesselState");
+                if (mjVesselState_t == null)
+                {
+                    throw new NotImplementedException("mjVesselState_t");
+                }
+                mjTerminalVelocity = mjVesselState_t.GetMethod("TerminalVelocity", BindingFlags.Instance | BindingFlags.Public);
+                if (mjTerminalVelocity == null)
+                {
+                    throw new NotImplementedException("mjTerminalVelocity");
                 }
 
                 // MechJebModuleLandingPredictions
@@ -300,10 +328,31 @@ namespace JSI
                 {
                     throw new NotImplementedException("mjVacStageStats");
                 }
+
+                // Updated MechJeb (post 2.5.1) switched from using KER back to
+                // its internal FuelFlowSimulation.  This sim uses an array of
+                // structs, which entails a couple of extra hoops to jump through
+                // when reading via reflection.
                 mjAtmStageStats = mjModuleStageStats_t.GetField("atmoStats", BindingFlags.Instance | BindingFlags.Public);
                 if (mjAtmStageStats == null)
                 {
                     throw new NotImplementedException("mjAtmStageStats");
+                }
+
+                PropertyInfo mjStageStatsLength = mjVacStageStats.FieldType.GetProperty("Length");
+                if (mjStageStatsLength == null)
+                {
+                    throw new NotImplementedException("mjStageStatsLength");
+                }
+                mjStageStatsGetLength = mjStageStatsLength.GetGetMethod();
+                if (mjStageStatsGetLength == null)
+                {
+                    throw new NotImplementedException("mjStageStatsGetLength");
+                }
+                mjStageStatsGetIndex = mjVacStageStats.FieldType.GetMethod("Get");
+                if (mjStageStatsGetIndex == null)
+                {
+                    throw new NotImplementedException("mjStageStatsGetIndex");
                 }
 
                 // AbsoluteVector
@@ -324,14 +373,20 @@ namespace JSI
                     throw new NotImplementedException("mjAbsoluteVectorLon");
                 }
 
-                // KerbalEngineer.VesselSimulator.Stage
-                Type mjStage_t = loadedMechJebAssy.assembly.GetExportedTypes()
-                    .SingleOrDefault(t => t.FullName == "KerbalEngineer.VesselSimulator.Stage");
-                if (mjStage_t == null)
+                // MuMech.FuelFlowSimulation
+                Type mjFuelFlowSimulation_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.FuelFlowSimulation");
+                if (mjFuelFlowSimulation_t == null)
                 {
-                    throw new NotImplementedException("mjStage_t");
+                    throw new NotImplementedException("mjFuelFlowSimulation_t");
                 }
-                mjStageDv = mjStage_t.GetField("deltaV", BindingFlags.Instance | BindingFlags.Public);
+                // MuMech.FuelFlowSimulation.Stats
+                Type mjFuelFlowSimulationStats_t = mjFuelFlowSimulation_t.GetNestedType("Stats");
+                if (mjFuelFlowSimulationStats_t == null)
+                {
+                    throw new NotImplementedException("mjFuelFlowSimulationStats_t");
+                }
+                mjStageDv = mjFuelFlowSimulationStats_t.GetField("deltaV", BindingFlags.Instance | BindingFlags.Public);
                 if (mjStageDv == null)
                 {
                     throw new NotImplementedException("mjStageDv");
@@ -744,33 +799,45 @@ namespace JSI
 
                     mjRequestUpdate.Invoke(stagestats, new object[] { this });
 
+                    int atmStatsLength = 0, vacStatsLength = 0;
+
                     object atmStatsO = mjAtmStageStats.GetValue(stagestats);
                     object vacStatsO = mjVacStageStats.GetValue(stagestats);
-
-                    if (atmStatsO != null && vacStatsO != null)
+                    if (atmStatsO != null)
                     {
-                        object[] atmStats = (object[])(atmStatsO);
-                        object[] vacStats = (object[])(vacStatsO);
+                        atmStatsLength = (int)mjStageStatsGetLength.Invoke(atmStatsO, null);
+                    }
+                    if (vacStatsO != null)
+                    {
+                        vacStatsLength = (int)mjStageStatsGetLength.Invoke(vacStatsO, null);
+                    }
 
-                        if (atmStats.Length > 0 && vacStats.Length == atmStats.Length)
+                    deltaV = deltaVStage = 0.0;
+
+                    if (atmStatsLength > 0 && atmStatsLength == vacStatsLength)
+                    {
+                        double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
+
+                        for (int i = 0; i < atmStatsLength; ++i)
                         {
-                            double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
-
-                            deltaV = deltaVStage = 0.0;
-
-                            for (int i = 0; i < atmStats.Length; ++i)
+                            object atmStat = mjStageStatsGetIndex.Invoke(atmStatsO, new object[] { i });
+                            object vacStat = mjStageStatsGetIndex.Invoke(vacStatsO, new object[] { i });
+                            if (atmStat == null || vacStat == null)
                             {
-                                double atm = (double)mjStageDv.GetValue(atmStats[i]);
-                                double vac = (double)mjStageDv.GetValue(vacStats[i]);
-                                double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
-
-                                deltaV += stagedV;
-
-                                if (i == (atmStats.Length - 1))
-                                {
-                                    deltaVStage = stagedV;
-                                }
+                                throw new NotImplementedException("atmStat or vacState did not evaluate");
                             }
+
+                            float atm = (float)mjStageDv.GetValue(atmStat);
+                            float vac = (float)mjStageDv.GetValue(vacStat);
+                            double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
+
+                            deltaV += stagedV;
+
+                            if (i == (atmStatsLength - 1))
+                            {
+                                deltaVStage = stagedV;
+                            }
+
                         }
                     }
                 }
@@ -1001,6 +1068,17 @@ namespace JSI
 
         public double GetTerminalVelocity()
         {
+            if (mjFound)
+            {
+                object mjCore = GetMasterMechJeb();
+                object vesselState = mjCoreVesselState.GetValue(mjCore);
+                if (vesselState != null)
+                {
+                    double value = (double)mjTerminalVelocity.Invoke(vesselState, null);
+                    return (double.IsNaN(value)) ? double.PositiveInfinity : value;
+                }
+            }
+
             return double.NaN;
         }
 

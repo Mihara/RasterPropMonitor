@@ -383,19 +383,27 @@ namespace JSI
                 {
                     alarmSoundVolume = 0.5f;
                     if (node.HasValue("alarmSoundVolume"))
+                    {
                         alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
+                    }
                     audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
                     if (node.HasValue("alarmMustPlayOnce"))
                     {
                         if (!bool.TryParse(node.GetValue("alarmMustPlayOnce"), out alarmMustPlayOnce))
+                        {
                             throw new ArgumentException("So is 'alarmMustPlayOnce' true or false?");
+                        }
                     }
                     if (node.HasValue("alarmShutdownButton"))
+                    {
                         SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
+                    }
                     if (node.HasValue("alarmSoundLooping"))
                     {
                         if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
+                        {
                             throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+                        }
                         audioOutput.audio.loop = alarmSoundLooping;
                     }
                 }
@@ -566,10 +574,12 @@ namespace JSI
                 else
                 {
                     TurnOff();
-                    if (audioOutput != null)
+                    if (audioOutput != null && alarmActive)
                     {
                         if (!alarmMustPlayOnce)
+                        {
                             audioOutput.audio.Stop();
+                        }
                         alarmActive = false;
                     }
                 }
@@ -637,7 +647,10 @@ namespace JSI
         public void AlarmShutdown()
         {
             if (audioOutput != null && alarmActive)
+            {
                 audioOutput.audio.Stop();
+                alarmActive = false;
+            }
         }
     }
 }
