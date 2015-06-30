@@ -140,35 +140,28 @@ namespace JSI
             MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
             obj.AddComponent<MeshRenderer>();
 
-            var p0 = new Vector3(-vectorSize.x, -vectorSize.y, 0.0f);
-            var p1 = new Vector3(vectorSize.x, -vectorSize.y, 0.0f);
-            var p2 = new Vector3(-vectorSize.x, vectorSize.y, 0.0f);
-            var p3 = new Vector3(vectorSize.x, vectorSize.y, 0.0f);
-
             mesh.vertices = new[] 
             {
-                p0, p1, p2,
-                p1, p3, p2
+                new Vector3(-vectorSize.x, -vectorSize.y, 0.0f), 
+                new Vector3(vectorSize.x, -vectorSize.y, 0.0f), 
+                new Vector3(-vectorSize.x, vectorSize.y, 0.0f),
+                new Vector3(vectorSize.x, vectorSize.y, 0.0f)
+            };
+
+            mesh.uv = new[] 
+            {
+                new Vector2(textureCoords.xMin, textureCoords.yMin), 
+                new Vector2(textureCoords.xMax, textureCoords.yMin), 
+                new Vector2(textureCoords.xMin, textureCoords.yMax),
+                new Vector2(textureCoords.xMax, textureCoords.yMax)
             };
 
             mesh.triangles = new[] 
             {
                 1, 0, 2,
-                4, 3, 5
+                3, 1, 2
             };
 
-            var uv1 = new Vector2(textureCoords.xMin, textureCoords.yMin);
-            var uv2 = new Vector2(textureCoords.xMax, textureCoords.yMax);
-            var uv3 = new Vector2(textureCoords.xMin, textureCoords.yMax);
-            var uv4 = new Vector2(textureCoords.xMax, textureCoords.yMin);
-
-            mesh.uv = new[] 
-            {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
-            };
-
-            mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             mesh.Optimize();
 

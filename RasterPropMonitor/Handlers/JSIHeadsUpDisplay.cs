@@ -217,17 +217,14 @@ namespace JSI
 
             // MOARdV TODO: These can be done without manually editing the 
             // mesh filter.  I need to look up the game object texture stuff.
-            var uv1 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
-            var uv2 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
-            var uv3 = new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y);
-            var uv4 = new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y);
-
             MeshFilter meshFilter = ladderMesh.GetComponent<MeshFilter>();
 
             meshFilter.mesh.uv = new[] 
             {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
+                new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y),
+                new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord - horizonTextureSize.y),
+                new Vector2(0.5f - horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y),
+                new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y)
             };
 
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
@@ -283,17 +280,14 @@ namespace JSI
         {
             float heading = comp.RotationVesselSurface.eulerAngles.y / 360.0f;
 
-            var uv1 = new Vector2(heading - headingBarTextureWidth, 0.0f);
-            var uv2 = new Vector2(heading + headingBarTextureWidth, 1.0f);
-            var uv3 = new Vector2(heading - headingBarTextureWidth, 1.0f);
-            var uv4 = new Vector2(heading + headingBarTextureWidth, 0.0f);
-
             MeshFilter meshFilter = headingMesh.GetComponent<MeshFilter>();
 
             meshFilter.mesh.uv = new[] 
             {
-                uv1, uv4, uv3,
-                uv4, uv2, uv3
+                new Vector2(heading - headingBarTextureWidth, 0.0f),
+                new Vector2(heading + headingBarTextureWidth, 0.0f),
+                new Vector2(heading - headingBarTextureWidth, 1.0f),
+                new Vector2(heading + headingBarTextureWidth, 1.0f)
             };
 
             if (progradeHeadingIcon != null)
@@ -545,17 +539,14 @@ namespace JSI
                 }
                 float yOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                var uv1 = new Vector2(0.0f, yOffset - textureSize);
-                var uv2 = new Vector2(1.0f, yOffset + textureSize);
-                var uv3 = new Vector2(0.0f, yOffset + textureSize);
-                var uv4 = new Vector2(1.0f, yOffset - textureSize);
-
                 MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
                 meshFilter.mesh.uv = new[] 
                 {
-                    uv1, uv4, uv3,
-                    uv4, uv2, uv3
+                    new Vector2(0.0f, yOffset - textureSize),
+                    new Vector2(1.0f, yOffset - textureSize),
+                    new Vector2(0.0f, yOffset + textureSize),
+                    new Vector2(1.0f, yOffset + textureSize)
                 };
 
                 JUtil.ShowHide(true, barObject);
