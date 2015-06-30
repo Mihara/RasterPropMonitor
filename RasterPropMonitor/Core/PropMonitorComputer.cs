@@ -192,6 +192,7 @@ namespace JSI
         private bool anyEnginesOverheating;
         private bool anyEnginesFlameout;
         private float totalDataAmount;
+		private float totalExperimentCount;
         private double secondsToImpact;
         private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
         private double localGeeASL, localGeeDirect;
@@ -867,7 +868,7 @@ namespace JSI
 
         private void FetchPerPartData()
         {
-            totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = 0;
+            totalShipDryMass = totalShipWetMass = totalCurrentThrust = totalMaximumThrust = totalExperimentCount = 0;
             totalDataAmount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
             float hottestShield = float.MinValue;
@@ -960,6 +961,7 @@ namespace JSI
                         if (datapoint != null)
                         {
                             totalDataAmount += datapoint.dataAmount;
+							totalExperimentCount += 1;
                         }
                     }
                 }
@@ -2358,6 +2360,8 @@ namespace JSI
                 // SCIENCE!!
                 case "SCIENCEDATA":
                     return totalDataAmount;
+                case "SCIENCECOUNT":
+                    return totalExperimentCount;
                 case "BIOMENAME":
                     return vessel.CurrentBiome();
                 case "BIOMEID":
