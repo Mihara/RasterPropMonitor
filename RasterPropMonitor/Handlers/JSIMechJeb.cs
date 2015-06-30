@@ -373,13 +373,14 @@ namespace JSI
                     throw new NotImplementedException("mjAbsoluteVectorLon");
                 }
 
-                // KerbalEngineer.VesselSimulator.Stage
+                // MuMech.FuelFlowSimulation
                 Type mjFuelFlowSimulation_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.FuelFlowSimulation");
                 if (mjFuelFlowSimulation_t == null)
                 {
                     throw new NotImplementedException("mjFuelFlowSimulation_t");
                 }
+                // MuMech.FuelFlowSimulation.Stats
                 Type mjFuelFlowSimulationStats_t = mjFuelFlowSimulation_t.GetNestedType("Stats");
                 if (mjFuelFlowSimulationStats_t == null)
                 {
