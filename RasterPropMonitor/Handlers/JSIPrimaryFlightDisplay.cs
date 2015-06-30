@@ -440,17 +440,17 @@ namespace JSI
             }
         }
 
-        //public void OnDestroy()
-        //{
-        //    if (HighLogic.LoadedSceneIsEditor)
-        //    {
-        //        // Nothing configured, nothing to destroy.
-        //        return;
-        //    }
+        public void OnDestroy()
+        {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                // Nothing configured, nothing to destroy.
+                return;
+            }
 
-        //    JUtil.DisposeOfGameObjects(new GameObject[] { navBall, overlay, heading, markerPrograde, markerRetrograde,
-        //        markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus, markerNormal, markerNormalMinus,
-        //        markerRadial, markerRadialMinus, markerDockingAlignment, markerNavWaypoint});
-        //}
+            JUtil.DisposeOfGameObjects(new GameObject[] { navBall, overlay, heading, markerPrograde, markerRetrograde,
+                markerManeuver, markerManeuverMinus, markerTarget, markerTargetMinus, markerNormal, markerNormalMinus,
+                markerRadial, markerRadialMinus, markerDockingAlignment, markerNavWaypoint});
+        }
     }
 }

@@ -426,20 +426,20 @@ namespace JSI
             startupComplete = true;
         }
 
-        //public void OnDestroy()
-        //{
-        //    if (HighLogic.LoadedSceneIsEditor)
-        //    {
-        //        // Nothing configured, nothing to destroy.
-        //        return;
-        //    }
+        public void OnDestroy()
+        {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                // Nothing configured, nothing to destroy.
+                return;
+            }
 
-        //    JUtil.DisposeOfGameObjects(new GameObject[] { ladderMesh, progradeLadderIcon, overlayMesh, headingMesh, progradeHeadingIcon });
-        //    for(int i=0; i<verticalBars.Count; ++i)
-        //    {
-        //        JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
-        //    }
-        //}
+            JUtil.DisposeOfGameObjects(new GameObject[] { ladderMesh, progradeLadderIcon, overlayMesh, headingMesh, progradeHeadingIcon });
+            for (int i = 0; i < verticalBars.Count; ++i)
+            {
+                JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
+            }
+        }
     }
 
     class VerticalBar
