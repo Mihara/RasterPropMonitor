@@ -244,7 +244,9 @@ namespace JSI
                 screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
                 screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
                 foreach (string layerID in textureLayerID.Split())
+                {
                     screenMat.SetTexture(layerID.Trim(), screenTexture);
+                }
 
                 if (GameDatabase.Instance.ExistsTexture(noSignalTextureURL.EnforceSlashes()))
                 {
@@ -353,6 +355,10 @@ namespace JSI
             {
                 Destroy(frozenScreen);
             }
+            if( screenMat != null)
+            {
+                Destroy(screenMat);
+            }
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -366,9 +372,13 @@ namespace JSI
         public void GlobalButtonClick(int buttonID)
         {
             if (needsElectricCharge && electricChargeReserve < 0.01d)
+            {
                 return;
+            }
             if (activePage.GlobalButtonClick(buttonID))
+            {
                 PlayClickSound(audioOutput);
+            }
         }
 
         public void GlobalButtonRelease(int buttonID)
@@ -691,7 +701,7 @@ namespace JSI
 
             // If we were spawned while in editor, we need to blank the screen out and halt.
             // So we switch to oneshot mode.
-            oneshot |= HighLogic.LoadedSceneIsEditor;
+            //oneshot |= HighLogic.LoadedSceneIsEditor;
 
             if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
             {
@@ -751,7 +761,7 @@ namespace JSI
 
             // Oneshot screens: We create a permanent texture from our RenderTexture if the first pass of the render is complete,
             // set it in place of the rendertexture -- and then we selfdestruct.
-            // MAORdV: Except we don't want to self-destruct, because we will leak the frozenScreen texture.
+            // MOARdV: Except we don't want to self-destruct, because we will leak the frozenScreen texture.
             if (oneshot && firstRenderComplete)
             {
                 frozenScreen = new Texture2D(screenTexture.width, screenTexture.height);
