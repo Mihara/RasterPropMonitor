@@ -11,6 +11,8 @@ Shader "RPM/DisplayShader"
 	SubShader {
 
 		Tags { "RenderType"="Overlay" "Queue" = "Transparent" } 
+
+		// Premultiplied Alpha shader for rendering/coloring textures.
 		
 		Lighting Off 
 		Blend One OneMinusSrcAlpha 
@@ -142,7 +144,7 @@ texld r0, v0, s0
 mul r0.w, r0, r1.x
 mul r0.xyz, r0, c0
 mul oC0.xyz, r0, r0.w
-mov_pp oC0.w, r0
+mov oC0.w, r0
 "
 }
 
@@ -177,35 +179,10 @@ dkaabaaaaaaaaaaadoaaaaab"
 
 }
 
-#LINE 62
+#LINE 64
  
 		}
 	} 	
- 
 	
-	/*SubShader { 
-
-		Tags { "ForceSupported" = "True" "RenderType"="Overlay" } 
-
-		Lighting Off 
-		Blend One OneMinusSrcAlpha 
-		Cull Off 
-		ZWrite Off 
-		Fog { Mode Off } 
-		ZTest Always 
-		
-		BindChannels { 
-			Bind "vertex", vertex 
-			Bind "color", color 
-			Bind "TexCoord", texcoord 
-		} 
-		
-		Pass { 
-			SetTexture [_MainTex] {
-				combine primary * texture DOUBLE, primary * texture DOUBLE
-			} 
-		} 
-	} */
-
 	Fallback off 
 }

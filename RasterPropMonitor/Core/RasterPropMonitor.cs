@@ -60,6 +60,7 @@ namespace JSI
         public FlyingCamera cameraStructure;
         // Internal stuff.
         private readonly List<Texture2D> fontTexture = new List<Texture2D>();
+        private TextRenderer textRenderer;
         private RenderTexture screenTexture;
         private Texture2D frozenScreen;
         // Local variables
@@ -73,7 +74,7 @@ namespace JSI
         // All computations are split into a separate class, because it was getting a mite too big.
         private RasterPropMonitorComputer comp;
         private string persistentVarName;
-        private string[] screenBuffer;
+        private string screenBuffer;
         private readonly Dictionary<char, Rect> fontCharacters = new Dictionary<char, Rect>();
         private FXGroup audioOutput;
         private double electricChargeReserve;
@@ -137,7 +138,6 @@ namespace JSI
 
             try
             {
-                screenBuffer = new string[screenHeight];
                 // Install the calculator module.
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
                 comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
@@ -245,6 +245,8 @@ namespace JSI
                 }
                 JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
+                textRenderer = new TextRenderer(fontTexture, new Vector2((float)fontLetterWidth, (float)fontLetterHeight), fontDefinitionString, 17, screenPixelWidth, screenPixelHeight);
+
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
                 int activePageID = comp.Persistence.GetVar(persistentVarName, pages.Count);
@@ -299,7 +301,7 @@ namespace JSI
             {
                 Destroy(frozenScreen);
             }
-            if( screenMat != null)
+            if (screenMat != null)
             {
                 Destroy(screenMat);
             }
@@ -368,34 +370,6 @@ namespace JSI
             }
         }
 
-        private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth, int fontTextureIndex)
-        {
-            if (fontCharacters.ContainsKey(letter))
-            {
-                // This is complicated.
-                // The destination rectangle has coordinates given in pixels, from top left corner of the texture.
-                // The source rectangle has coordinates in normalised texture coordinates (!) from bottom left corner of the texture!
-                // And without the LoadPixelMatrix, DrawTexture produces nonsense anyway.
-                Graphics.DrawTexture(
-                    new Rect(x, (scriptType == Script.Subscript) ? y + fontLetterHalfHeight : y,
-                        (fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
-                        (scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight),
-                    fontTexture[fontTextureIndex],
-                    fontCharacters[letter],
-                    0, 0, 0, 0,
-                    letterColor
-                );
-            }
-            else
-            {
-                if (!characterWarnings[letter])
-                {
-                    JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" (u{1}) not present in the font.",
-                        letter.ToString(), letter);
-                    characterWarnings[letter] = true;
-                }
-            }
-        }
         // Update according to the given refresh rate.
         private bool UpdateCheck()
         {
@@ -420,151 +394,6 @@ namespace JSI
             }
 
             return false;
-        }
-
-        private void RenderText(string[] textBuffer, bool drawingOverlay = false)
-        {
-            float yCursor = drawingOverlay ? 0 : (activePage.screenYMin * fontLetterHeight);
-            for (int lineIndex = 0; lineIndex < textBuffer.Length; yCursor += fontLetterHeight, lineIndex++)
-            {
-                if (!string.IsNullOrEmpty(textBuffer[lineIndex]))
-                {
-                    Color fontColor = activePage.defaultColor;
-                    float xOffset = 0;
-                    float yOffset = 0;
-                    Script scriptType = Script.Normal;
-                    Width fontWidth = Width.Normal;
-                    int fontTextureIndex = 0;
-                    if (activePage.pageFont < fontTexture.Count)
-                    {
-                        fontTextureIndex = activePage.pageFont;
-                    }
-                    float xCursor = drawingOverlay ? 0 : (activePage.screenXMin * fontLetterWidth);
-                    for (int charIndex = 0; charIndex < textBuffer[lineIndex].Length; charIndex++)
-                    {
-                        bool escapedBracket = false;
-                        // We will continue parsing bracket pairs until we're out of bracket pairs,
-                        // since all of them -- except the escaped bracket tag --
-                        // consume characters and change state without actually generating any output.
-                        while (charIndex < textBuffer[lineIndex].Length && textBuffer[lineIndex][charIndex] == '[')
-                        {
-                            // If there's no closing bracket, we stop parsing and go on to printing.
-                            int nextBracket = textBuffer[lineIndex].IndexOf(']', charIndex) - charIndex;
-                            if (nextBracket < 1)
-                                break;
-                            // Much easier to parse it this way, although I suppose more expensive.
-                            string tagText = textBuffer[lineIndex].Substring(charIndex + 1, nextBracket - 1);
-                            if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#')
-                            {
-                                // Valid color tags are [#rrggbbaa] or [#rrggbb].
-                                fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText.Length > 2 && tagText[0] == '@')
-                            {
-                                // Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
-                                // the next symbol is @ and there are at least three, one designating the axis.
-                                float coord;
-                                if (float.TryParse(tagText.Substring(2), out coord))
-                                {
-                                    switch (tagText[1])
-                                    {
-                                        case 'X':
-                                        case 'x':
-                                            xOffset = coord;
-                                            break;
-                                        case 'Y':
-                                        case 'y':
-                                            yOffset = coord;
-                                            break;
-                                    }
-                                    // We only consume the symbols if they did parse correctly.
-                                    charIndex += nextBracket + 1;
-                                }
-                                else //If it didn't parse, skip over it.
-                                    break;
-                            }
-                            else if (tagText == "sup")
-                            {
-                                // Superscript!
-                                scriptType = Script.Superscript;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "sub")
-                            {
-                                // Subscript!
-                                scriptType = Script.Subscript;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "/sup" || tagText == "/sub")
-                            {
-                                // And back...
-                                scriptType = Script.Normal;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "hw")
-                            {
-                                fontWidth = Width.Half;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "dw")
-                            {
-                                fontWidth = Width.Double;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "/hw" || tagText == "/dw")
-                            {
-                                // And back...
-                                fontWidth = Width.Normal;
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText.StartsWith("font", StringComparison.Ordinal))
-                            {
-                                uint newFontID;
-                                if (uint.TryParse(tagText.Substring(4), out newFontID) && newFontID < fontTexture.Count)
-                                {
-                                    fontTextureIndex = (int)newFontID;
-                                }
-                                charIndex += nextBracket + 1;
-                            }
-                            else if (tagText == "[")
-                            {
-                                // We got a "[[]" which means an escaped opening bracket.
-                                escapedBracket = true;
-                                charIndex += nextBracket;
-                                break;
-                            }
-                            else // Else we didn't recognise anything so it's not a tag.
-                            {
-                                break;
-                            }
-                        }
-                        float xPos = xCursor + xOffset;
-                        float yPos = yCursor + yOffset;
-                        if (charIndex < textBuffer[lineIndex].Length &&
-                            xPos < screenPixelWidth &&
-                            xPos > -(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)) &&
-                            yPos < screenPixelHeight &&
-                            yPos > -fontLetterHeight)
-                        {
-                            DrawChar(escapedBracket ? '[' : textBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth, fontTextureIndex);
-                        }
-                        switch (fontWidth)
-                        {
-                            case Width.Normal:
-                                xCursor += fontLetterWidth;
-                                break;
-                            case Width.Half:
-                                xCursor += fontLetterHalfWidth;
-                                break;
-                            case Width.Double:
-                                xCursor += fontLetterDoubleWidth;
-                                break;
-
-                        }
-                    }
-                }
-            }
         }
 
         private void RenderScreen()
@@ -596,13 +425,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(activePage.Text))
             {
-                RenderText(screenBuffer);
-            }
-
-            // If we have a text overlay, that's where we print it.
-            if (activePage.textOverlayBuffer.Length > 0)
-            {
-                RenderText(activePage.textOverlayBuffer, true);
+                textRenderer.Render(screenTexture, screenBuffer, activePage);
             }
 
             activePage.RenderOverlay(screenTexture);
@@ -613,12 +436,14 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
+            StringBuilder bf = new StringBuilder();
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
-            for (int i = 0; i < screenHeight; i++)
+            for (int i = 0; i < linesArray.Length; i++)
             {
-                screenBuffer[i] = (i < linesArray.Length) ? StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID) : string.Empty;
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID));
             }
             textRefreshRequired = false;
+            screenBuffer = bf.ToString();
 
             // This is where we request electric charge reserve. And if we don't have any, well... :)
             CheckForElectricCharge();

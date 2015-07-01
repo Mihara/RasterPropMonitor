@@ -11,6 +11,8 @@ Shader "RPM/DisplayShader"
 	SubShader {
 
 		Tags { "RenderType"="Overlay" "Queue" = "Transparent" } 
+
+		// Premultiplied Alpha shader for rendering/coloring textures.
 		
 		Lighting Off 
 		Blend One OneMinusSrcAlpha 
@@ -52,41 +54,16 @@ Shader "RPM/DisplayShader"
 				return o;
 			}
 
-			fixed4 frag (v2f i) : COLOR
+			float4 frag (v2f i) : COLOR
 			{
 				float4 diffuse = tex2D(_MainTex, i.texcoord);
 				diffuse.a *= _Color.a * _Opacity;
 				diffuse.rgb = (diffuse.rgb * _Color.rgb) * diffuse.a;
-				return fixed4(diffuse.r, diffuse.g, diffuse.b, diffuse.a);
+				return diffuse;
 			}
 			ENDCG 
 		}
 	} 	
- 
 	
-	/*SubShader { 
-
-		Tags { "ForceSupported" = "True" "RenderType"="Overlay" } 
-
-		Lighting Off 
-		Blend One OneMinusSrcAlpha 
-		Cull Off 
-		ZWrite Off 
-		Fog { Mode Off } 
-		ZTest Always 
-		
-		BindChannels { 
-			Bind "vertex", vertex 
-			Bind "color", color 
-			Bind "TexCoord", texcoord 
-		} 
-		
-		Pass { 
-			SetTexture [_MainTex] {
-				combine primary * texture DOUBLE, primary * texture DOUBLE
-			} 
-		} 
-	} */
-
 	Fallback off 
 }

@@ -1,2 +1,3 @@
 "C:\Program Files (x86)\Unity\Editor\Data\Tools\CgBatch.exe" ./RPM-DisplayShader.shader Assets/ShaderDirectory "C:/Program Files (x86)/Unity/Editor/Data/CGIncludes" ./RPM-DisplayShader-compiled.shader
+"C:\Program Files (x86)\Unity\Editor\Data\Tools\CgBatch.exe" ./RPM-FontShader.shader Assets/ShaderDirectory "C:/Program Files (x86)/Unity/Editor/Data/CGIncludes" ./RPM-FontShader-compiled.shader
 pause

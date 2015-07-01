@@ -57,6 +57,7 @@
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MappedVariable.cs" />
     <Compile Include="Core\Protractor.cs" />
+    <Compile Include="Core\TextRenderer.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
     <Compile Include="Handlers\JSIFAR.cs" />
     <Compile Include="Handlers\JSIGimbal.cs" />
@@ -176,6 +177,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Shaders\RPM-DisplayShader-compiled.shader" />
     <None Include="Shaders\RPM-DisplayShader.shader" />
+    <EmbeddedResource Include="Shaders\RPM-FontShader-compiled.shader" />
+    <None Include="Shaders\RPM-FontShader.shader" />
   </ItemGroup>
   <PropertyGroup>
     <PostBuildEvent>copy $(TargetPath) $(SolutionDir)GameData\JSI\RasterPropMonitor\Plugins\</PostBuildEvent>
