@@ -69,7 +69,6 @@ namespace JSI
         private bool firstRenderComplete;
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
-        private int fontTextureIndex;
         private MonitorPage activePage;
         // All computations are split into a separate class, because it was getting a mite too big.
         private RasterPropMonitorComputer comp;
@@ -369,7 +368,7 @@ namespace JSI
             }
         }
 
-        private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth)
+        private void DrawChar(char letter, float x, float y, Color letterColor, Script scriptType, Width fontWidth, int fontTextureIndex)
         {
             if (fontCharacters.ContainsKey(letter))
             {
@@ -435,9 +434,11 @@ namespace JSI
                     float yOffset = 0;
                     Script scriptType = Script.Normal;
                     Width fontWidth = Width.Normal;
-                    fontTextureIndex = 0;
+                    int fontTextureIndex = 0;
                     if (activePage.pageFont < fontTexture.Count)
+                    {
                         fontTextureIndex = activePage.pageFont;
+                    }
                     float xCursor = drawingOverlay ? 0 : (activePage.screenXMin * fontLetterWidth);
                     for (int charIndex = 0; charIndex < textBuffer[lineIndex].Length; charIndex++)
                     {
@@ -534,7 +535,9 @@ namespace JSI
                                 break;
                             }
                             else // Else we didn't recognise anything so it's not a tag.
+                            {
                                 break;
+                            }
                         }
                         float xPos = xCursor + xOffset;
                         float yPos = yCursor + yOffset;
@@ -543,7 +546,9 @@ namespace JSI
                             xPos > -(fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)) &&
                             yPos < screenPixelHeight &&
                             yPos > -fontLetterHeight)
-                            DrawChar(escapedBracket ? '[' : textBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth);
+                        {
+                            DrawChar(escapedBracket ? '[' : textBuffer[lineIndex][charIndex], xPos, yPos, fontColor, scriptType, fontWidth, fontTextureIndex);
+                        }
                         switch (fontWidth)
                         {
                             case Width.Normal:
