@@ -126,54 +126,6 @@ namespace JSI
             return font;
         }
 
-        // This function courtesy of EnhancedNavBall.
-        internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
-        {
-            return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-        }
-
-        internal static GameObject CreateSimplePlane(string name, Vector2 vectorSize, Rect textureCoords, int drawingLayer)
-        {
-            var mesh = new Mesh();
-
-            var obj = new GameObject(name);
-            MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
-            obj.AddComponent<MeshRenderer>();
-
-            mesh.vertices = new[] 
-            {
-                new Vector3(-vectorSize.x, -vectorSize.y, 0.0f), 
-                new Vector3(vectorSize.x, -vectorSize.y, 0.0f), 
-                new Vector3(-vectorSize.x, vectorSize.y, 0.0f),
-                new Vector3(vectorSize.x, vectorSize.y, 0.0f)
-            };
-
-            mesh.uv = new[] 
-            {
-                new Vector2(textureCoords.xMin, textureCoords.yMin), 
-                new Vector2(textureCoords.xMax, textureCoords.yMin), 
-                new Vector2(textureCoords.xMin, textureCoords.yMax),
-                new Vector2(textureCoords.xMax, textureCoords.yMax)
-            };
-
-            mesh.triangles = new[] 
-            {
-                1, 0, 2,
-                3, 1, 2
-            };
-
-            mesh.RecalculateBounds();
-            mesh.Optimize();
-
-            meshFilter.mesh = mesh;
-
-            obj.layer = drawingLayer;
-
-            Destroy(obj.collider);
-
-            return obj;
-        }
-
         public void Start()
         {
 
