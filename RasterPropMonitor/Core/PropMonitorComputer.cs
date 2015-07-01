@@ -192,7 +192,7 @@ namespace JSI
         private bool anyEnginesOverheating;
         private bool anyEnginesFlameout;
         private float totalDataAmount;
-		private float totalExperimentCount;
+        private float totalExperimentCount;
         private double secondsToImpact;
         private double bestPossibleSpeedAtImpact, expectedSpeedAtImpact;
         private double localGeeASL, localGeeDirect;
@@ -961,7 +961,7 @@ namespace JSI
                         if (datapoint != null)
                         {
                             totalDataAmount += datapoint.dataAmount;
-							totalExperimentCount += 1;
+                            totalExperimentCount += 1.0f;
                         }
                     }
                 }
@@ -1225,7 +1225,7 @@ namespace JSI
                 // the specified (game clock) period.
                 if (tokens.Length > 1 && tokens[0] == "PERIOD")
                 {
-                    if(tokens[1].Substring(tokens[1].Length - 2) == "HZ")
+                    if (tokens[1].Substring(tokens[1].Length - 2) == "HZ")
                     {
                         double period;
                         if (double.TryParse(tokens[1].Substring(0, tokens[1].Length - 2), out period) && period > 0.0)
@@ -1234,7 +1234,7 @@ namespace JSI
 
                             double remainder = Planetarium.GetUniversalTime() % invPeriod;
 
-                            return (remainder > invPeriod*0.5).GetHashCode();
+                            return (remainder > invPeriod * 0.5).GetHashCode();
                         }
                     }
 
@@ -2626,26 +2626,26 @@ namespace JSI
         #region PluginEvaluators
         private double AngleOfAttack()
         {
-            if(evaluateAngleOfAttack == null)
+            if (evaluateAngleOfAttack == null)
             {
-                    Func<double> accessor = null;
+                Func<double> accessor = null;
 
-                    accessor = (Func<double>)GetMethod("JSIFAR:GetAngleOfAttack", part.internalModel.props[0], typeof(Func<double>));
-                    if (accessor != null)
+                accessor = (Func<double>)GetMethod("JSIFAR:GetAngleOfAttack", part.internalModel.props[0], typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
                     {
-                        double value = accessor();
-                        if (double.IsNaN(value))
-                        {
-                            accessor = null;
-                        }
+                        accessor = null;
                     }
+                }
 
-                    if (accessor == null)
-                    {
-                        accessor = FallbackEvaluateAngleOfAttack;
-                    }
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateAngleOfAttack;
+                }
 
-                    evaluateAngleOfAttack = accessor;
+                evaluateAngleOfAttack = accessor;
             }
 
             return evaluateAngleOfAttack();
