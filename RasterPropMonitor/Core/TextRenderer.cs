@@ -27,6 +27,7 @@ namespace JSI
                 fontMaterial.mainTexture = fontTexture;
 
                 this.fontTexture = fontTexture;
+                this.fontTexture.filterMode = FilterMode.Point;
 
                 obj = new GameObject(fontTexture.name + "-FontRenderer");
                 MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
@@ -123,6 +124,7 @@ namespace JSI
 
         // Supported characters
         private readonly Dictionary<char, Rect> fontCharacters = new Dictionary<char, Rect>();
+        private readonly HashSet<char> characterWarnings = new HashSet<char>();
 
         // Caches of current text strings, so we can avoid recomputing things if they're invariant.
         private string cachedText = string.Empty;
@@ -163,11 +165,16 @@ namespace JSI
             screenXOffset = (float)screenPixelWidth * -0.5f;
             screenYOffset = (float)screenPixelHeight * 0.5f - fontLetterSize.y;
 
-            float fontLettersX = (fontTexture[0].width / fontLetterSize.x);
-            float fontLettersY = (fontTexture[0].height / fontLetterSize.y);
+            float fontLettersX = Mathf.Floor(fontTexture[0].width / fontLetterSize.x);
+            float fontLettersY = Mathf.Floor(fontTexture[0].height / fontLetterSize.y);
             float letterSpanX = 1.0f / fontLettersX;
             float letterSpanY = 1.0f / fontLettersY;
             int lastCharacter = (int)fontLettersX * (int)fontLettersY;
+
+            if (lastCharacter != fontDefinitionString.Length)
+            {
+                JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
+            }
 
             // Precompute texture coordinates for all of the supported characters
             for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++)
@@ -194,9 +201,10 @@ namespace JSI
             textCamera = cameraBody.AddComponent<Camera>();
             textCamera.enabled = false;
             textCamera.orthographic = true;
+            textCamera.aspect = (float)screenWidth / (float)screenHeight;
             textCamera.eventMask = 0;
             textCamera.farClipPlane = 3f;
-            textCamera.orthographicSize = (float)(screenWidth) * 0.5f;
+            textCamera.orthographicSize = (float)(screenHeight) * 0.5f;
             textCamera.cullingMask = 1 << drawingLayer;
             textCamera.clearFlags = CameraClearFlags.Nothing;
             textCamera.transparencySortMode = TransparencySortMode.Orthographic;
@@ -387,6 +395,12 @@ namespace JSI
                 fr.uvs.Add(new Vector2(uv.xMax, uv.yMax));
 
                 fr.colors.Add(letterColor);
+            }
+            else if (!characterWarnings.Contains(letter))
+            {
+                JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" (u{1}) not present in the font.", letter.ToString(), letter);  
+
+                characterWarnings.Add(letter);
             }
         }
 
