@@ -112,8 +112,8 @@ namespace JSI
 
             // Figure out how we have to manipulate the camera to get the
             // navball in the right place, and in the right size.
-            float cameraSpan = navballRadius * screenWidth / navBallDiameter;
-            float pixelSize = cameraSpan / (screenWidth * 0.5f);
+            float cameraSpan = navballRadius * screenHeight / navBallDiameter;
+            float pixelSize = cameraSpan / (screenHeight * 0.5f);
 
             ballCamera.orthographicSize = cameraSpan;
 

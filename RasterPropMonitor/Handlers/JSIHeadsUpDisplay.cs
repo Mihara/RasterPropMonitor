@@ -315,7 +315,8 @@ namespace JSI
             if (!firstRenderComplete)
             {
                 firstRenderComplete = true;
-                hudCamera.orthographicSize = (float)(screen.width) * 0.5f;
+                hudCamera.orthographicSize = (float)(screen.height) * 0.5f;
+                hudCamera.aspect = (float)screen.width / (float)screen.height;
                 InitializeRenderables((float)screen.width, (float)screen.height);
             }
 
