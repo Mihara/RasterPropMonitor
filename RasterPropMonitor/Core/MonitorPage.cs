@@ -362,7 +362,7 @@ namespace JSI
                 }
                 else
                 {
-                    JUtil.LogErrorMessage(ourMonitor, "Interlay texture could not be loaded.");
+                    JUtil.LogErrorMessage(ourMonitor, "Interlay texture {0} could not be loaded.", textureURL);
                 }
             }
             if (node.HasValue("textureOverlayURL"))
