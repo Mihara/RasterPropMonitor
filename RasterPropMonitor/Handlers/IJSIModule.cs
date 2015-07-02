@@ -15,8 +15,15 @@
             moduleInvalidated = true;
         }
 
-        public void Invalidate()
+        /// <summary>
+        /// Because the Vessel may change when the craft docks, we must
+        /// refresh the local vessel ID.  Since we need to loop over all of the
+        /// parts for Invalidate, we may as well update it then.
+        /// </summary>
+        /// <param name="vessel"></param>
+        public void Invalidate(Vessel vessel)
         {
+            this.vessel = vessel;
             moduleInvalidated = true;
         }
     }

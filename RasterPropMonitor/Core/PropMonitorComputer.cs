@@ -576,9 +576,9 @@ namespace JSI
 
             // We clear the cache every frame.
             resultCache.Clear();
-            foreach (IJSIModule module in installedModules)
+            for(int i=0; i<installedModules.Count; ++i)
             {
-                module.Invalidate();
+                installedModules[i].Invalidate(vessel);
             }
 
             FetchCommonData();
