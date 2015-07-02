@@ -59,7 +59,6 @@ namespace JSI
         // This needs to be public so that pages can point it.
         public FlyingCamera cameraStructure;
         // Internal stuff.
-        private readonly List<Texture2D> fontTexture = new List<Texture2D>();
         private TextRenderer textRenderer;
         private RenderTexture screenTexture;
         private Texture2D frozenScreen;
@@ -75,14 +74,9 @@ namespace JSI
         private RasterPropMonitorComputer comp;
         private string persistentVarName;
         private string screenBuffer;
-        private readonly Dictionary<char, Rect> fontCharacters = new Dictionary<char, Rect>();
         private FXGroup audioOutput;
         private double electricChargeReserve;
         public Texture2D noSignalTexture;
-        private readonly DefaultableDictionary<char, bool> characterWarnings = new DefaultableDictionary<char, bool>(false);
-        private float fontLetterHalfHeight;
-        private float fontLetterHalfWidth;
-        private float fontLetterDoubleWidth;
         private Material screenMat;
         private bool startupComplete;
         private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
@@ -92,35 +86,20 @@ namespace JSI
 
         private bool ourPodIsTransparent = false;
 
-        private enum Script
-        {
-            Normal,
-            Subscript,
-            Superscript,
-        }
-
-        private enum Width
-        {
-            Normal,
-            Half,
-            Double,
-        }
-
-        private static Texture2D LoadFont(object caller, InternalProp thisProp, string location, bool extra)
+        private static Texture2D LoadFont(object caller, InternalProp thisProp, string location)
         {
             Texture2D font = null;
             if (!string.IsNullOrEmpty(location))
             {
-                JUtil.LogMessage(caller, "Trying to locate \"{0}\" in GameDatabase...", location);
                 if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes()))
                 {
                     font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
-                    JUtil.LogMessage(caller, "Loading{1} font texture from URL, \"{0}\"", location, extra ? " extra" : string.Empty);
+                    JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
                 }
                 else
                 {
                     font = (Texture2D)thisProp.FindModelTransform(location).renderer.material.mainTexture;
-                    JUtil.LogMessage(caller, "Loading{1} font texture from a transform named, \"{0}\"", location, extra ? " extra" : string.Empty);
+                    JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
                 }
             }
             return font;
@@ -131,10 +110,14 @@ namespace JSI
 
             // If we're not in the correct location, there's no point doing anything.
             if (!InstallationPathWarning.Warn())
+            {
                 return;
+            }
 
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             try
             {
@@ -143,45 +126,24 @@ namespace JSI
                 comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
 
                 // Loading the font...
-                fontTexture.Add(LoadFont(this, internalProp, fontTransform, false));
+                List<Texture2D> fontTexture = new List<Texture2D>();
+                fontTexture.Add(LoadFont(this, internalProp, fontTransform));
 
                 // Damn KSP's config parser!!!
                 if (!string.IsNullOrEmpty(emptyColor))
+                {
                     emptyColorValue = ConfigNode.ParseColor32(emptyColor);
+                }
                 if (!string.IsNullOrEmpty(defaultFontTint))
+                {
                     defaultFontTintValue = ConfigNode.ParseColor32(defaultFontTint);
+                }
 
                 if (!string.IsNullOrEmpty(fontDefinition))
                 {
                     JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
                     fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
                 }
-
-                // We can pre-compute the rectangles the font characters will be copied from, this seems to make it slightly quicker...
-                // although I'm not sure I'm not seeing things by this point.
-                int fontLettersX = (fontTexture[0].width / fontLetterWidth);
-                int fontLettersY = (fontTexture[0].height / fontLetterHeight);
-                float letterSpanX = 1f / fontLettersX;
-                float letterSpanY = 1f / fontLettersY;
-                int lastCharacter = fontLettersX * fontLettersY;
-
-                if (lastCharacter != fontDefinitionString.Length)
-                {
-                    JUtil.LogMessage(this, "Warning, number of letters in the font definition does not match font bitmap size.");
-                }
-
-                for (int i = 0; i < lastCharacter && i < fontDefinitionString.Length; i++)
-                {
-                    int xSource = i % fontLettersX;
-                    int ySource = (i - xSource) / fontLettersX;
-                    if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
-                        fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1), letterSpanX, letterSpanY);
-                }
-
-                // And a little optimisation for superscript/subscript:
-                fontLetterHalfHeight = fontLetterHeight / 2f;
-                fontLetterHalfWidth = fontLetterWidth / 2f;
-                fontLetterDoubleWidth = fontLetterWidth * 2f;
 
                 // Now that is done, proceed to setting up the screen.
 
@@ -237,7 +199,7 @@ namespace JSI
                         // Now that all pages are loaded, we can use the moment in the loop to suck in all the extra fonts.
                         foreach (string value in moduleConfig.GetValues("extraFont"))
                         {
-                            fontTexture.Add(LoadFont(this, internalProp, value, true));
+                            fontTexture.Add(LoadFont(this, internalProp, value));
                         }
 
                         break;
