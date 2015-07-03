@@ -646,10 +646,9 @@ namespace JSI
 
         public void AlarmShutdown()
         {
-            if (audioOutput != null && alarmActive)
+            if (audioOutput != null && alarmActive && audioOutput.audio.isPlaying)
             {
                 audioOutput.audio.Stop();
-                alarmActive = false;
             }
         }
     }
