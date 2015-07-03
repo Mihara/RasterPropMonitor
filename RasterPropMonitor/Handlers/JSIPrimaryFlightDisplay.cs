@@ -8,9 +8,9 @@ namespace JSI
         [KSPField]
         public int drawingLayer = 17;
         [KSPField]
-        public string horizonTexture = "RasterPropMonitor/Library/Components/NavBall/NavBall000";
+        public string horizonTexture = "JSI/RasterPropMonitor/Library/Components/NavBall/NavBall000";
         [KSPField]
-        public string navBallModel = "RasterPropMonitor/Library/Components/NavBall/NavBall";
+        public string navBallModel = "JSI/RasterPropMonitor/Library/Components/NavBall/NavBall";
         [KSPField]
         public string staticOverlay = string.Empty;
         [KSPField]
@@ -406,6 +406,13 @@ namespace JSI
                 ballCamera.transform.LookAt(navBallPosition, Vector3.up);
 
                 navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+                if(navBall == null)
+                {
+                    JUtil.LogErrorMessage(this, "Failed to load navball model {0}", navBallModel);
+                    // Early return here - if we don't even have a navball, this module is pointless.
+                    return;
+                }
+
                 Destroy(navBall.collider);
                 navBall.name = "RPMNB" + navBall.GetInstanceID();
                 navBall.layer = drawingLayer;
