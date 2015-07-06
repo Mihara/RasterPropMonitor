@@ -8,9 +8,9 @@ namespace JSI
         [KSPField]
         public int drawingLayer = 17;
         [KSPField]
-        public string horizonTexture = "RasterPropMonitor/Library/Components/NavBall/NavBall000";
+        public string horizonTexture = "JSI/RasterPropMonitor/Library/Components/NavBall/NavBall000";
         [KSPField]
-        public string navBallModel = "RasterPropMonitor/Library/Components/NavBall/NavBall";
+        public string navBallModel = "JSI/RasterPropMonitor/Library/Components/NavBall/NavBall";
         [KSPField]
         public string staticOverlay = string.Empty;
         [KSPField]
@@ -112,8 +112,8 @@ namespace JSI
 
             // Figure out how we have to manipulate the camera to get the
             // navball in the right place, and in the right size.
-            float cameraSpan = navballRadius * screenWidth / navBallDiameter;
-            float pixelSize = cameraSpan / (screenWidth * 0.5f);
+            float cameraSpan = navballRadius * screenHeight / navBallDiameter;
+            float pixelSize = cameraSpan / (screenHeight * 0.5f);
 
             ballCamera.orthographicSize = cameraSpan;
 
@@ -136,7 +136,7 @@ namespace JSI
                 Material overlayMaterial = new Material(displayShader);
                 overlayMaterial.mainTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
 
-                overlay = RasterPropMonitor.CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, cameraSpan, drawingLayer);
+                overlay = JUtil.CreateSimplePlane("RPMPFDOverlay" + internalProp.propID, cameraSpan, drawingLayer);
                 overlay.layer = drawingLayer;
                 overlay.transform.position = new Vector3(0, 0, overlayDepth);
                 overlay.renderer.material = overlayMaterial;
@@ -151,7 +151,7 @@ namespace JSI
                 float hbXPos = headingBarPosition.x - screenWidth * 0.5f;
                 float hbYPos = screenHeight * 0.5f - headingBarPosition.y;
 
-                heading = RasterPropMonitor.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, new Vector2(headingBarPosition.z * pixelSize, headingBarPosition.w * pixelSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                heading = JUtil.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, new Vector2(headingBarPosition.z * pixelSize, headingBarPosition.w * pixelSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                 heading.transform.position = new Vector3(hbXPos * pixelSize, hbYPos * pixelSize, headingAboveOverlay ? (overlayDepth - 0.1f) : (overlayDepth + 0.1f));
                 heading.transform.parent = cameraBody.transform;
                 heading.renderer.material = headingMaterial;
@@ -326,7 +326,7 @@ namespace JSI
 
         private static GameObject BuildMarker(int iconX, int iconY, float markerSize, Texture gizmoTexture, Color nativeColor, int drawingLayer, int propID, Shader shader)
         {
-            GameObject marker = RasterPropMonitor.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + propID, markerSize, drawingLayer);
+            GameObject marker = JUtil.CreateSimplePlane("RPMPFDMarker" + iconX + iconY + propID, markerSize, drawingLayer);
 
             Material material = new Material(shader);
             material.mainTexture = gizmoTexture;
@@ -406,6 +406,13 @@ namespace JSI
                 ballCamera.transform.LookAt(navBallPosition, Vector3.up);
 
                 navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
+                if(navBall == null)
+                {
+                    JUtil.LogErrorMessage(this, "Failed to load navball model {0}", navBallModel);
+                    // Early return here - if we don't even have a navball, this module is pointless.
+                    return;
+                }
+
                 Destroy(navBall.collider);
                 navBall.name = "RPMNB" + navBall.GetInstanceID();
                 navBall.layer = drawingLayer;

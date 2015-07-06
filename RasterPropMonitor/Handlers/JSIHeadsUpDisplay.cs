@@ -91,7 +91,7 @@ namespace JSI
                 Texture overlayTexture = GameDatabase.Instance.GetTexture(staticOverlay.EnforceSlashes(), false);
                 overlayMaterial.mainTexture = overlayTexture;
 
-                overlayMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
+                overlayMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
                 overlayMesh.transform.position = new Vector3(0, 0, 1.0f);
                 overlayMesh.renderer.material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
@@ -111,7 +111,7 @@ namespace JSI
 
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
-                    ladderMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                    ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                     ladderMesh.transform.position = new Vector3(0, 0, 1.4f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
@@ -125,7 +125,7 @@ namespace JSI
                         progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
                         progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
-                        progradeLadderIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeLadderIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
@@ -144,7 +144,7 @@ namespace JSI
 
                     headingMaterial.mainTexture.wrapMode = TextureWrapMode.Repeat;
 
-                    headingMesh = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                    headingMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                     headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.4f);
                     headingMesh.renderer.material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
@@ -160,7 +160,7 @@ namespace JSI
 
                         progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
 
-                        progradeHeadingIcon = RasterPropMonitor.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeHeadingIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
@@ -315,7 +315,8 @@ namespace JSI
             if (!firstRenderComplete)
             {
                 firstRenderComplete = true;
-                hudCamera.orthographicSize = (float)(screen.width) * 0.5f;
+                hudCamera.orthographicSize = (float)(screen.height) * 0.5f;
+                hudCamera.aspect = (float)screen.width / (float)screen.height;
                 InitializeRenderables((float)screen.width, (float)screen.height);
             }
 
@@ -512,7 +513,7 @@ namespace JSI
 
             Vector4 position = ConfigNode.ParseVector4(node.GetValue("position"));
 
-            barObject = RasterPropMonitor.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+            barObject = JUtil.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
 
             Material barMaterial = new Material(displayShader);
             barMaterial.color = Color.white;
