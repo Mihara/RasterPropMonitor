@@ -10,9 +10,9 @@ structure:
 
 GameData |
          + JSI |
-		       + Agencies
-			   + RasterPropMonitor
-			   + RPMPodPatches
+               + Agencies
+               + RasterPropMonitor
+               + RPMPodPatches
 			   
 If you do not see GameData/JSI, you have installed this mod incorrectly, and
 it shall misbehave (missing props, other things not working right).
