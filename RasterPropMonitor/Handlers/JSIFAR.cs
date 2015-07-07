@@ -117,12 +117,13 @@ namespace JSI
         {
             if (farFound)
             {
-                double value = (double)farActiveVesselTermVelEst.Invoke(null, null);
-                return (double.IsNaN(value)) ? double.PositiveInfinity : value;
+                double termVel = (double)farActiveVesselTermVelEst.Invoke(null, null);
+                JUtil.LogMessage(this, "GetTerminalVelocity() = {0}", termVel);
+                return termVel;
             }
             else
             {
-                return double.NaN;
+                return -1.0;
             }
         }
     }

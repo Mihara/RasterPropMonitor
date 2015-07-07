@@ -1014,6 +1014,17 @@ namespace JSI
         // Another piece from MechJeb.
         private void FetchAltitudes()
         {
+            /*
+Thanks. I already spent a couple of hours on this and I m tired of it.
+
+ Currently I use this the get the terrain ALT at a specific lat / lon : 
+
+
+Code:
+mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.latitude, vessel.longitude)) - mainBody.Radius
+             * On that save I get an alt of 2620.4 for the ship landed on Pol. vessel.terrainAltitude gives 1920.4
+
+ I know that vessel.terrainAltitude use some raycast to get the alt but I don't get why I can't get the right altitude with the PQS when I am testing the exact point I am standing on. After all that terrain is generated from the PQS...              */
             altitudeTrue = AltitudeASL - vessel.terrainAltitude;
             // MOARdV TODO: vessel.heightFromSurface, vessel.heightFromTerrain?
 
@@ -2827,7 +2838,7 @@ namespace JSI
                 if (accessor != null)
                 {
                     double value = accessor();
-                    if (double.IsNaN(value))
+                    if (value < 0.0)
                     {
                         accessor = null;
                     }
