@@ -858,7 +858,8 @@ namespace JSI
         /// <returns>true if MJ is available for query</returns>
         public bool GetMechJebAvailable()
         {
-            return mjFound;
+            object activeJeb = GetMasterMechJeb();
+            return (activeJeb != null);
         }
 
         public void SetSmartassMode(Target t)
