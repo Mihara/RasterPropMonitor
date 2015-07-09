@@ -28,6 +28,7 @@ namespace JSI
         public string vesselDescription = string.Empty;
         private string vesselDescriptionForDisplay = string.Empty;
         private readonly string editorNewline = ((char)0x0a).ToString();
+        private string lastVesselDescription = string.Empty;
         // Public interface.
         public bool updateForced;
         // Data common for various variable calculations
@@ -363,7 +364,6 @@ namespace JSI
                 }
 
                 // Now let's collect a list of all assemblies loaded on the system.
-
                 knownLoadedAssemblies = new List<string>();
                 foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
                 {
@@ -416,6 +416,21 @@ namespace JSI
                     }
                 }
 
+                // Make sure we have the description strings parsed.
+                string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
+                for (int i = 0; i < descriptionStrings.Length; i++)
+                {
+                    if (descriptionStrings[i].StartsWith("AG", StringComparison.Ordinal) && descriptionStrings[i][3] == '=')
+                    {
+                        uint groupID;
+                        if (uint.TryParse(descriptionStrings[i][2].ToString(), out groupID))
+                        {
+                            actionGroupMemo[groupID] = descriptionStrings[i].Substring(4).Trim();
+                            descriptionStrings[i] = string.Empty;
+                        }
+                    }
+                }
+                vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
 
                 // Now let's parse our stored strings...
                 if (!string.IsNullOrEmpty(storedStrings))
@@ -508,29 +523,6 @@ namespace JSI
             return false;
         }
 
-        public override void OnStart(PartModule.StartState state)
-        {
-            if (state != StartState.Editor)
-            {
-                // Parse vessel description here for special lines:
-
-                string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
-                for (int i = 0; i < descriptionStrings.Length; i++)
-                {
-                    if (descriptionStrings[i].StartsWith("AG", StringComparison.Ordinal) && descriptionStrings[i][3] == '=')
-                    {
-                        uint groupID;
-                        if (uint.TryParse(descriptionStrings[i][2].ToString(), out groupID))
-                        {
-                            actionGroupMemo[groupID] = descriptionStrings[i].Substring(4).Trim();
-                            descriptionStrings[i] = string.Empty;
-                        }
-                    }
-                }
-                vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
-            }
-        }
-
         private bool UpdateCheck()
         {
             if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced)
@@ -550,38 +542,33 @@ namespace JSI
             return false;
         }
 
-        // I don't remember why exactly, but I think it has to be out of OnUpdate to work in editor...
         public void Update()
         {
             if (HighLogic.LoadedSceneIsEditor)
             {
                 // well, it looks sometimes it might become null..
-
-                // For some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
-                vesselDescription = EditorLogic.fetch.shipDescriptionField != null ? EditorLogic.fetch.shipDescriptionField.Text.Replace(editorNewline, "$$$") : string.Empty;
+                string s = EditorLogic.fetch.shipDescriptionField != null ? EditorLogic.fetch.shipDescriptionField.Text : string.Empty;
+                if (s != lastVesselDescription)
+                {
+                    lastVesselDescription = s;
+                    // For some unclear reason, the newline in this case is always 0A, rather than Environment.NewLine.
+                    vesselDescription = s.Replace(editorNewline, "$$$");
+                }
             }
-        }
-
-        public override void OnUpdate()
-        {
-            if (!JUtil.IsActiveVessel(vessel))
+            else if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
-                return;
-            }
+                // We clear the cache every frame.
+                resultCache.Clear();
 
-            if (!UpdateCheck())
-            {
-                return;
-            }
+                // Notify our installed "modules" that they've been invalidated.
+                for (int i = 0; i < installedModules.Count; ++i)
+                {
+                    installedModules[i].Invalidate(vessel);
+                }
 
-            // We clear the cache every frame.
-            resultCache.Clear();
-            for(int i=0; i<installedModules.Count; ++i)
-            {
-                installedModules[i].Invalidate(vessel);
+                // And refresh data.
+                FetchCommonData();
             }
-
-            FetchCommonData();
         }
 
         private static float GetCurrentThrust(ModuleEngines engine)
