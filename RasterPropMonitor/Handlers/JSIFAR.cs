@@ -118,6 +118,31 @@ namespace JSI
             JUtil.LogMessage(null, "JSIFAR: farFound is " + farFound);
         }
 
+        #region Private Methods
+        private void SetFlaps(int newSetting)
+        {
+            int currentSetting = (int)GetFlapSetting();
+            if(currentSetting >= 0)
+            {
+                int delta = newSetting - currentSetting;
+                if(delta < 0 && farDecreaseFlapDeflection != null)
+                {
+                    for(int i=0; i>delta; --i)
+                    {
+                        farDecreaseFlapDeflection.Invoke(null, new object[] { vessel });
+                    }
+                }
+                else if (delta > 0 && farIncreaseFlapDeflection != null)
+                {
+                    for (int i = 0; i < delta; ++i)
+                    {
+                        farIncreaseFlapDeflection.Invoke(null, new object[] { vessel });
+                    }
+                }
+            }
+        }
+        #endregion
+
         #region Information Queries
         public double GetAngleOfAttack()
         {
@@ -235,6 +260,26 @@ namespace JSI
             }
 
             return false;
+        }
+
+        public void SetFlaps0(bool unused)
+        {
+            SetFlaps(0);
+        }
+
+        public void SetFlaps1(bool unused)
+        {
+            SetFlaps(1);
+        }
+
+        public void SetFlaps2(bool unused)
+        {
+            SetFlaps(2);
+        }
+
+        public void SetFlaps3(bool unused)
+        {
+            SetFlaps(3);
         }
 
         public void SetSpoiler(bool state)
