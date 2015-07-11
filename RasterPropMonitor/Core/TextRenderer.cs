@@ -27,7 +27,7 @@ namespace JSI
                 fontMaterial.mainTexture = fontTexture;
 
                 this.fontTexture = fontTexture;
-                this.fontTexture.filterMode = FilterMode.Point;
+                this.fontTexture.filterMode = FilterMode.Bilinear;
 
                 obj = new GameObject(fontTexture.name + "-FontRenderer");
                 MeshFilter meshFilter = obj.AddComponent<MeshFilter>();
@@ -167,6 +167,8 @@ namespace JSI
 
             float fontLettersX = Mathf.Floor(fontTexture[0].width / fontLetterSize.x);
             float fontLettersY = Mathf.Floor(fontTexture[0].height / fontLetterSize.y);
+            float pixelOffsetX = 0.5f / (float)fontTexture[0].width;
+            float pixelOffsetY = 0.5f / (float)fontTexture[0].height;
             float letterSpanX = 1.0f / fontLettersX;
             float letterSpanY = 1.0f / fontLettersY;
             int lastCharacter = (int)fontLettersX * (int)fontLettersY;
@@ -183,7 +185,7 @@ namespace JSI
                 int ySource = (i - xSource) / (int)fontLettersX;
                 if (!fontCharacters.ContainsKey(fontDefinitionString[i]))
                 {
-                    fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * xSource, letterSpanY * (fontLettersY - ySource - 1.0f), letterSpanX, letterSpanY);
+                    fontCharacters[fontDefinitionString[i]] = new Rect(letterSpanX * (float)xSource + pixelOffsetX, letterSpanY * (fontLettersY - (float)ySource - 1.0f) + pixelOffsetY, letterSpanX, letterSpanY);
                 }
             }
 

@@ -198,6 +198,8 @@ namespace JSI
 
         private double landingLat, landingLon, landingAlt, landingErr = -1.0;
 
+        private object activeJeb = null;
+
         static JSIMechJeb()
         {
             try
@@ -616,6 +618,8 @@ namespace JSI
 
         private void InvalidateResults()
         {
+            activeJeb = null;
+
             landingCurrent = false;
             deltaVCurrent = false;
 
@@ -632,24 +636,30 @@ namespace JSI
         /// <summary>
         /// Invokes VesselExtensions.GetMasterMechJeb()
         /// </summary>
-        /// <returns>The master MJ object</returns>
-        private object GetMasterMechJeb()
+        /// <returns>true if MJ is available, false otherwise</returns>
+        private bool GetMasterMechJeb()
         {
+            // Is MechJeb installed?
             if (mjFound)
             {
-                foreach (Part part in vessel.Parts)
+                // Have we already updated activeJeb?
+                if (activeJeb == null)
                 {
-                    foreach (PartModule module in part.Modules)
+                    foreach (Part part in vessel.Parts)
                     {
-                        if (module.GetType() == mjMechJebCore_t)
+                        foreach (PartModule module in part.Modules)
                         {
-                            return mjGetMasterMechJeb.Invoke(null, new object[] { vessel });
+                            if (module.GetType() == mjMechJebCore_t)
+                            {
+                                activeJeb = mjGetMasterMechJeb.Invoke(null, new object[] { vessel });
+                                break;
+                            }
                         }
                     }
                 }
             }
 
-            return null;
+            return (activeJeb != null);
         }
 
         /// <summary>
@@ -704,7 +714,7 @@ namespace JSI
 
         private void EnactTargetAction(Target action)
         {
-            object activeJeb = GetMasterMechJeb();
+            GetMasterMechJeb();
             object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
 
             JUtil.LogMessage(this, "EnactTargetAction {0}", action);
@@ -718,7 +728,7 @@ namespace JSI
 
         private bool ReturnTargetState(Target action)
         {
-            object activeJeb = GetMasterMechJeb();
+            GetMasterMechJeb();
             object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
 
             if (activeSmartass != null)
@@ -741,8 +751,8 @@ namespace JSI
         {
             try
             {
-                object masterMechJeb = GetMasterMechJeb();
-                object result = GetLandingResults(masterMechJeb);
+                GetMasterMechJeb();
+                object result = GetLandingResults(activeJeb);
                 if (result != null)
                 {
                     object outcome = mjReentryOutcome.GetValue(result);
@@ -766,7 +776,7 @@ namespace JSI
                             }
                             landingAlt = FinePrint.Utilities.CelestialUtilities.TerrainAltitude(vessel.mainBody, landingLat, landingLon);
 
-                            object target = mjCoreTarget.GetValue(masterMechJeb);
+                            object target = mjCoreTarget.GetValue(activeJeb);
                             object targetLatField = mjTargetLatitude.GetValue(target);
                             object targetLonField = mjTargetLongitude.GetValue(target);
                             double targetLat = (double)mjAbsoluteVectorToDouble.Invoke(null, new object[] { targetLatField });
@@ -792,10 +802,10 @@ namespace JSI
         {
             try
             {
-                object mjCore = GetMasterMechJeb();
-                if (mjCore != null)
+                GetMasterMechJeb();
+                if (activeJeb != null)
                 {
-                    object stagestats = GetComputerModule(mjCore, "MechJebModuleStageStats");
+                    object stagestats = GetComputerModule(activeJeb, "MechJebModuleStageStats");
 
                     mjRequestUpdate.Invoke(stagestats, new object[] { this });
 
@@ -858,7 +868,8 @@ namespace JSI
         /// <returns>true if MJ is available for query</returns>
         public bool GetMechJebAvailable()
         {
-            return mjFound;
+
+            return GetMasterMechJeb();
         }
 
         public void SetSmartassMode(Target t)
@@ -872,9 +883,8 @@ namespace JSI
         /// <returns></returns>
         public int GetSmartassMode()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
-                object activeJeb = GetMasterMechJeb();
                 object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
 
                 if (activeSmartass != null)
@@ -893,7 +903,7 @@ namespace JSI
         /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
         public double GetLandingError()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -920,7 +930,7 @@ namespace JSI
         /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
         public double GetLandingLatitude()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -947,7 +957,7 @@ namespace JSI
         /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
         public double GetLandingLongitude()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -974,7 +984,7 @@ namespace JSI
         /// <returns>-1 if the prediction is unavailable for whatever reason</returns>
         public double GetLandingAltitude()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -1001,7 +1011,7 @@ namespace JSI
         /// <returns>Returns NaN if MJ is unavailable.</returns>
         public double GetDeltaV()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -1028,7 +1038,7 @@ namespace JSI
         /// <returns>Returns NaN if MJ is unavailable.</returns>
         public double GetStageDeltaV()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
                 if (moduleInvalidated)
                 {
@@ -1051,8 +1061,8 @@ namespace JSI
 
         public double GetForceRollAngle()
         {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
             if (activeSmartass != null)
             {
                 object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
@@ -1068,10 +1078,9 @@ namespace JSI
 
         public double GetTerminalVelocity()
         {
-            if (mjFound)
+            if (GetMasterMechJeb())
             {
-                object mjCore = GetMasterMechJeb();
-                object vesselState = mjCoreVesselState.GetValue(mjCore);
+                object vesselState = mjCoreVesselState.GetValue(activeJeb);
                 if (vesselState != null)
                 {
                     double value = (double)mjTerminalVelocity.Invoke(vesselState, null);
@@ -1088,16 +1097,16 @@ namespace JSI
         /// <returns></returns>
         public bool PositionTargetExists()
         {
-            object mjCore = GetMasterMechJeb();
-            object target = mjCoreTarget.GetValue(mjCore);
-            if ((bool)mjGetPositionTargetExists.Invoke(target, null))
+            if (GetMasterMechJeb())
             {
-                return true;
+                object target = mjCoreTarget.GetValue(activeJeb);
+                if ((bool)mjGetPositionTargetExists.Invoke(target, null))
+                {
+                    return true;
+                }
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         /// <summary>
@@ -1113,11 +1122,11 @@ namespace JSI
             // MOARdV BUG: This doesn't seem to work if any of the
             // attitude settings are active (like "Prograde").
             //if (activeJeb.attitude.enabled && !activeJeb.attitude.users.Contains(activeSmartass))
-            object mjCore = GetMasterMechJeb();
-            object attitude = mjCoreAttitude.GetValue(mjCore);
+            GetMasterMechJeb();
+            object attitude = mjCoreAttitude.GetValue(activeJeb);
             if (ModuleEnabled(attitude))
             {
-                object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+                object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
                 object users = mjModuleUsers.GetValue(attitude);
                 return (bool)mjContainsUser.Invoke(users, new object[] { activeSmartass });
             }
@@ -1127,8 +1136,8 @@ namespace JSI
 
         private bool ForceRollState(double roll)
         {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
             if (activeSmartass != null)
             {
                 object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
@@ -1145,16 +1154,16 @@ namespace JSI
 
         public bool GetModuleExists(string moduleName)
         {
-            object mjCore = GetMasterMechJeb();
-            object module = GetComputerModule(mjCore, moduleName);
+            GetMasterMechJeb();
+            object module = GetComputerModule(activeJeb, moduleName);
 
             return (module != null);
         }
 
         public void ForceRoll(bool state, double roll)
         {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
             if (activeSmartass != null)
             {
                 if (state)
@@ -1194,21 +1203,23 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonNodeExecute(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object node = mjCoreNode.GetValue(mjCore);
-            object mp = GetComputerModule(mjCore, "MechJebModuleManeuverPlanner");
-            if (node != null && mp != null)
+            if (GetMasterMechJeb())
             {
-                if (state)
+                object node = mjCoreNode.GetValue(activeJeb);
+                object mp = GetComputerModule(activeJeb, "MechJebModuleManeuverPlanner");
+                if (node != null && mp != null)
                 {
-                    if (!ModuleEnabled(node))
+                    if (state)
                     {
-                        mjExecuteOneNode.Invoke(node, new object[] { mp });
+                        if (!ModuleEnabled(node))
+                        {
+                            mjExecuteOneNode.Invoke(node, new object[] { mp });
+                        }
                     }
-                }
-                else
-                {
-                    mjAbortNode.Invoke(node, null);
+                    else
+                    {
+                        mjAbortNode.Invoke(node, null);
+                    }
                 }
             }
         }
@@ -1219,10 +1230,9 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonNodeExecuteState()
         {
-            object mjCore = GetMasterMechJeb();
-            if (mjCore != null)
+            if (GetMasterMechJeb())
             {
-                object ap = mjCoreNode.GetValue(mjCore);
+                object ap = mjCoreNode.GetValue(activeJeb);
                 return ModuleEnabled(ap);
             }
             else
@@ -1237,9 +1247,9 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonAscentGuidance(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleAscentAutopilot");
-            object agPilot = GetComputerModule(mjCore, "MechJebModuleAscentGuidance");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
+            object agPilot = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
 
             if (ap != null && agPilot != null)
             {
@@ -1265,16 +1275,16 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonAscentGuidanceState()
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleAscentAutopilot");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
             return ModuleEnabled(ap);
         }
 
         public void ButtonDockingGuidance(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object autopilot = GetComputerModule(mjCore, "MechJebModuleDockingAutopilot");
-            object autopilotController = GetComputerModule(mjCore, "MechJebModuleDockingGuidance");
+            GetMasterMechJeb();
+            object autopilot = GetComputerModule(activeJeb, "MechJebModuleDockingAutopilot");
+            object autopilotController = GetComputerModule(activeJeb, "MechJebModuleDockingGuidance");
 
             if (autopilot != null && autopilotController != null)
             {
@@ -1296,8 +1306,8 @@ namespace JSI
 
         public bool ButtonDockingGuidanceState()
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleDockingAutopilot");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleDockingAutopilot");
             return ModuleEnabled(ap);
         }
 
@@ -1314,7 +1324,7 @@ namespace JSI
                 return;
             }
 
-            object activeJeb = GetMasterMechJeb();
+            GetMasterMechJeb();
 
             object target = mjCoreTarget.GetValue(activeJeb);
             Orbit targetOrbit = (Orbit)mjGetTargetOrbit.Invoke(target, null);
@@ -1356,7 +1366,10 @@ namespace JSI
                 return false;
             }
 
-            object activeJeb = GetMasterMechJeb();
+            if (!GetMasterMechJeb())
+            {
+                return false;
+            }
 
             object target = mjCoreTarget.GetValue(activeJeb);
             if (target == null)
@@ -1426,29 +1439,31 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonLandingGuidance(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object autopilot = GetComputerModule(mjCore, "MechJebModuleLandingAutopilot");
-            if (state != ModuleEnabled(autopilot))
+            if (GetMasterMechJeb())
             {
-                if (state)
+                object autopilot = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
+                if (state != ModuleEnabled(autopilot))
                 {
-                    object landingGuidanceAP = GetComputerModule(mjCore, "MechJebModuleLandingGuidance");
-                    if (landingGuidanceAP != null)
+                    if (state)
                     {
-                        object target = mjCoreTarget.GetValue(mjCore);
-                        if ((bool)mjGetPositionTargetExists.Invoke(target, null))
+                        object landingGuidanceAP = GetComputerModule(activeJeb, "MechJebModuleLandingGuidance");
+                        if (landingGuidanceAP != null)
                         {
-                            mjLandAtPositionTarget.Invoke(autopilot, new object[] { landingGuidanceAP });
-                        }
-                        else
-                        {
-                            mjLandUntargeted.Invoke(autopilot, new object[] { landingGuidanceAP });
+                            object target = mjCoreTarget.GetValue(activeJeb);
+                            if ((bool)mjGetPositionTargetExists.Invoke(target, null))
+                            {
+                                mjLandAtPositionTarget.Invoke(autopilot, new object[] { landingGuidanceAP });
+                            }
+                            else
+                            {
+                                mjLandUntargeted.Invoke(autopilot, new object[] { landingGuidanceAP });
+                            }
                         }
                     }
-                }
-                else
-                {
-                    mjStopLanding.Invoke(autopilot, null);
+                    else
+                    {
+                        mjStopLanding.Invoke(autopilot, null);
+                    }
                 }
             }
         }
@@ -1459,8 +1474,8 @@ namespace JSI
         /// <returns>true if on, false if not</returns>
         public bool ButtonLandingGuidanceState()
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleLandingAutopilot");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
             return ModuleEnabled(ap);
         }
 
@@ -1470,8 +1485,8 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonForceRoll(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
             if (activeSmartass != null)
             {
                 mjSmartassForceRol.SetValue(activeSmartass, state);
@@ -1485,8 +1500,8 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonForceRollState()
         {
-            object mjCore = GetMasterMechJeb();
-            object activeSmartass = GetComputerModule(mjCore, "MechJebModuleSmartASS");
+            GetMasterMechJeb();
+            object activeSmartass = GetComputerModule(activeJeb, "MechJebModuleSmartASS");
             if (activeSmartass != null)
             {
                 object forceRol = mjSmartassForceRol.GetValue(activeSmartass);
@@ -1577,9 +1592,9 @@ namespace JSI
         /// <param name="state">Enable/disable</param>
         public void ButtonEnableLandingPrediction(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object predictor = GetComputerModule(mjCore, "MechJebModuleLandingPredictions");
-            object landingGuidanceAP = GetComputerModule(mjCore, "MechJebModuleLandingGuidance");
+            GetMasterMechJeb();
+            object predictor = GetComputerModule(activeJeb, "MechJebModuleLandingPredictions");
+            object landingGuidanceAP = GetComputerModule(activeJeb, "MechJebModuleLandingGuidance");
 
             if (predictor != null && landingGuidanceAP != null)
             {
@@ -1606,8 +1621,8 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonEnableLandingPredictionState()
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleLandingPredictions");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleLandingPredictions");
             return ModuleEnabled(ap);
         }
 
@@ -1617,9 +1632,9 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonRendezvousAutopilot(bool state)
         {
-            object mjCore = GetMasterMechJeb();
-            object autopilot = GetComputerModule(mjCore, "MechJebModuleRendezvousAutopilot");
-            object autopilotController = GetComputerModule(mjCore, "MechJebModuleRendezvousAutopilotWindow");
+            GetMasterMechJeb();
+            object autopilot = GetComputerModule(activeJeb, "MechJebModuleRendezvousAutopilot");
+            object autopilotController = GetComputerModule(activeJeb, "MechJebModuleRendezvousAutopilotWindow");
 
             if (autopilot != null && autopilotController != null)
             {
@@ -1645,8 +1660,8 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonRendezvousAutopilotState()
         {
-            object mjCore = GetMasterMechJeb();
-            object ap = GetComputerModule(mjCore, "MechJebModuleRendezvousAutopilot");
+            GetMasterMechJeb();
+            object ap = GetComputerModule(activeJeb, "MechJebModuleRendezvousAutopilot");
             return ModuleEnabled(ap);
         }
 
