@@ -210,32 +210,38 @@ namespace JSI
 
             if (node.HasNode("CONTEXTREDIRECT"))
             {
-                foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("redirect"))
+                ConfigNode[] redirectnodes = node.GetNodes("CONTEXTREDIRECT");
+                for (int i = 0; i < redirectnodes.Length; ++i )
                 {
-                    string[] tokens = content.Split(',');
-                    if (tokens.Length > 2 || !IsValidPageName(tokens[0].Trim()) || !IsValidPageName(tokens[1].Trim()))
+                    string[] redirects = redirectnodes[i].GetValues("redirect");
+                    for(int j=0; j<redirects.Length; ++j)
                     {
-                        JUtil.LogMessage(ourMonitor, "Warning, invalid page redirect statement on page #{0}.", pageNumber);
-                        continue;
+                        string[] tokens = redirects[j].Split(',');
+                        if (tokens.Length > 2 || !IsValidPageName(tokens[0].Trim()) || !IsValidPageName(tokens[1].Trim()))
+                        {
+                            JUtil.LogMessage(ourMonitor, "Warning, invalid page redirect statement on page #{0}.", pageNumber);
+                            continue;
+                        }
+                        redirectPages[tokens[0].Trim()] = tokens[1].Trim();
                     }
-                    redirectPages[tokens[0].Trim()] = tokens[1].Trim();
-                }
-                const string valueError = "Warning, invalid global button redirect statement on page #{0}: {1}";
-                foreach (string content in node.GetNode("CONTEXTREDIRECT").GetValues("renumber"))
-                {
-                    string[] tokens = content.Split(',');
-                    if (tokens.Length > 2)
+
+                    string[] renumbers = redirectnodes[i].GetValues("renumber");
+                    for (int j = 0; j < renumbers.Length; ++j)
                     {
-                        JUtil.LogMessage(ourMonitor, valueError, pageNumber, "requires two arguments.");
-                        continue;
+                        string[] tokens = renumbers[j].Split(',');
+                        if (tokens.Length > 2)
+                        {
+                            JUtil.LogMessage(ourMonitor, "Warning, invalid global button redirect statement on page #{0}: requires two arguments.", pageNumber);
+                            continue;
+                        }
+                        int from, to;
+                        if (!int.TryParse(tokens[0], out from) || !int.TryParse(tokens[1], out to))
+                        {
+                            JUtil.LogMessage(ourMonitor, "Warning, invalid global button redirect statement on page #{0}: something isn't a number", pageNumber);
+                            continue;
+                        }
+                        redirectGlobals[from] = to;
                     }
-                    int from, to;
-                    if (!int.TryParse(tokens[0], out from) || !int.TryParse(tokens[1], out to))
-                    {
-                        JUtil.LogMessage(ourMonitor, valueError, pageNumber, "something isn't a number.");
-                        continue;
-                    }
-                    redirectGlobals[from] = to;
                 }
                 JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects and {3} global button redirects.", idNum, redirectPages.Count, name, redirectGlobals.Count);
             }
