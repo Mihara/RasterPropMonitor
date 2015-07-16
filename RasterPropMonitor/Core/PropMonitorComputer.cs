@@ -35,8 +35,8 @@ namespace JSI
         private int vesselNumParts;
         private int updateCountdown;
         private int dataUpdateCountdown;
-        private int refreshTextRate = int.MaxValue;
-        private int refreshDataRate = int.MaxValue;
+        private int refreshTextRate = 60;
+        private int refreshDataRate = 60;
 
         // Craft center
         public Vector3d CoM
@@ -130,16 +130,11 @@ namespace JSI
         }
 
         private Vector3d velocityRelativeTarget;
-        private double speedVertical
-        {
-            get
-            {
-                return vessel.verticalSpeed;
-            }
-        }
+        private double speedVertical;
         private double speedVerticalRounded;
 
-        private double horzVelocity;
+        private double speedHorizontal;
+
         private ITargetable target;
         private ModuleDockingNode targetDockingNode;
         private Vessel targetVessel;
@@ -252,6 +247,7 @@ namespace JSI
         private string[] storedStringsArray;
 
         private Dictionary<string, CustomVariable> customVariables = new Dictionary<string, CustomVariable>();
+        //static private Dictionary<string, MappedVariable> mappedVariables = null;
         private Dictionary<string, MappedVariable> mappedVariables = new Dictionary<string, MappedVariable>();
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
@@ -395,26 +391,34 @@ namespace JSI
                 }
 
                 // And parse known mapped variables
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
+                //if (mappedVariables == null)
                 {
-                    string varName = node.GetValue("mappedVariable");
-
-                    try
+                    //mappedVariables = new Dictionary<string, MappedVariable>();
+                    foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
                     {
-                        MappedVariable mappedVar = new MappedVariable(node);
+                        string varName = node.GetValue("mappedVariable");
 
-                        if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                        try
                         {
-                            string completeVarName = "MAPPED_" + varName;
-                            mappedVariables.Add(completeVarName, mappedVar);
-                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                            MappedVariable mappedVar = new MappedVariable(node);
+
+                            if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                            {
+                                string completeVarName = "MAPPED_" + varName;
+                                mappedVariables.Add(completeVarName, mappedVar);
+                                JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                            }
+                        }
+                        catch
+                        {
+
                         }
                     }
-                    catch
-                    {
-
-                    }
                 }
+                /*else
+                {
+                    JUtil.LogMessage(this, "I already know about {0} mapped variables", mappedVariables.Count);
+                }*/
 
                 // Make sure we have the description strings parsed.
                 string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
@@ -557,7 +561,7 @@ namespace JSI
             }
             else if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
-                // We clear the cache every frame.
+                // We clear the cache every update.
                 resultCache.Clear();
 
                 // Notify our installed "modules" that they've been invalidated.
@@ -647,7 +651,7 @@ namespace JSI
             }
 
             double effectiveDecel = 0.5 * (-2.0 * g * sine + Math.Sqrt(decelTerm));
-            double decelTime = horzVelocity / effectiveDecel;
+            double decelTime = speedHorizontal / effectiveDecel;
 
             Vector3d estimatedLandingSite = CoM + 0.5 * decelTime * vessel.srf_velocity;
             double terrainRadius = vessel.mainBody.Radius + vessel.mainBody.TerrainAltitude(estimatedLandingSite);
@@ -699,6 +703,7 @@ namespace JSI
                 surfaceRight = Vector3d.Cross(surfaceForward, up);
             }
 
+            speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
             target = FlightGlobals.fetch.VesselTarget;
             if (vessel.patchedConicSolver != null)
@@ -719,7 +724,9 @@ namespace JSI
                 lastTimePerSecond = Time;
             }
 
-            horzVelocity = (VelocityVesselSurface - (speedVertical * up)).magnitude;
+            speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
+            //JUtil.LogMessage(this, "speedHorizontal = {0}, horizSpeed = {1}; vessel.srfSpeed = {2}, vessel.srf_velocity.magnitude = {3}", speedHorizontal, Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - vessel.verticalSpeed * vessel.verticalSpeed), vessel.srfSpeed, vessel.srf_velocity.magnitude);
+            //  double horizSpeed = Math.Sqrt(ves.srfSpeed * ves.srfSpeed - ves.verticalSpeed * ves.verticalSpeed);
 
             if (target != null)
             {
@@ -788,12 +795,12 @@ namespace JSI
                 double accelUp = Vector3d.Dot(vessel.acceleration, up);
 
                 double altitude = altitudeTrue;
-                if (vessel.mainBody.ocean && AltitudeASL > 0.0)
+                if (vessel.mainBody.ocean && altitudeASL > 0.0)
                 {
                     // AltitudeTrue shows distance above the floor of the ocean,
                     // so use ASL if it's closer in this case, and we're not
                     // already below SL.
-                    altitude = Math.Min(AltitudeASL, altitudeTrue);
+                    altitude = Math.Min(altitudeASL, altitudeTrue);
                 }
 
                 if (accelUp < 0.0 || speedVertical >= 0.0 || Planetarium.TimeScale > 1.0)
@@ -1001,34 +1008,31 @@ namespace JSI
         // Another piece from MechJeb.
         private void FetchAltitudes()
         {
-            /*
-Thanks. I already spent a couple of hours on this and I m tired of it.
-
- Currently I use this the get the terrain ALT at a specific lat / lon : 
-
-
-Code:
-mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.latitude, vessel.longitude)) - mainBody.Radius
-             * On that save I get an alt of 2620.4 for the ship landed on Pol. vessel.terrainAltitude gives 1920.4
-
- I know that vessel.terrainAltitude use some raycast to get the alt but I don't get why I can't get the right altitude with the PQS when I am testing the exact point I am standing on. After all that terrain is generated from the PQS...              */
-            altitudeTrue = AltitudeASL - vessel.terrainAltitude;
-            // MOARdV TODO: vessel.heightFromSurface, vessel.heightFromTerrain?
-
+            altitudeTrue = altitudeASL - vessel.terrainAltitude;
+            // MOARdV notes - on a test ship (Mk1-2 pod on a FASA Gemini-based launch stack):
+            // vessel.heightFromSurface appears to be -1 at all times.
+            // vessel.heightFromTerrain, sometime around 12.5km ASL, goes to -1; otherwise, it's about 8m higher than altitudeTrue reports.
+            //  which means ASL isn't computed from CoM in vessel?
+            // vessel.altitude reports ~10.7m higher than altitudeASL (CoM) - so it may be that vessel altitude is based on the root part.
+            // sfc.distance in the raycast below is likewise 10.7m below vessel.heightFromTerrain, although heightFromTerrain goes
+            //  to -1 before the raycast starts failing.
+            // vessel.pqsAltitude reports distance to the surface (effectively, altitudeTrue).
             RaycastHit sfc;
-            if (Physics.Raycast(CoM, -up, out sfc, (float)AltitudeASL + 10000.0F, 1 << 15))
+            if (Physics.Raycast(CoM, -up, out sfc, (float)altitudeASL + 10000.0F, 1 << 15))
             {
                 slopeAngle = Vector3.Angle(up, sfc.normal);
+                //JUtil.LogMessage(this, "sfc.distance = {0}, vessel.heightFromTerrain = {1}", sfc.distance, vessel.heightFromTerrain);
             }
             else
             {
                 slopeAngle = -1.0f;
             }
+            //JUtil.LogMessage(this, "vessel.altitude = {0}, vessel.pqsAltitude = {2}, altitudeASL = {1}", vessel.altitude, altitudeASL, vessel.pqsAltitude);
 
-            altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(AltitudeASL, altitudeTrue) : altitudeTrue;
+            altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {
-                double lowestPoint = AltitudeASL;
+                double lowestPoint = altitudeASL;
                 foreach (Part p in vessel.parts)
                 {
                     if (p.collider != null)
@@ -1038,7 +1042,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                         lowestPoint = Math.Min(lowestPoint, partBottomAlt);
                     }
                 }
-                lowestPoint -= AltitudeASL;
+                lowestPoint -= altitudeASL;
                 altitudeBottom += lowestPoint;
             }
             altitudeBottom = Math.Max(0.0, altitudeBottom);
@@ -1459,7 +1463,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                 case "TERMINALVELOCITY":
                     return TerminalVelocity();
                 case "SURFSPEED":
-                    return VelocityVesselSurface.magnitude;
+                    return vessel.srfSpeed;
                 case "SURFSPEEDMACH":
                     // Mach number wiggles around 1e-7 when sitting in launch
                     // clamps before launch, so pull it down to zero if it's close.
@@ -1469,16 +1473,16 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                 case "TRGTSPEED":
                     return velocityRelativeTarget.magnitude;
                 case "HORZVELOCITY":
-                    return horzVelocity;
+                    return speedHorizontal;
                 case "HORZVELOCITYFORWARD":
                     // Negate it, since this is actually movement on the Z axis,
                     // and we want to treat it as a 2D projection on the surface
                     // such that moving "forward" has a positive value.
-                    return -Vector3d.Dot(VelocityVesselSurface, surfaceForward);
+                    return -Vector3d.Dot(vessel.srf_velocity, surfaceForward);
                 case "HORZVELOCITYRIGHT":
-                    return Vector3d.Dot(VelocityVesselSurface, surfaceRight);
+                    return Vector3d.Dot(vessel.srf_velocity, surfaceRight);
                 case "EASPEED":
-                    return vessel.srf_velocity.magnitude * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
+                    return vessel.srfSpeed * Math.Sqrt(vessel.atmDensity / standardAtmosphere);
                 case "APPROACHSPEED":
                     return approachSpeed;
                 case "SELECTEDSPEED":
@@ -1487,7 +1491,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                         case FlightUIController.SpeedDisplayModes.Orbit:
                             return VelocityVesselOrbit.magnitude;
                         case FlightUIController.SpeedDisplayModes.Surface:
-                            return VelocityVesselSurface.magnitude;
+                            return vessel.srfSpeed;
                         case FlightUIController.SpeedDisplayModes.Target:
                             return velocityRelativeTarget.magnitude;
                     }
@@ -1549,13 +1553,13 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                         // It should be impossible for wet mass to be zero.
                         return -1.0;
                     }
-                    return (horzVelocity * horzVelocity) / (2.0 * totalMaximumThrust / totalShipWetMass);
+                    return (speedHorizontal * speedHorizontal) / (2.0 * totalMaximumThrust / totalShipWetMass);
 
                 // Altitudes
                 case "ALTITUDE":
-                    return AltitudeASL;
+                    return altitudeASL;
                 case "ALTITUDELOG10":
-                    return JUtil.PseudoLog10(AltitudeASL);
+                    return JUtil.PseudoLog10(altitudeASL);
                 case "RADARALT":
                     return altitudeTrue;
                 case "RADARALTLOG10":
@@ -1563,13 +1567,13 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                 case "RADARALTOCEAN":
                     if (vessel.mainBody.ocean)
                     {
-                        return Math.Min(AltitudeASL, altitudeTrue);
+                        return Math.Min(altitudeASL, altitudeTrue);
                     }
                     return altitudeTrue;
                 case "RADARALTOCEANLOG10":
                     if (vessel.mainBody.ocean)
                     {
-                        return JUtil.PseudoLog10(Math.Min(AltitudeASL, altitudeTrue));
+                        return JUtil.PseudoLog10(Math.Min(altitudeASL, altitudeTrue));
                     }
                     return JUtil.PseudoLog10(altitudeTrue);
                 case "ALTITUDEBOTTOM":
@@ -1583,7 +1587,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                 case "TERRAINHEIGHTLOG10":
                     return JUtil.PseudoLog10(vessel.terrainAltitude);
                 case "DISTTOATMOSPHERETOP":
-                    return vessel.orbit.referenceBody.atmosphereDepth - AltitudeASL;
+                    return vessel.orbit.referenceBody.atmosphereDepth - altitudeASL;
 
                 // Atmospheric values
                 case "ATMPRESSURE":
@@ -2328,7 +2332,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                     // Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
                     return (bestPossibleSpeedAtImpact < -10d).GetHashCode();
                 case "TUMBLEALARM":
-                    return (speedVerticalRounded < 0 && altitudeBottom < 100 && horzVelocity > 5).GetHashCode();
+                    return (speedVerticalRounded < 0 && altitudeBottom < 100 && speedHorizontal > 5).GetHashCode();
                 case "SLOPEALARM":
                     return (speedVerticalRounded < 0 && altitudeBottom < 100 && slopeAngle > 15).GetHashCode();
                 case "DOCKINGANGLEALARM":
@@ -2352,7 +2356,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
                 case "ENGINEFLAMEOUTALARM":
                     return anyEnginesFlameout.GetHashCode();
                 case "IMPACTALARM":
-                    return (VelocityVesselSurface.magnitude > part.crashTolerance).GetHashCode();
+                    return (vessel.srfSpeed > part.crashTolerance).GetHashCode();
 
 
                 // SCIENCE!!
@@ -2563,7 +2567,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
         private double FallbackEvaluateTerminalVelocity()
         {
             // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
-            if (AltitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
+            if (altitudeASL > vessel.mainBody.RealMaxAtmosphereAltitude())
             {
                 return float.PositiveInfinity;
             }
@@ -2616,7 +2620,7 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
             Vector3d force = pureDragV + pureLiftV;
             double drag = Vector3d.Dot(force, -vessel.srf_velocity.normalized);
 
-            return Math.Sqrt(localGeeDirect / drag) * vessel.srf_velocity.magnitude;
+            return Math.Sqrt(localGeeDirect / drag) * vessel.srfSpeed;
         }
         #endregion
 
@@ -2863,8 +2867,6 @@ mainBody.pqsController.GetSurfaceHeight(mainBody.GetRelSurfaceNVector(vessel.lat
             }
         }
 
-
     }
 
 }
-
