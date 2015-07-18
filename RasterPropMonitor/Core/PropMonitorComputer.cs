@@ -34,8 +34,6 @@ namespace JSI
         private readonly string editorNewline = ((char)0x0a).ToString();
         private string lastVesselDescription = string.Empty;
 
-        // Public interface.
-        public bool updateForced;
         // Data common for various variable calculations
         private int vesselNumParts;
         private int dataUpdateCountdown;
@@ -531,12 +529,11 @@ namespace JSI
 
         private bool UpdateCheck()
         {
-            if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced)
+            if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0)
             {
                 dataUpdateCountdown = refreshDataRate;
                 vesselNumParts = vessel.Parts.Count;
                 FetchPerPartData();
-                updateForced = false;
                 return true;
             }
             dataUpdateCountdown--;
