@@ -285,8 +285,11 @@ namespace JSI
                     thatCamera.cullingMask &= ~(1 << 16 | 1 << 20);
                 }
             }
-            else
-                Debug.Log("Could not find camera \"" + cameraName + "\" to change it's culling mask, check your code.");
+            else if (flag != cameraMaskShowsIVA)
+            {
+                LogErrorMessage(null, "Could not find camera \"" + cameraName + "\" to change its culling mask, check your code.");
+                cameraMaskShowsIVA = false;
+            }
 
         }
 
