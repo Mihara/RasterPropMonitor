@@ -57,6 +57,8 @@ namespace JSI
         public bool initialState = false;
         [KSPField]
         public int switchGroupIdentifier = -1;
+        [KSPField]
+        public int refreshRate = 60;
         // Neater.
         private static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
@@ -88,7 +90,6 @@ namespace JSI
         private string persistentVarName;
         private Light[] lightObjects;
         private FXGroup audioOutput;
-        private const int lightCheckRate = 60;
         private int lightCheckCountdown;
         private RasterPropMonitorComputer comp;
         private bool startupComplete;
@@ -211,7 +212,7 @@ namespace JSI
                         case "plugin":
                             persistentVarName = string.Empty;
                             comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                            comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+                            comp.UpdateRefreshRates(refreshRate, refreshRate);
 
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                             {
@@ -268,7 +269,7 @@ namespace JSI
                     if (comp == null)
                     {
                         comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                        comp.UpdateRefreshRates(lightCheckRate, lightCheckRate);
+                        comp.UpdateRefreshRates(refreshRate, refreshRate);
                     }
 
                     if (!string.IsNullOrEmpty(masterVariableName))
@@ -569,7 +570,7 @@ namespace JSI
                 lightCheckCountdown--;
                 if (lightCheckCountdown <= 0)
                 {
-                    lightCheckCountdown = lightCheckRate;
+                    lightCheckCountdown = refreshRate;
                     forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1).MassageToDouble() < 0.01d;
                 }
             }
