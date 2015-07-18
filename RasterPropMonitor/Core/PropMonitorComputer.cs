@@ -5,6 +5,9 @@ using UnityEngine;
 using System.Reflection;
 using System.Diagnostics;
 
+// MOARdV TODO:
+// Things to look at ?
+// FlightUIController.(LinearGauge)atmos
 namespace JSI
 {
     public class RasterPropMonitorComputer : PartModule
@@ -19,6 +22,7 @@ namespace JSI
         // Persistence for internal modules.
         [KSPField(isPersistant = true)]
         public string data = "";
+
         // Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
         // because nothing appears to work as documented -- IF it's documented.
         // This one is sure to work and isn't THAT much of a performance drain, really.
@@ -29,13 +33,12 @@ namespace JSI
         private string vesselDescriptionForDisplay = string.Empty;
         private readonly string editorNewline = ((char)0x0a).ToString();
         private string lastVesselDescription = string.Empty;
+
         // Public interface.
         public bool updateForced;
         // Data common for various variable calculations
         private int vesselNumParts;
-        private int updateCountdown;
         private int dataUpdateCountdown;
-        private int refreshTextRate = 60;
         private int refreshDataRate = 60;
 
         // Craft center
@@ -295,10 +298,9 @@ namespace JSI
         }
 
         // Set refresh rates.
-        public void UpdateRefreshRates(int textRate, int dataRate)
+        public void UpdateDataRefreshRate(int newDataRate)
         {
-            refreshTextRate = Math.Min(textRate, refreshTextRate);
-            refreshDataRate = Math.Min(dataRate, refreshDataRate);
+            refreshDataRate = Math.Min(newDataRate, refreshDataRate);
         }
 
         // Page handler interface for vessel description page.
@@ -529,20 +531,15 @@ namespace JSI
 
         private bool UpdateCheck()
         {
-            if (vesselNumParts != vessel.Parts.Count || updateCountdown <= 0 || dataUpdateCountdown <= 0 || updateForced)
+            if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced)
             {
-                updateCountdown = refreshTextRate;
-                if (vesselNumParts != vessel.Parts.Count || dataUpdateCountdown <= 0 || updateForced)
-                {
-                    dataUpdateCountdown = refreshDataRate;
-                    vesselNumParts = vessel.Parts.Count;
-                    FetchPerPartData();
-                }
+                dataUpdateCountdown = refreshDataRate;
+                vesselNumParts = vessel.Parts.Count;
+                FetchPerPartData();
                 updateForced = false;
                 return true;
             }
             dataUpdateCountdown--;
-            updateCountdown--;
             return false;
         }
 

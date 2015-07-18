@@ -21,7 +21,7 @@ namespace JSI
 		{
 			if (needsElectricCharge) {
 				comp = RasterPropMonitorComputer.Instantiate(internalProp);
-				comp.UpdateRefreshRates(soundCheckRate, soundCheckRate);
+				comp.UpdateDataRefreshRate(soundCheckRate);
 				electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1);
 			}
 			audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);

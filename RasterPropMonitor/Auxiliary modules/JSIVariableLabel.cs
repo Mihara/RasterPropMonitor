@@ -34,7 +34,7 @@ namespace JSI
             sourceString = labelText.UnMangleConfigText();
             if (!oneshot)
             {
-                comp.UpdateRefreshRates(int.MaxValue, refreshRate);
+                comp.UpdateDataRefreshRate(refreshRate);
             }
         }
 

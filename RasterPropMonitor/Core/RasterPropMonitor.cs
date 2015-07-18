@@ -123,7 +123,7 @@ namespace JSI
             {
                 // Install the calculator module.
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
+                comp.UpdateDataRefreshRate(refreshDataRate);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();

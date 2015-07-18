@@ -212,7 +212,7 @@ namespace JSI
                         case "plugin":
                             persistentVarName = string.Empty;
                             comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                            comp.UpdateRefreshRates(refreshRate, refreshRate);
+                            comp.UpdateDataRefreshRate(refreshRate);
 
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                             {
@@ -269,7 +269,7 @@ namespace JSI
                     if (comp == null)
                     {
                         comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                        comp.UpdateRefreshRates(refreshRate, refreshRate);
+                        comp.UpdateDataRefreshRate(refreshRate);
                     }
 
                     if (!string.IsNullOrEmpty(masterVariableName))
