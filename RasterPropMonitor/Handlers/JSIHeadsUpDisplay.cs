@@ -407,9 +407,6 @@ namespace JSI
                 // use the RPM comp's centralized database so we're not 
                 // repeatedly doing computation.
                 comp = RasterPropMonitorComputer.Instantiate(this.part);
-                // We don't really care about the text refresh rate, but the
-                // HUD does care about data refresh rates.
-                comp.UpdateRefreshRates(10000, 1);
             }
             catch (Exception e)
             {
