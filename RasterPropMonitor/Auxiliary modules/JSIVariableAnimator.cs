@@ -72,6 +72,9 @@ namespace JSI
                 {
                     alwaysActive |= thatSet.alwaysActive;
                 }
+                RasterPropMonitorComputer comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                // Don't care on textRate, do care on dataRate
+                comp.UpdateRefreshRates(int.MaxValue, refreshRate);
                 startupComplete = true;
             }
             catch
