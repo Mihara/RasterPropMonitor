@@ -33,15 +33,18 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonActivateReservesState()
         {
-            foreach (Part thatPart in vessel.parts)
+            if (vessel != null)
             {
-                foreach (PartResource resource in thatPart.Resources)
+                foreach (Part thatPart in vessel.parts)
                 {
-                    if (!resource.flowState)
+                    foreach (PartResource resource in thatPart.Resources)
                     {
-                        // Early return: At least one resource is flagged as a
-                        // reserve.
-                        return true;
+                        if (!resource.flowState)
+                        {
+                            // Early return: At least one resource is flagged as a
+                            // reserve.
+                            return true;
+                        }
                     }
                 }
             }
@@ -71,6 +74,11 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonClearNodesState()
         {
+            if (vessel == null)
+            {
+                return false;
+            }
+
             if (vessel.patchedConicSolver == null)
             {
                 // patchedConicSolver can be null in early career mode.
@@ -148,21 +156,24 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonEnableEnginesState()
         {
-            foreach (Part thatPart in vessel.parts)
+            if (vessel != null)
             {
-                foreach (PartModule pm in thatPart.Modules)
+                foreach (Part thatPart in vessel.parts)
                 {
-                    var engine = pm as ModuleEngines;
-                    if (engine != null && engine.allowShutdown && engine.getIgnitionState)
+                    foreach (PartModule pm in thatPart.Modules)
                     {
-                        // early out: at least one engine is enabled.
-                        return true;
-                    }
-                    var engineFX = pm as ModuleEnginesFX;
-                    if (engineFX != null && engineFX.allowShutdown && engineFX.getIgnitionState)
-                    {
-                        // early out: at least one engine is enabled.
-                        return true;
+                        var engine = pm as ModuleEngines;
+                        if (engine != null && engine.allowShutdown && engine.getIgnitionState)
+                        {
+                            // early out: at least one engine is enabled.
+                            return true;
+                        }
+                        var engineFX = pm as ModuleEnginesFX;
+                        if (engineFX != null && engineFX.allowShutdown && engineFX.getIgnitionState)
+                        {
+                            // early out: at least one engine is enabled.
+                            return true;
+                        }
                     }
                 }
             }
@@ -203,7 +214,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Stability Assist</returns>
         public bool ButtonSASModeStabilityAssistState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist);
         }
 
         /// <summary>
@@ -226,7 +237,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Prograde</returns>
         public bool ButtonSASModeProgradeState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Prograde);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Prograde);
         }
 
         /// <summary>
@@ -249,7 +260,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Retrograde</returns>
         public bool ButtonSASModeRetrogradeState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Retrograde);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Retrograde);
         }
 
         /// <summary>
@@ -272,7 +283,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Normal</returns>
         public bool ButtonSASModeNormalState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Normal);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Normal);
         }
 
         /// <summary>
@@ -295,7 +306,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Antinormal</returns>
         public bool ButtonSASModeAntiNormalState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Antinormal);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Antinormal);
         }
 
         /// <summary>
@@ -318,7 +329,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for RadialIn</returns>
         public bool ButtonSASModeRadialInState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialIn);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialIn);
         }
 
         /// <summary>
@@ -341,7 +352,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for RadialOut</returns>
         public bool ButtonSASModeRadialOutState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialOut);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.RadialOut);
         }
 
         /// <summary>
@@ -364,7 +375,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Target</returns>
         public bool ButtonSASModeTargetState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Target);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Target);
         }
 
         /// <summary>
@@ -387,7 +398,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for AntiTarget</returns>
         public bool ButtonSASModeAntiTargetState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.AntiTarget);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.AntiTarget);
         }
 
         /// <summary>
@@ -410,7 +421,7 @@ namespace JSI
         /// <returns>true if SAS is currently set for Maneuver</returns>
         public bool ButtonSASModeManeuverState()
         {
-            return (vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver);
+            return ((vessel != null) && vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver);
         }
 
         /**
@@ -482,7 +493,7 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonCutThrottleState()
         {
-            return (vessel.ctrlState.mainThrottle < 0.01f);
+            return ((vessel != null) && vessel.ctrlState.mainThrottle < 0.01f);
         }
 
         /// <summary>
@@ -511,7 +522,7 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonFullThrottleState()
         {
-            return (vessel.ctrlState.mainThrottle > 0.99f);
+            return ((vessel != null) && vessel.ctrlState.mainThrottle > 0.99f);
         }
     }
 }

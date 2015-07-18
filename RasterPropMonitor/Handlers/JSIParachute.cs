@@ -168,6 +168,11 @@ namespace JSI
 
             anyDeployed = false;
 
+            if (vessel == null)
+            {
+                return; // early
+            }
+
             if (rcFound)
             {
                 foreach (PartModule module in FindRealChuteIn(vessel))
