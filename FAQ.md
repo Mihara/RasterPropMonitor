@@ -1,5 +1,9 @@
 # Frequently Asked Questions about RasterPropMonitor
 
+### Can you make RPM work outside the command pod / on pop-up screens?
+
+No.  RasterPropMonitor was designed to provide an interactive IVA experience.  It can not be used to run "monitors" placed outside the craft, and it can not be used to draw on windows/overlays either.  There are no plans to change that.  The license for RPM is very open, so if someone wants to use RPM as a basis to make something similar for outside-of-IVA use, they're more than welcome to try.
+
 ### Where is the IVA for X?
 
 RasterPropMonitor is intended to be a toolkit for IVA makers.  It includes updated IVAs for most Squad pods, as well as a handful of other pods, but most of those IVAs were included to demonstrate some of the RPM features.  If your favorite / preferred / currently-being-used IVA does not have an RPM-enhanced version, it's probably because no one has offered to share one that can be included in RPM.  The developers of RPM have to prioritize their time, and maintaining and expanding the features of the plugin will almost always take priority over creating new IVAs.

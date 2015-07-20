@@ -21,9 +21,14 @@ namespace JSI
             moduleInvalidated = false;
             gimbalLockState = false;
 
+            if (vessel == null)
+            {
+                return; // early
+            }
+
             foreach (ModuleGimbal gimbal in FindActiveStageGimbals(vessel))
             {
-                if(gimbal.gimbalLock)
+                if (gimbal.gimbalLock)
                 {
                     gimbalLockState = true;
                     break;
@@ -50,7 +55,7 @@ namespace JSI
         /// <returns></returns>
         public bool GimbalLockState()
         {
-            if(moduleInvalidated)
+            if (moduleInvalidated)
             {
                 UpdateGimbalLockState();
             }

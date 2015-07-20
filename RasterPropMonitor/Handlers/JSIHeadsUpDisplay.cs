@@ -101,7 +101,12 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(horizonTexture))
             {
-                Material ladderMaterial = new Material(displayShader);
+                Shader ladderShader = JUtil.LoadInternalShader("RPM-CroppedDisplayShader");
+                Material ladderMaterial = new Material(ladderShader);
+
+                // _CropBound is in device normalized coordinates (-1 - +1)
+                Vector4 cropBound = new Vector4(-horizonSize.x / screenWidth, -horizonSize.y / screenHeight, horizonSize.x / screenWidth, horizonSize.y / screenHeight);
+                ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
                 if (ladderMaterial.mainTexture != null)
@@ -407,9 +412,6 @@ namespace JSI
                 // use the RPM comp's centralized database so we're not 
                 // repeatedly doing computation.
                 comp = RasterPropMonitorComputer.Instantiate(this.part);
-                // We don't really care about the text refresh rate, but the
-                // HUD does care about data refresh rates.
-                comp.UpdateRefreshRates(10000, 1);
             }
             catch (Exception e)
             {

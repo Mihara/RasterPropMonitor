@@ -123,7 +123,7 @@ namespace JSI
             {
                 // Install the calculator module.
                 comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                comp.UpdateRefreshRates(refreshTextRate, refreshDataRate);
+                comp.UpdateDataRefreshRate(refreshDataRate);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -316,7 +316,10 @@ namespace JSI
         public void PageButtonClick(MonitorPage triggeredPage)
         {
             if (needsElectricCharge && electricChargeReserve < 0.01d)
+            {
                 return;
+            }
+
             // Apply page redirect like this:
             triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
             if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker))
@@ -326,7 +329,6 @@ namespace JSI
                 activePage.Active(true);
                 comp.Persistence.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
-                comp.updateForced = true;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
             }
