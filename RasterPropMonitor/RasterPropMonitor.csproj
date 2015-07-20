@@ -176,6 +176,8 @@
   <ItemGroup />
   <ItemGroup>
     <EmbeddedResource Include="Shaders\RPM-DisplayShader-compiled.shader" />
+    <EmbeddedResource Include="Shaders\RPM-CroppedDisplayShader-compiled.shader" />
+    <None Include="Shaders\RPM-CroppedDisplayShader.shader" />
     <None Include="Shaders\RPM-DisplayShader.shader" />
     <EmbeddedResource Include="Shaders\RPM-FontShader-compiled.shader" />
     <None Include="Shaders\RPM-FontShader.shader" />

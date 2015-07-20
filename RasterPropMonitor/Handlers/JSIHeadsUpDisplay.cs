@@ -101,7 +101,12 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(horizonTexture))
             {
-                Material ladderMaterial = new Material(displayShader);
+                Shader ladderShader = JUtil.LoadInternalShader("RPM-CroppedDisplayShader");
+                Material ladderMaterial = new Material(ladderShader);
+
+                // _CropBound is in device normalized coordinates (-1 - +1)
+                Vector4 cropBound = new Vector4(-horizonSize.x / screenWidth, -horizonSize.y / screenHeight, horizonSize.x / screenWidth, horizonSize.y / screenHeight);
+                ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
                 if (ladderMaterial.mainTexture != null)
