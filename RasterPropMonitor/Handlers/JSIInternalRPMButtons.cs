@@ -181,6 +181,33 @@ namespace JSI
         }
 
         /// <summary>
+        /// Toggle Precision Input mode
+        /// </summary>
+        /// <param name="state"></param>
+        public void ButtonPrecisionMode(bool state)
+        {
+            if(vessel != null)
+            {
+                FlightInputHandler.fetch.precisionMode = state;
+
+                // Update the UI.
+                foreach (UnityEngine.Renderer renderer in FlightInputHandler.fetch.inputGaugeRenderers)
+                {
+                    renderer.material.color = (state) ? XKCDColors.BrightCyan : XKCDColors.Orange;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns 'true' if the inputs are in precision mode.
+        /// </summary>
+        /// <returns></returns>
+        public bool ButtonPrecisionModeState()
+        {
+            return FlightInputHandler.fetch.precisionMode;
+        }
+
+        /// <summary>
         /// Force the SAS mode buttons on the flight view to update when we
         /// update modes under the hood.  Code from
         /// http://forum.kerbalspaceprogram.com/threads/105074-Updating-the-auto-pilot-UI?p=1633958&viewfull=1#post1633958
