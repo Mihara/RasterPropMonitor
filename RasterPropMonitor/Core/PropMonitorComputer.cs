@@ -1760,6 +1760,7 @@ namespace JSI
                     if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
                         return vessel.orbit.TimeOfDescendingNodeEquatorial(Time) - Time;
                     return double.NaN;
+
                 // SOI changes in orbits.
                 case "ENCOUNTEREXISTS":
                     if (orbitSensibility)
@@ -1803,6 +1804,7 @@ namespace JSI
                     return Time + 365 * 24 * 60 * 60;
                 case "METSECS":
                     return vessel.missionTime;
+
                 // Names!
                 case "NAME":
                     return vessel.vesselName;
@@ -2213,6 +2215,8 @@ namespace JSI
                     return vessel.ctrlState.Y;
                 case "STICKRCSZ":
                     return vessel.ctrlState.Z;
+                case "PRECISIONCONTROL":
+                    return (FlightInputHandler.fetch.precisionMode).GetHashCode();
 
                 // Staging and other stuff
                 case "STAGE":
