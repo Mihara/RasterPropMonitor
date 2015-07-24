@@ -211,9 +211,9 @@ namespace JSI
 
             if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Orbit)
             {
-                Vector3d velocityVesselOrbitUnit = comp.VelocityVesselOrbit.normalized;
-                Vector3d radialPlus = Vector3d.Exclude(velocityVesselOrbitUnit, comp.Up);
-                Vector3d normalPlus = -Vector3d.Cross(radialPlus, velocityVesselOrbitUnit);
+                Vector3 velocityVesselOrbitUnit = comp.Prograde;
+                Vector3 radialPlus = comp.RadialOut;
+                Vector3 normalPlus = comp.NormalPlus;
 
                 MoveMarker(markerPrograde, velocityVesselOrbitUnit, gymbal);
                 MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, gymbal);
@@ -228,13 +228,13 @@ namespace JSI
             }
             else if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Surface)
             {
-                Vector3d velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
                 MoveMarker(markerPrograde, velocityVesselSurfaceUnit, gymbal);
                 MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, gymbal);
             }
             else // FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Target
             {
-                Vector3d targetDirection = FlightGlobals.ship_tgtVelocity.normalized;
+                Vector3 targetDirection = FlightGlobals.ship_tgtVelocity.normalized;
 
                 MoveMarker(markerPrograde, targetDirection, gymbal);
                 MoveMarker(markerRetrograde, -targetDirection, gymbal);
@@ -242,7 +242,7 @@ namespace JSI
 
             if (vessel.patchedConicSolver != null && vessel.patchedConicSolver.maneuverNodes.Count > 0)
             {
-                Vector3d burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit).normalized;
+                Vector3 burnVector = vessel.patchedConicSolver.maneuverNodes[0].GetBurnVector(vessel.orbit).normalized;
                 MoveMarker(markerManeuver, burnVector, gymbal);
                 MoveMarker(markerManeuverMinus, -burnVector, gymbal);
                 JUtil.ShowHide(true, markerManeuver, markerManeuverMinus);

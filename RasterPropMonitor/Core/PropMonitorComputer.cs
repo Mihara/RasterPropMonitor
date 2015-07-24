@@ -49,26 +49,60 @@ namespace JSI
         }
 
         // Craft-relative basis vectors
-        private Vector3d forward;
-        public Vector3d Forward
+        private Vector3 forward;
+        public Vector3 Forward
         {
             get
             {
                 return forward;
             }
         }
-        private Vector3d right;
-        public Vector3d Right
+        private Vector3 right;
+        public Vector3 Right
         {
             get
             {
                 return right;
             }
         }
+        private Vector3 top;
+        public Vector3 Top
+        {
+            get
+            {
+                return top;
+            }
+        }
+
+        // Orbit-relative vectors
+        private Vector3 prograde;
+        public Vector3 Prograde
+        {
+            get
+            {
+                return prograde;
+            }
+        }
+        private Vector3 radialOut;
+        public Vector3 RadialOut
+        {
+            get
+            {
+                return radialOut;
+            }
+        }
+        private Vector3 normalPlus;
+        public Vector3 NormalPlus
+        {
+            get
+            {
+                return normalPlus;
+            }
+        }
 
         // Surface-relative vectors
-        private Vector3d up;
-        public Vector3d Up
+        private Vector3 up;
+        public Vector3 Up
         {
             get
             {
@@ -86,8 +120,8 @@ namespace JSI
         // surfaceRight is the projection of the right vector onto the surface.
         // If up x right is a degenerate vector (rolled on the side), we use
         // the forward vector to compose a new basis
-        private Vector3d surfaceRight;
-        public Vector3d SurfaceRight
+        private Vector3 surfaceRight;
+        public Vector3 SurfaceRight
         {
             get
             {
@@ -96,8 +130,8 @@ namespace JSI
         }
         // surfaceForward is the cross of the up vector and right vector, so
         // that surface velocity can be decomposed to surface-relative components.
-        private Vector3d surfaceForward;
-        public Vector3d SurfaceForward
+        private Vector3 surfaceForward;
+        public Vector3 SurfaceForward
         {
             get
             {
@@ -682,20 +716,25 @@ namespace JSI
             //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - vessel.CoM, up).normalized;
             right = vessel.GetTransform().right;
             forward = vessel.GetTransform().up;
+            top = vessel.GetTransform().forward;
             rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
 
             // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            surfaceForward = Vector3d.Cross(up, right);
+            surfaceForward = Vector3.Cross(up, right);
             // If the craft is rolled sharply to the side, we have to re-do our basis.
-            if (surfaceForward.sqrMagnitude < 0.5)
+            if (surfaceForward.sqrMagnitude < 0.5f)
             {
-                surfaceRight = Vector3d.Cross(forward, up);
-                surfaceForward = Vector3d.Cross(up, surfaceRight);
+                surfaceRight = Vector3.Cross(forward, up);
+                surfaceForward = Vector3.Cross(up, surfaceRight);
             }
             else
             {
-                surfaceRight = Vector3d.Cross(surfaceForward, up);
+                surfaceRight = Vector3.Cross(surfaceForward, up);
             }
+
+            prograde = vessel.orbit.GetVel().normalized;
+            radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
+            normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
 
             speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
@@ -1864,6 +1903,32 @@ namespace JSI
                     return AngleOfAttack();
                 case "SIDESLIP":
                     return SideSlip();
+                    // These values get odd when they're way out on the edge of the
+                    // navball because they're projected into two dimensions.
+                case "PITCHPROGRADE":
+                    return GetRelativePitch(prograde);
+                case "PITCHRETROGRADE":
+                    return GetRelativePitch(-prograde);
+                case "PITCHRADIALIN":
+                    return GetRelativePitch(-radialOut);
+                case "PITCHRADIALOUT":
+                    return GetRelativePitch(radialOut);
+                case "PITCHNORMALPLUS":
+                    return GetRelativePitch(normalPlus);
+                case "PITCHNORMALMINUS":
+                    return GetRelativePitch(-normalPlus);
+                case "YAWPROGRADE":
+                    return GetRelativeYaw(prograde);
+                case "YAWRETROGRADE":
+                    return GetRelativeYaw(-prograde);
+                case "YAWRADIALIN":
+                    return GetRelativeYaw(-radialOut);
+                case "YAWRADIALOUT":
+                    return GetRelativeYaw(radialOut);
+                case "YAWNORMALPLUS":
+                    return GetRelativeYaw(normalPlus);
+                case "YAWNORMALMINUS":
+                    return GetRelativeYaw(-normalPlus);
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
@@ -2509,6 +2574,46 @@ namespace JSI
 
             // Didn't recognise anything so we return the string we got, that helps debugging.
             return input;
+        }
+
+        /// <summary>
+        /// Determines the pitch angle between the vector supplied and the front of the craft.
+        /// Original code from FAR.
+        /// </summary>
+        /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
+        /// <returns>Pitch in degrees</returns>
+        private double GetRelativePitch(Vector3 normalizedVectorOfInterest)
+        {
+            // vector projected onto a plane that divides the airplane into left and right halves
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right);
+            float dotpitch = Vector3.Dot(tmpVec.normalized, top);
+            float pitch = Mathf.Rad2Deg * Mathf.Asin(dotpitch);
+            if (float.IsNaN(pitch))
+            {
+                pitch = (dotpitch > 0.0f) ? 90.0f : -90.0f;
+            }
+
+            return pitch;
+        }
+
+        /// <summary>
+        /// Determines the yaw angle between the vector supplied and the front of the craft.
+        /// Original code from FAR.
+        /// </summary>
+        /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
+        /// <returns>Yaw in degrees</returns>
+        private double GetRelativeYaw(Vector3 normalizedVectorOfInterest)
+        {
+            //velocity vector projected onto the vehicle-horizontal plane
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top);
+            float dotyaw = Vector3.Dot(tmpVec.normalized, right);
+            float yaw = Mathf.Rad2Deg * Mathf.Asin(dotyaw);
+            if (float.IsNaN(yaw))
+            {
+                yaw = (dotyaw > 0.0f) ? 90.0f : -90.0f;
+            }
+
+            return yaw;
         }
 
         //--- Fallback evaluators
