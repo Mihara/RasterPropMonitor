@@ -448,6 +448,9 @@ namespace JSI
         private float textureSize;
         private bool useLog10;
 
+        private VariableOrNumber enablingVariable;
+        private VariableOrNumber[] enablingVariableRange;
+
         internal VerticalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
         {
             JUtil.LogMessage(this, "Configuring for {0}", node.GetValue("name"));
@@ -515,6 +518,20 @@ namespace JSI
 
             Vector4 position = ConfigNode.ParseVector4(node.GetValue("position"));
 
+            if (node.HasValue("enablingVariable") && node.HasValue("enablingVariableRange"))
+            {
+                enablingVariable = new VariableOrNumber(node.GetValue("enablingVariable"), this);
+                string[] range = node.GetValue("enablingVariableRange").Split(',');
+                if(range.Length != 2)
+                {
+                    throw new Exception("VerticalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
+                }
+
+                VariableOrNumber low  = new VariableOrNumber(range[0].Trim(), this);
+                VariableOrNumber high = new VariableOrNumber(range[1].Trim(), this);
+                enablingVariableRange = new VariableOrNumber[] { low, high };
+            }
+
             barObject = JUtil.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
 
             Material barMaterial = new Material(displayShader);
@@ -534,6 +551,25 @@ namespace JSI
         internal void Update(RasterPropMonitorComputer comp)
         {
             float value;
+            if (enablingVariable != null)
+            {
+                float low, high;
+                if(enablingVariable.Get(out value, comp) && enablingVariableRange[0].Get(out low, comp) && enablingVariableRange[1].Get(out high, comp))
+                {
+                    if(low > high)
+                    {
+                        float swap = low;
+                        low = high;
+                        high = swap;
+                    }
+                    if(value < low || value > high)
+                    {
+                        // Early out - the controlling variable is out of range.
+                        return;
+                    }
+                }
+            }
+
             if (variable.Get(out value, comp))
             {
                 if (useLog10)
