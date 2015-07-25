@@ -1903,8 +1903,8 @@ namespace JSI
                     return AngleOfAttack();
                 case "SIDESLIP":
                     return SideSlip();
-                    // These values get odd when they're way out on the edge of the
-                    // navball because they're projected into two dimensions.
+                // These values get odd when they're way out on the edge of the
+                // navball because they're projected into two dimensions.
                 case "PITCHPROGRADE":
                     return GetRelativePitch(prograde);
                 case "PITCHRETROGRADE":
@@ -1995,9 +1995,20 @@ namespace JSI
                         return SituationString(target.GetVessel().situation);
                     return string.Empty;
                 case "TARGETALTITUDE":
-                    if (target == null || target is CelestialBody)
+                    if (target == null)
                     {
                         return -1d;
+                    }
+                    if (target is CelestialBody)
+                    {
+                        if (targetBody == vessel.mainBody || targetBody == Planetarium.fetch.Sun)
+                        {
+                            return 0d;
+                        }
+                        else
+                        {
+                            return targetBody.referenceBody.GetAltitude(targetBody.position);
+                        }
                     }
                     if (target is Vessel || target is ModuleDockingNode)
                     {
