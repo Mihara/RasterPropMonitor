@@ -50,6 +50,7 @@ namespace JSI
                 // the editor due to low-spec computers.
                 return;
             }
+            GameEvents.onGameSceneSwitchRequested.Add(this.OnGameSceneSwitch);            
 
             JUtil.LogMessage(this, "Cleaning pod windows...");
 
@@ -222,15 +223,29 @@ namespace JSI
         }
 
         // When our part is destroyed, we need to be sure to undo the culling mask change before we leave.
+        // But 2 out of 10 times it seems OnDestroy is being called AFTER Camera 00 is Disabled which means it's too late.
         public void OnDestroy()
         {
-            JUtil.SetMainCameraCullingMaskForIVA(false);
+            JUtil.SetMainCameraCullingMaskForIVA(false);            
+            GameEvents.onGameSceneSwitchRequested.Remove(this.OnGameSceneSwitch);
+            
         }
 
+        // So, we also add a GameEvent to fire when the GameScene is about to switch.
+        // When user switches from Flight mode, we need to be sure to undo the culling mask change before we leave.
+        // But 2 out of 10 times it seems even this is being called AFTER Camera 00 is Disabled which means it's too late.
+        public void OnGameSceneSwitch(GameEvents.FromToAction<GameScenes, GameScenes> fromtoAction)
+        {
+            if (fromtoAction.from == GameScenes.FLIGHT)
+            {
+                JUtil.SetMainCameraCullingMaskForIVA(false);                
+            }            
+        }
+               
         // We also do the same if the part is packed, just in case.
         public virtual void OnPartPack()
         {
-            JUtil.SetMainCameraCullingMaskForIVA(false);
+            JUtil.SetMainCameraCullingMaskForIVA(false);            
         }
 
         public override void OnUpdate()
@@ -362,12 +377,27 @@ namespace JSI
 
         */
 
+        // During Startup we need to reset the var JUtil.cameraMaskShowsIVA, as sometimes it gets out of sync with the actual Camera Mask.
+        // JUtil.cameraMaskShowsIVA is used in the following two methods to correctly draw non Transparent pods.
+        // So this will check the culling mask of 'Camera 00' and reset that var once at OnStart.
+        public override void OnStart(StartState state)
+        {
+            if (state != StartState.Editor)
+            {
+                Camera sourceCam = JUtil.GetCameraByName("Camera 00");
+                if (sourceCam != null)
+                {                    
+                    JUtil.cameraMaskShowsIVA = ((sourceCam.cullingMask & (1 << 16)) != 0) && ((sourceCam.cullingMask & (1 << 20)) != 0);
+                }
+            }
+        }                
+
         // During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
         // so that portraits show up correctly.
         public void OnGUI()
         {
             if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null)
-            {
+            {                
                 part.internalModel.SetVisible(true);
             }
         }
@@ -375,9 +405,9 @@ namespace JSI
         // But before the rest of the world is to be drawn, if the internal exists and is the active internal,
         // it should become invisible.
         public void LateUpdate()
-        {
+        {            
             if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null && !JUtil.UserIsInPod(part))
-            {
+            {                
                 part.internalModel.SetVisible(false);
             }
         }
