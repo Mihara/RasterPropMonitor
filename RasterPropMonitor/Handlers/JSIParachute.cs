@@ -26,6 +26,7 @@ namespace JSI
 
         private bool anyDeployed;
         private bool anyArmed;
+        private bool allSafe;
 
         static JSIParachute()
         {
@@ -162,11 +163,23 @@ namespace JSI
             return anyDeployed;
         }
 
+        public bool ParachutesSafeState()
+        {
+            if (moduleInvalidated)
+            {
+                UpdateParachuteState();
+            }
+
+            return allSafe;
+        }
+
         private void UpdateParachuteState()
         {
             moduleInvalidated = false;
 
             anyDeployed = false;
+
+            allSafe = true;
 
             if (vessel == null)
             {
@@ -202,6 +215,19 @@ namespace JSI
                     if (module.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED || module.deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
                     {
                         anyDeployed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (allSafe)
+            {
+                allSafe = true;
+                foreach (ModuleParachute module in FindStockChuteIn(vessel))
+                {
+                    if (module.deploySafe != "Safe")
+                    {
+                        allSafe = false;
                         break;
                     }
                 }
