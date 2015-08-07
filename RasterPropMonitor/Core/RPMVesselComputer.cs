@@ -1,4 +1,5 @@
 ﻿//#define HACK_IN_A_NAVPOINT
+//#define SHOW_FIXEDUPDATE_TIMING
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -267,6 +268,11 @@ namespace JSI
         private Func<double> evaluateLandingLongitude;
         private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
+
+        // Diagnostics
+#if SHOW_FIXEDUPDATE_TIMING
+        private Stopwatch stopwatch = new Stopwatch();
+#endif
         #endregion
 
         public static RPMVesselComputer Instance(Vessel v)
@@ -421,12 +427,6 @@ namespace JSI
                 standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]), FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel);
             }
 
-            //installedModules.Add(new JSIParachute(vessel));
-            //installedModules.Add(new JSIMechJeb(vessel));
-            //installedModules.Add(new JSIInternalRPMButtons(vessel));
-            //installedModules.Add(new JSIGimbal(vessel));
-            //installedModules.Add(new JSIFAR(vessel));
-
             if (JUtil.IsActiveVessel(vessel))
             {
                 for (int i = 0; i < installedModules.Count; ++i)
@@ -509,6 +509,10 @@ namespace JSI
             // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
             if (JUtil.VesselIsInIVA(vessel) && timeToUpdate)
             {
+#if SHOW_FIXEDUPDATE_TIMING
+                stopwatch.Reset();
+                stopwatch.Start();
+#endif
                 Part newpart = DeduceCurrentPart();
                 if (newpart != part)
                 {
@@ -525,6 +529,10 @@ namespace JSI
                     // Refresh some per-part values .. ?
                 }
 
+#if SHOW_FIXEDUPDATE_TIMING
+                long newPart = stopwatch.ElapsedMilliseconds;
+#endif
+
                 timeToUpdate = false;
                 resultCache.Clear();
 
@@ -532,11 +540,30 @@ namespace JSI
                 {
                     installedModules[i].Invalidate(vessel);
                 }
+#if SHOW_FIXEDUPDATE_TIMING
+                long invalidate = stopwatch.ElapsedMilliseconds;
+#endif
 
                 FetchPerPartData();
+#if SHOW_FIXEDUPDATE_TIMING
+                long perpart = stopwatch.ElapsedMilliseconds;
+#endif
                 FetchAltitudes();
+#if SHOW_FIXEDUPDATE_TIMING
+                long altitudes = stopwatch.ElapsedMilliseconds;
+#endif
                 FetchVesselData();
+#if SHOW_FIXEDUPDATE_TIMING
+                long vesseldata = stopwatch.ElapsedMilliseconds;
+#endif
                 FetchTargetData();
+#if SHOW_FIXEDUPDATE_TIMING
+                long targetdata = stopwatch.ElapsedMilliseconds;
+                stopwatch.Stop();
+
+                JUtil.LogMessage(this, "FixedUpdate net ms: deduceNewPart = {0}, invalidate = {1}, FetchPerPart = {2}, FetchAlt = {3}, FetchVessel = {4}, FetchTarget = {5}",
+                    newPart, invalidate, perpart, altitudes, vesseldata, targetdata);
+#endif
             }
         }
         #endregion
@@ -887,7 +914,7 @@ namespace JSI
                         float maxThrust = GetMaximumThrust(thatEngineModule);
                         totalMaximumThrust += maxThrust;
                         float realIsp = GetRealIsp(thatEngineModule);
-                        if (realIsp > 0)
+                        if (realIsp > 0.0f)
                         {
                             averageIspContribution += maxThrust / realIsp;
                         }
