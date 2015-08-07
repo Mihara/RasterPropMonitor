@@ -643,7 +643,7 @@ namespace JSI
             if (mjFound)
             {
                 // Have we already updated activeJeb?
-                if (activeJeb == null)
+                if (activeJeb == null && vessel != null)
                 {
                     foreach (Part part in vessel.Parts)
                     {
@@ -1275,9 +1275,15 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonAscentGuidanceState()
         {
-            GetMasterMechJeb();
-            object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
-            return ModuleEnabled(ap);
+            if (GetMasterMechJeb())
+            {
+                object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
+                return ModuleEnabled(ap);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public void ButtonDockingGuidance(bool state)
@@ -1474,9 +1480,15 @@ namespace JSI
         /// <returns>true if on, false if not</returns>
         public bool ButtonLandingGuidanceState()
         {
-            GetMasterMechJeb();
-            object ap = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
-            return ModuleEnabled(ap);
+            if (GetMasterMechJeb())
+            {
+                object ap = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
+                return ModuleEnabled(ap);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         /// <summary>
