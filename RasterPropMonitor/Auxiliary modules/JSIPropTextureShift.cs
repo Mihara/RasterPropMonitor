@@ -30,7 +30,7 @@ namespace JSI
                     shifted.SetTextureOffset(layer.Trim(), shiftval + shifted.GetTextureOffset(layer.Trim()));
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 JUtil.LogErrorMessage(this, "Exception configuring prop {1} (#{2}) with transform {0}.  Check its configuration.", transformToShift, internalProp.propName, internalProp.propID);
             }
