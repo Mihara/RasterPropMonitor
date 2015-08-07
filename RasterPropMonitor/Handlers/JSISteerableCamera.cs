@@ -99,7 +99,7 @@ namespace JSI
         [KSPField]
         public string cameraInfoVarName = string.Empty;
 
-        private RasterPropMonitorComputer comp;
+        private PersistenceAccessor persistence;
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
         private float zoomDirection;
@@ -402,9 +402,9 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
-                if (!string.IsNullOrEmpty(cameraInfoVarName))
+                if (persistence != null)
                 {
-                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                    persistence.SetPropVar(cameraInfoVarName + "_ID", currentCamera + 1);
                 }
                 return;
             }
@@ -423,9 +423,9 @@ namespace JSI
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
             }
 
-            if (!string.IsNullOrEmpty(cameraInfoVarName))
+            if (persistence != null)
             {
-                comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                persistence.SetPropVar(cameraInfoVarName + "_ID", currentCamera + 1);
             }
         }
 
@@ -446,9 +446,9 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
-                if (!string.IsNullOrEmpty(cameraInfoVarName))
+                if (persistence != null)
                 {
-                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                    persistence.SetPropVar(cameraInfoVarName + "_ID", currentCamera + 1);
                 }
                 return;
             }
@@ -466,9 +466,9 @@ namespace JSI
 
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
             }
-            if (!string.IsNullOrEmpty(cameraInfoVarName))
+            if (persistence != null)
             {
-                comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                persistence.SetPropVar(cameraInfoVarName + "_ID", currentCamera + 1);
             }
         }
 
@@ -538,16 +538,23 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(cameraInfoVarName))
             {
-                comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                if (comp.Persistence.HasPropVar(cameraInfoVarName + "_ID", internalProp.propID))
+                persistence = new PersistenceAccessor(internalProp);
+                if (persistence.HasPropVar(cameraInfoVarName + "_ID"))
                 {
-                    currentCamera = comp.Persistence.GetPropVar(cameraInfoVarName + "_ID", internalProp.propID) - 1;
+                    currentCamera = persistence.GetPropVar(cameraInfoVarName + "_ID") - 1;
                 }
                 else
                 {
-                    comp.Persistence.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                    persistence.SetPropVar(cameraInfoVarName + "_ID", currentCamera + 1);
                 }
             }
+        }
+
+        public void OnDestroy()
+        {
+            // MOARdV TODO: Destroy all teh things!
+            //JUtil.LogMessage(this, "OnDestroy()");
+            persistence = null;
         }
     }
 

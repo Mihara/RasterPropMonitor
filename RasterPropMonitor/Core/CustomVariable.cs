@@ -47,10 +47,10 @@ namespace JSI
             }
         }
 
-        public bool Evaluate(RasterPropMonitorComputer comp)
+        public bool Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             float result, minV, maxV;
-            if(name.Get(out result, comp) && minValue.Get(out minV, comp) && maxValue.Get(out maxV, comp))
+            if (name.Get(out result, comp, persistence) && minValue.Get(out minV, comp, persistence) && maxValue.Get(out maxV, comp, persistence))
             {
                 if(minV > maxV)
                 {
@@ -134,14 +134,14 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer comp)
+        public object Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].Evaluate(comp);
+            bool evaluation = sourceVariables[0].Evaluate(comp, persistence);
 
             for (int i = 1; i < sourceVariables.Count; ++i)
             {
-                bool nextValue = sourceVariables[i].Evaluate(comp);
+                bool nextValue = sourceVariables[i].Evaluate(comp, persistence);
 
                 switch (op)
                 {

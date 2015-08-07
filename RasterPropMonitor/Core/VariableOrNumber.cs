@@ -34,7 +34,7 @@ namespace JSI
             owner = caller;
         }
 
-        public bool Get(out float destination, RasterPropMonitorComputer comp)
+        public bool Get(out float destination, RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             if (stateFunction != null)
             {
@@ -49,7 +49,7 @@ namespace JSI
                 return true;
             }
 
-            destination = comp.ProcessVariable(variableName, -1).MassageToFloat();
+            destination = comp.ProcessVariable(variableName, persistence).MassageToFloat();
             if (float.IsNaN(destination) || float.IsInfinity(destination))
             {
                 if (!warningMade)

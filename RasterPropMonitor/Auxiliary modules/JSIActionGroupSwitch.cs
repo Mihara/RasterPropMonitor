@@ -91,7 +91,7 @@ namespace JSI
         private Light[] lightObjects;
         private FXGroup audioOutput;
         private int lightCheckCountdown;
-        private RasterPropMonitorComputer comp;
+        private PersistenceAccessor persistence;
         private bool startupComplete;
         private Renderer colorShiftRenderer;
         private Func<bool> stateHandler;
@@ -110,10 +110,13 @@ namespace JSI
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             try
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName))
                 {
@@ -187,8 +190,11 @@ namespace JSI
                         else
                         {
                             consumingWhileActive = true;
-                            JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
-                                internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
+                            if (JUtil.debugLoggingEnabled)
+                            {
+                                JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
+                                    internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
+                            }
                         }
                     }
                 }
@@ -211,7 +217,6 @@ namespace JSI
                             break;
                         case "plugin":
                             persistentVarName = string.Empty;
-                            comp = RasterPropMonitorComputer.Instantiate(internalProp);
                             comp.UpdateDataRefreshRate(refreshRate);
 
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
@@ -266,17 +271,15 @@ namespace JSI
 
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
-                    if (comp == null)
-                    {
-                        comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                        comp.UpdateDataRefreshRate(refreshRate);
-                    }
+                    persistence = new PersistenceAccessor(internalProp);
+
+                    comp.UpdateDataRefreshRate(refreshRate);
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {
                         masterVariable = new VariableOrNumber(masterVariableName, this);
                         string[] range = masterVariableRange.Split(',');
-                        if(range.Length == 2)
+                        if (range.Length == 2)
                         {
                             masterRange[0] = new VariableOrNumber(range[0], this);
                             masterRange[1] = new VariableOrNumber(range[1], this);
@@ -302,17 +305,17 @@ namespace JSI
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(persistentVarName))
+                        if (persistence != null)
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = comp.Persistence.GetVar(persistentVarName, 0);
+                                int activeSwitch = persistence.GetVar(persistentVarName, 0);
 
                                 currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupList[actionName] = comp.Persistence.GetBool(persistentVarName, initialState);
+                                currentState = customGroupList[actionName] = persistence.GetBool(persistentVarName, initialState);
                             }
 
                             if (actionName == "intlight")
@@ -325,18 +328,18 @@ namespace JSI
                     }
                 }
 
-                if (!string.IsNullOrEmpty(persistentVarName) && !comp.Persistence.HasVar(persistentVarName))
+                if (persistence != null && !persistence.HasVar(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            comp.Persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     else
                     {
-                        comp.Persistence.SetVar(persistentVarName, currentState);
+                        persistence.SetVar(persistentVarName, currentState);
                     }
                 }
 
@@ -379,7 +382,7 @@ namespace JSI
                 }
                 else
                 {
-                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined.");
+                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1}.", internalProp.propName, internalProp.propID);
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
@@ -392,6 +395,12 @@ namespace JSI
                 enabled = false;
                 throw;
             }
+        }
+
+        public void OnDestroy()
+        {
+            //JUtil.LogMessage(this, "OnDestroy()");
+            persistence = null;
         }
 
         private void SetInternalLights(bool value)
@@ -414,12 +423,13 @@ namespace JSI
             {
                 if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
-                    switchEnabled = comp.Persistence.GetBool(perPodMasterSwitchName, false);
+                    switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
                 }
                 if (masterVariable != null)
                 {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     float value, range1, range2;
-                    if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
+                    if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
                     {
                         float minR = Mathf.Min(range1, range2);
                         float maxR = Mathf.Max(range1, range2);
@@ -448,7 +458,7 @@ namespace JSI
                         customGroupList[actionName] = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            comp.Persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     // else: can't turn off a radio group switch.
@@ -458,7 +468,7 @@ namespace JSI
                     customGroupList[actionName] = !customGroupList[actionName];
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        comp.Persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                        persistence.SetVar(persistentVarName, customGroupList[actionName]);
                     }
                 }
             }
@@ -496,6 +506,11 @@ namespace JSI
                 return;
             }
 
+            if (!JUtil.IsActiveVessel(vessel))
+            {
+                return;
+            }
+
             if (consumingWhileActive && currentState && !forcedShutdown)
             {
                 float requesting = (consumeWhileActiveAmount * TimeWarp.deltaTime);
@@ -506,11 +521,6 @@ namespace JSI
                     forcedShutdown = true;
                     JUtil.LogMessage(this, "Could not consume {0}, asked for {1}, got {2} shutting switch down.", consumeWhileActiveName, requesting, extracted);
                 }
-            }
-
-            if (!JUtil.IsActiveVessel(vessel))
-            {
-                return;
             }
 
             // Bizarre, but looks like I need to animate things offscreen if I want them in the right condition when camera comes back.
@@ -527,14 +537,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = comp.Persistence.GetVar(persistentVarName, 0);
+                        int activeGroupId = persistence.GetVar(persistentVarName, 0);
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupList[actionName] = newState;
                     }
                     else
                     {
                         // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
-                        newState = comp.Persistence.GetBool(persistentVarName, false);
+                        newState = persistence.GetBool(persistentVarName, false);
                     }
                 }
                 else
@@ -544,13 +554,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = comp.Persistence.GetVar(persistentVarName, 0);
+                            int activeGroupId = persistence.GetVar(persistentVarName, 0);
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupList[actionName] = newState;
                         }
                         else
                         {
-                            newState = comp.Persistence.GetBool(persistentVarName, customGroupList[actionName]);
+                            newState = persistence.GetBool(persistentVarName, customGroupList[actionName]);
                         }
                     }
                     else
@@ -570,14 +580,15 @@ namespace JSI
                 lightCheckCountdown--;
                 if (lightCheckCountdown <= 0)
                 {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1).MassageToDouble() < 0.01d;
+                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", null).MassageToDouble() < 0.01d;
                 }
             }
 
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = comp.Persistence.GetBool(perPodMasterSwitchName, false);
+                bool switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off
@@ -588,12 +599,13 @@ namespace JSI
 
             if (masterVariable != null)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 float value, range1, range2;
-                if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
+                if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
                 {
                     float minR = Mathf.Min(range1, range2);
                     float maxR = Mathf.Max(range1, range2);
-                    if(value < minR || value > maxR)
+                    if (value < minR || value > maxR)
                     {
                         // If the master variable is out of spec, disable the switch.
                         newState = false;

@@ -60,8 +60,6 @@ namespace JSI
         private GameObject cameraBody;
         private Camera hudCamera;
 
-        private RasterPropMonitorComputer comp;
-
         private GameObject ladderMesh;
         private GameObject progradeLadderIcon;
         private GameObject overlayMesh;
@@ -74,6 +72,7 @@ namespace JSI
         private bool startupComplete;
         private bool firstRenderComplete;
 
+        private PersistenceAccessor persistence;
 
         /// <summary>
         /// Initialize the renderable game objects for the HUD.
@@ -202,7 +201,7 @@ namespace JSI
         /// <summary>
         /// Update the ladder's texture UVs so it's drawn correctly
         /// </summary>
-        private void UpdateLadder()
+        private void UpdateLadder(Quaternion rotationVesselSurface, RPMVesselComputer comp)
         {
             float pitch = 90.0f - Vector3.Angle(comp.Forward, comp.Up);
 
@@ -232,7 +231,6 @@ namespace JSI
                 new Vector2(0.5f + horizonTextureSize.x, ladderMidpointCoord + horizonTextureSize.y)
             };
 
-            Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             float roll = rotationVesselSurface.eulerAngles.z;
 
             ladderMesh.transform.Rotate(new Vector3(0.0f, 0.0f, 1.0f), lastRoll - roll);
@@ -241,7 +239,7 @@ namespace JSI
 
             if (progradeLadderIcon != null)
             {
-                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                Vector3 velocityVesselSurfaceUnit = vessel.srf_velocity.normalized;
                 Vector3 tmpVec = comp.Up * Vector3.Dot(comp.Up, velocityVesselSurfaceUnit) + comp.SurfaceForward * Vector3.Dot(comp.SurfaceForward, velocityVesselSurfaceUnit);
                 float AoA = Vector3.Dot(tmpVec.normalized, comp.Up);
                 AoA = Mathf.Rad2Deg * Mathf.Asin(AoA);
@@ -281,9 +279,9 @@ namespace JSI
         /// <summary>
         /// Update the compass / heading bar
         /// </summary>
-        private void UpdateHeading()
+        private void UpdateHeading(Quaternion rotationVesselSurface, RPMVesselComputer comp)
         {
-            float heading = comp.RotationVesselSurface.eulerAngles.y / 360.0f;
+            float heading = rotationVesselSurface.eulerAngles.y / 360.0f;
 
             MeshFilter meshFilter = headingMesh.GetComponent<MeshFilter>();
 
@@ -297,9 +295,9 @@ namespace JSI
 
             if (progradeHeadingIcon != null)
             {
-                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                Vector3 velocityVesselSurfaceUnit = vessel.srf_velocity.normalized;
                 float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(comp.Up, comp.Forward);
-                float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, comp.RotationVesselSurface.eulerAngles.y + slipAngle);
+                float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
                 float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
                 Vector3 position = progradeHeadingIcon.transform.position;
@@ -325,9 +323,11 @@ namespace JSI
                 InitializeRenderables((float)screen.width, (float)screen.height);
             }
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(comp);
+                verticalBars[i].Update(comp, persistence);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -337,9 +337,10 @@ namespace JSI
             // MOARdV TODO: I don't think this does anything...
             GL.Color(Color.white);
 
+            Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             if (headingMesh != null)
             {
-                UpdateHeading();
+                UpdateHeading(rotationVesselSurface, comp);
                 JUtil.ShowHide(true, headingMesh);
             }
 
@@ -354,7 +355,7 @@ namespace JSI
                 //    horizonSize.x, horizonSize.y);
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
-                UpdateLadder();
+                UpdateLadder(rotationVesselSurface, comp);
                 JUtil.ShowHide(true, ladderMesh);
                 //hudCamera.Render();
                 //JUtil.ShowHide(false, ladderMesh);
@@ -409,9 +410,7 @@ namespace JSI
                     progradeColorValue = ConfigNode.ParseColor32(progradeColor);
                 }
 
-                // use the RPM comp's centralized database so we're not 
-                // repeatedly doing computation.
-                comp = RasterPropMonitorComputer.Instantiate(this.part);
+                persistence = new PersistenceAccessor(internalProp);
             }
             catch (Exception e)
             {
@@ -436,6 +435,8 @@ namespace JSI
             {
                 JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
             }
+
+            persistence = null;
         }
     }
 
@@ -548,13 +549,13 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer comp)
+        internal void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             float value;
             if (enablingVariable != null)
             {
                 float low, high;
-                if(enablingVariable.Get(out value, comp) && enablingVariableRange[0].Get(out low, comp) && enablingVariableRange[1].Get(out high, comp))
+                if (enablingVariable.Get(out value, comp, persistence) && enablingVariableRange[0].Get(out low, comp, persistence) && enablingVariableRange[1].Get(out high, comp, persistence))
                 {
                     if(low > high)
                     {
@@ -570,7 +571,7 @@ namespace JSI
                 }
             }
 
-            if (variable.Get(out value, comp))
+            if (variable.Get(out value, comp, persistence))
             {
                 if (useLog10)
                 {
