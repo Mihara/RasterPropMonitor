@@ -14,6 +14,11 @@ namespace JSI
     class JSIHeadsUpDisplay : InternalModule
     {
         [KSPField]
+        public string cameraTransform = string.Empty;
+        private FlyingCamera cameraObject;
+        [KSPField]
+        public float hudFov = 60.0f;
+        [KSPField]
         public int drawingLayer = 17;
 
         [KSPField]
@@ -79,9 +84,18 @@ namespace JSI
         /// </summary>
         /// <param name="screenWidth"></param>
         /// <param name="screenHeight"></param>
-        void InitializeRenderables(float screenWidth, float screenHeight)
+        void InitializeRenderables(RenderTexture screen)
         {
+            float screenWidth = (float)screen.width;
+            float screenHeight = (float)screen.height;
+
             Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+
+            if (!string.IsNullOrEmpty(cameraTransform))
+            {
+                cameraObject = new FlyingCamera(part, screen, hudCamera.aspect);
+                cameraObject.PointCamera(cameraTransform, hudFov);
+            }
 
             if (!string.IsNullOrEmpty(staticOverlay))
             {
@@ -320,7 +334,7 @@ namespace JSI
                 firstRenderComplete = true;
                 hudCamera.orthographicSize = (float)(screen.height) * 0.5f;
                 hudCamera.aspect = (float)screen.width / (float)screen.height;
-                InitializeRenderables((float)screen.width, (float)screen.height);
+                InitializeRenderables(screen);
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
@@ -331,6 +345,12 @@ namespace JSI
             }
 
             GL.Clear(true, true, backgroundColorValue);
+
+            // Draw the camera's view, if configured.
+            if (cameraObject != null)
+            {
+                cameraObject.Render();
+            }
 
             hudCamera.targetTexture = screen;
 
@@ -523,12 +543,12 @@ namespace JSI
             {
                 enablingVariable = new VariableOrNumber(node.GetValue("enablingVariable"), this);
                 string[] range = node.GetValue("enablingVariableRange").Split(',');
-                if(range.Length != 2)
+                if (range.Length != 2)
                 {
                     throw new Exception("VerticalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
                 }
 
-                VariableOrNumber low  = new VariableOrNumber(range[0].Trim(), this);
+                VariableOrNumber low = new VariableOrNumber(range[0].Trim(), this);
                 VariableOrNumber high = new VariableOrNumber(range[1].Trim(), this);
                 enablingVariableRange = new VariableOrNumber[] { low, high };
             }
@@ -557,13 +577,13 @@ namespace JSI
                 float low, high;
                 if (enablingVariable.Get(out value, comp, persistence) && enablingVariableRange[0].Get(out low, comp, persistence) && enablingVariableRange[1].Get(out high, comp, persistence))
                 {
-                    if(low > high)
+                    if (low > high)
                     {
                         float swap = low;
                         low = high;
                         high = swap;
                     }
-                    if(value < low || value > high)
+                    if (value < low || value > high)
                     {
                         // Early out - the controlling variable is out of range.
                         return;
