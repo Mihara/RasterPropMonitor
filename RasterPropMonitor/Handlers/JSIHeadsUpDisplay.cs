@@ -469,8 +469,7 @@ namespace JSI
         private float textureSize;
         private bool useLog10;
 
-        private VariableOrNumber enablingVariable;
-        private VariableOrNumber[] enablingVariableRange;
+        private VariableOrNumberRange enablingVariable;
 
         internal VerticalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
         {
@@ -541,16 +540,13 @@ namespace JSI
 
             if (node.HasValue("enablingVariable") && node.HasValue("enablingVariableRange"))
             {
-                enablingVariable = new VariableOrNumber(node.GetValue("enablingVariable"), this);
                 string[] range = node.GetValue("enablingVariableRange").Split(',');
                 if (range.Length != 2)
                 {
                     throw new Exception("VerticalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
                 }
 
-                VariableOrNumber low = new VariableOrNumber(range[0].Trim(), this);
-                VariableOrNumber high = new VariableOrNumber(range[1].Trim(), this);
-                enablingVariableRange = new VariableOrNumber[] { low, high };
+                enablingVariable = new VariableOrNumberRange(node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
             }
 
             barObject = JUtil.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
@@ -574,20 +570,9 @@ namespace JSI
             float value;
             if (enablingVariable != null)
             {
-                float low, high;
-                if (enablingVariable.Get(out value, comp, persistence) && enablingVariableRange[0].Get(out low, comp, persistence) && enablingVariableRange[1].Get(out high, comp, persistence))
+                if (!enablingVariable.IsInRange(comp, persistence))
                 {
-                    if (low > high)
-                    {
-                        float swap = low;
-                        low = high;
-                        high = swap;
-                    }
-                    if (value < low || value > high)
-                    {
-                        // Early out - the controlling variable is out of range.
-                        return;
-                    }
+                    return;
                 }
             }
 
