@@ -191,6 +191,7 @@ namespace JSI
             CLOSEST_APPROACH = 9,
         }
         #endregion
+        
         private readonly bool mjFound;
 
         private bool landingCurrent, deltaVCurrent;
@@ -223,7 +224,12 @@ namespace JSI
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebCore");
                 if (mjMechJebCore_t == null)
                 {
-                    throw new NotImplementedException("mjMechJebCore_t");
+                    mjFound = false;
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+                    }
+                    return;
                 }
                 mjGetComputerModule = mjMechJebCore_t.GetMethod("GetComputerModule", new Type[] { typeof(string) });
                 if (mjGetComputerModule == null)
