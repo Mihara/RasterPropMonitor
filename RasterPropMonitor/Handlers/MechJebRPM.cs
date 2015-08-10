@@ -221,47 +221,9 @@ namespace JSI
             }
         }
 
-        public void Start()
+        private void UpdateMethods()
         {
-
-            // I guess I shouldn't have expected Squad to actually do something nice for a modder like that.
-            // In 0.23, loading in non-alphabetical order is still broken.
-
-            // But now we have KSPAssembly and KSPAssemblyDependency, which actually sidestep the issue, and finally
-            // Mu told someone about it and now I can avoid this path hardlinking.
-            // Actually, better yet. Let it check for the new canonical location instead. Because fuck installation problems.
-            if (!JSI.InstallationPathWarning.Warn())
-            {
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(itemColor))
-            {
-                itemColorValue = ConfigNode.ParseColor32(itemColor);
-            }
-            if (!string.IsNullOrEmpty(selectedColor))
-            {
-                selectedColorValue = ConfigNode.ParseColor32(selectedColor);
-            }
-            if (!string.IsNullOrEmpty(unavailableColor))
-            {
-                unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
-            }
-
-            topMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
-            topMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
-            topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
-
-            RasterPropMonitorComputer comp = RasterPropMonitorComputer.Instantiate(internalProp);
-            if (comp == null)
-            {
-                throw new NotImplementedException("comp");
-            }
-            Func<bool> isMjAvailable = (Func<bool>)comp.GetMethod("JSIMechJeb:GetMechJebAvailable", internalProp, typeof(Func<bool>));
-            if (isMjAvailable == null)
-            {
-                throw new NotImplementedException("isMjAvailable");
-            }
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             GetSmartassMode = (Func<int>)comp.GetMethod("JSIMechJeb:GetSmartassMode", internalProp, typeof(Func<int>));
             SetSmartassMode = (Action<JSIMechJeb.Target>)comp.GetMethod("JSIMechJeb:SetSmartassMode", internalProp, typeof(Action<JSIMechJeb.Target>));
             SetForceRoll = (Action<bool, double>)comp.GetMethod("JSIMechJeb:ForceRoll", internalProp, typeof(Action<bool, double>));
@@ -285,6 +247,48 @@ namespace JSI
 
             ExecuteNextNode = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonNodeExecute", internalProp, typeof(Action<bool>));
             ExecuteNextNodeState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonNodeExecuteState", internalProp, typeof(Func<bool>));
+        }
+
+        public void Start()
+        {
+
+            // I guess I shouldn't have expected Squad to actually do something nice for a modder like that.
+            // In 0.23, loading in non-alphabetical order is still broken.
+
+            // But now we have KSPAssembly and KSPAssemblyDependency, which actually sidestep the issue, and finally
+            // Mu told someone about it and now I can avoid this path hardlinking.
+            // Actually, better yet. Let it check for the new canonical location instead. Because fuck installation problems.
+            if (!JSI.InstallationPathWarning.Warn())
+            {
+                return;
+            }
+
+            GameEvents.onUndock.Add(UndockCallback);
+
+            if (!string.IsNullOrEmpty(itemColor))
+            {
+                itemColorValue = ConfigNode.ParseColor32(itemColor);
+            }
+            if (!string.IsNullOrEmpty(selectedColor))
+            {
+                selectedColorValue = ConfigNode.ParseColor32(selectedColor);
+            }
+            if (!string.IsNullOrEmpty(unavailableColor))
+            {
+                unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
+            }
+
+            topMenu.labelColor = JUtil.ColorToColorTag(itemColorValue);
+            topMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
+            topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            Func<bool> isMjAvailable = (Func<bool>)comp.GetMethod("JSIMechJeb:GetMechJebAvailable", internalProp, typeof(Func<bool>));
+            if (isMjAvailable == null)
+            {
+                throw new NotImplementedException("isMjAvailable");
+            }
+            UpdateMethods();
 
             // If MechJeb is installed, but not found on the craft, menu options can't be populated correctly.
             if (isMjAvailable())
@@ -317,6 +321,18 @@ namespace JSI
             activeMenu = topMenu;
         }
 
+        public void OnDestroy()
+        {
+            GameEvents.onUndock.Remove(UndockCallback);
+        }
+
+        private void UndockCallback(EventReport report)
+        {
+            if (JUtil.IsActiveVessel(vessel))
+            {
+                UpdateMethods();
+            }
+        }
         //--- ROOT MENU methods
         private void UpdateRootMenu()
         {

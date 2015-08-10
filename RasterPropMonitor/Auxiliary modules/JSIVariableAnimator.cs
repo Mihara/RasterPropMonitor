@@ -12,6 +12,7 @@ namespace JSI
         private int updateCountdown;
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
+        private PersistenceAccessor persistence;
 
         private bool UpdateCheck()
         {
@@ -27,7 +28,9 @@ namespace JSI
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
+            {
                 return;
+            }
 
             try
             {
@@ -67,13 +70,17 @@ namespace JSI
                         JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
                     }
                 }
-                JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+                if (JUtil.debugLoggingEnabled)
+                {
+                    JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+                }
                 foreach (VariableAnimationSet thatSet in variableSets)
                 {
                     alwaysActive |= thatSet.alwaysActive;
                 }
-                RasterPropMonitorComputer comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshRate);
+                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
             catch
@@ -82,6 +89,12 @@ namespace JSI
                 enabled = false;
                 throw;
             }
+        }
+
+        public void OnDestroy()
+        {
+            //JUtil.LogMessage(this, "OnDestroy()");
+            persistence = null;
         }
 
         public void Update()
@@ -104,9 +117,10 @@ namespace JSI
                 return;
             }
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update();
+                variableSets[unit].Update(comp, persistence);
             }
         }
 
@@ -123,7 +137,6 @@ namespace JSI
     public class VariableAnimationSet
     {
         private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
-        private readonly RasterPropMonitorComputer comp;
         private readonly Animation onAnim;
         private readonly Animation offAnim;
         private readonly bool thresholdMode;
@@ -178,8 +191,6 @@ namespace JSI
                 throw new ArgumentException("No data?!");
             }
 
-            comp = RasterPropMonitorComputer.Instantiate(thisProp);
-
             string[] tokens = { };
 
             if (node.HasValue("scale"))
@@ -200,6 +211,7 @@ namespace JSI
             }
             else if (node.HasValue("stateMethod"))
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(part.vessel);
                 Func<bool> stateFunction = (Func<bool>)comp.GetMethod(node.GetValue("stateMethod").Trim(), thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
@@ -534,12 +546,12 @@ namespace JSI
             lastStateChange = Planetarium.GetUniversalTime();
         }
 
-        public void Update()
+        public void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             var scaleResults = new float[3];
             for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp))
+                if (!scaleEnds[i].Get(out scaleResults[i], comp, persistence))
                 {
                     return;
                 }

@@ -70,8 +70,7 @@ namespace JSI
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
-        // All computations are split into a separate class, because it was getting a mite too big.
-        private RasterPropMonitorComputer comp;
+        private PersistenceAccessor persistence;
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
@@ -122,8 +121,10 @@ namespace JSI
             try
             {
                 // Install the calculator module.
-                comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
+
+                persistence = new PersistenceAccessor(internalProp);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -211,7 +212,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = comp.Persistence.GetVar(persistentVarName, pages.Count);
+                int activePageID = persistence.GetVar(persistentVarName, pages.Count);
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -258,6 +259,7 @@ namespace JSI
             if (screenTexture != null)
             {
                 screenTexture.Release();
+                screenTexture = null;
             }
             if (frozenScreen != null)
             {
@@ -267,6 +269,7 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
+            persistence = null;
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -327,7 +330,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                comp.Persistence.SetVar(persistentVarName, activePage.pageNumber);
+                persistence.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
@@ -400,11 +403,12 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             StringBuilder bf = new StringBuilder();
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < linesArray.Length; i++)
             {
-                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID));
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, persistence));
             }
             textRefreshRequired = false;
             screenBuffer = bf.ToString();
@@ -417,7 +421,8 @@ namespace JSI
         {
             if (needsElectricCharge)
             {
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", -1);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", null);
             }
         }
 

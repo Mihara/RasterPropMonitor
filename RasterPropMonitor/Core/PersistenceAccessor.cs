@@ -1,131 +1,101 @@
 using System;
-using System.Collections.Generic;
+using UnityEngine;
 
 namespace JSI
 {
-
     // Just a helper class to encapsulate this mess.
     public class PersistenceAccessor
     {
         private readonly RasterPropMonitorComputer comp;
-        private Dictionary<string, int> persistentVars = new Dictionary<string, int>();
+        private readonly int propID;
 
-        public PersistenceAccessor(RasterPropMonitorComputer comp)
+        public PersistenceAccessor(MonoBehaviour referenceLocation)
         {
-            this.comp = comp;
-            ParseData();
-        }
-
-        private void ParseData()
-        {
-            persistentVars.Clear();
-            if (!string.IsNullOrEmpty(comp.data))
+            if(referenceLocation is InternalProp)
             {
-                string[] varstring = comp.data.Split('|');
-                for (int i = 0; i < varstring.Length; ++i)
-                {
-                    string[] tokens = varstring[i].Split('$');
-                    int value;
-                    if (tokens.Length == 2 && int.TryParse(tokens[1], out value))
-                    {
-                        persistentVars.Add(tokens[0], value);
-                    }
-                }
+                comp = RasterPropMonitorComputer.Instantiate(referenceLocation);
+                propID = (referenceLocation as InternalProp).propID;
             }
-            JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
-        }
-
-        private void StoreData()
-        {
-            var tokens = new List<string>();
-            foreach (KeyValuePair<string, int> item in persistentVars)
+            else if(referenceLocation is Part)
             {
-                tokens.Add(item.Key + "$" + item.Value);
-            }
-
-            comp.data = string.Join("|", tokens.ToArray());
-        }
-
-        public bool GetBool(string persistentVarName, bool defaultValue)
-        {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                int value = GetVar(persistentVarName);
-                return (value > 0);
+                comp = RasterPropMonitorComputer.Instantiate(referenceLocation);
+                propID = -1;
             }
             else
             {
-                return defaultValue;
+                throw new Exception("Instantiating PersistenceAccessor with indeterminate type");
             }
+        }
+
+        internal InternalProp prop
+        {
+            get
+            {
+                if (propID >= 0)
+                {
+                    return comp.part.internalModel.props[propID];
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+
+        public bool GetBool(string persistentVarName, bool defaultValue)
+        {
+            return comp.GetBool(persistentVarName, defaultValue);
         }
 
         public int GetVar(string persistentVarName, int defaultValue)
         {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                return persistentVars[persistentVarName];
-            }
-            else
-            {
-                return defaultValue;
-            }
+            return comp.GetVar(persistentVarName, defaultValue);
         }
 
         public int GetVar(string persistentVarName)
         {
-            try
-            {
-                return persistentVars[persistentVarName];
-            }
-            catch
-            {
-                JUtil.LogErrorMessage(this, "Someone called GetVar({0}) without making sure the value existed", persistentVarName);
-            }
-
-            return int.MinValue;
-        }
-
-        public int GetPropVar(string persistentVarName, int propId)
-        {
-            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
-            return GetVar(perPropVarName);
-        }
-
-        public bool HasPropVar(string persistentVarName, int propId)
-        {
-            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
-            return HasVar(perPropVarName);
+            return comp.GetVar(persistentVarName);
         }
 
         public bool HasVar(string persistentVarName)
         {
-            return persistentVars.ContainsKey(persistentVarName);
-        }
-
-        public void SetPropVar(string persistentVarName, int propId, int varvalue)
-        {
-            string perPropVarName = "PROP" + propId.ToString() + "_" + persistentVarName;
-            SetVar(perPropVarName, varvalue);
+            return comp.HasVar(persistentVarName);
         }
 
         public void SetVar(string persistentVarName, int varvalue)
         {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                persistentVars[persistentVarName] = varvalue;
-            }
-            else
-            {
-                persistentVars.Add(persistentVarName, varvalue);
-            }
-
-            StoreData();
+            comp.SetVar(persistentVarName, varvalue);
         }
 
         public void SetVar(string persistentVarName, bool varvalue)
         {
-            SetVar(persistentVarName, varvalue ? 1 : 0);
+            comp.SetVar(persistentVarName, varvalue);
+        }
+
+
+        public int GetPropVar(string persistentVarName)
+        {
+            string propVar = "%PROP%"+propID+persistentVarName;
+            return comp.GetVar(propVar);
+        }
+
+        public bool HasPropVar(string persistentVarName)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            return comp.HasVar(propVar);
+        }
+
+        public void SetPropVar(string persistentVarName, int varvalue)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            comp.SetVar(propVar, varvalue);
+        }
+
+        
+        public string GetStoredString(int index)
+        {
+            return comp.GetStoredString(index);
         }
     }
 }
-

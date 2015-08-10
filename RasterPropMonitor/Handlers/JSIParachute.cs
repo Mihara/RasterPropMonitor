@@ -15,31 +15,38 @@ namespace JSI
     /// </summary>
     public class JSIParachute : IJSIModule
     {
-        private static readonly Type rcModuleRealChute;
-        private static readonly MethodInfo rcGetAnyDeployed;
-        private static readonly MethodInfo rcArmChute;
-        private static readonly MethodInfo rcDisarmChute;
-        private static readonly MethodInfo rcDeployChute;
-        private static readonly MethodInfo rcCutChute;
-        private static readonly FieldInfo rcArmed;
-        private static readonly bool rcFound;
+        private readonly Type rcModuleRealChute;
+        private readonly MethodInfo rcGetAnyDeployed;
+        private readonly MethodInfo rcArmChute;
+        private readonly MethodInfo rcDisarmChute;
+        private readonly MethodInfo rcDeployChute;
+        private readonly MethodInfo rcCutChute;
+        private readonly FieldInfo rcArmed;
+        private readonly bool rcFound;
 
         private bool anyDeployed;
         private bool anyArmed;
+        private bool allSafe;
 
-        static JSIParachute()
+        public JSIParachute(Vessel _vessel)
+            : base(_vessel)
         {
             try
             {
                 rcModuleRealChute = AssemblyLoader.loadedAssemblies.SelectMany(
                     a => a.assembly.GetExportedTypes())
                     .SingleOrDefault(t => t.FullName == "RealChute.RealChuteModule");
+                if (rcModuleRealChute == null)
+                {
+                    rcFound = false;
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
+                    }
+                    return;
+                }
 
                 PropertyInfo rcAnyDeployed = rcModuleRealChute.GetProperty("anyDeployed", BindingFlags.Instance | BindingFlags.Public);
-                if (rcAnyDeployed == null)
-                {
-                    throw new ArgumentNullException();
-                }
                 rcGetAnyDeployed = rcAnyDeployed.GetGetMethod();
 
                 rcArmChute = rcModuleRealChute.GetMethod("GUIArm", BindingFlags.Instance | BindingFlags.Public);
@@ -70,9 +77,12 @@ namespace JSI
             {
                 rcFound = false;
             }
-        }
 
-        public JSIParachute(Vessel _vessel) : base(_vessel) { }
+            if (JUtil.debugLoggingEnabled)
+            {
+                JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
+            }
+        }
 
         public void ArmParachutes(bool state)
         {
@@ -162,11 +172,23 @@ namespace JSI
             return anyDeployed;
         }
 
+        public bool ParachutesSafeState()
+        {
+            if (moduleInvalidated)
+            {
+                UpdateParachuteState();
+            }
+
+            return allSafe;
+        }
+
         private void UpdateParachuteState()
         {
             moduleInvalidated = false;
 
             anyDeployed = false;
+
+            allSafe = true;
 
             if (vessel == null)
             {
@@ -206,9 +228,22 @@ namespace JSI
                     }
                 }
             }
+
+            if (allSafe)
+            {
+                allSafe = true;
+                foreach (ModuleParachute module in FindStockChuteIn(vessel))
+                {
+                    if (module.deploySafe != "Safe")
+                    {
+                        allSafe = false;
+                        break;
+                    }
+                }
+            }
         }
 
-        private static IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
+        private IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
         {
             foreach (Part part in vessel.Parts)
             {

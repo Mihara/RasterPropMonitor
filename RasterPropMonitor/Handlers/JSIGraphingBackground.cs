@@ -13,7 +13,7 @@ namespace JSI
 
         private Color32 backgroundColorValue;
         private List<DataSet> dataSets = new List<DataSet>();
-        private RasterPropMonitorComputer comp;
+        private PersistenceAccessor persistence;
         private bool startupComplete = false;
         private Material lineMaterial = JUtil.DrawLineMaterial();
         private Material graphMaterial;
@@ -34,6 +34,7 @@ namespace JSI
 
             try
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 // Render background - eventually, squirrel this away onto a render tex
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
@@ -43,7 +44,7 @@ namespace JSI
                 // Render data
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
-                    dataSets[i].RenderData(screen, comp);
+                    dataSets[i].RenderData(screen, comp, persistence);
                 }
             }
             catch
@@ -119,7 +120,7 @@ namespace JSI
                 }
 
                 graphMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-                comp = RasterPropMonitorComputer.Instantiate(internalProp);
+                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
 
@@ -128,6 +129,12 @@ namespace JSI
                 JUtil.AnnoyUser(this);
                 throw;
             }
+        }
+
+        public void OnDestroy()
+        {
+            //JUtil.LogMessage(this, "OnDestroy()");
+            persistence = null;
         }
     }
 
@@ -271,15 +278,15 @@ namespace JSI
             }
         }
 
-        public void RenderData(RenderTexture screen, RasterPropMonitorComputer comp)
+        public void RenderData(RenderTexture screen, RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             float leftVal, rightVal;
-            if (!scale[0].Get(out leftVal, comp) || !scale[1].Get(out rightVal, comp))
+            if (!scale[0].Get(out leftVal, comp, persistence) || !scale[1].Get(out rightVal, comp, persistence))
             {
                 return; // bad values - can't render
             }
 
-            float eval = comp.ProcessVariable(variableName, -1).MassageToFloat();
+            float eval = comp.ProcessVariable(variableName, persistence).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
                 return; // bad value - can't render
@@ -293,9 +300,9 @@ namespace JSI
                 {
                     if (flashingDelay > 0.0f)
                     {
-                        if (lastStateChange + flashingDelay < comp.Time)
+                        if (lastStateChange + flashingDelay < Planetarium.GetUniversalTime())
                         {
-                            lastStateChange = comp.Time;
+                            lastStateChange = Planetarium.GetUniversalTime();
                             lastState = 1.0f - lastState;
                         }
 

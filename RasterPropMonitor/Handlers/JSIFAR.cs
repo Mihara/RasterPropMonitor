@@ -8,30 +8,29 @@ namespace JSI
 {
     class JSIFAR : IJSIModule
     {
-        public JSIFAR(Vessel _vessel) : base(_vessel) { }
-
-        private static readonly bool farFound;
+        private readonly bool farFound;
 
         // FARAPI.ActiveVesselAoA()
-        private static readonly MethodInfo farActiveVesselAoA;
+        private readonly MethodInfo farActiveVesselAoA;
         // FARAPI.ActiveVesselDynPres()
-        private static readonly MethodInfo farActiveVesselDynPres;
+        private readonly MethodInfo farActiveVesselDynPres;
         // FARAPI.ActiveVesselSideslip()
-        private static readonly MethodInfo farActiveVesselSideslip;
+        private readonly MethodInfo farActiveVesselSideslip;
         // FARAPI.ActiveVesselTermVelEst()
-        private static readonly MethodInfo farActiveVesselTermVelEst;
+        private readonly MethodInfo farActiveVesselTermVelEst;
         //public static void VesselIncreaseFlapDeflection(Vessel v)
-        private static readonly MethodInfo farIncreaseFlapDeflection;
+        private readonly MethodInfo farIncreaseFlapDeflection;
         //public static void VesselDecreaseFlapDeflection(Vessel v)
-        private static readonly MethodInfo farDecreaseFlapDeflection;
+        private readonly MethodInfo farDecreaseFlapDeflection;
         //public static int VesselFlapSetting(Vessel v)
-        private static readonly MethodInfo farGetFlapSetting;
+        private readonly MethodInfo farGetFlapSetting;
         //public static void VesselSetSpoilers(Vessel v, bool spoilerActive)
-        private static readonly MethodInfo farSetSpoilers;
+        private readonly MethodInfo farSetSpoilers;
         //public static bool VesselSpoilerSetting(Vessel v)
-        private static readonly MethodInfo farGetSpoilerSetting;
+        private readonly MethodInfo farGetSpoilerSetting;
 
-        static JSIFAR()
+        public JSIFAR(Vessel _vessel)
+            : base(_vessel)
         {
             try
             {
@@ -40,6 +39,10 @@ namespace JSI
                 if (loadedFARAPIAssy == null)
                 {
                     farFound = false;
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
+                    }
                     return;
                 }
 
@@ -76,58 +79,60 @@ namespace JSI
                     throw new NotImplementedException("farActiveVesselTermVelEst");
                 }
 
-                // MOARdV TODO: As of 07JUL15 only available in dev build, not official release.
                 farIncreaseFlapDeflection = farAPI_t.GetMethod("VesselIncreaseFlapDeflection", BindingFlags.Static | BindingFlags.Public);
-                //if (farIncreaseFlapDeflection == null)
-                //{
-                //    throw new NotImplementedException("farIncreaseFlapDeflection");
-                //}
+                if (farIncreaseFlapDeflection == null)
+                {
+                    throw new NotImplementedException("farIncreaseFlapDeflection");
+                }
 
                 farDecreaseFlapDeflection = farAPI_t.GetMethod("VesselDecreaseFlapDeflection", BindingFlags.Static | BindingFlags.Public);
-                //if (farDecreaseFlapDeflection == null)
-                //{
-                //    throw new NotImplementedException("farDecreaseFlapDeflection");
-                //}
+                if (farDecreaseFlapDeflection == null)
+                {
+                    throw new NotImplementedException("farDecreaseFlapDeflection");
+                }
 
                 farGetFlapSetting = farAPI_t.GetMethod("VesselFlapSetting", BindingFlags.Static | BindingFlags.Public);
-                //if (farGetFlapSetting == null)
-                //{
-                //    throw new NotImplementedException("farGetFlapSetting");
-                //}
+                if (farGetFlapSetting == null)
+                {
+                    throw new NotImplementedException("farGetFlapSetting");
+                }
 
                 farSetSpoilers = farAPI_t.GetMethod("VesselSetSpoilers", BindingFlags.Static | BindingFlags.Public);
-                //if (farSetSpoilers == null)
-                //{
-                //    throw new NotImplementedException("farSetSpoilers");
-                //}
+                if (farSetSpoilers == null)
+                {
+                    throw new NotImplementedException("farSetSpoilers");
+                }
 
                 farGetSpoilerSetting = farAPI_t.GetMethod("VesselSpoilerSetting", BindingFlags.Static | BindingFlags.Public);
-                //if (farGetSpoilerSetting == null)
-                //{
-                //    throw new NotImplementedException("farGetSpoilerSetting");
-                //}
+                if (farGetSpoilerSetting == null)
+                {
+                    throw new NotImplementedException("farGetSpoilerSetting");
+                }
 
                 farFound = true;
             }
             catch (Exception e)
             {
                 farFound = false;
-                JUtil.LogMessage(null, "JSIFAR: Exception triggered when configuring: " + e);
+                JUtil.LogMessage(this, "JSIFAR: Exception triggered when configuring: {0}", e);
             }
 
-            JUtil.LogMessage(null, "JSIFAR: farFound is " + farFound);
+            if (JUtil.debugLoggingEnabled)
+            {
+                JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
+            }
         }
 
         #region Private Methods
         private void SetFlaps(int newSetting)
         {
             int currentSetting = (int)GetFlapSetting();
-            if(currentSetting >= 0)
+            if (currentSetting >= 0)
             {
                 int delta = newSetting - currentSetting;
-                if(delta < 0 && farDecreaseFlapDeflection != null)
+                if (delta < 0 && farDecreaseFlapDeflection != null)
                 {
-                    for(int i=0; i>delta; --i)
+                    for (int i = 0; i > delta; --i)
                     {
                         farDecreaseFlapDeflection.Invoke(null, new object[] { vessel });
                     }
@@ -195,7 +200,7 @@ namespace JSI
 
         public double GetFlapSetting()
         {
-            if(farFound)
+            if (farFound)
             {
                 // MOARdV: Temporary until next FAR release
                 if (farGetFlapSetting != null)
@@ -217,7 +222,7 @@ namespace JSI
             if (farFound && !state)
             {
                 // MOARdV: Temporary until next FAR release
-                if(farIncreaseFlapDeflection != null)
+                if (farIncreaseFlapDeflection != null)
                 {
                     farIncreaseFlapDeflection.Invoke(null, new object[] { vessel });
                 }
@@ -226,7 +231,7 @@ namespace JSI
 
         public bool IncreaseFlapSettingState()
         {
-            if(farFound)
+            if (farFound)
             {
                 int flapSetting = (int)GetFlapSetting();
                 // MOARdV: Hardcoded magic numbers = bad.
@@ -299,7 +304,7 @@ namespace JSI
             if (farFound)
             {
                 // MOARdV: Temporary until next FAR release
-                if(farGetSpoilerSetting != null)
+                if (farGetSpoilerSetting != null)
                 {
                     return (bool)farGetSpoilerSetting.Invoke(null, new object[] { vessel });
                 }

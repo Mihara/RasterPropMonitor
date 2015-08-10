@@ -11,6 +11,8 @@ namespace JSI
         [KSPField]
         public string pageTitle = string.Empty;
         [KSPField]
+        public string menuTitleFormatString = "== SAS Menu == {0}";
+        [KSPField]
         public int buttonUp = 0;
         [KSPField]
         public int buttonDown = 1;
@@ -27,7 +29,9 @@ namespace JSI
         private Color unavailableColorValue = Color.gray;
 
         private readonly TextMenu topMenu = new TextMenu();
-        private int sasGroupNumber;
+        private static readonly SIFormatProvider fp = new SIFormatProvider();
+        private static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
+        private int activeMode;
 
         private static readonly VesselAutopilot.AutopilotMode[] modes = new VesselAutopilot.AutopilotMode[]
         {
@@ -44,14 +48,27 @@ namespace JSI
             VesselAutopilot.AutopilotMode.AntiTarget,
         };
 
+        private static readonly string[] modeStrings = new string[]
+        {
+            "SAS Off",
+            "Stability Assist",
+            "Maneuver Node",
+            "Prograde",
+            "Retrograde",
+            "Radial In",
+            "Radial Out",
+            "Normal",
+            "Antinormal",
+            "Target",
+            "Antitarget",
+        };
+
         public void Start()
         {
             if (!JSI.InstallationPathWarning.Warn())
             {
                 return;
             }
-
-            sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
 
             if (!string.IsNullOrEmpty(itemColor))
             {
@@ -116,6 +133,10 @@ namespace JSI
                 {
                     topMenu[i].isDisabled = false;
                     topMenu[i].isSelected = (vessel.Autopilot.Mode == modes[i]);
+                    if (topMenu[i].isSelected)
+                    {
+                        activeMode = i;
+                    }
                 }
                 else
                 {
@@ -123,6 +144,13 @@ namespace JSI
                     topMenu[i].isSelected = false;
                 }
             }
+
+            if (vessel.ActionGroups.groups[sasGroupNumber] == false)
+            {
+                activeMode = 0;
+            }
+
+            topMenu.menuTitle = string.Format(fp, menuTitleFormatString, modeStrings[activeMode]);
 
             result.Append(topMenu.ShowMenu(width, height));
 

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace JSI
@@ -17,24 +18,21 @@ namespace JSI
         {
             var shiftval = new Vector2(x, y);
 
-            Transform xform = internalProp.FindModelTransform(transformToShift);
-            if (xform.renderer != null && xform.renderer.material != null)
+            try
             {
+                Transform xform = internalProp.FindModelTransform(transformToShift);
                 // MOARdV TODO: Accessing and changing .material causes it to
                 // become a copy, according to Unity.  Must destroy it.  Which
                 // means this method can't self-destruct; it must use OnDestroy.
                 Material shifted = xform.renderer.material;
-                if (shifted != null)
+                foreach (string layer in layerToShift.Split())
                 {
-                    foreach (string layer in layerToShift.Split())
-                    {
-                        shifted.SetTextureOffset(layer, shiftval + shifted.GetTextureOffset(layer));
-                    }
+                    shifted.SetTextureOffset(layer.Trim(), shiftval + shifted.GetTextureOffset(layer.Trim()));
                 }
-                else
-                {
-                    JUtil.LogErrorMessage(this, "Unable to find transform {0} to shift in prop {1}", transformToShift, internalProp.propName);
-                }
+            }
+            catch (Exception)
+            {
+                JUtil.LogErrorMessage(this, "Exception configuring prop {1} (#{2}) with transform {0}.  Check its configuration.", transformToShift, internalProp.propName, internalProp.propID);
             }
             Destroy(this);
         }

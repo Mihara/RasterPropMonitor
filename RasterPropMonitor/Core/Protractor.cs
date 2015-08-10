@@ -11,7 +11,6 @@ namespace JSI
     class Protractor
     {
         private double lastUpdate = float.MinValue;
-        private RasterPropMonitorComputer comp;
 
         private double phaseAngle;
         public double PhaseAngle
@@ -70,21 +69,20 @@ namespace JSI
             }
         }
 
-        public Protractor(RasterPropMonitorComputer computer)
+        public Protractor()
         {
-            comp = computer;
         }
 
-        public void Update(Vessel vessel, Orbit targetOrbit)
+        public void Update(Vessel vessel, double altitudeASL, Orbit targetOrbit)
         {
             if (targetOrbit != null)
             {
-                double updateDelta = comp.Time - lastUpdate;
+                double updateDelta = Planetarium.GetUniversalTime() - lastUpdate;
                 // MOARdV: How often do we really need to refresh these values?
                 // Currently picking 10Hz.
                 if (updateDelta > 0.1)
                 {
-                    lastUpdate = comp.Time;
+                    lastUpdate = Planetarium.GetUniversalTime();
                     bool isSimpleTransfer;
                     Orbit orbitOfOrigin;
                     Orbit orbitOfDestination;
@@ -96,7 +94,7 @@ namespace JSI
                     if (isSimpleTransfer)
                     {
                         // Simple transfer: we orbit the same referenceBody as the target.
-                        phaseAngle = UpdatePhaseAngleSimple(vessel, orbitOfOrigin, orbitOfDestination);
+                        phaseAngle = UpdatePhaseAngleSimple(vessel, altitudeASL, orbitOfOrigin, orbitOfDestination);
                         delta_theta = (360.0 / orbitOfOrigin.period) - (360.0 / orbitOfDestination.period);
 
                         ejectionAngle = -1.0;
@@ -104,7 +102,7 @@ namespace JSI
                         moonEjectionAngle = -1.0;
                         ejectionAltitude = -1.0;
 
-                        targetBodyDeltaV = CalculateDeltaV(vessel, orbitOfDestination);
+                        targetBodyDeltaV = CalculateDeltaV(vessel, altitudeASL, orbitOfDestination);
                     }
                     else if (upshiftLevels == 1)
                     {
@@ -112,12 +110,12 @@ namespace JSI
                         phaseAngle = UpdatePhaseAngleAdjacent(vessel, orbitOfOrigin, orbitOfDestination);
                         delta_theta = (360.0 / orbitOfOrigin.period) - (360.0 / orbitOfDestination.period);
 
-                        ejectionAngle = (CalculateDesiredEjectionAngle(vessel, vessel.mainBody, orbitOfDestination) - CurrentEjectAngle(vessel) + 360.0) % 360.0;
+                        ejectionAngle = (CalculateDesiredEjectionAngle(vessel, altitudeASL, vessel.mainBody, orbitOfDestination) - CurrentEjectAngle(vessel) + 360.0) % 360.0;
 
                         moonEjectionAngle = -1.0;
                         ejectionAltitude = -1.0;
 
-                        targetBodyDeltaV = CalculateDeltaV(vessel, orbitOfDestination);
+                        targetBodyDeltaV = CalculateDeltaV(vessel, altitudeASL, orbitOfDestination);
                     }
                     else if (upshiftLevels == 2)
                     {
@@ -127,9 +125,9 @@ namespace JSI
 
                         ejectionAngle = -1.0;
 
-                        moonEjectionAngle = (MoonAngle(vessel) - CurrentEjectAngle(vessel) + 360.0) % 360.0;
+                        moonEjectionAngle = (MoonAngle(vessel, altitudeASL) - CurrentEjectAngle(vessel) + 360.0) % 360.0;
                         ejectionAltitude = 1.05 * vessel.mainBody.referenceBody.atmosphereDepth;
-                        targetBodyDeltaV = CalculateDeltaV(vessel, orbitOfDestination);
+                        targetBodyDeltaV = CalculateDeltaV(vessel, altitudeASL, orbitOfDestination);
                     }
                     else
                     {
@@ -267,7 +265,7 @@ namespace JSI
         }
 
 
-        private double CalculateDesiredEjectionAngle(Vessel vessel, CelestialBody orig, Orbit dest)
+        private double CalculateDesiredEjectionAngle(Vessel vessel, double altitudeASL, CelestialBody orig, Orbit dest)
         {
             double o_alt = CalcMeanAlt(orig.orbit);
             double d_alt = CalcMeanAlt(dest);
@@ -277,7 +275,7 @@ namespace JSI
             double u = orig.referenceBody.gravParameter;
             double exitalt = o_alt + o_soi;
             double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2 * d_alt) / (exitalt + d_alt)) - 1);
-            double r = o_radius + comp.AltitudeASL;
+            double r = o_radius + altitudeASL;
             double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
             double eta = Math.Abs(v * v / 2 - o_mu / r);
             double h = r * v;
@@ -290,14 +288,14 @@ namespace JSI
         }
 
         //calculates ejection v to reach destination
-        private double CalculateDeltaV(Vessel vessel, Orbit destOrbit)
+        private double CalculateDeltaV(Vessel vessel, double altitudeASL, Orbit destOrbit)
         {
             if (vessel.mainBody == destOrbit.referenceBody)
             {
                 double radius = destOrbit.referenceBody.Radius;
                 double u = destOrbit.referenceBody.gravParameter;
                 double d_alt = CalcMeanAlt(destOrbit);
-                double alt = comp.AltitudeASL + radius;
+                double alt = altitudeASL + radius;
                 double v = Math.Sqrt(u / alt) * (Math.Sqrt((2 * d_alt) / (alt + d_alt)) - 1);
                 return Math.Abs((Math.Sqrt(u / alt) + v) - vessel.orbit.GetVel().magnitude);
             }
@@ -312,7 +310,7 @@ namespace JSI
                 double o_alt = CalcMeanAlt(orig.orbit);
                 double exitalt = o_alt + o_soi;
                 double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2 * d_alt) / (exitalt + d_alt)) - 1);
-                double r = o_radius + comp.AltitudeASL;
+                double r = o_radius + altitudeASL;
                 double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
                 return Math.Abs(v - vessel.orbit.GetVel().magnitude);
             }
@@ -322,10 +320,10 @@ namespace JSI
         // MOARdV: The parameter 'check' is always NULL in protractor.  Factored it out
         private double CurrentEjectAngle(Vessel vessel)
         {
-            Vector3d vesselvec = vessel.orbit.getRelativePositionAtUT(comp.Time);
+            Vector3d vesselvec = vessel.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
 
             // get planet's position relative to universe
-            Vector3d bodyvec = vessel.mainBody.orbit.getRelativePositionAtUT(comp.Time);
+            Vector3d bodyvec = vessel.mainBody.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
 
             double eject = Angle2d(vesselvec, Quaternion.AngleAxis(90.0f, Vector3d.forward) * bodyvec);
 
@@ -340,8 +338,8 @@ namespace JSI
         // Compute the current phase of the target.
         private double CurrentPhase(Orbit originOrbit, Orbit destinationOrbit)
         {
-            Vector3d vecthis = originOrbit.getRelativePositionAtUT(comp.Time);
-            Vector3d vectarget = destinationOrbit.getRelativePositionAtUT(comp.Time);
+            Vector3d vecthis = originOrbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
+            Vector3d vectarget = destinationOrbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
 
             double phase = Angle2d(vecthis, vectarget);
 
@@ -392,7 +390,7 @@ namespace JSI
             return phase % 360.0;
         }
 
-        private double MoonAngle(Vessel vessel)  //calculates eject angle for moon -> planet in preparation for planet -> planet transfer
+        private double MoonAngle(Vessel vessel, double altitudeASL)  //calculates eject angle for moon -> planet in preparation for planet -> planet transfer
         {
             CelestialBody orig = vessel.mainBody;
             double o_alt = CalcMeanAlt(orig.orbit);
@@ -403,7 +401,7 @@ namespace JSI
             double u = orig.referenceBody.gravParameter;
             double exitalt = o_alt + o_soi;
             double v2 = Math.Sqrt(u / exitalt) * (Math.Sqrt((2.0 * d_alt) / (exitalt + d_alt)) - 1.0);
-            double r = o_radius + comp.AltitudeASL;
+            double r = o_radius + altitudeASL;
             double v = Math.Sqrt((r * (o_soi * v2 * v2 - 2.0 * o_mu) + 2 * o_soi * o_mu) / (r * o_soi));
             double eta = Math.Abs(v * v / 2.0 - o_mu / r);
             double h = r * v;
@@ -416,7 +414,7 @@ namespace JSI
         }
 
         // Simple phase angle: transfer from sun -> planet or planet -> moon
-        private double UpdatePhaseAngleSimple(Vessel vessel, Orbit srcOrbit, Orbit destOrbit)
+        private double UpdatePhaseAngleSimple(Vessel vessel, double altitudeASL, Orbit srcOrbit, Orbit destOrbit)
         {
             if (destOrbit == null)
             {
@@ -428,7 +426,7 @@ namespace JSI
             // altitude at the point of intercept?
             double destAlt = CalcMeanAlt(destOrbit);
 
-            double phase = CurrentPhase(srcOrbit, destOrbit) - DesiredPhase(comp.AltitudeASL + vessel.mainBody.Radius, destAlt, vessel.mainBody.gravParameter);
+            double phase = CurrentPhase(srcOrbit, destOrbit) - DesiredPhase(altitudeASL + vessel.mainBody.Radius, destAlt, vessel.mainBody.gravParameter);
             phase = (phase + 360.0) % 360.0;
 
             return phase;

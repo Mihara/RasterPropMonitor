@@ -5,18 +5,15 @@ using System.Text;
 
 namespace JSI
 {
-    // SourceVariable defines a single RPM variable plus a range of digits
+    // SourceVariable defines a single RPM variable plus a range of values
     // that are used for compound tests for custom variables.
     class SourceVariable
     {
-        public readonly VariableOrNumber name;
-        public readonly VariableOrNumber minValue, maxValue;
+        public readonly VariableOrNumberRange range;
         public readonly bool reverse;
 
         public SourceVariable(ConfigNode node)
         {
-            name = new VariableOrNumber(node.GetValue("name").Trim(), this);
-
             if (node.HasValue("range"))
             {
                 string[] tokens = { };
@@ -25,13 +22,11 @@ namespace JSI
                 {
                     throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
                 }
-                minValue = new VariableOrNumber(tokens[0].Trim(), this);
-                maxValue = new VariableOrNumber(tokens[1].Trim(), this);
+                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
             }
             else
             {
-                minValue = new VariableOrNumber(float.MaxValue, this);
-                maxValue = new VariableOrNumber(float.MinValue, this);
+                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
             }
 
             if (node.HasValue("reverse"))
@@ -47,24 +42,9 @@ namespace JSI
             }
         }
 
-        public bool Evaluate(RasterPropMonitorComputer comp)
+        public bool Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
-            float result, minV, maxV;
-            if(name.Get(out result, comp) && minValue.Get(out minV, comp) && maxValue.Get(out maxV, comp))
-            {
-                if(minV > maxV)
-                {
-                    float swap = minV;
-                    minV = maxV;
-                    maxV = swap;
-                }
-
-                return (result >= minV && result <= maxV) ^ reverse;
-            }
-            else
-            {
-                return false;
-            }
+            return range.IsInRange(comp, persistence) ^ reverse;
         }
     }
 
@@ -124,6 +104,14 @@ namespace JSI
             {
                 op = Operator.OR;
             }
+            else if (oper == Operator.NAND.ToString())
+            {
+                op = Operator.NAND;
+            }
+            else if (oper == Operator.NOR.ToString())
+            {
+                op = Operator.NOR;
+            }
             else if (oper == Operator.XOR.ToString())
             {
                 op = Operator.XOR;
@@ -134,27 +122,27 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer comp)
+        public object Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].Evaluate(comp);
+            bool evaluation = sourceVariables[0].Evaluate(comp, persistence);
 
             for (int i = 1; i < sourceVariables.Count; ++i)
             {
-                bool nextValue = sourceVariables[i].Evaluate(comp);
+                bool nextValue = sourceVariables[i].Evaluate(comp, persistence);
 
                 switch (op)
                 {
                     case Operator.AND:
                     case Operator.NAND:
-                        evaluation = ((bool)evaluation) && ((bool)nextValue);
+                        evaluation = (evaluation) && (nextValue);
                         break;
                     case Operator.OR:
                     case Operator.NOR:
-                        evaluation = ((bool)evaluation) || ((bool)nextValue);
+                        evaluation = (evaluation) || (nextValue);
                         break;
                     case Operator.XOR:
-                        evaluation = ((bool)evaluation) ^ ((bool)nextValue);
+                        evaluation = (evaluation) ^ (nextValue);
                         break;
                     default:
                         throw new ArgumentException("CustomVariable.Evaluate was called with an invalid operator?");

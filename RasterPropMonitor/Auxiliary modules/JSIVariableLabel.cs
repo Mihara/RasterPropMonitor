@@ -17,16 +17,15 @@ namespace JSI
         private bool oneshotComplete;
         private InternalText textObj;
         private Transform textObjTransform;
-        private RasterPropMonitorComputer comp;
         private int updateCountdown;
         // Annoying as it is, that is the only font actually available to InternalComponents for some bizarre reason,
         // even though I'm pretty sure there are quite a few other fonts in there.
         private const string fontName = "Arial";
         private string sourceString;
+        private PersistenceAccessor persistence;
 
         public void Start()
         {
-            comp = RasterPropMonitorComputer.Instantiate(internalProp);
             textObjTransform = internalProp.FindModelTransform(transformName);
             textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
             // Force oneshot if there's no variables:
@@ -34,8 +33,16 @@ namespace JSI
             sourceString = labelText.UnMangleConfigText();
             if (!oneshot)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshRate);
             }
+            persistence = new PersistenceAccessor(internalProp);
+        }
+
+        public void OnDestroy()
+        {
+            //JUtil.LogMessage(this, "OnDestroy()");
+            persistence = null;
         }
 
         private bool UpdateCheck()
@@ -52,11 +59,16 @@ namespace JSI
         public override void OnUpdate()
         {
             if (oneshotComplete && oneshot)
+            {
                 return;
+            }
             if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
+            {
                 return;
+            }
 
-            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, internalProp.propID);
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, persistence);
             oneshotComplete = true;
         }
     }

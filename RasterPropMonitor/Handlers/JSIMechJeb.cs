@@ -14,127 +14,127 @@ namespace JSI
     {
         #region Reflection Definitions
         // MechJebCore
-        private static readonly Type mjMechJebCore_t;
+        private readonly Type mjMechJebCore_t;
         // MechJebCore.GetComputerModule(string)
-        private static readonly MethodInfo mjGetComputerModule;
+        private readonly MethodInfo mjGetComputerModule;
         // MechJebCore.target
-        private static readonly FieldInfo mjCoreTarget;
+        private readonly FieldInfo mjCoreTarget;
         // MechJebCore.node
-        private static readonly FieldInfo mjCoreNode;
+        private readonly FieldInfo mjCoreNode;
         // MechJebCore.attitude
-        private static readonly FieldInfo mjCoreAttitude;
+        private readonly FieldInfo mjCoreAttitude;
         // MechJebCore.vesselState
-        private static readonly FieldInfo mjCoreVesselState;
+        private readonly FieldInfo mjCoreVesselState;
 
         // AbsoluteVector
         // AbsoluteVector.latitude
-        private static readonly FieldInfo mjAbsoluteVectorLat;
+        private readonly FieldInfo mjAbsoluteVectorLat;
         // AbsoluteVector.longitude
-        private static readonly FieldInfo mjAbsoluteVectorLon;
+        private readonly FieldInfo mjAbsoluteVectorLon;
         // AbsoluteVector.(double)
-        private static readonly MethodInfo mjAbsoluteVectorToDouble;
+        private readonly MethodInfo mjAbsoluteVectorToDouble;
 
         // MechJebModuleLandingPredictions
         // MechJebModuleLandingPredictions.GetResult()
-        private static readonly MethodInfo mjPredictionsGetResult;
+        private readonly MethodInfo mjPredictionsGetResult;
 
         // ReentrySimulation.Result
         // ReentrySimulation.Result.outcome
-        private static readonly FieldInfo mjReentryOutcome;
+        private readonly FieldInfo mjReentryOutcome;
         // ReentrySimulation.Result.endPosition
-        private static readonly FieldInfo mjReentryEndPosition;
+        private readonly FieldInfo mjReentryEndPosition;
 
         // ComputerModule
         // ComputerModule.enabled (get)
-        private static readonly MethodInfo mjModuleEnabled;
-        private static readonly FieldInfo mjModuleUsers;
+        private readonly MethodInfo mjModuleEnabled;
+        private readonly FieldInfo mjModuleUsers;
 
         // MechJebModuleStageStats
         // MechJebModuleStageStats.RequestUpdate()
-        private static readonly MethodInfo mjRequestUpdate;
+        private readonly MethodInfo mjRequestUpdate;
         // MechJebModuleStageStats.vacStats[]
-        private static readonly FieldInfo mjVacStageStats;
+        private readonly FieldInfo mjVacStageStats;
         // MechJebModuleStageStats.atmoStats[]
-        private static readonly FieldInfo mjAtmStageStats;
+        private readonly FieldInfo mjAtmStageStats;
 
         // MechJebModuleTargetController
         // MechJebModuleTargetController.targetLatitude
-        private static readonly FieldInfo mjTargetLongitude;
+        private readonly FieldInfo mjTargetLongitude;
         // MechJebModuleTargetController.targetLatitude
-        private static readonly FieldInfo mjTargetLatitude;
+        private readonly FieldInfo mjTargetLatitude;
         // MechJebModuleTargetController.PositionTargetExists (get)
-        private static readonly MethodInfo mjGetPositionTargetExists;
+        private readonly MethodInfo mjGetPositionTargetExists;
         // MechJebModuleTargetController.NormalTargetExists (get)
-        private static readonly MethodInfo mjGetNormalTargetExists;
+        private readonly MethodInfo mjGetNormalTargetExists;
         // TargetOrbit (get)
-        private static readonly MethodInfo mjGetTargetOrbit;
+        private readonly MethodInfo mjGetTargetOrbit;
 
         // MechJebModuleSmartASS
         // MechJebModuleSmartASS.target
-        private static readonly FieldInfo mjSmartassTarget;
+        private readonly FieldInfo mjSmartassTarget;
         // MechJebModuleSmartASS.Engage
-        private static readonly MethodInfo mjSmartassEngage;
+        private readonly MethodInfo mjSmartassEngage;
         // MechJebModuleSmartASS.forceRol
-        private static readonly FieldInfo mjSmartassForceRol;
+        private readonly FieldInfo mjSmartassForceRol;
         // MechJebModuleSmartASS.rol
-        private static readonly FieldInfo mjSmartassRol;
+        private readonly FieldInfo mjSmartassRol;
         // MechJebModuleSmartASS.ModeTexts
-        public static readonly string[] ModeTexts;
+        public static string[] ModeTexts;
         // MechJebModuleSmartASS.TargetTexts
-        public static readonly string[] TargetTexts;
+        public static string[] TargetTexts;
 
         // MechJebModuleNodeExecutor
         // MechJebModuleNodeExecutor.ExecuteOneNode(obj controller)
-        private static readonly MethodInfo mjExecuteOneNode;
+        private readonly MethodInfo mjExecuteOneNode;
         // MechJebModuleNodeExecutor.Abort()
-        private static readonly MethodInfo mjAbortNode;
+        private readonly MethodInfo mjAbortNode;
 
         // FuelFlowSimulation.StageStats
         // FuelFlowSimulation.StageStats.deltaV
-        private static readonly FieldInfo mjStageDv;
+        private readonly FieldInfo mjStageDv;
         // FuelFlowSimulation.StageStats[].Length
-        private static readonly MethodInfo mjStageStatsGetLength;
+        private readonly MethodInfo mjStageStatsGetLength;
         // FuelFlowSimulation.StageStats[].Get
-        private static readonly MethodInfo mjStageStatsGetIndex;
+        private readonly MethodInfo mjStageStatsGetIndex;
 
         // UserPool
         // UserPool.Add
-        private static readonly MethodInfo mjAddUser;
+        private readonly MethodInfo mjAddUser;
         // UserPool.Remove
-        private static readonly MethodInfo mjRemoveUser;
+        private readonly MethodInfo mjRemoveUser;
         // UserPool.Contains
-        private static readonly MethodInfo mjContainsUser;
+        private readonly MethodInfo mjContainsUser;
 
         // VesselState
         // VesselState.TerminalVelocity
-        private static readonly MethodInfo mjTerminalVelocity;
+        private readonly MethodInfo mjTerminalVelocity;
 
         // MechJebModuleLandingAutopilot
         // MechJebModuleLandingAutopilot.LandAtPositionTarget
-        private static readonly MethodInfo mjLandAtPositionTarget;
+        private readonly MethodInfo mjLandAtPositionTarget;
         // MechJebModuleLandingAutopilot.LandUntargeted
-        private static readonly MethodInfo mjLandUntargeted;
+        private readonly MethodInfo mjLandUntargeted;
         // MechJebModuleLandingAutopilot.StopLanding
-        private static readonly MethodInfo mjStopLanding;
+        private readonly MethodInfo mjStopLanding;
 
         // EditableDouble
         // EditableDouble.val (get)
-        private static readonly MethodInfo mjSetEditableDouble;
+        private readonly MethodInfo mjSetEditableDouble;
         // EditableDouble.val (set)
-        private static readonly MethodInfo mjGetEditableDouble;
+        private readonly MethodInfo mjGetEditableDouble;
 
         // VesselExtensions.GetMasterMechJeb()
-        private static readonly MethodInfo mjGetMasterMechJeb;
+        private readonly MethodInfo mjGetMasterMechJeb;
         // VesselExtensions.PlaceManeuverNode()
-        private static readonly MethodInfo mjPlaceManeuverNode;
+        private readonly MethodInfo mjPlaceManeuverNode;
 
         // OrbitalManeuverCalculator
         // OrbitalManeuverCalculator.mjDeltaVAndTimeForHohmannTransfer
-        private static readonly MethodInfo mjDeltaVAndTimeForHohmannTransfer;
+        private readonly MethodInfo mjDeltaVAndTimeForHohmannTransfer;
         // OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection
-        private static readonly MethodInfo mjDeltaVAndTimeForInterplanetaryTransferEjection;
+        private readonly MethodInfo mjDeltaVAndTimeForInterplanetaryTransferEjection;
         // OrbitalManeuverCalculator.DeltaVToCircularize
-        private static readonly MethodInfo mjDeltaVToCircularize;
+        private readonly MethodInfo mjDeltaVToCircularize;
         #endregion
 
         #region MechJeb enum imports
@@ -191,7 +191,8 @@ namespace JSI
             CLOSEST_APPROACH = 9,
         }
         #endregion
-        private static readonly bool mjFound;
+        
+        private readonly bool mjFound;
 
         private bool landingCurrent, deltaVCurrent;
         private double deltaV, deltaVStage;
@@ -200,7 +201,8 @@ namespace JSI
 
         private object activeJeb = null;
 
-        static JSIMechJeb()
+        public JSIMechJeb(Vessel _vessel)
+            : base(_vessel)
         {
             try
             {
@@ -209,6 +211,10 @@ namespace JSI
                 if (loadedMechJebAssy == null)
                 {
                     mjFound = false;
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+                    }
                     return;
                 }
 
@@ -218,7 +224,12 @@ namespace JSI
                     .SingleOrDefault(t => t.FullName == "MuMech.MechJebCore");
                 if (mjMechJebCore_t == null)
                 {
-                    throw new NotImplementedException("mjMechJebCore_t");
+                    mjFound = false;
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+                    }
+                    return;
                 }
                 mjGetComputerModule = mjMechJebCore_t.GetMethod("GetComputerModule", new Type[] { typeof(string) });
                 if (mjGetComputerModule == null)
@@ -608,13 +619,14 @@ namespace JSI
             catch (Exception e)
             {
                 mjFound = false;
-                JUtil.LogMessage(null, "JSIMechJeb: Exception triggered when configuring: " + e);
+                JUtil.LogMessage(this, "Exception triggered when configuring: {0}", e);
             }
 
-            JUtil.LogMessage(null, "JSIMechJeb: mjFound is " + mjFound);
+            if (JUtil.debugLoggingEnabled)
+            {
+                JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+            }
         }
-
-        public JSIMechJeb(Vessel _vessel) : base(_vessel) { }
 
         private void InvalidateResults()
         {
@@ -643,7 +655,7 @@ namespace JSI
             if (mjFound)
             {
                 // Have we already updated activeJeb?
-                if (activeJeb == null)
+                if (activeJeb == null && vessel != null)
                 {
                     foreach (Part part in vessel.Parts)
                     {
@@ -1275,9 +1287,15 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonAscentGuidanceState()
         {
-            GetMasterMechJeb();
-            object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
-            return ModuleEnabled(ap);
+            if (GetMasterMechJeb())
+            {
+                object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
+                return ModuleEnabled(ap);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public void ButtonDockingGuidance(bool state)
@@ -1474,9 +1492,15 @@ namespace JSI
         /// <returns>true if on, false if not</returns>
         public bool ButtonLandingGuidanceState()
         {
-            GetMasterMechJeb();
-            object ap = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
-            return ModuleEnabled(ap);
+            if (GetMasterMechJeb())
+            {
+                object ap = GetComputerModule(activeJeb, "MechJebModuleLandingAutopilot");
+                return ModuleEnabled(ap);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         /// <summary>

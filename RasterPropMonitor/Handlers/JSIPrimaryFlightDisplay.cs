@@ -85,11 +85,6 @@ namespace JSI
         private bool startupComplete;
         private bool firstRenderComplete;
 
-        // Since most of the values we use for the PFD are also values we
-        // compute in the RPM computer, we should just query its values
-        // instead of having multiple props doing all of these maths.
-        private RasterPropMonitorComputer comp;
-
         private void ConfigureElements(float screenWidth, float screenHeight)
         {
             // How big is the nav ball, anyway?
@@ -201,6 +196,7 @@ namespace JSI
             // gimbal
             navBall.transform.rotation = (rotateNavBall * MirrorX(stockNavBall.relativeGymbal));
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             if (heading != null)
             {
                 heading.renderer.material.SetTextureOffset("_MainTex",
@@ -228,7 +224,7 @@ namespace JSI
             }
             else if (FlightUIController.speedDisplayMode == FlightUIController.SpeedDisplayModes.Surface)
             {
-                Vector3 velocityVesselSurfaceUnit = comp.VelocityVesselSurface.normalized;
+                Vector3 velocityVesselSurfaceUnit = vessel.srf_velocity.normalized;
                 MoveMarker(markerPrograde, velocityVesselSurfaceUnit, gymbal);
                 MoveMarker(markerRetrograde, -velocityVesselSurfaceUnit, gymbal);
             }
@@ -430,10 +426,6 @@ namespace JSI
                 }
 
                 navBall.renderer.material.SetFloat("_Opacity", ballOpacity);
-
-                // use the RPM comp's centralized database so we're not 
-                // repeatedly doing computation.
-                comp = RasterPropMonitorComputer.Instantiate(this.part);
 
                 startupComplete = true;
             }
