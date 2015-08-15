@@ -56,6 +56,10 @@ namespace JSI
         private Color progradeColorValue = new Color(0.84f, 0.98f, 0);
         [KSPField]
         public float iconPixelSize = 64f;
+        [KSPField]
+        public string headingBarProgradeTexture = string.Empty;
+        [KSPField]
+        public string ladderProgradeTexture = string.Empty;
 
         // Vertical bars
         [KSPField]
@@ -140,10 +144,25 @@ namespace JSI
                     {
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
-                        progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        Rect texCoord;
+                        if (string.IsNullOrEmpty(ladderProgradeTexture))
+                        {
+                            progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                            texCoord = GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE);
+                        }
+                        else
+                        {
+                            Texture2D progradeTexture = GameDatabase.Instance.GetTexture(ladderProgradeTexture.EnforceSlashes(), false);
+                            if (progradeTexture == null)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed to find ladder prograde texture \"{0}\".", ladderProgradeTexture);
+                            }
+                            progradeIconMaterial.mainTexture = progradeTexture;
+                            texCoord = new Rect(0.0f, 0.0f, 1.0f, 1.0f);
+                        }
                         progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
-                        progradeLadderIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeLadderIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), texCoord, drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
@@ -173,12 +192,27 @@ namespace JSI
                     {
                         Material progradeIconMaterial = new Material(displayShader);
                         progradeIconMaterial.color = Color.white;
-                        progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                        Rect texCoord;
+                        if (string.IsNullOrEmpty(headingBarProgradeTexture))
+                        {
+                            progradeIconMaterial.mainTexture = JUtil.GetGizmoTexture();
+                            texCoord = GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE);
+                        }
+                        else
+                        {
+                            Texture2D progradeTexture = GameDatabase.Instance.GetTexture(headingBarProgradeTexture.EnforceSlashes(), false);
+                            if (progradeTexture == null)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed to find heading bar prograde texture \"{0}\".", headingBarProgradeTexture);
+                            }
+                            progradeIconMaterial.mainTexture = progradeTexture;
+                            texCoord = new Rect(0.0f, 0.0f, 1.0f, 1.0f);
+                        }
                         progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeHeadingIconOrigin = headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth);
 
-                        progradeHeadingIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), GizmoIcons.GetIconLocation(GizmoIcons.IconType.PROGRADE), drawingLayer);
+                        progradeHeadingIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), texCoord, drawingLayer);
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
                         progradeHeadingIcon.renderer.material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;

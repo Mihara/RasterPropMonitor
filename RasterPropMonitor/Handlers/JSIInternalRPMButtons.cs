@@ -181,12 +181,74 @@ namespace JSI
         }
 
         /// <summary>
+        /// Allows enabling/disabling electric generators (and fuel cells)
+        /// </summary>
+        /// <param name="state"></param>
+        public void ButtonEnableElectricGenerator(bool state)
+        {
+            if (vessel != null)
+            {
+                foreach (PartModule pm in ElectricGenerators(vessel))
+                {
+                    if (pm is ModuleGenerator)
+                    {
+                        ModuleGenerator gen = pm as ModuleGenerator;
+                        if (state)
+                        {
+                            gen.Activate();
+                        }
+                        else
+                        {
+                            gen.Shutdown();
+                        }
+                    }
+                    else if(pm is ModuleResourceConverter)
+                    {
+                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
+                        if (state)
+                        {
+                            gen.StartResourceConverter();
+                        }
+                        else
+                        {
+                            gen.StopResourceConverter();
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns whether any generators or fuel cells are active.
+        /// </summary>
+        /// <returns></returns>
+        public bool ButtonEnableElectricGeneratorState()
+        {
+            if (vessel != null)
+            {
+                foreach (PartModule pm in ElectricGenerators(vessel))
+                {
+                    if (pm is ModuleGenerator && (pm as ModuleGenerator).generatorIsActive == true)
+                    {
+                        return true;
+                    }
+                    else if (pm is ModuleResourceConverter && (pm as ModuleResourceConverter).IsActivated == true)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Toggle Precision Input mode
         /// </summary>
         /// <param name="state"></param>
         public void ButtonPrecisionMode(bool state)
         {
-            if(vessel != null)
+            if (vessel != null)
             {
                 FlightInputHandler.fetch.precisionMode = state;
 
@@ -550,6 +612,52 @@ namespace JSI
         public bool ButtonFullThrottleState()
         {
             return ((vessel != null) && vessel.ctrlState.mainThrottle > 0.99f);
+        }
+
+        /// <summary>
+        /// Iterate over the modules in the craft and return all of them that
+        /// implement a ModuleGenerator or ModuleResourceConverter that generates 
+        /// electricity that can also be shut down.
+        /// </summary>
+        /// <param name="vessel"></param>
+        /// <returns></returns>
+        private static System.Collections.Generic.IEnumerable<PartModule> ElectricGenerators(Vessel vessel)
+        {
+            foreach (Part part in vessel.Parts)
+            {
+                foreach (PartModule pm in part.Modules)
+                {
+                    if (pm is ModuleGenerator)
+                    {
+                        ModuleGenerator gen = pm as ModuleGenerator;
+                        if (gen.isAlwaysActive == false)
+                        {
+                            for (int i = 0; i < gen.outputList.Count; ++i)
+                            {
+                                if (gen.outputList[i].name == "ElectricCharge")
+                                {
+                                    yield return pm;
+                                }
+                            }
+                        }
+                    }
+                    else if (pm is ModuleResourceConverter)
+                    {
+                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
+                        if (gen.AlwaysActive == false)
+                        {
+                            ConversionRecipe recipe = gen.Recipe;
+                            for (int i = 0; i < recipe.Outputs.Count; ++i)
+                            {
+                                if (recipe.Outputs[i].ResourceName == "ElectricCharge")
+                                {
+                                    yield return pm;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
