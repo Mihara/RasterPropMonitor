@@ -2622,7 +2622,7 @@ namespace JSI
                     return (double)heatShieldTemperature + KelvinToCelsius;
                 case "HEATSHIELDTEMPERATUREKELVIN":
                     return heatShieldTemperature;
-                case "HEATSHIELDFLUX":
+                case "HEATSHIELDTEMPERATUREFLUX":
                     return heatShieldFlux;
                 case "SLOPEANGLE":
                     return slopeAngle;
