@@ -2213,6 +2213,24 @@ namespace JSI
                     return GetRelativePitch(normalPlus);
                 case "PITCHNORMALMINUS":
                     return GetRelativePitch(-normalPlus);
+                case "PITCHNODE":
+                    if (node != null)
+                    {
+                        return GetRelativePitch(node.GetBurnVector(vessel.orbit).normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
+                case "PITCHTARGET":
+                    if (target != null)
+                    {
+                        return GetRelativePitch(targetSeparation.normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
                 case "YAWPROGRADE":
                     return GetRelativeYaw(prograde);
                 case "YAWRETROGRADE":
@@ -2225,6 +2243,24 @@ namespace JSI
                     return GetRelativeYaw(normalPlus);
                 case "YAWNORMALMINUS":
                     return GetRelativeYaw(-normalPlus);
+                case "YAWNODE":
+                    if (node != null)
+                    {
+                        return GetRelativeYaw(node.GetBurnVector(vessel.orbit).normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
+                case "YAWTARGET":
+                    if (target != null)
+                    {
+                        return GetRelativeYaw(targetSeparation.normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
