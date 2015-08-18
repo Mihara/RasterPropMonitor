@@ -208,7 +208,7 @@ namespace JSI
         
         internal string GetStoredString(int index)
         {
-            if(index <= storedStringsArray.Length)
+            if (storedStringsArray != null && index <= storedStringsArray.Length)
             {
                 return storedStringsArray[index];
             }
