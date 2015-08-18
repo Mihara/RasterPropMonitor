@@ -1687,7 +1687,7 @@ namespace JSI
                 {
                     string substr = input.Substring("PROP".Length + 1);
 
-                    if (persistence.HasPropVar(substr))
+                    if (persistence != null && persistence.HasPropVar(substr))
                     {
                         // Can't cache - multiple props could call in here.
                         cacheable = false;
@@ -1703,7 +1703,7 @@ namespace JSI
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
-                    if (persistence.HasVar(substr))
+                    if (persistence != null && persistence.HasVar(substr))
                     {
                         // MOARdV TODO: Can this be cacheable?  Should only have one
                         // active part at a time, so I think it's safe.
@@ -1734,7 +1734,7 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (persistence != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
                         return persistence.GetStoredString(storedStringNumber);
                     }
@@ -2209,6 +2209,24 @@ namespace JSI
                     return GetRelativePitch(normalPlus);
                 case "PITCHNORMALMINUS":
                     return GetRelativePitch(-normalPlus);
+                case "PITCHNODE":
+                    if (node != null)
+                    {
+                        return GetRelativePitch(node.GetBurnVector(vessel.orbit).normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
+                case "PITCHTARGET":
+                    if (target != null)
+                    {
+                        return GetRelativePitch(targetSeparation.normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
                 case "YAWPROGRADE":
                     return GetRelativeYaw(prograde);
                 case "YAWRETROGRADE":
@@ -2221,6 +2239,24 @@ namespace JSI
                     return GetRelativeYaw(normalPlus);
                 case "YAWNORMALMINUS":
                     return GetRelativeYaw(-normalPlus);
+                case "YAWNODE":
+                    if (node != null)
+                    {
+                        return GetRelativeYaw(node.GetBurnVector(vessel.orbit).normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
+                case "YAWTARGET":
+                    if (target != null)
+                    {
+                        return GetRelativeYaw(targetSeparation.normalized);
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
 
                 // Targeting. Probably the most finicky bit right now.
                 case "TARGETNAME":
@@ -2618,7 +2654,7 @@ namespace JSI
                     return (double)heatShieldTemperature + KelvinToCelsius;
                 case "HEATSHIELDTEMPERATUREKELVIN":
                     return heatShieldTemperature;
-                case "HEATSHIELDFLUX":
+                case "HEATSHIELDTEMPERATUREFLUX":
                     return heatShieldFlux;
                 case "SLOPEANGLE":
                     return slopeAngle;
