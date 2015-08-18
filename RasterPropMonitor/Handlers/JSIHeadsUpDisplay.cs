@@ -287,10 +287,8 @@ namespace JSI
 
             if (progradeLadderIcon != null)
             {
-                Vector3 velocityVesselSurfaceUnit = vessel.srf_velocity.normalized;
-                Vector3 tmpVec = comp.Up * Vector3.Dot(comp.Up, velocityVesselSurfaceUnit) + comp.SurfaceForward * Vector3.Dot(comp.SurfaceForward, velocityVesselSurfaceUnit);
-                float AoA = Vector3.Dot(tmpVec.normalized, comp.Up);
-                AoA = Mathf.Rad2Deg * Mathf.Asin(AoA);
+                float AoA = comp.ProcessVariable("PITCH", persistence).MassageToFloat() - comp.ProcessVariable("ANGLEOFATTACK", persistence).MassageToFloat();
+                AoA = (float)JUtil.ClampDegrees180(AoA);
                 if (float.IsNaN(AoA))
                 {
                     AoA = 0.0f;
@@ -343,8 +341,7 @@ namespace JSI
 
             if (progradeHeadingIcon != null)
             {
-                Vector3 velocityVesselSurfaceUnit = vessel.srf_velocity.normalized;
-                float slipAngle = velocityVesselSurfaceUnit.AngleInPlane(comp.Up, comp.Forward);
+                float slipAngle = comp.ProcessVariable("SIDESLIP", persistence).MassageToFloat();
                 float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
                 float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
