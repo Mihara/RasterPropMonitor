@@ -1687,7 +1687,7 @@ namespace JSI
                 {
                     string substr = input.Substring("PROP".Length + 1);
 
-                    if (persistence.HasPropVar(substr))
+                    if (persistence != null && persistence.HasPropVar(substr))
                     {
                         // Can't cache - multiple props could call in here.
                         cacheable = false;
@@ -1703,7 +1703,7 @@ namespace JSI
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
-                    if (persistence.HasVar(substr))
+                    if (persistence != null && persistence.HasVar(substr))
                     {
                         // MOARdV TODO: Can this be cacheable?  Should only have one
                         // active part at a time, so I think it's safe.
@@ -1734,7 +1734,7 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (persistence != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
                         return persistence.GetStoredString(storedStringNumber);
                     }
