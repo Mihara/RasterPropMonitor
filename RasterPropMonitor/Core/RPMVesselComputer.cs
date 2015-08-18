@@ -572,7 +572,7 @@ namespace JSI
         public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
         {
             Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
-            if (returnValue == null)
+            if (returnValue == null && internalProp != null)
             {
                 returnValue = JUtil.GetMethod(packedMethod, internalProp, delegateType);
             }
@@ -1632,8 +1632,7 @@ namespace JSI
                                 }
                             }
                         }
-
-                        if (propToUse == null && persistence.prop != null)
+                        if (propToUse == null && persistence != null && persistence.prop != null)
                         {
                             //if (part.internalModel.props.Count == 0)
                             //{
@@ -1652,14 +1651,6 @@ namespace JSI
                             //}
                         }
 
-                        if (propToUse == null)
-                        {
-                            // With the refactoring, we can hit this code
-                            JUtil.LogErrorMessage(this, "Wait - propToUse is still null?");
-                            //pluginBoolVariables.Add(tokens[1], null);
-                            return -1;
-                        }
-
                         Func<bool> pluginCall = (Func<bool>)GetMethod(tokens[1], propToUse, typeof(Func<bool>));
                         if (pluginCall == null)
                         {
@@ -1673,7 +1664,12 @@ namespace JSI
                             }
                             else
                             {
-                                pluginBoolVariables.Add(tokens[1], null);
+                                // Only register the plugin variable as unavailable if we were called with persistence
+                                if (propToUse == null)
+                                {
+                                    JUtil.LogErrorMessage(this, "Tried to look for method with propToUse still null?");
+                                    pluginBoolVariables.Add(tokens[1], null);
+                                }
                                 return -1;
                             }
                         }
