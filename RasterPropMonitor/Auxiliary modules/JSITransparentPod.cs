@@ -267,14 +267,21 @@ namespace JSI
             // Only the pods in the active vessel should be doing it since the list refers to them.
             if (vessel.isActiveVessel)
             {
-                // First, every pod should check through the list of portaits and remove everyone who is from some other vessel.
+                // First, every pod should check through the list of portaits and remove everyone who is from some other vessel, or NO vessel.
                 var stowaways = new List<Kerbal>();
                 foreach (Kerbal thatKerbal in KerbalGUIManager.ActiveCrew)
                 {
-                    if (thatKerbal.InVessel != vessel)
+                    if (thatKerbal.InPart == null)
                     {
                         stowaways.Add(thatKerbal);
                     }
+                    else
+                    {                                            
+                        if (thatKerbal.InVessel != vessel)
+                        {
+                            stowaways.Add(thatKerbal);
+                        }
+                    }                    
                 }
                 foreach (Kerbal thatKerbal in stowaways)
                 {
@@ -285,11 +292,14 @@ namespace JSI
                 {
                     if (seat.kerbalRef != null && !KerbalGUIManager.ActiveCrew.Contains(seat.kerbalRef))
                     {
-                        KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
+                        if (seat.kerbalRef.protoCrewMember.rosterStatus != ProtoCrewMember.RosterStatus.Dead || seat.kerbalRef.protoCrewMember.type != ProtoCrewMember.KerbalType.Unowned)
+                        {
+                            KerbalGUIManager.AddActiveCrew(seat.kerbalRef);
+                        }                        
                     }
                 }
             }
-
+            
             // So we do have an internal model, right?
             if (part.internalModel != null)
             {
@@ -324,13 +334,13 @@ namespace JSI
                 {
                     // Otherwise, we're out of IVA, so we can proceed with setting up the pods for exterior view.
                     JUtil.SetMainCameraCullingMaskForIVA(true);
-
+                    
                     // Make the internal model visible...
                     part.internalModel.SetVisible(true);
-
+                    
                     // And for a good measure we make sure the shader change has been applied.
                     SetShaders(true);
-
+                    
                     // Now we attach the restored IVA directly into the pod at zero local coordinates and rotate it,
                     // so that it shows up on the main outer view camera in the correct location.
                     part.internalModel.transform.parent = part.transform;
