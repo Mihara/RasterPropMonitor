@@ -195,6 +195,24 @@ namespace JSI
             }
         }
 
+        // Helper to get sideslip for the HUD
+        internal float Sideslip
+        {
+            get
+            {
+                return (float)SideSlip();
+            }
+        }
+        // Helper to get the AoA in absolute terms (instead of relative to the
+        // nose) for the HUD.
+        internal float AbsoluteAoA
+        {
+            get
+            {
+                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - (float)AngleOfAttack();
+            }
+        }
+
         // Tracked vessel variables
         private float actualAverageIsp;
         private double altitudeASL;
