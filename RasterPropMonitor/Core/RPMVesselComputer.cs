@@ -37,7 +37,7 @@ namespace JSI
          * vessel to enter flight, and released by the last vessel before a
          * scene change.
          */
-        private static Dictionary<Vessel, RPMVesselComputer> instances;
+        private static Dictionary<Guid, RPMVesselComputer> instances;
 
         private static Dictionary<string, CustomVariable> customVariables;
         private static List<string> knownLoadedAssemblies;
@@ -297,17 +297,23 @@ namespace JSI
         {
             if (instances == null)
             {
-                JUtil.LogErrorMessage(null, "Computer.Instance called with uninitialized insances.");
-                return null;
-            }
-            if (!instances.ContainsKey(v))
-            {
-                JUtil.LogErrorMessage(null, "Computer.Instance called with unrecognized vessel {0}.", v.vesselName);
-                throw new Exception("Computer.Instance called with an unrecognized vessel");
-                //return null;
+                JUtil.LogErrorMessage(null, "RPMVesselComputer.Instance called with uninitialized instances.");
+                throw new Exception("RPMVesselComputer.Instance called with uninitialized instances.");
             }
 
-            return instances[v];
+            if (!instances.ContainsKey(v.id))
+            {
+                JUtil.LogMessage(null, "RPMVesselComputer.Instance called with unrecognized vessel {0} ({1}).", v.vesselName, v.id);
+                RPMVesselComputer comp = v.GetComponent<RPMVesselComputer>();
+                if (comp == null)
+                {
+                    throw new Exception("RPMVesselComputer.Instance called with an unrecognized vessel, and I can't find one on the vessel.");
+                }
+
+                instances.Add(v.id, comp);
+            }
+
+            return instances[v.id];
         }
 
         #region VesselModule Overrides
@@ -316,7 +322,7 @@ namespace JSI
             if (instances == null)
             {
                 JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
-                instances = new Dictionary<Vessel, RPMVesselComputer>();
+                instances = new Dictionary<Guid, RPMVesselComputer>();
             }
             if (protractor == null)
             {
@@ -325,18 +331,21 @@ namespace JSI
             // MOARdV TODO: Only add this instance to the library if there is
             // crew capacity.  Probes should not apply.  Except, what about docking?
             vessel = GetComponent<Vessel>();
-            if(vessel == null)
+            if (vessel == null)
             {
                 throw new Exception("RPMVesselComputer: GetComponent<Vessel>() returned null");
             }
 
-            if (instances.ContainsKey(vessel))
+            if (instances.ContainsKey(vessel.id))
             {
-                JUtil.LogErrorMessage(this, "Awake for vessel {0}, but it's already in the dictionary.", (vessel == null) ? "null" : vessel.vesselName);
+                JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
             }
-            instances.Add(vessel, this);
+            else
+            {
+                instances.Add(vessel.id, this);
+                JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
+            }
 
-            JUtil.LogMessage(this, "Awake for vessel {0}.", (vessel == null) ? "null" : vessel.vesselName);
             GameEvents.onGameSceneLoadRequested.Add(LoadSceneCallback);
             GameEvents.onVesselChange.Add(VesselChangeCallback);
             GameEvents.onStageActivate.Add(StageActivateCallback);
@@ -424,21 +433,21 @@ namespace JSI
                 }
             }
 
-            if(installedModules == null)
+            if (installedModules == null)
             {
-                 installedModules = new List<IJSIModule>();
+                installedModules = new List<IJSIModule>();
 
-                 installedModules.Add(new JSIParachute(vessel));
-                 installedModules.Add(new JSIMechJeb(vessel));
-                 installedModules.Add(new JSIInternalRPMButtons(vessel));
-                 installedModules.Add(new JSIGimbal(vessel));
-                 installedModules.Add(new JSIFAR(vessel));
+                installedModules.Add(new JSIParachute(vessel));
+                installedModules.Add(new JSIMechJeb(vessel));
+                installedModules.Add(new JSIInternalRPMButtons(vessel));
+                installedModules.Add(new JSIGimbal(vessel));
+                installedModules.Add(new JSIFAR(vessel));
             }
         }
 
         public void Start()
         {
-            JUtil.LogMessage(this, "Start for vessel {0}", (vessel == null) ? "null" : vessel.vesselName);
+            JUtil.LogMessage(this, "Start for vessel {0} ({1})", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
             navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
             if (standardAtmosphere < 0.0)
             {
@@ -461,20 +470,20 @@ namespace JSI
 
         public void OnDestroy()
         {
-            JUtil.LogMessage(this, "OnDestroy for vessel {0}", (vessel == null) ? "null" : vessel.vesselName);
+            JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
             GameEvents.onStageActivate.Remove(StageActivateCallback);
             GameEvents.onUndock.Remove(UndockCallback);
             GameEvents.onVesselWasModified.Remove(VesselModifiedCallback);
 
-            if (!instances.ContainsKey(vessel))
+            if (!instances.ContainsKey(vessel.id))
             {
-                JUtil.LogErrorMessage(this, "OnDestroy for vessel {0}, but it's not in the dictionary.", (vessel == null) ? "null" : vessel.vesselName);
+                JUtil.LogErrorMessage(this, "OnDestroy for vessel {0}, but it's not in the dictionary.", (vessel == null) ? "(no name)" : vessel.vesselName);
             }
             else
             {
-                instances.Remove(vessel);
+                instances.Remove(vessel.id);
             }
 
             resultCache.Clear();
@@ -1490,7 +1499,7 @@ namespace JSI
             }
         }
         #endregion
-        
+
         //--- The guts of the variable processor
         #region VariableToObject
         /// <summary>
@@ -2965,7 +2974,7 @@ namespace JSI
 
         private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
         {
-            if(action.from.vessel == vessel || action.to.vessel == vessel)
+            if (action.from.vessel == vessel || action.to.vessel == vessel)
             {
                 //JUtil.LogMessage(this, "onPartCouple(), I am {0} ({1} and {2} are docking)", vessel.vesselName, action.from.vessel.vesselName, action.to.vessel.vesselName);
                 timeToUpdate = true;
