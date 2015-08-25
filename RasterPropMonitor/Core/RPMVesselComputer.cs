@@ -335,15 +335,14 @@ namespace JSI
             {
                 throw new Exception("RPMVesselComputer: GetComponent<Vessel>() returned null");
             }
-
             if (instances.ContainsKey(vessel.id))
             {
-                JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
+                JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
             else
             {
                 instances.Add(vessel.id, this);
-                JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
+                JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
 
             GameEvents.onGameSceneLoadRequested.Add(LoadSceneCallback);
@@ -447,7 +446,7 @@ namespace JSI
 
         public void Start()
         {
-            JUtil.LogMessage(this, "Start for vessel {0} ({1})", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
+            JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
             if (standardAtmosphere < 0.0)
             {
@@ -470,7 +469,7 @@ namespace JSI
 
         public void OnDestroy()
         {
-            JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (vessel == null) ? "(no name)" : vessel.vesselName, vessel.id);
+            JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
             GameEvents.onStageActivate.Remove(StageActivateCallback);
@@ -479,7 +478,7 @@ namespace JSI
 
             if (!instances.ContainsKey(vessel.id))
             {
-                JUtil.LogErrorMessage(this, "OnDestroy for vessel {0}, but it's not in the dictionary.", (vessel == null) ? "(no name)" : vessel.vesselName);
+                JUtil.LogErrorMessage(this, "OnDestroy for vessel {0}, but it's not in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName);
             }
             else
             {
