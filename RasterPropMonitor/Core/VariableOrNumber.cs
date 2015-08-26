@@ -7,7 +7,7 @@ namespace JSI
         private readonly string variableName;
         private System.Func<bool> stateFunction;
 
-        public VariableOrNumber(string input, object caller)
+        public VariableOrNumber(string input)
         {
             float realValue;
             if (float.TryParse(input, out realValue))
@@ -20,12 +20,12 @@ namespace JSI
             }
         }
 
-        public VariableOrNumber(float input, object caller)
-        {
-            value = input;
-        }
+        //public VariableOrNumber(float input)
+        //{
+        //    value = input;
+        //}
 
-        public VariableOrNumber(System.Func<bool> stateFunction, object caller)
+        public VariableOrNumber(System.Func<bool> stateFunction)
         {
             this.stateFunction = stateFunction;
         }
@@ -52,8 +52,8 @@ namespace JSI
                 {
                     JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
                     warningMade = true;
-                    return false;
                 }
+                return false;
             }
             return true;
         }

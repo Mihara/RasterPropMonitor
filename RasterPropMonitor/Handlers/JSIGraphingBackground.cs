@@ -234,8 +234,8 @@ namespace JSI
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
             }
             string[] token = node.GetValue("scale").Split(',');
-            scale[0] = new VariableOrNumber(token[0].Trim(), this);
-            scale[1] = new VariableOrNumber(token[1].Trim(), this);
+            scale[0] = new VariableOrNumber(token[0].Trim());
+            scale[1] = new VariableOrNumber(token[1].Trim());
             variableName = node.GetValue("variableName").Trim();
 
             if (node.HasValue("reverse"))

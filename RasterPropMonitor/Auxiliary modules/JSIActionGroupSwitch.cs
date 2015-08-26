@@ -277,12 +277,12 @@ namespace JSI
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {
-                        masterVariable = new VariableOrNumber(masterVariableName, this);
+                        masterVariable = new VariableOrNumber(masterVariableName);
                         string[] range = masterVariableRange.Split(',');
                         if (range.Length == 2)
                         {
-                            masterRange[0] = new VariableOrNumber(range[0], this);
-                            masterRange[1] = new VariableOrNumber(range[1], this);
+                            masterRange[0] = new VariableOrNumber(range[0]);
+                            masterRange[1] = new VariableOrNumber(range[1]);
                         }
                         else
                         {

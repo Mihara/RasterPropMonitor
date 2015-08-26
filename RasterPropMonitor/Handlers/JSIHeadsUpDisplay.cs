@@ -509,7 +509,7 @@ namespace JSI
             {
                 throw new Exception("VerticalBar " + node.GetValue("name") + " missing variableName");
             }
-            variable = new VariableOrNumber(node.GetValue("variableName"), this);
+            variable = new VariableOrNumber(node.GetValue("variableName"));
 
             if (!node.HasValue("texture"))
             {

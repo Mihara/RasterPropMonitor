@@ -73,9 +73,9 @@ namespace JSI
             {
 
                 //comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                scaleEnds[0] = new VariableOrNumber(tokens[0], this);
-                scaleEnds[1] = new VariableOrNumber(tokens[1], this);
-                scaleEnds[2] = new VariableOrNumber(variableName, this);
+                scaleEnds[0] = new VariableOrNumber(tokens[0]);
+                scaleEnds[1] = new VariableOrNumber(tokens[1]);
+                scaleEnds[2] = new VariableOrNumber(variableName);
 
                 textIn = JUtil.LoadPageDefinition(definitionIn);
                 textOut = JUtil.LoadPageDefinition(definitionOut);
