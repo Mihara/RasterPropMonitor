@@ -127,7 +127,29 @@ namespace JSI
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
             bool evaluation = sourceVariables[0].Evaluate(comp, persistence);
 
-            for (int i = 1; i < sourceVariables.Count; ++i)
+            // Use an optimization on evaluation to speed things up
+            bool earlyExit;
+            switch(op)
+            {
+                case Operator.AND:
+                case Operator.NAND:
+                    earlyExit = !evaluation;
+                    break;
+                case Operator.OR:
+                case Operator.NOR:
+                    earlyExit = evaluation;
+                    break;
+                case Operator.XOR:
+                    earlyExit = false;
+                    break;
+                case Operator.NONE:
+                    earlyExit = true;
+                    break;
+                default:
+                    throw new ArgumentException("CustomVariable.Evaluate was called with an invalid operator?");
+            }
+
+            for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
                 bool nextValue = sourceVariables[i].Evaluate(comp, persistence);
 
@@ -136,16 +158,16 @@ namespace JSI
                     case Operator.AND:
                     case Operator.NAND:
                         evaluation = (evaluation) && (nextValue);
+                        earlyExit = !evaluation;
                         break;
                     case Operator.OR:
                     case Operator.NOR:
                         evaluation = (evaluation) || (nextValue);
+                        earlyExit = evaluation;
                         break;
                     case Operator.XOR:
                         evaluation = (evaluation) ^ (nextValue);
                         break;
-                    default:
-                        throw new ArgumentException("CustomVariable.Evaluate was called with an invalid operator?");
                     case Operator.NONE:
                         break;
                 }
