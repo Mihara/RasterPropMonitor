@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using UnityEngine;
 
 namespace JSI
@@ -70,11 +90,9 @@ namespace JSI
 
             if (tokens.Length == 2)
             {
-
-                //comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                scaleEnds[0] = new VariableOrNumber(tokens[0]);
-                scaleEnds[1] = new VariableOrNumber(tokens[1]);
-                scaleEnds[2] = new VariableOrNumber(variableName);
+                scaleEnds[0] = VariableOrNumber.Instantiate(tokens[0]);
+                scaleEnds[1] = VariableOrNumber.Instantiate(tokens[1]);
+                scaleEnds[2] = VariableOrNumber.Instantiate(variableName);
 
                 textIn = JUtil.LoadPageDefinition(definitionIn);
                 textOut = JUtil.LoadPageDefinition(definitionOut);

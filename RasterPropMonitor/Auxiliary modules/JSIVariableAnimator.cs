@@ -224,7 +224,7 @@ namespace JSI
             {
                 string variableName;
                 variableName = node.GetValue("variableName").Trim();
-                scaleEnds[2] = new VariableOrNumber(variableName);
+                scaleEnds[2] = VariableOrNumber.Instantiate(variableName);
             }
             else if (node.HasValue("stateMethod"))
             {
@@ -233,7 +233,7 @@ namespace JSI
                 Func<bool> stateFunction = (Func<bool>)comp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
-                    scaleEnds[2] = new VariableOrNumber("PLUGIN_" + stateMethod);
+                    scaleEnds[2] = VariableOrNumber.Instantiate("PLUGIN_" + stateMethod);
                 }
                 else
                 {
@@ -245,8 +245,8 @@ namespace JSI
                 throw new ArgumentException("Missing variable name.");
             }
 
-            scaleEnds[0] = new VariableOrNumber(tokens[0]);
-            scaleEnds[1] = new VariableOrNumber(tokens[1]);
+            scaleEnds[0] = VariableOrNumber.Instantiate(tokens[0]);
+            scaleEnds[1] = VariableOrNumber.Instantiate(tokens[1]);
 
             // That takes care of the scale, now what to do about that scale:
 

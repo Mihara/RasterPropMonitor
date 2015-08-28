@@ -18,15 +18,54 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using System.Collections.Generic;
 namespace JSI
 {
     public class VariableOrNumber
     {
-        public readonly string variableName;
+        private readonly string variableName;
         private float value;
         private bool warningMade;
 
-        public VariableOrNumber(string input)
+        static private Dictionary<string, VariableOrNumber> vars = new Dictionary<string, VariableOrNumber>();
+
+        /// <summary>
+        /// Create a new VariableOrNumber, or return an existing one that
+        /// tracks the same value.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public static VariableOrNumber Instantiate(string input)
+        {
+            string varName = input.Trim();
+            float floatval;
+            if(float.TryParse(varName, out floatval))
+            {
+                // If it's a numeric value, let's canonicalize it using
+                // ToString, so we don't have duplicates that evaluate to the
+                // same value (eg, 1.0, 1, 1.00, etc).
+                varName = floatval.ToString();
+            }
+
+            if(!vars.ContainsKey(varName))
+            {
+                VariableOrNumber VoN = new VariableOrNumber(varName);
+                vars.Add(varName, VoN);
+                JUtil.LogMessage(null, "Adding VoN {0}", varName);
+            }
+            return vars[varName];
+        }
+
+        /// <summary>
+        /// Used by RPMVesselComputer to signal that we no longer need the
+        /// cache of variables.
+        /// </summary>
+        internal static void Clear()
+        {
+            vars.Clear();
+        }
+
+        private VariableOrNumber(string input)
         {
             float realValue;
             if (float.TryParse(input, out realValue))
@@ -39,6 +78,12 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Evaluate the variable, returning it in destination.
+        /// </summary>
+        /// <param name="destination"></param>
+        /// <param name="comp"></param>
+        /// <returns></returns>
         public bool Get(out float destination, RPMVesselComputer comp)
         {
             if (!string.IsNullOrEmpty(variableName))
@@ -68,45 +113,15 @@ namespace JSI
     /// </summary>
     public class VariableOrNumberRange
     {
-        private readonly string sourceValueName;
-        private readonly string lowerBoundName;
-        private readonly string upperBoundName;
-
-        private readonly float sourceValue;
-        private readonly float lowerBound;
-        private readonly float upperBound;
-
-        private bool warningMade;
+        VariableOrNumber sourceValue;
+        VariableOrNumber lowerBound;
+        VariableOrNumber upperBound;
 
         public VariableOrNumberRange(string sourceVariable, string range1, string range2)
         {
-            float realValue;
-            if (float.TryParse(sourceVariable, out realValue))
-            {
-                sourceValue = realValue;
-            }
-            else
-            {
-                sourceValueName = sourceVariable.Trim();
-            }
-
-            if (float.TryParse(range1, out realValue))
-            {
-                lowerBound = realValue;
-            }
-            else
-            {
-                lowerBoundName = range1.Trim();
-            }
-
-            if (float.TryParse(range2, out realValue))
-            {
-                upperBound = realValue;
-            }
-            else
-            {
-                upperBoundName = range2.Trim();
-            }
+            sourceValue = VariableOrNumber.Instantiate(sourceVariable);
+            lowerBound = VariableOrNumber.Instantiate(range1);
+            upperBound = VariableOrNumber.Instantiate(range2);
         }
 
         /// <summary>
@@ -121,64 +136,11 @@ namespace JSI
             float value;
             float low, high;
 
-            if (!string.IsNullOrEmpty(sourceValueName))
+            if(!(sourceValue.Get(out value, comp) && lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
             {
-                value = comp.ProcessVariable(sourceValueName).MassageToFloat();
-            }
-            else
-            {
-                value = sourceValue;
-            }
-            if (float.IsNaN(value) || float.IsInfinity(value))
-            {
-                if (!warningMade)
-                {
-                    JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", sourceValueName);
-                    warningMade = true;
-                }
-
                 return false;
             }
-
-            if (!string.IsNullOrEmpty(lowerBoundName))
-            {
-                low = comp.ProcessVariable(lowerBoundName).MassageToFloat();
-                if (float.IsNaN(low) || float.IsInfinity(low))
-                {
-                    if (!warningMade)
-                    {
-                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", lowerBoundName);
-                        warningMade = true;
-                    }
-
-                    return false;
-                }
-            }
-            else
-            {
-                low = lowerBound;
-            }
-
-            if (!string.IsNullOrEmpty(upperBoundName))
-            {
-                high = comp.ProcessVariable(upperBoundName).MassageToFloat();
-                if (float.IsNaN(high) || float.IsInfinity(high))
-                {
-                    if (!warningMade)
-                    {
-                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", upperBoundName);
-                        warningMade = true;
-                    }
-
-                    return false;
-                }
-            }
-            else
-            {
-                high = upperBound;
-            }
-
-            if (high < low)
+            else if (high < low)
             {
                 return (value >= high && value <= low);
             }
