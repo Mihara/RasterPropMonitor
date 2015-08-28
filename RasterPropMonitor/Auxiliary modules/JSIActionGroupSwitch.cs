@@ -42,10 +42,9 @@ namespace JSI
         public string perPodMasterSwitchName = string.Empty;
         [KSPField]
         public string masterVariableName = string.Empty;
-        private VariableOrNumber masterVariable = null;
+        private VariableOrNumberRange masterVariable = null;
         [KSPField]
         public string masterVariableRange = string.Empty;
-        private VariableOrNumber[] masterRange = new VariableOrNumber[2];
         [KSPField]
         public bool reverse;
         [KSPField]
@@ -297,12 +296,10 @@ namespace JSI
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {
-                        masterVariable = VariableOrNumber.Instantiate(masterVariableName);
                         string[] range = masterVariableRange.Split(',');
                         if (range.Length == 2)
                         {
-                            masterRange[0] = VariableOrNumber.Instantiate(range[0]);
-                            masterRange[1] = VariableOrNumber.Instantiate(range[1]);
+                            masterVariable = new VariableOrNumberRange(masterVariableName, range[0], range[1]);
                         }
                         else
                         {
@@ -448,17 +445,7 @@ namespace JSI
                 if (masterVariable != null)
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    float value, range1, range2;
-                    if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
-                    {
-                        float minR = Mathf.Min(range1, range2);
-                        float maxR = Mathf.Max(range1, range2);
-                        if (value < minR || value > maxR)
-                        {
-                            // If the master variable is out of spec, disable the switch.
-                            switchEnabled = false;
-                        }
-                    }
+                    switchEnabled = masterVariable.IsInRange(comp);
                 }
             }
             if (!switchEnabled)
@@ -620,17 +607,10 @@ namespace JSI
             if (masterVariable != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                float value, range1, range2;
-                if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
+                if(!masterVariable.IsInRange(comp))
                 {
-                    float minR = Mathf.Min(range1, range2);
-                    float maxR = Mathf.Max(range1, range2);
-                    if (value < minR || value > maxR)
-                    {
-                        // If the master variable is out of spec, disable the switch.
-                        newState = false;
-                        forcedShutdown = true;
-                    }
+                    newState = false;
+                    forcedShutdown = true;
                 }
             }
 
