@@ -1,11 +1,30 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 namespace JSI
 {
     public class VariableOrNumber
     {
+        public readonly string variableName;
+        private float value;
         private bool warningMade;
-        private readonly float? value;
-        private readonly string variableName;
-        private System.Func<bool> stateFunction;
 
         public VariableOrNumber(string input)
         {
@@ -20,41 +39,24 @@ namespace JSI
             }
         }
 
-        //public VariableOrNumber(float input)
-        //{
-        //    value = input;
-        //}
-
-        public VariableOrNumber(System.Func<bool> stateFunction)
-        {
-            this.stateFunction = stateFunction;
-        }
-
         public bool Get(out float destination, RPMVesselComputer comp)
         {
-            if (stateFunction != null)
+            if (!string.IsNullOrEmpty(variableName))
             {
-                bool state = stateFunction();
-                destination = state.GetHashCode();
-                return true;
-            }
-
-            if (value != null)
-            {
-                destination = value.Value;
-                return true;
-            }
-
-            destination = comp.ProcessVariable(variableName).MassageToFloat();
-            if (float.IsNaN(destination) || float.IsInfinity(destination))
-            {
-                if (!warningMade)
+                value = comp.ProcessVariable(variableName).MassageToFloat();
+                if (float.IsNaN(value) || float.IsInfinity(value))
                 {
-                    JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
-                    warningMade = true;
+                    if (!warningMade)
+                    {
+                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
+                        warningMade = true;
+                    }
+                    destination = value;
+                    return false;
                 }
-                return false;
             }
+
+            destination = value;
             return true;
         }
     }
@@ -66,17 +68,15 @@ namespace JSI
     /// </summary>
     public class VariableOrNumberRange
     {
-        private bool warningMade;
+        private readonly string sourceValueName;
+        private readonly string lowerBoundName;
+        private readonly string upperBoundName;
 
         private readonly float sourceValue;
         private readonly float lowerBound;
         private readonly float upperBound;
 
-        private readonly string sourceValueName;
-        private readonly string lowerBoundName;
-        private readonly string upperBoundName;
-
-        private System.Func<bool> stateFunction;
+        private bool warningMade;
 
         public VariableOrNumberRange(string sourceVariable, string range1, string range2)
         {
@@ -109,30 +109,6 @@ namespace JSI
             }
         }
 
-        public VariableOrNumberRange(System.Func<bool> stateFunction, string range1, string range2)
-        {
-            this.stateFunction = stateFunction;
-            float realValue;
-
-            if (float.TryParse(range1, out realValue))
-            {
-                lowerBound = realValue;
-            }
-            else
-            {
-                lowerBoundName = range1.Trim();
-            }
-
-            if (float.TryParse(range2, out realValue))
-            {
-                upperBound = realValue;
-            }
-            else
-            {
-                upperBoundName = range2.Trim();
-            }
-        }
-
         /// <summary>
         /// Provides a simple boolean true/false for whether the named
         /// variable is in range.
@@ -145,12 +121,7 @@ namespace JSI
             float value;
             float low, high;
 
-            if (stateFunction != null)
-            {
-                bool state = stateFunction();
-                value = state.GetHashCode();
-            }
-            else if (!string.IsNullOrEmpty(sourceValueName))
+            if (!string.IsNullOrEmpty(sourceValueName))
             {
                 value = comp.ProcessVariable(sourceValueName).MassageToFloat();
             }
