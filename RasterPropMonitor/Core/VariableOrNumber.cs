@@ -19,6 +19,7 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System.Collections.Generic;
+using UnityEngine;
 namespace JSI
 {
     public class VariableOrNumber
@@ -122,6 +123,22 @@ namespace JSI
             sourceValue = VariableOrNumber.Instantiate(sourceVariable);
             lowerBound = VariableOrNumber.Instantiate(range1);
             upperBound = VariableOrNumber.Instantiate(range2);
+        }
+
+        public bool InverseLerp(RPMVesselComputer comp, out float scaledValue)
+        {
+            float value;
+            float low, high;
+            if (!(sourceValue.Get(out value, comp) && lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
+            {
+                scaledValue = 0.0f;
+                return false;
+            }
+            else
+            {
+                scaledValue = Mathf.InverseLerp(low, high, value);
+                return true;
+            }
         }
 
         /// <summary>

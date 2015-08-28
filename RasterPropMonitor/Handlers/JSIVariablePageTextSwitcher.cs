@@ -37,8 +37,7 @@ namespace JSI
         [KSPField]
         public int refreshRate = 10;
         private string textOut, textIn;
-        private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
-        private readonly float[] scaleResults = new float[3];
+        private VariableOrNumberRange range;
         private bool pageActiveState;
         private bool isInThreshold;
         private int updateCountdown;
@@ -67,32 +66,27 @@ namespace JSI
         public override void OnUpdate()
         {
             if (!pageActiveState || !JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
-                return;
-
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp))
-                {
-                    return;
-                }
+                return;
             }
 
-            float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            float scaledValue;
+            if (!range.InverseLerp(comp, out scaledValue))
+            {
+                return;
+            }
 
             isInThreshold = (scaledValue >= threshold.x && scaledValue <= threshold.y);
         }
 
         public void Start()
         {
-
             string[] tokens = scale.Split(',');
 
             if (tokens.Length == 2)
             {
-                scaleEnds[0] = VariableOrNumber.Instantiate(tokens[0]);
-                scaleEnds[1] = VariableOrNumber.Instantiate(tokens[1]);
-                scaleEnds[2] = VariableOrNumber.Instantiate(variableName);
+                range = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
 
                 textIn = JUtil.LoadPageDefinition(definitionIn);
                 textOut = JUtil.LoadPageDefinition(definitionOut);
@@ -114,4 +108,3 @@ namespace JSI
         }
     }
 }
-
