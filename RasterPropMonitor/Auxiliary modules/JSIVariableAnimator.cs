@@ -12,7 +12,6 @@ namespace JSI
         private int updateCountdown;
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
-        private PersistenceAccessor persistence;
 
         private bool UpdateCheck()
         {
@@ -80,7 +79,6 @@ namespace JSI
                 }
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshRate);
-                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
             catch
@@ -94,7 +92,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
 
         public void Update()
@@ -120,7 +117,7 @@ namespace JSI
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(comp, persistence);
+                variableSets[unit].Update(comp);
             }
         }
 
@@ -546,12 +543,12 @@ namespace JSI
             lastStateChange = Planetarium.GetUniversalTime();
         }
 
-        public void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public void Update(RPMVesselComputer comp)
         {
             var scaleResults = new float[3];
             for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp, persistence))
+                if (!scaleEnds[i].Get(out scaleResults[i], comp))
                 {
                     return;
                 }

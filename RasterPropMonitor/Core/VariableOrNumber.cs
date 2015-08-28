@@ -30,7 +30,7 @@ namespace JSI
             this.stateFunction = stateFunction;
         }
 
-        public bool Get(out float destination, RPMVesselComputer comp, PersistenceAccessor persistence)
+        public bool Get(out float destination, RPMVesselComputer comp)
         {
             if (stateFunction != null)
             {
@@ -45,7 +45,7 @@ namespace JSI
                 return true;
             }
 
-            destination = comp.ProcessVariable(variableName, persistence).MassageToFloat();
+            destination = comp.ProcessVariable(variableName).MassageToFloat();
             if (float.IsNaN(destination) || float.IsInfinity(destination))
             {
                 if (!warningMade)
@@ -140,7 +140,7 @@ namespace JSI
         /// <param name="comp"></param>
         /// <param name="persistence"></param>
         /// <returns></returns>
-        public bool IsInRange(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public bool IsInRange(RPMVesselComputer comp)
         {
             float value;
             float low, high;
@@ -152,7 +152,7 @@ namespace JSI
             }
             else if (!string.IsNullOrEmpty(sourceValueName))
             {
-                value = comp.ProcessVariable(sourceValueName, persistence).MassageToFloat();
+                value = comp.ProcessVariable(sourceValueName).MassageToFloat();
             }
             else
             {
@@ -171,7 +171,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(lowerBoundName))
             {
-                low = comp.ProcessVariable(lowerBoundName, persistence).MassageToFloat();
+                low = comp.ProcessVariable(lowerBoundName).MassageToFloat();
                 if (float.IsNaN(low) || float.IsInfinity(low))
                 {
                     if (!warningMade)
@@ -190,7 +190,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(upperBoundName))
             {
-                high = comp.ProcessVariable(upperBoundName, persistence).MassageToFloat();
+                high = comp.ProcessVariable(upperBoundName).MassageToFloat();
                 if (float.IsNaN(high) || float.IsInfinity(high))
                 {
                     if (!warningMade)

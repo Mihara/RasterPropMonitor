@@ -91,6 +91,7 @@ namespace JSI
         private ManeuverNode node;
         private Part part;
         private ExternalVariableHandlers plugins;
+        private RasterPropMonitorComputer rpmComp;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -491,6 +492,7 @@ namespace JSI
             navBall = null;
             node = null;
             part = null;
+            rpmComp = null;
 
             pluginBoolVariables = null;
             pluginDoubleVariables = null;
@@ -553,6 +555,7 @@ namespace JSI
                         plugins = new ExternalVariableHandlers(part);
                     }
                     // Refresh some per-part values .. ?
+                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
 
 #if SHOW_FIXEDUPDATE_TIMING
@@ -613,7 +616,7 @@ namespace JSI
         /// <param name="input"></param>
         /// <param name="propId"></param>
         /// <returns></returns>
-        public object ProcessVariable(string input, PersistenceAccessor persistence)
+        public object ProcessVariable(string input, int propId = -1)
         {
             object returnValue = resultCache[input];
             if (returnValue == null)
@@ -623,7 +626,24 @@ namespace JSI
                 {
                     if (plugins == null || !plugins.ProcessVariable(input, out returnValue, out cacheable))
                     {
-                        returnValue = VariableToObject(input, persistence, out cacheable);
+                        if (rpmComp == null)
+                        {
+                            if (part == null)
+                            {
+                                part = DeduceCurrentPart();
+                            }
+
+                            if (part != null)
+                            {
+                                rpmComp = RasterPropMonitorComputer.Instantiate(part);
+                            }
+                            else
+                            {
+                                JUtil.LogErrorMessage(this, "Unable to deduce the current part prior to VariableToObject.");
+                            }
+                        }
+
+                        returnValue = VariableToObject(input, propId, out cacheable);
                     }
                 }
                 catch (Exception e)
@@ -1508,7 +1528,7 @@ namespace JSI
         /// <param name="propId"></param>
         /// <param name="cacheable"></param>
         /// <returns></returns>
-        private object VariableToObject(string input, PersistenceAccessor persistence, out bool cacheable)
+        private object VariableToObject(string input, int propId, out bool cacheable)
         {
             // Some variables may not cacheable, because they're meant to be different every time like RANDOM,
             // or immediate. they will set this flag to false.
@@ -1586,7 +1606,7 @@ namespace JSI
                 {
                     if (customVariables.ContainsKey(input))
                     {
-                        return customVariables[input].Evaluate(this, persistence);
+                        return customVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -1599,7 +1619,7 @@ namespace JSI
                 {
                     if (mappedVariables.ContainsKey(input))
                     {
-                        return mappedVariables[input].Evaluate(this, persistence);
+                        return mappedVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -1658,23 +1678,10 @@ namespace JSI
                                 }
                             }
                         }
-                        if (propToUse == null && persistence != null && persistence.prop != null)
-                        {
-                            //if (part.internalModel.props.Count == 0)
-                            //{
-                            //    JUtil.LogErrorMessage(this, "How did RPM get invoked in an IVA with no props?");
-                            //    pluginBoolVariables.Add(tokens[1], null);
-                            //    return float.NaN;
-                            //}
 
-                            //if (persistence.prop != null)
-                            {
-                                propToUse = persistence.prop;
-                            }
-                            //else
-                            //{
-                            //    propToUse = part.internalModel.props[0];
-                            //}
+                        if (propToUse == null && propId >= 0 && propId < part.internalModel.props.Count)
+                        {
+                            propToUse = part.internalModel.props[propId];
                         }
 
                         Func<bool> pluginCall = (Func<bool>)GetMethod(tokens[1], propToUse, typeof(Func<bool>));
@@ -1713,11 +1720,11 @@ namespace JSI
                 {
                     string substr = input.Substring("PROP".Length + 1);
 
-                    if (persistence != null && persistence.HasPropVar(substr))
+                    if (rpmComp != null && rpmComp.HasPropVar(substr, propId))
                     {
                         // Can't cache - multiple props could call in here.
                         cacheable = false;
-                        return (float)persistence.GetPropVar(substr);
+                        return (float)rpmComp.GetPropVar(substr, propId);
                     }
                     else
                     {
@@ -1729,11 +1736,11 @@ namespace JSI
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
 
-                    if (persistence != null && persistence.HasVar(substr))
+                    if (rpmComp != null && rpmComp.HasVar(substr))
                     {
                         // MOARdV TODO: Can this be cacheable?  Should only have one
                         // active part at a time, so I think it's safe.
-                        return (float)persistence.GetVar(substr);
+                        return (float)rpmComp.GetVar(substr);
                     }
                     else
                     {
@@ -1760,9 +1767,9 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (persistence != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (rpmComp != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
-                        return persistence.GetStoredString(storedStringNumber);
+                        return rpmComp.GetStoredString(storedStringNumber);
                     }
                     return "";
                 }

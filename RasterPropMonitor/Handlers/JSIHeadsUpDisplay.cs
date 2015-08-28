@@ -81,8 +81,6 @@ namespace JSI
         private bool startupComplete;
         private bool firstRenderComplete;
 
-        private PersistenceAccessor persistence;
-
         /// <summary>
         /// Initialize the renderable game objects for the HUD.
         /// </summary>
@@ -372,7 +370,7 @@ namespace JSI
 
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(comp, persistence);
+                verticalBars[i].Update(comp);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -460,8 +458,6 @@ namespace JSI
                 {
                     progradeColorValue = ConfigNode.ParseColor32(progradeColor);
                 }
-
-                persistence = new PersistenceAccessor(internalProp);
             }
             catch (Exception e)
             {
@@ -486,8 +482,6 @@ namespace JSI
             {
                 JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
             }
-
-            persistence = null;
         }
     }
 
@@ -596,18 +590,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
+        internal void Update(RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp, persistence))
+                if (!enablingVariable.IsInRange(comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp, persistence))
+            if (variable.Get(out value, comp))
             {
                 if (useLog10)
                 {

@@ -22,7 +22,6 @@ namespace JSI
         private bool pageActiveState;
         private bool isInThreshold;
         private int updateCountdown;
-        private PersistenceAccessor persistence;
         // Analysis disable UnusedParameter
         public string ShowPage(int width, int height)
         {
@@ -53,7 +52,7 @@ namespace JSI
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp, persistence))
+                if (!scaleEnds[i].Get(out scaleResults[i], comp))
                 {
                     return;
                 }
@@ -84,8 +83,6 @@ namespace JSI
                 float max = Mathf.Max(threshold.x, threshold.y);
                 threshold.x = min;
                 threshold.y = max;
-
-                persistence = new PersistenceAccessor(internalProp);
             }
             else
             {
@@ -96,7 +93,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
     }
 }

@@ -42,9 +42,9 @@ namespace JSI
             }
         }
 
-        public bool Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public bool Evaluate(RPMVesselComputer comp)
         {
-            return range.IsInRange(comp, persistence) ^ reverse;
+            return range.IsInRange(comp) ^ reverse;
         }
     }
 
@@ -122,14 +122,14 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public object Evaluate(RPMVesselComputer comp)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].Evaluate(comp, persistence);
+            bool evaluation = sourceVariables[0].Evaluate(comp);
 
             // Use an optimization on evaluation to speed things up
             bool earlyExit;
-            switch(op)
+            switch (op)
             {
                 case Operator.AND:
                 case Operator.NAND:
@@ -151,7 +151,7 @@ namespace JSI
 
             for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
-                bool nextValue = sourceVariables[i].Evaluate(comp, persistence);
+                bool nextValue = sourceVariables[i].Evaluate(comp);
 
                 switch (op)
                 {

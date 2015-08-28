@@ -27,7 +27,6 @@ namespace JSI
         private const string fontName = "Arial";
         private InternalText textObj;
         private Transform textObjTransform;
-        private PersistenceAccessor persistence;
         private int updateCountdown;
         private Renderer colorShiftRenderer;
         private FXGroup audioOutput;
@@ -108,7 +107,6 @@ namespace JSI
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
-                persistence = new PersistenceAccessor(internalProp);
                 if (JUtil.debugLoggingEnabled)
                 {
                     JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
@@ -125,7 +123,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
 
         private bool UpdateCheck()
@@ -152,7 +149,7 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, persistence);
+            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
         }
 
         public void Click()
@@ -172,7 +169,7 @@ namespace JSI
             if (labelsEx[activeLabel].hasText && labelsEx[activeLabel].oneShot)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, persistence);
+                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
             }
 
             // Force an update.

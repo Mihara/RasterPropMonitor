@@ -205,6 +205,24 @@ namespace JSI
             SetVar(persistentVarName, varvalue ? 1 : 0);
         }
 
+        internal int GetPropVar(string persistentVarName, int propID)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            return GetVar(propVar);
+        }
+
+        internal bool HasPropVar(string persistentVarName, int propID)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            return HasVar(propVar);
+        }
+
+        internal void SetPropVar(string persistentVarName, int propID, int varvalue)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            SetVar(propVar, varvalue);
+        }
+
         
         internal string GetStoredString(int index)
         {

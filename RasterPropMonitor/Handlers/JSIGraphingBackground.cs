@@ -13,7 +13,6 @@ namespace JSI
 
         private Color32 backgroundColorValue;
         private List<DataSet> dataSets = new List<DataSet>();
-        private PersistenceAccessor persistence;
         private bool startupComplete = false;
         private Material lineMaterial = JUtil.DrawLineMaterial();
         private Material graphMaterial;
@@ -44,7 +43,7 @@ namespace JSI
                 // Render data
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
-                    dataSets[i].RenderData(screen, comp, persistence);
+                    dataSets[i].RenderData(screen, comp);
                 }
             }
             catch
@@ -120,7 +119,6 @@ namespace JSI
                 }
 
                 graphMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
 
@@ -134,7 +132,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
     }
 
@@ -278,15 +275,15 @@ namespace JSI
             }
         }
 
-        public void RenderData(RenderTexture screen, RPMVesselComputer comp, PersistenceAccessor persistence)
+        public void RenderData(RenderTexture screen, RPMVesselComputer comp)
         {
             float leftVal, rightVal;
-            if (!scale[0].Get(out leftVal, comp, persistence) || !scale[1].Get(out rightVal, comp, persistence))
+            if (!scale[0].Get(out leftVal, comp) || !scale[1].Get(out rightVal, comp))
             {
                 return; // bad values - can't render
             }
 
-            float eval = comp.ProcessVariable(variableName, persistence).MassageToFloat();
+            float eval = comp.ProcessVariable(variableName).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
                 return; // bad value - can't render

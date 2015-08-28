@@ -96,7 +96,6 @@
     <Compile Include="Handlers\JSISteerableCamera.cs" />
     <Compile Include="Core\TextMenu.cs" />
     <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
-    <Compile Include="Core\PersistenceAccessor.cs" />
     <Compile Include="Auxiliary modules\JSIInternalEVAHatch.cs" />
     <Compile Include="Auxiliary modules\JSIPropIDFinder.cs" />
     <Compile Include="Handlers\JSIHeadsUpDisplay.cs" />

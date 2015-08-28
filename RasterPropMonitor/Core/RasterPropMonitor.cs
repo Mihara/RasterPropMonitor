@@ -70,7 +70,7 @@ namespace JSI
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
-        private PersistenceAccessor persistence;
+        private RasterPropMonitorComputer rpmComp;
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
@@ -124,7 +124,7 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
 
-                persistence = new PersistenceAccessor(internalProp);
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -212,7 +212,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = persistence.GetVar(persistentVarName, pages.Count);
+                int activePageID = rpmComp.GetVar(persistentVarName, pages.Count);
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -269,7 +269,7 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
-            persistence = null;
+            rpmComp = null;
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -330,7 +330,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                persistence.SetVar(persistentVarName, activePage.pageNumber);
+                rpmComp.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
@@ -408,7 +408,7 @@ namespace JSI
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < linesArray.Length; i++)
             {
-                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, persistence));
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID));
             }
             textRefreshRequired = false;
             screenBuffer = bf.ToString();
@@ -422,7 +422,7 @@ namespace JSI
             if (needsElectricCharge)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", null);
+                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
             }
         }
 

@@ -91,7 +91,7 @@ namespace JSI
         private Light[] lightObjects;
         private FXGroup audioOutput;
         private int lightCheckCountdown;
-        private PersistenceAccessor persistence;
+        private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
         private Renderer colorShiftRenderer;
         private Func<bool> stateHandler;
@@ -271,7 +271,7 @@ namespace JSI
 
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
-                    persistence = new PersistenceAccessor(internalProp);
+                    rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                     comp.UpdateDataRefreshRate(refreshRate);
 
@@ -305,17 +305,17 @@ namespace JSI
                     }
                     else
                     {
-                        if (persistence != null)
+                        if (rpmComp != null)
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = persistence.GetVar(persistentVarName, 0);
+                                int activeSwitch = rpmComp.GetVar(persistentVarName, 0);
 
                                 currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupList[actionName] = persistence.GetBool(persistentVarName, initialState);
+                                currentState = customGroupList[actionName] = rpmComp.GetBool(persistentVarName, initialState);
                             }
 
                             if (actionName == "intlight")
@@ -328,18 +328,18 @@ namespace JSI
                     }
                 }
 
-                if (persistence != null && !persistence.HasVar(persistentVarName))
+                if (rpmComp != null && !rpmComp.HasVar(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     else
                     {
-                        persistence.SetVar(persistentVarName, currentState);
+                        rpmComp.SetVar(persistentVarName, currentState);
                     }
                 }
 
@@ -400,7 +400,7 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
+            rpmComp = null;
         }
 
         private void SetInternalLights(bool value)
@@ -423,13 +423,13 @@ namespace JSI
             {
                 if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
-                    switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
+                    switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
                 }
                 if (masterVariable != null)
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     float value, range1, range2;
-                    if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
+                    if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
                     {
                         float minR = Mathf.Min(range1, range2);
                         float maxR = Mathf.Max(range1, range2);
@@ -458,7 +458,7 @@ namespace JSI
                         customGroupList[actionName] = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     // else: can't turn off a radio group switch.
@@ -468,7 +468,7 @@ namespace JSI
                     customGroupList[actionName] = !customGroupList[actionName];
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                        rpmComp.SetVar(persistentVarName, customGroupList[actionName]);
                     }
                 }
             }
@@ -537,14 +537,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = persistence.GetVar(persistentVarName, 0);
+                        int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupList[actionName] = newState;
                     }
                     else
                     {
                         // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
-                        newState = persistence.GetBool(persistentVarName, false);
+                        newState = rpmComp.GetBool(persistentVarName, false);
                     }
                 }
                 else
@@ -554,13 +554,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = persistence.GetVar(persistentVarName, 0);
+                            int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupList[actionName] = newState;
                         }
                         else
                         {
-                            newState = persistence.GetBool(persistentVarName, customGroupList[actionName]);
+                            newState = rpmComp.GetBool(persistentVarName, customGroupList[actionName]);
                         }
                     }
                     else
@@ -582,13 +582,13 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", null).MassageToDouble() < 0.01d;
+                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01;
                 }
             }
 
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
+                bool switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off
@@ -601,7 +601,7 @@ namespace JSI
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 float value, range1, range2;
-                if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
+                if (masterVariable.Get(out value, comp) && masterRange[0].Get(out range1, comp) && masterRange[1].Get(out range2, comp))
                 {
                     float minR = Mathf.Min(range1, range2);
                     float maxR = Mathf.Max(range1, range2);
