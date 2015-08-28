@@ -2247,7 +2247,7 @@ namespace JSI
                 case "PITCHTARGET":
                     if (target != null)
                     {
-                        return GetRelativePitch(targetSeparation.normalized);
+                        return GetRelativePitch(-targetSeparation.normalized);
                     }
                     else
                     {
@@ -2277,7 +2277,7 @@ namespace JSI
                 case "YAWTARGET":
                     if (target != null)
                     {
-                        return GetRelativeYaw(targetSeparation.normalized);
+                        return GetRelativeYaw(-targetSeparation.normalized);
                     }
                     else
                     {
