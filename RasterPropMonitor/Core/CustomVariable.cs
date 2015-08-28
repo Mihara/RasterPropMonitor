@@ -1,53 +1,29 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 namespace JSI
 {
-    // SourceVariable defines a single RPM variable plus a range of values
-    // that are used for compound tests for custom variables.
-    class SourceVariable
-    {
-        public readonly VariableOrNumberRange range;
-        public readonly bool reverse;
-
-        public SourceVariable(ConfigNode node)
-        {
-            if (node.HasValue("range"))
-            {
-                string[] tokens = { };
-                tokens = node.GetValue("range").Split(',');
-                if (tokens.Length != 2)
-                {
-                    throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
-                }
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
-            }
-            else
-            {
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
-            }
-
-            if (node.HasValue("reverse"))
-            {
-                if (!bool.TryParse(node.GetValue("reverse"), out reverse))
-                {
-                    throw new ArgumentException("So is 'reverse' true or false?");
-                }
-            }
-            else
-            {
-                reverse = false;
-            }
-        }
-
-        public bool Evaluate(RPMVesselComputer comp)
-        {
-            return range.IsInRange(comp) ^ reverse;
-        }
-    }
-
     // A CustomVariable defines a user-defined variable that consists of one or
     // more RPM variables.  The CustomVariable applies a single logical operator
     // across all the variables.
@@ -72,18 +48,21 @@ namespace JSI
 
         public readonly string name;
 
+        private List<VariableOrNumberRange> sourceVariables = new List<VariableOrNumberRange>();
+        private List<bool> reverse = new List<bool>();
         private Operator op;
-        private List<SourceVariable> sourceVariables = new List<SourceVariable>();
 
-        public CustomVariable(ConfigNode node)
+        internal CustomVariable(ConfigNode node)
         {
             name = node.GetValue("name");
 
             foreach (ConfigNode sourceVarNode in node.GetNodes("SOURCE_VARIABLE"))
             {
-                SourceVariable sourceVar = new SourceVariable(sourceVarNode);
+                bool reverseVal;
+                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, out reverseVal);
 
-                sourceVariables.Add(sourceVar);
+                sourceVariables.Add(vonr);
+                reverse.Add(reverseVal);
             }
 
             if (sourceVariables.Count == 0)
@@ -122,10 +101,10 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RPMVesselComputer comp)
+        internal object Evaluate(RPMVesselComputer comp)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].Evaluate(comp);
+            bool evaluation = sourceVariables[0].IsInRange(comp) ^ reverse[0];
 
             // Use an optimization on evaluation to speed things up
             bool earlyExit;
@@ -151,7 +130,7 @@ namespace JSI
 
             for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
-                bool nextValue = sourceVariables[i].Evaluate(comp);
+                bool nextValue = sourceVariables[i].IsInRange(comp) ^ reverse[i];
 
                 switch (op)
                 {
@@ -179,6 +158,39 @@ namespace JSI
             }
 
             return evaluation.GetHashCode();
+        }
+
+        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)
+        {
+            VariableOrNumberRange range;
+            if (node.HasValue("range"))
+            {
+                string[] tokens = { };
+                tokens = node.GetValue("range").Split(',');
+                if (tokens.Length != 2)
+                {
+                    throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
+                }
+                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
+            }
+            else
+            {
+                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
+            }
+
+            if (node.HasValue("reverse"))
+            {
+                if (!bool.TryParse(node.GetValue("reverse"), out reverse))
+                {
+                    throw new ArgumentException("So is 'reverse' true or false?");
+                }
+            }
+            else
+            {
+                reverse = false;
+            }
+
+            return range;
         }
     }
 }
