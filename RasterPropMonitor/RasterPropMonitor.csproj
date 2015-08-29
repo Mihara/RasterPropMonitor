@@ -54,6 +54,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\RPMVCEvaluators.cs" />
+    <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MappedVariable.cs" />
