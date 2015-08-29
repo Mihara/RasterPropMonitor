@@ -52,7 +52,7 @@ namespace JSI
             {
                 VariableOrNumber VoN = new VariableOrNumber(varName);
                 vars.Add(varName, VoN);
-                JUtil.LogMessage(null, "Adding VoN {0}", varName);
+                //JUtil.LogMessage(null, "Adding VoN {0}", varName);
             }
             return vars[varName];
         }
