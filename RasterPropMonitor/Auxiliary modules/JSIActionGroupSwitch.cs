@@ -589,7 +589,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01;
+                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01f;
                 }
             }
 
