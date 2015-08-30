@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using System;
 using System.Linq;
 
 namespace JSI
@@ -202,7 +222,7 @@ namespace JSI
                             gen.Shutdown();
                         }
                     }
-                    else if(pm is ModuleResourceConverter)
+                    else if (pm is ModuleResourceConverter)
                     {
                         ModuleResourceConverter gen = pm as ModuleResourceConverter;
                         if (state)
@@ -612,6 +632,173 @@ namespace JSI
         public bool ButtonFullThrottleState()
         {
             return ((vessel != null) && vessel.ctrlState.mainThrottle > 0.99f);
+        }
+
+        /// <summary>
+        /// Undock the current reference part, or the inferred first dock on
+        /// the current vessel.
+        /// 
+        /// The state of the dock appears to be queriable only by reading a
+        /// string.  The possible values of that string (that I've discovered)
+        /// are:
+        /// 
+        /// "Disabled", for shielded docking ports that are closed.
+        /// "Docked (dockee)", for docks that were docked to (recipient dock).
+        /// "Docked (docker)", for docks that initiated the docking.
+        /// "PreAttached", for docks that were attached to something in the VAB
+        /// "Ready", for docks that are ready.
+        /// </summary>
+        /// <param name="state">New state - must be 'false' to trigger the undock event</param>
+        public void DockUndock(bool state)
+        {
+            if (vessel == null || state == true)
+            {
+                return;
+            }
+
+            ModuleDockingNode node = InferDockingNode(vessel);
+            if (node != null)
+            {
+                if ((node.state == "Docked (docker)") || (node.state == "Docked (dockee)"))
+                {
+                    node.Undock();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Detach a docking node that was attached in the VAB.
+        /// </summary>
+        /// <param name="state">New state - must be 'false' to trigger</param>
+        public void DockDetach(bool state)
+        {
+            if (vessel == null || state == true)
+            {
+                return;
+            }
+
+            ModuleDockingNode node = InferDockingNode(vessel);
+            if (node != null)
+            {
+                if (node.state == "PreAttached")
+                {
+                    node.Decouple();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Is the current reference dock pre-attached ("docked" in the VAB)?
+        /// </summary>
+        /// <returns></returns>
+        public bool DockAttached()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            ModuleDockingNode node = InferDockingNode(vessel);
+            if (node != null)
+            {
+                // Urk.  No enums or numerics to test state...
+                return (node.state == "PreAttached");
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Is the current reference dock docked to something?
+        /// </summary>
+        /// <returns></returns>
+        public bool DockDocked()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            ModuleDockingNode node = InferDockingNode(vessel);
+            if (node != null)
+            {
+                // Urk.  No enums or numerics to test state...
+                return (node.state == "Docked (docker)") || (node.state == "Docked (dockee)");
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Is the current reference dock ready?
+        /// </summary>
+        /// <returns></returns>
+        public bool DockReady()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            ModuleDockingNode node = InferDockingNode(vessel);
+            if (node != null)
+            {
+                // Urk.  No enums or numerics to test state...
+                return (node.state == "Ready");
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Infers the docking node this vessel controls
+        /// </summary>
+        /// <param name="vessel"></param>
+        /// <returns></returns>
+        private static ModuleDockingNode InferDockingNode(Vessel vessel)
+        {
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            Part compPart = comp.ReferencePart;
+            uint launchId;
+            if (compPart == null)
+            {
+                launchId = 0u;
+            }
+            else
+            {
+                launchId = compPart.launchID;
+            }
+
+            Part referencePart = vessel.GetReferenceTransformPart();
+            ModuleDockingNode node = referencePart.FindModuleImplementing<ModuleDockingNode>();
+            if (node != null)
+            {
+                //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
+                // The current reference part is a docking node.
+                return node;
+            }
+
+            for (int i = 0; i < vessel.parts.Count; ++i)
+            {
+                if (vessel.parts[i].launchID == launchId)
+                {
+                    node = vessel.parts[i].FindModuleImplementing<ModuleDockingNode>();
+                    if (node != null)
+                    {
+                        //JUtil.LogMessage(vessel, "InferDockingNode: found a node on {0}", vessel.parts[i].name);
+                        return node;
+                    }
+                }
+            }
+
+            // We did not find a docking node.
+            return null;
         }
 
         /// <summary>

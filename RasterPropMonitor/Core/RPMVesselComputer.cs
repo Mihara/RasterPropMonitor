@@ -109,6 +109,15 @@ namespace JSI
         private NavBall navBall;
         private ManeuverNode node;
         private Part part;
+        internal Part ReferencePart
+        {
+            // Return the part that RPMVesselComputer considers the reference
+            // part (the part we're "in" during IVA).
+            get
+            {
+                return part;
+            }
+        }
         private ExternalVariableHandlers plugins;
         private RasterPropMonitorComputer rpmComp;
 
@@ -994,12 +1003,6 @@ namespace JSI
                             heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
                         }
                     }
-                    //else if(pm is ModuleParachute)
-                    //{
-                    //    var thatParachute = pm as ModuleParachute;
-
-                    //    JUtil.LogMessage(this, "ModuleParachute.deploySafe is {0}", thatParachute.deploySafe);
-                    //}
                     //else if (pm is ModuleScienceExperiment)
                     //{
                     //    var thatExperiment = pm as ModuleScienceExperiment;
