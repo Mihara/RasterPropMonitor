@@ -62,6 +62,7 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static Dictionary<string, MappedVariable> mappedVariables;
         private static SortedDictionary<string, string> systemNamedResources;
+        private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
 
         private static Protractor protractor = null;
@@ -458,6 +459,31 @@ namespace JSI
                 installedModules.Add(new JSIGimbal(vessel));
                 installedModules.Add(new JSIFAR(vessel));
             }
+
+            if (triggeredEvents == null)
+            {
+                triggeredEvents = new List<TriggeredEventTemplate>();
+
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_TRIGGERED_EVENT"))
+                {
+                    string eventName = node.GetValue("eventName").Trim();
+
+                    try
+                    {
+                        TriggeredEventTemplate triggeredVar = new TriggeredEventTemplate(node);
+
+                        if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
+                        {
+                            triggeredEvents.Add(triggeredVar);
+                            JUtil.LogMessage(this, "I know about event {0}", eventName);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                    }
+                }
+            }
         }
 
         public void Start()
@@ -602,6 +628,11 @@ namespace JSI
                 long vesseldata = stopwatch.ElapsedMilliseconds;
 #endif
                 FetchTargetData();
+
+                for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                {
+                    activeTriggeredEvents[i].Update(this);
+                }
 #if SHOW_FIXEDUPDATE_TIMING
                 long targetdata = stopwatch.ElapsedMilliseconds;
                 stopwatch.Stop();
@@ -614,6 +645,13 @@ namespace JSI
         #endregion
 
         #region Interface Methods
+        /// <summary>
+        /// Get a plugin or internal method.
+        /// </summary>
+        /// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
+        /// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
+        /// <param name="delegateType">The expected signature of the method.</param>
+        /// <returns></returns>
         public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
         {
             Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
@@ -1564,6 +1602,7 @@ namespace JSI
                 knownLoadedAssemblies = null;
                 mappedVariables = null;
                 systemNamedResources = null;
+                triggeredEvents = null;
 
                 protractor = null;
 
