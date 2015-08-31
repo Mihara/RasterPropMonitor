@@ -26,12 +26,12 @@ using System.Globalization;
 
 namespace JSI
 {
-    public class JSIActionGroupSwitch : InternalModule
+    internal class JSIActionGroupSwitch : InternalModule
     {
         [KSPField]
         public string animationName = string.Empty;
         [KSPField]
-        public bool animateExterior;
+        public bool animateExterior = false;
         [KSPField]
         public string switchTransform = string.Empty;
         [KSPField]
@@ -46,13 +46,13 @@ namespace JSI
         [KSPField]
         public string masterVariableRange = string.Empty;
         [KSPField]
-        public bool reverse;
+        public bool reverse = false;
         [KSPField]
         public float customSpeed = 1f;
         [KSPField]
-        public string internalLightName;
+        public string internalLightName = string.Empty;
         [KSPField]
-        public string needsElectricCharge;
+        public string needsElectricCharge = string.Empty;
         private bool needsElectricChargeValue;
         [KSPField]
         public string switchSound = "Squad/Sounds/sound_click_flick";
@@ -79,7 +79,7 @@ namespace JSI
         [KSPField]
         public int refreshRate = 60;
         // Neater.
-        private static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
+        internal static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
