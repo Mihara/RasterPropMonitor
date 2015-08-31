@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using UnityEngine;
 using System.Collections.Generic;
@@ -93,12 +113,18 @@ namespace JSI
                 if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes()))
                 {
                     font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
-                    JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
+                    }
                 }
                 else
                 {
                     font = (Texture2D)thisProp.FindModelTransform(location).renderer.material.mainTexture;
-                    JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
+                    }
                 }
             }
             return font;
@@ -142,7 +168,10 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(fontDefinition))
                 {
-                    JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
+                    if (JUtil.debugLoggingEnabled)
+                    {
+                        JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
+                    }
                     fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
                 }
 
@@ -206,7 +235,10 @@ namespace JSI
                         break;
                     }
                 }
-                JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
+                if (JUtil.debugLoggingEnabled)
+                {
+                    JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
+                }
 
                 textRenderer = new TextRenderer(fontTexture, new Vector2((float)fontLetterWidth, (float)fontLetterHeight), fontDefinitionString, 17, screenPixelWidth, screenPixelHeight);
 

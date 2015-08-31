@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Text;
 using UnityEngine;
@@ -297,7 +317,7 @@ namespace JSI
         {
             string myShader = "JSI.Shaders." + shaderName + "-compiled.shader";
 
-            if(parsedShaders.ContainsKey(myShader))
+            if (parsedShaders.ContainsKey(myShader))
             {
                 return parsedShaders[myShader];
             }
@@ -324,7 +344,7 @@ namespace JSI
             {
                 LogErrorMessage(null, "FetchShader: Unable to find embedded shader {0} in my DLL.", myShader);
                 var names = assembly.GetManifestResourceNames();
-                foreach(string name in names)
+                foreach (string name in names)
                 {
                     LogErrorMessage(null, " - {0}", name);
                 }
@@ -364,7 +384,10 @@ namespace JSI
             // Yes, if we fail to load the shader, we store a NULL, so we
             // don't try to re-parse it later.
             parsedShaders.Add(myShader, embeddedShader);
-            LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
+            if (JUtil.debugLoggingEnabled)
+            {
+                LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
+            }
             return embeddedShader;
         }
 
@@ -507,9 +530,9 @@ namespace JSI
 
         internal static void DisposeOfGameObjects(GameObject[] objs)
         {
-            for(int i=0; i<objs.Length; ++i)
+            for (int i = 0; i < objs.Length; ++i)
             {
-                if(objs[i] != null)
+                if (objs[i] != null)
                 {
                     MeshFilter meshFilter = objs[i].GetComponent<MeshFilter>();
                     if (meshFilter != null)

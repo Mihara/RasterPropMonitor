@@ -397,9 +397,9 @@ namespace JSI
                     enabledColorValue = ConfigNode.ParseColor32(enabledColor);
                     colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
-                else
+                else if (JUtil.debugLoggingEnabled)
                 {
-                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1}.", internalProp.propName, internalProp.propID);
+                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1} (this may be okay).", internalProp.propName, internalProp.propID);
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
@@ -607,7 +607,7 @@ namespace JSI
             if (masterVariable != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                if(!masterVariable.IsInRange(comp))
+                if (!masterVariable.IsInRange(comp))
                 {
                     newState = false;
                     forcedShutdown = true;
@@ -667,4 +667,3 @@ namespace JSI
 
     }
 }
-
