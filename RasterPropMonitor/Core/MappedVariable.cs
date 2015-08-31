@@ -41,14 +41,14 @@ namespace JSI
             mappedRange = ConfigNode.ParseVector2(node.GetValue("mappedRange"));
         }
 
-        public double Evaluate(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public double Evaluate(RPMVesselComputer comp)
         {
-            float result = comp.ProcessVariable(sourceVariable, persistence).MassageToFloat();
+            float result = comp.ProcessVariable(sourceVariable).MassageToFloat();
 
             Vector2 sourceRange;
             if (!string.IsNullOrEmpty(sourceMinStr))
             {
-                sourceRange.x = comp.ProcessVariable(sourceMinStr, persistence).MassageToFloat();
+                sourceRange.x = comp.ProcessVariable(sourceMinStr).MassageToFloat();
             }
             else
             {
@@ -57,7 +57,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(sourceMaxStr))
             {
-                sourceRange.y = comp.ProcessVariable(sourceMaxStr, persistence).MassageToFloat();
+                sourceRange.y = comp.ProcessVariable(sourceMaxStr).MassageToFloat();
             }
             else
             {

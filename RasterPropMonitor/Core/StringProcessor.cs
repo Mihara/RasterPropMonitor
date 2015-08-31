@@ -6,7 +6,7 @@ namespace JSI
     {
         private static readonly SIFormatProvider fp = new SIFormatProvider();
 
-        public static string ProcessString(string input, RPMVesselComputer comp, PersistenceAccessor persistence)
+        public static string ProcessString(string input, RPMVesselComputer comp, int propID = -1)
         {
             try
             {
@@ -24,7 +24,7 @@ namespace JSI
                         var variables = new object[vars.Length];
                         for (int i = 0; i < vars.Length; i++)
                         {
-                            variables[i] = comp.ProcessVariable(vars[i], persistence);
+                            variables[i] = comp.ProcessVariable(vars[i]);
                         }
                         string output = string.Format(fp, tokens[0], variables);
                         return output.TrimEnd();

@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
-    <ReleaseVersion>0.22.2</ReleaseVersion>
+    <ReleaseVersion>0.23.0</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
@@ -54,6 +54,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\RPMVCEvaluators.cs" />
+    <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MappedVariable.cs" />
@@ -96,7 +98,6 @@
     <Compile Include="Handlers\JSISteerableCamera.cs" />
     <Compile Include="Core\TextMenu.cs" />
     <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
-    <Compile Include="Core\PersistenceAccessor.cs" />
     <Compile Include="Auxiliary modules\JSIInternalEVAHatch.cs" />
     <Compile Include="Auxiliary modules\JSIPropIDFinder.cs" />
     <Compile Include="Handlers\JSIHeadsUpDisplay.cs" />

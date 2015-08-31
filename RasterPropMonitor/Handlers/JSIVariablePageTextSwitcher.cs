@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using UnityEngine;
 
 namespace JSI
@@ -17,12 +37,10 @@ namespace JSI
         [KSPField]
         public int refreshRate = 10;
         private string textOut, textIn;
-        private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
-        private readonly float[] scaleResults = new float[3];
+        private VariableOrNumberRange range;
         private bool pageActiveState;
         private bool isInThreshold;
         private int updateCountdown;
-        private PersistenceAccessor persistence;
         // Analysis disable UnusedParameter
         public string ShowPage(int width, int height)
         {
@@ -48,34 +66,27 @@ namespace JSI
         public override void OnUpdate()
         {
             if (!pageActiveState || !JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
-                return;
-
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp, persistence))
-                {
-                    return;
-                }
+                return;
             }
 
-            float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            float scaledValue;
+            if (!range.InverseLerp(comp, out scaledValue))
+            {
+                return;
+            }
 
             isInThreshold = (scaledValue >= threshold.x && scaledValue <= threshold.y);
         }
 
         public void Start()
         {
-
             string[] tokens = scale.Split(',');
 
             if (tokens.Length == 2)
             {
-
-                //comp = RasterPropMonitorComputer.Instantiate(internalProp);
-                scaleEnds[0] = new VariableOrNumber(tokens[0], this);
-                scaleEnds[1] = new VariableOrNumber(tokens[1], this);
-                scaleEnds[2] = new VariableOrNumber(variableName, this);
+                range = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
 
                 textIn = JUtil.LoadPageDefinition(definitionIn);
                 textOut = JUtil.LoadPageDefinition(definitionOut);
@@ -84,8 +95,6 @@ namespace JSI
                 float max = Mathf.Max(threshold.x, threshold.y);
                 threshold.x = min;
                 threshold.y = max;
-
-                persistence = new PersistenceAccessor(internalProp);
             }
             else
             {
@@ -96,8 +105,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
     }
 }
-

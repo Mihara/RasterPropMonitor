@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,10 +42,9 @@ namespace JSI
         public string perPodMasterSwitchName = string.Empty;
         [KSPField]
         public string masterVariableName = string.Empty;
-        private VariableOrNumber masterVariable = null;
+        private VariableOrNumberRange masterVariable = null;
         [KSPField]
         public string masterVariableRange = string.Empty;
-        private VariableOrNumber[] masterRange = new VariableOrNumber[2];
         [KSPField]
         public bool reverse;
         [KSPField]
@@ -91,7 +110,7 @@ namespace JSI
         private Light[] lightObjects;
         private FXGroup audioOutput;
         private int lightCheckCountdown;
-        private PersistenceAccessor persistence;
+        private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
         private Renderer colorShiftRenderer;
         private Func<bool> stateHandler;
@@ -271,18 +290,16 @@ namespace JSI
 
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
-                    persistence = new PersistenceAccessor(internalProp);
+                    rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                     comp.UpdateDataRefreshRate(refreshRate);
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {
-                        masterVariable = new VariableOrNumber(masterVariableName, this);
                         string[] range = masterVariableRange.Split(',');
                         if (range.Length == 2)
                         {
-                            masterRange[0] = new VariableOrNumber(range[0], this);
-                            masterRange[1] = new VariableOrNumber(range[1], this);
+                            masterVariable = new VariableOrNumberRange(masterVariableName, range[0], range[1]);
                         }
                         else
                         {
@@ -305,17 +322,17 @@ namespace JSI
                     }
                     else
                     {
-                        if (persistence != null)
+                        if (rpmComp != null)
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = persistence.GetVar(persistentVarName, 0);
+                                int activeSwitch = rpmComp.GetVar(persistentVarName, 0);
 
                                 currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupList[actionName] = persistence.GetBool(persistentVarName, initialState);
+                                currentState = customGroupList[actionName] = rpmComp.GetBool(persistentVarName, initialState);
                             }
 
                             if (actionName == "intlight")
@@ -328,18 +345,18 @@ namespace JSI
                     }
                 }
 
-                if (persistence != null && !persistence.HasVar(persistentVarName))
+                if (rpmComp != null && !rpmComp.HasVar(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     else
                     {
-                        persistence.SetVar(persistentVarName, currentState);
+                        rpmComp.SetVar(persistentVarName, currentState);
                     }
                 }
 
@@ -400,7 +417,7 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
+            rpmComp = null;
         }
 
         private void SetInternalLights(bool value)
@@ -423,22 +440,12 @@ namespace JSI
             {
                 if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
-                    switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
+                    switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
                 }
                 if (masterVariable != null)
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    float value, range1, range2;
-                    if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
-                    {
-                        float minR = Mathf.Min(range1, range2);
-                        float maxR = Mathf.Max(range1, range2);
-                        if (value < minR || value > maxR)
-                        {
-                            // If the master variable is out of spec, disable the switch.
-                            switchEnabled = false;
-                        }
-                    }
+                    switchEnabled = masterVariable.IsInRange(comp);
                 }
             }
             if (!switchEnabled)
@@ -458,7 +465,7 @@ namespace JSI
                         customGroupList[actionName] = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            persistence.SetVar(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     // else: can't turn off a radio group switch.
@@ -468,7 +475,7 @@ namespace JSI
                     customGroupList[actionName] = !customGroupList[actionName];
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        persistence.SetVar(persistentVarName, customGroupList[actionName]);
+                        rpmComp.SetVar(persistentVarName, customGroupList[actionName]);
                     }
                 }
             }
@@ -537,14 +544,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = persistence.GetVar(persistentVarName, 0);
+                        int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupList[actionName] = newState;
                     }
                     else
                     {
                         // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
-                        newState = persistence.GetBool(persistentVarName, false);
+                        newState = rpmComp.GetBool(persistentVarName, false);
                     }
                 }
                 else
@@ -554,13 +561,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = persistence.GetVar(persistentVarName, 0);
+                            int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupList[actionName] = newState;
                         }
                         else
                         {
-                            newState = persistence.GetBool(persistentVarName, customGroupList[actionName]);
+                            newState = rpmComp.GetBool(persistentVarName, customGroupList[actionName]);
                         }
                     }
                     else
@@ -582,13 +589,13 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE", null).MassageToDouble() < 0.01d;
+                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01f;
                 }
             }
 
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = persistence.GetBool(perPodMasterSwitchName, false);
+                bool switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off
@@ -600,17 +607,10 @@ namespace JSI
             if (masterVariable != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                float value, range1, range2;
-                if (masterVariable.Get(out value, comp, persistence) && masterRange[0].Get(out range1, comp, persistence) && masterRange[1].Get(out range2, comp, persistence))
+                if(!masterVariable.IsInRange(comp))
                 {
-                    float minR = Mathf.Min(range1, range2);
-                    float maxR = Mathf.Max(range1, range2);
-                    if (value < minR || value > maxR)
-                    {
-                        // If the master variable is out of spec, disable the switch.
-                        newState = false;
-                        forcedShutdown = true;
-                    }
+                    newState = false;
+                    forcedShutdown = true;
                 }
             }
 

@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using UnityEngine;
 using System;
 using System.Collections.Generic;
@@ -12,7 +32,6 @@ namespace JSI
         private int updateCountdown;
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
-        private PersistenceAccessor persistence;
 
         private bool UpdateCheck()
         {
@@ -80,7 +99,6 @@ namespace JSI
                 }
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshRate);
-                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
             catch
@@ -94,7 +112,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
 
         public void Update()
@@ -120,7 +137,7 @@ namespace JSI
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(comp, persistence);
+                variableSets[unit].Update(comp);
             }
         }
 
@@ -207,15 +224,16 @@ namespace JSI
             {
                 string variableName;
                 variableName = node.GetValue("variableName").Trim();
-                scaleEnds[2] = new VariableOrNumber(variableName, this);
+                scaleEnds[2] = VariableOrNumber.Instantiate(variableName);
             }
             else if (node.HasValue("stateMethod"))
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(part.vessel);
-                Func<bool> stateFunction = (Func<bool>)comp.GetMethod(node.GetValue("stateMethod").Trim(), thisProp, typeof(Func<bool>));
+                string stateMethod = node.GetValue("stateMethod").Trim();
+                Func<bool> stateFunction = (Func<bool>)comp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
-                    scaleEnds[2] = new VariableOrNumber(stateFunction, this);
+                    scaleEnds[2] = VariableOrNumber.Instantiate("PLUGIN_" + stateMethod);
                 }
                 else
                 {
@@ -227,8 +245,8 @@ namespace JSI
                 throw new ArgumentException("Missing variable name.");
             }
 
-            scaleEnds[0] = new VariableOrNumber(tokens[0], this);
-            scaleEnds[1] = new VariableOrNumber(tokens[1], this);
+            scaleEnds[0] = VariableOrNumber.Instantiate(tokens[0]);
+            scaleEnds[1] = VariableOrNumber.Instantiate(tokens[1]);
 
             // That takes care of the scale, now what to do about that scale:
 
@@ -546,12 +564,12 @@ namespace JSI
             lastStateChange = Planetarium.GetUniversalTime();
         }
 
-        public void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
+        public void Update(RPMVesselComputer comp)
         {
             var scaleResults = new float[3];
             for (int i = 0; i < 3; i++)
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp, persistence))
+                if (!scaleEnds[i].Get(out scaleResults[i], comp))
                 {
                     return;
                 }

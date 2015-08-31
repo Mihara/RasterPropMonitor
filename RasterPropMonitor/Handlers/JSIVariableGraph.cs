@@ -28,7 +28,6 @@ namespace JSI
         [KSPField]
         public string backgroundTextureURL = string.Empty;
         private readonly List<GraphLine> graphs = new List<GraphLine>();
-        private PersistenceAccessor persistence;
         public static Material lineMaterial = JUtil.DrawLineMaterial();
         private Rect graphSpace;
         private double lastDataPoint;
@@ -102,7 +101,6 @@ namespace JSI
                         }
                     }
                 }
-                persistence = new PersistenceAccessor(internalProp);
                 JUtil.LogMessage(this, "Graphing {0} values.", graphs.Count);
                 startupComplete = true;
             }
@@ -116,7 +114,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
 
         // Analysis disable once UnusedParameter
@@ -155,7 +152,7 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 foreach (GraphLine graph in graphs)
                 {
-                    graph.Update(time, comp, persistence);
+                    graph.Update(time, comp);
                 }
                 lastDataPoint = time;
             }
@@ -230,9 +227,9 @@ namespace JSI
                 DrawVector(actualXY, lineColor);
             }
 
-            public void Update(double time, RPMVesselComputer comp, PersistenceAccessor persistence)
+            public void Update(double time, RPMVesselComputer comp)
             {
-                double value = isFlat ? flatValue : comp.ProcessVariable(variableName, persistence).MassageToDouble();
+                double value = isFlat ? flatValue : comp.ProcessVariable(variableName).MassageToDouble();
                 if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     return;
