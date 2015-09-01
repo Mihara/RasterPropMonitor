@@ -113,18 +113,12 @@ namespace JSI
                 if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes()))
                 {
                     font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
-                    }
+                    JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
                 }
                 else
                 {
                     font = (Texture2D)thisProp.FindModelTransform(location).renderer.material.mainTexture;
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
-                    }
+                    JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
                 }
             }
             return font;
@@ -168,10 +162,7 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(fontDefinition))
                 {
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
-                    }
+                    JUtil.LogMessage(this, "Loading font definition from {0}", fontDefinition);
                     fontDefinitionString = File.ReadAllLines(KSPUtil.ApplicationRootPath + "GameData/" + fontDefinition.EnforceSlashes(), Encoding.UTF8)[0];
                 }
 
@@ -235,10 +226,8 @@ namespace JSI
                         break;
                     }
                 }
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
-                }
+
+                JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
                 textRenderer = new TextRenderer(fontTexture, new Vector2((float)fontLetterWidth, (float)fontLetterHeight), fontDefinitionString, 17, screenPixelWidth, screenPixelHeight);
 

@@ -39,10 +39,8 @@ namespace JSI
                 if (rcModuleRealChute == null)
                 {
                     rcFound = false;
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
-                    }
+                    JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
+
                     return;
                 }
 
@@ -78,10 +76,7 @@ namespace JSI
                 rcFound = false;
             }
 
-            if (JUtil.debugLoggingEnabled)
-            {
-                JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
-            }
+            JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
         }
 
         public void ArmParachutes(bool state)

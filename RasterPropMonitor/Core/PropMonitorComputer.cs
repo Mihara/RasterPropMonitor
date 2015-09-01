@@ -158,10 +158,7 @@ namespace JSI
                     }
                 }
 
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
-                }
+                JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
             }
         }
 

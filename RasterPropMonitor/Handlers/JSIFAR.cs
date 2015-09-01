@@ -39,10 +39,8 @@ namespace JSI
                 if (loadedFARAPIAssy == null)
                 {
                     farFound = false;
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
-                    }
+                    JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
+
                     return;
                 }
 
@@ -117,10 +115,7 @@ namespace JSI
                 JUtil.LogMessage(this, "JSIFAR: Exception triggered when configuring: {0}", e);
             }
 
-            if (JUtil.debugLoggingEnabled)
-            {
-                JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
-            }
+            JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
         }
 
         #region Private Methods

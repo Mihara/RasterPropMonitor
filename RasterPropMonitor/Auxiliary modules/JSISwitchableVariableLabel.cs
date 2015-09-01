@@ -107,10 +107,7 @@ namespace JSI
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
-                }
+                JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", labelsEx.Count, internalProp.propID);
             }
             catch
             {

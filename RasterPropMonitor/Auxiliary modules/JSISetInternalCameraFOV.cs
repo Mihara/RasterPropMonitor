@@ -58,11 +58,8 @@ namespace JSI
                             seatData.maxPitch = moduleConfig.GetFloat("maxPitch") ?? defaultMaxPitch;
                             seatData.minPitch = moduleConfig.GetFloat("minPitch") ?? defaultMinPitch;
                             seats.Add(seatData);
-                            if (JUtil.debugLoggingEnabled)
-                            {
-                                JUtil.LogMessage(this, "Setting per-seat camera parameters for seat {0}: fov {1}, maxRot {2}, maxPitch {3}, minPitch {4}",
-                                    seats.Count - 1, seatData.fov, seatData.maxRot, seatData.maxPitch, seatData.minPitch);
-                            }
+                            JUtil.LogMessage(this, "Setting per-seat camera parameters for seat {0}: fov {1}, maxRot {2}, maxPitch {3}, minPitch {4}",
+                                seats.Count - 1, seatData.fov, seatData.maxRot, seatData.maxPitch, seatData.minPitch);
                         }
                     }
                 }

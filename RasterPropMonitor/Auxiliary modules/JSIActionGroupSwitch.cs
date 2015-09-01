@@ -209,11 +209,8 @@ namespace JSI
                         else
                         {
                             consumingWhileActive = true;
-                            if (JUtil.debugLoggingEnabled)
-                            {
-                                JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
-                                    internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
-                            }
+                            JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
+                                internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
                         }
                     }
                 }
@@ -397,7 +394,7 @@ namespace JSI
                     enabledColorValue = ConfigNode.ParseColor32(enabledColor);
                     colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
-                else if (JUtil.debugLoggingEnabled)
+                else
                 {
                     JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1} (this may be okay).", internalProp.propName, internalProp.propID);
                 }

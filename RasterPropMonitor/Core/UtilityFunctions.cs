@@ -384,10 +384,9 @@ namespace JSI
             // Yes, if we fail to load the shader, we store a NULL, so we
             // don't try to re-parse it later.
             parsedShaders.Add(myShader, embeddedShader);
-            if (JUtil.debugLoggingEnabled)
-            {
-                LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
-            }
+
+            LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
+
             return embeddedShader;
         }
 

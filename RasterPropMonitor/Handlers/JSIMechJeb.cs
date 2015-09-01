@@ -211,10 +211,8 @@ namespace JSI
                 if (loadedMechJebAssy == null)
                 {
                     mjFound = false;
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
-                    }
+                    JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+
                     return;
                 }
 
@@ -225,10 +223,8 @@ namespace JSI
                 if (mjMechJebCore_t == null)
                 {
                     mjFound = false;
-                    if (JUtil.debugLoggingEnabled)
-                    {
-                        JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
-                    }
+                    JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
+
                     return;
                 }
                 mjGetComputerModule = mjMechJebCore_t.GetMethod("GetComputerModule", new Type[] { typeof(string) });
@@ -622,10 +618,7 @@ namespace JSI
                 JUtil.LogMessage(this, "Exception triggered when configuring: {0}", e);
             }
 
-            if (JUtil.debugLoggingEnabled)
-            {
-                JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
-            }
+            JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
         }
 
         private void InvalidateResults()

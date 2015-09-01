@@ -263,10 +263,8 @@ namespace JSI
                         redirectGlobals[from] = to;
                     }
                 }
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects and {3} global button redirects.", idNum, redirectPages.Count, name, redirectGlobals.Count);
-                }
+
+                JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects and {3} global button redirects.", idNum, redirectPages.Count, name, redirectGlobals.Count);
             }
 
             foreach (ConfigNode handlerNode in node.GetNodes("PAGEHANDLER"))
