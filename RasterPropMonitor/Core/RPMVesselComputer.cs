@@ -132,6 +132,7 @@ namespace JSI
 
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
+        private Dictionary<string, PluginEvaluator> pluginVariables = new Dictionary<string, PluginEvaluator>();
 
         // Craft-relative basis vectors
         private Vector3 forward;
@@ -537,6 +538,7 @@ namespace JSI
 
             pluginBoolVariables = null;
             pluginDoubleVariables = null;
+            pluginVariables = null;
 
             target = null;
             targetDockingNode = null;
@@ -1298,12 +1300,122 @@ namespace JSI
         }
 
         /// <summary>
+        /// Creates a new PluginEvaluator object for the method supplied (if
+        /// the method exists), attached to an IJSIModule.
+        /// </summary>
+        /// <param name="packedMethod"></param>
+        /// <returns></returns>
+        private PluginEvaluator GetInternalMethod(string packedMethod)
+        {
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2 || string.IsNullOrEmpty(tokens[0]) || string.IsNullOrEmpty(tokens[1]))
+            {
+                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+
+            // Backwards compatibility:
+            if (tokens[0] == "MechJebRPMButtons")
+            {
+                tokens[0] = "JSIMechJeb";
+            }
+            IJSIModule jsiModule = null;
+            foreach (IJSIModule module in installedModules)
+            {
+                if (module.GetType().Name == tokens[0])
+                {
+                    jsiModule = module;
+                    break;
+                }
+            }
+
+            PluginEvaluator pluginEval = null;
+            if (jsiModule != null)
+            {
+                foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+                {
+                    if (m.Name == tokens[1])
+                    {
+                        //JUtil.LogMessage(this, "Found method {1}: return type is {0}, IsStatic is {2}, with {3} parameters", m.ReturnType, tokens[1],m.IsStatic, m.GetParameters().Length);
+                        ParameterInfo[] parms = m.GetParameters();
+                        bool usesVessel = false;
+                        if (parms.Length == 1)
+                        {
+                            if (parms[0].ParameterType == typeof(Vessel))
+                            {
+                                usesVessel = true;
+                            }
+                            else
+                            {
+                                JUtil.LogErrorMessage(this, "GetInternalMethod failed: unexpected first parameter in plugin method {0}", packedMethod);
+                                return null;
+                            }
+                        }
+                        else if (parms.Length > 1)
+                        {
+                            JUtil.LogErrorMessage(this, "GetInternalMethod failed: {1} parameters in plugin method {0}", packedMethod, parms.Length);
+                            return null;
+                        }
+
+                        if (m.ReturnType == typeof(bool))
+                        {
+                            try
+                            {
+                                if (usesVessel)
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, bool>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, bool>), jsiModule, m);
+                                    pluginEval = new PluginBoolVessel(method);
+                                }
+                                else
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
+                                    pluginEval = new PluginBoolVoid(method);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
+                            }
+                        }
+                        else if (m.ReturnType == typeof(double))
+                        {
+                            try
+                            {
+                                if (usesVessel)
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, double>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, double>), jsiModule, m);
+                                    pluginEval = new PluginDoubleVessel(method);
+                                }
+                                else
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
+                                    pluginEval = new PluginDoubleVoid(method);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
+                            }
+                        }
+                        else
+                        {
+                            JUtil.LogErrorMessage(this, "I need to support a return type of {0}", m.ReturnType);
+                            throw new Exception("Not Implemented");
+                        }
+                    }
+                }
+            }
+
+            return pluginEval;
+        }
+
+        /// <summary>
         /// Get an internal method (one that is built into an IJSIModule)
         /// </summary>
         /// <param name="packedMethod"></param>
         /// <param name="delegateType"></param>
         /// <returns></returns>
-        private Delegate GetInternalMethod(string packedMethod, Type delegateType)
+        public Delegate GetInternalMethod(string packedMethod, Type delegateType)
         {
             string[] tokens = packedMethod.Split(':');
             if (tokens.Length != 2)

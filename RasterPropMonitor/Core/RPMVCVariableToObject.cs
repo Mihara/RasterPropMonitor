@@ -138,7 +138,11 @@ namespace JSI
                 // Plugin variables.  Let's get crazy!
                 if (tokens.Length == 2 && tokens[0] == "PLUGIN")
                 {
-                    if (pluginBoolVariables.ContainsKey(tokens[1]))
+                    if (pluginVariables.ContainsKey(tokens[1]))
+                    {
+                        return pluginVariables[tokens[1]].Evaluate(vessel);
+                    }
+                    else if (pluginBoolVariables.ContainsKey(tokens[1]))
                     {
                         Func<bool> pluginCall = pluginBoolVariables[tokens[1]];
                         if (pluginCall != null)
@@ -164,6 +168,15 @@ namespace JSI
                     }
                     else
                     {
+                        PluginEvaluator pluginMethod = GetInternalMethod(tokens[1]);
+                        if (pluginMethod != null)
+                        {
+                            JUtil.LogMessage(this, "Adding {0} as a PluginEvaluator", tokens[1]);
+                            pluginVariables.Add(tokens[1], pluginMethod);
+
+                            return pluginMethod.Evaluate(vessel);
+                        }
+
                         string[] internalModule = tokens[1].Split(':');
                         if (internalModule.Length != 2)
                         {
@@ -174,52 +187,58 @@ namespace JSI
                         InternalProp propToUse = null;
                         if (part != null)
                         {
-                            foreach (InternalProp thisProp in part.internalModel.props)
+                            if (propId >= 0 && propId < part.internalModel.props.Count)
                             {
-                                foreach (InternalModule module in thisProp.internalModules)
+                                propToUse = part.internalModel.props[propId];
+                            }
+                            else
+                            {
+                                foreach (InternalProp thisProp in part.internalModel.props)
                                 {
-                                    if (module != null && module.ClassName == internalModule[0])
+                                    foreach (InternalModule module in thisProp.internalModules)
                                     {
-                                        propToUse = thisProp;
-                                        break;
+                                        if (module != null && module.ClassName == internalModule[0])
+                                        {
+                                            propToUse = thisProp;
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        if (propToUse == null && propId >= 0 && propId < part.internalModel.props.Count)
+                        if (propToUse == null)
                         {
-                            propToUse = part.internalModel.props[propId];
-                        }
-
-                        Func<bool> pluginCall = (Func<bool>)GetMethod(tokens[1], propToUse, typeof(Func<bool>));
-                        if (pluginCall == null)
-                        {
-                            Func<double> pluginNumericCall = (Func<double>)GetMethod(tokens[1], propToUse, typeof(Func<double>));
-
-                            if (pluginNumericCall != null)
-                            {
-                                JUtil.LogMessage(this, "Adding {0} as a Func<double>", tokens[1]);
-                                pluginDoubleVariables.Add(tokens[1], pluginNumericCall);
-                                return pluginNumericCall();
-                            }
-                            else
-                            {
-                                // Only register the plugin variable as unavailable if we were called with persistence
-                                if (propToUse == null)
-                                {
-                                    JUtil.LogErrorMessage(this, "Tried to look for method with propToUse still null?");
-                                    pluginBoolVariables.Add(tokens[1], null);
-                                }
-                                return -1;
-                            }
+                            JUtil.LogErrorMessage(this, "Tried to look for method with propToUse still null?");
+                            pluginBoolVariables.Add(tokens[1], null);
+                            return -1;
                         }
                         else
                         {
-                            JUtil.LogMessage(this, "Adding {0} as a Func<bool>", tokens[1]);
-                            pluginBoolVariables.Add(tokens[1], pluginCall);
+                            Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<bool>));
+                            if (pluginCall == null)
+                            {
+                                Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<double>));
+                                if (pluginNumericCall != null)
+                                {
+                                    JUtil.LogMessage(this, "Adding {0} as a Func<double>", tokens[1]);
+                                    pluginDoubleVariables.Add(tokens[1], pluginNumericCall);
+                                    return pluginNumericCall();
+                                }
+                                else
+                                {
+                                    // Doesn't exist -- return nothing
+                                    pluginBoolVariables.Add(tokens[1], null);
+                                    return -1;
+                                }
+                            }
+                            else
+                            {
+                                JUtil.LogMessage(this, "Adding {0} as a Func<bool>", tokens[1]);
+                                pluginBoolVariables.Add(tokens[1], pluginCall);
 
-                            return pluginCall().GetHashCode();
+                                return pluginCall().GetHashCode();
+                            }
                         }
                     }
                 }

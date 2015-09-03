@@ -121,7 +121,7 @@ namespace JSI
                 else
                 {
                     isPluginAction = true;
-                    pluginAction = (Action<bool>)comp.GetMethod(template.triggerEvent, null, typeof(Action<bool>));
+                    pluginAction = (Action<bool>)comp.GetInternalMethod(template.triggerEvent, typeof(Action<bool>));
 
                     if (pluginAction == null)
                     {
@@ -143,8 +143,7 @@ namespace JSI
 
                     if (isPluginAction)
                     {
-                        //eventState = template.eventState;
-                        pluginState = (Func<bool>)comp.GetMethod(template.eventState, null, typeof(Func<bool>));
+                        pluginState = (Func<bool>)comp.GetInternalMethod(template.eventState, typeof(Func<bool>));
                         if (pluginState == null)
                         {
                             throw new Exception("TriggeredEvent: Unable to initialize pluginState");
