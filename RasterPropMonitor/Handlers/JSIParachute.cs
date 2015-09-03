@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -15,21 +35,16 @@ namespace JSI
     /// </summary>
     public class JSIParachute : IJSIModule
     {
-        private readonly Type rcModuleRealChute;
-        private readonly MethodInfo rcGetAnyDeployed;
-        private readonly MethodInfo rcArmChute;
-        private readonly MethodInfo rcDisarmChute;
-        private readonly MethodInfo rcDeployChute;
-        private readonly MethodInfo rcCutChute;
-        private readonly FieldInfo rcArmed;
-        private readonly bool rcFound;
+        static private readonly Type rcModuleRealChute;
+        static private readonly DynamicFuncBool getAnyDeployed;
+        static private readonly DynamicAction armChute;
+        static private readonly DynamicAction disarmChute;
+        static private readonly DynamicAction deployChute;
+        static private readonly DynamicAction cutChute;
+        static private readonly FieldInfo rcArmed;
+        static private readonly bool rcFound;
 
-        private bool anyDeployed;
-        private bool anyArmed;
-        private bool allSafe;
-
-        public JSIParachute(Vessel _vessel)
-            : base(_vessel)
+        static JSIParachute()
         {
             try
             {
@@ -39,35 +54,72 @@ namespace JSI
                 if (rcModuleRealChute == null)
                 {
                     rcFound = false;
-                    JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
-
+                    JUtil.LogMessage(null, "rcModuleRealChute is null");
                     return;
                 }
 
                 PropertyInfo rcAnyDeployed = rcModuleRealChute.GetProperty("anyDeployed", BindingFlags.Instance | BindingFlags.Public);
-                rcGetAnyDeployed = rcAnyDeployed.GetGetMethod();
+                MethodInfo rcGetAnyDeployed = rcAnyDeployed.GetGetMethod();
+                getAnyDeployed = DynamicMethodDelegateFactory.CreateFuncBool(rcGetAnyDeployed);
+                if (getAnyDeployed == null)
+                {
+                    JUtil.LogMessage(null, "getAnyDeployed is null");
+                }
 
-                rcArmChute = rcModuleRealChute.GetMethod("GUIArm", BindingFlags.Instance | BindingFlags.Public);
-                rcDisarmChute = rcModuleRealChute.GetMethod("GUIDisarm", BindingFlags.Instance | BindingFlags.Public);
-                rcDeployChute = rcModuleRealChute.GetMethod("GUIDeploy", BindingFlags.Instance | BindingFlags.Public);
-                rcCutChute = rcModuleRealChute.GetMethod("GUICut", BindingFlags.Instance | BindingFlags.Public);
+                MethodInfo rcArmChute = rcModuleRealChute.GetMethod("GUIArm", BindingFlags.Instance | BindingFlags.Public);
+                armChute = DynamicMethodDelegateFactory.CreateAction(rcArmChute);
+                if(armChute == null)
+                {
+                    JUtil.LogMessage(null, "armChute is null");
+                }
+
+                MethodInfo rcDisarmChute = rcModuleRealChute.GetMethod("GUIDisarm", BindingFlags.Instance | BindingFlags.Public);
+                disarmChute = DynamicMethodDelegateFactory.CreateAction(rcDisarmChute);
+                if (disarmChute == null)
+                {
+                    JUtil.LogMessage(null, "disarmChute is null");
+                }
+
+                MethodInfo rcDeployChute = rcModuleRealChute.GetMethod("GUIDeploy", BindingFlags.Instance | BindingFlags.Public);
+                deployChute = DynamicMethodDelegateFactory.CreateAction(rcDeployChute);
+                if (deployChute == null)
+                {
+                    JUtil.LogMessage(null, "deployChute is null");
+                }
+
+                MethodInfo rcCutChute = rcModuleRealChute.GetMethod("GUICut", BindingFlags.Instance | BindingFlags.Public);
+                cutChute = DynamicMethodDelegateFactory.CreateAction(rcCutChute);
+                if (cutChute == null)
+                {
+                    JUtil.LogMessage(null, "cutChute is null");
+                }
 
                 rcArmed = rcModuleRealChute.GetField("armed", BindingFlags.Instance | BindingFlags.Public);
+                if (rcArmed == null)
+                {
+                    JUtil.LogMessage(null, "rcArmed is null");
+                }
             }
-            catch (Exception)
+            catch(Exception e)
             {
+                JUtil.LogMessage(null, "static JSIParachute exception {0}", e);
                 rcModuleRealChute = null;
-                rcGetAnyDeployed = null;
-                rcArmChute = null;
-                rcDisarmChute = null;
-                rcDeployChute = null;
-                rcCutChute = null;
+                getAnyDeployed = null;
+                armChute = null;
+                disarmChute = null;
+                deployChute = null;
+                cutChute = null;
                 rcArmed = null;
             }
 
-            if (rcModuleRealChute != null && rcArmChute != null &&
-                rcGetAnyDeployed != null && rcDisarmChute != null && rcDeployChute != null &&
-                rcCutChute != null && rcArmed != null)
+            if (rcModuleRealChute != null 
+                && armChute != null
+                && getAnyDeployed != null
+                && disarmChute != null 
+                && deployChute != null
+                && cutChute != null 
+                && rcArmed != null
+                )
             {
                 rcFound = true;
             }
@@ -75,7 +127,10 @@ namespace JSI
             {
                 rcFound = false;
             }
+        }
 
+        public JSIParachute(Vessel _vessel) : base(_vessel)
+        {
             JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
         }
 
@@ -87,26 +142,37 @@ namespace JSI
                 {
                     foreach (PartModule module in FindRealChuteIn(vessel))
                     {
-                        rcArmChute.Invoke(module, null);
+                        armChute(module);
                     }
                 }
                 else
                 {
                     foreach (PartModule module in FindRealChuteIn(vessel))
                     {
-                        rcDisarmChute.Invoke(module, null);
+                        disarmChute(module);
                     }
                 }
             }
-
-            anyArmed = state;
         }
 
         public bool ArmParachutesState()
         {
-            if (moduleInvalidated)
+            if (vessel == null)
             {
-                UpdateParachuteState();
+                return false; // early
+            }
+
+            bool anyArmed = false;
+            if (rcFound)
+            {
+                foreach (PartModule module in FindRealChuteIn(vessel))
+                {
+                    if ((bool)rcArmed.GetValue(module) == true)
+                    {
+                        anyArmed = true;
+                        break;
+                    }
+                }
             }
 
             return anyArmed;
@@ -121,7 +187,7 @@ namespace JSI
                 {
                     foreach (PartModule module in FindRealChuteIn(vessel))
                     {
-                        rcCutChute.Invoke(module, null);
+                        cutChute(module);
                     }
                 }
 
@@ -143,7 +209,7 @@ namespace JSI
                 {
                     foreach (PartModule module in FindRealChuteIn(vessel))
                     {
-                        rcDeployChute.Invoke(module, null);
+                        deployChute(module);
                     }
                 }
 
@@ -159,54 +225,20 @@ namespace JSI
 
         public bool DeployParachutesState()
         {
-            if (moduleInvalidated)
-            {
-                UpdateParachuteState();
-            }
-
-            return anyDeployed;
-        }
-
-        public bool ParachutesSafeState()
-        {
-            if (moduleInvalidated)
-            {
-                UpdateParachuteState();
-            }
-
-            return allSafe;
-        }
-
-        private void UpdateParachuteState()
-        {
-            moduleInvalidated = false;
-
-            anyDeployed = false;
-
-            allSafe = true;
-
             if (vessel == null)
             {
-                return; // early
+                return false; // early
             }
+
+            bool anyDeployed = false;
 
             if (rcFound)
             {
                 foreach (PartModule module in FindRealChuteIn(vessel))
                 {
-                    if ((bool)rcGetAnyDeployed.Invoke(module, null) == true)
+                    if (getAnyDeployed(module) == true)
                     {
                         anyDeployed = true;
-                        break;
-                    }
-                }
-
-                anyArmed = false;
-                foreach (PartModule module in FindRealChuteIn(vessel))
-                {
-                    if ((bool)rcArmed.GetValue(module) == true)
-                    {
-                        anyArmed = true;
                         break;
                     }
                 }
@@ -224,21 +256,30 @@ namespace JSI
                 }
             }
 
-            if (allSafe)
-            {
-                allSafe = true;
-                foreach (ModuleParachute module in FindStockChuteIn(vessel))
-                {
-                    if (module.deploySafe != "Safe")
-                    {
-                        allSafe = false;
-                        break;
-                    }
-                }
-            }
+            return anyDeployed;
         }
 
-        private IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
+        public bool ParachutesSafeState()
+        {
+            if (vessel == null)
+            {
+                return false; // early
+            }
+
+            bool allSafe = true;
+            foreach (ModuleParachute module in FindStockChuteIn(vessel))
+            {
+                if (module.deploySafe != "Safe")
+                {
+                    allSafe = false;
+                    break;
+                }
+            }
+
+            return allSafe;
+        }
+
+        private static IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
         {
             foreach (Part part in vessel.Parts)
             {
