@@ -1448,7 +1448,14 @@ namespace JSI
                 {
                     if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
                     {
-                        stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                        if (m.IsStatic)
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, m);
+                        }
+                        else
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                        }
                     }
                 }
             }
