@@ -135,10 +135,8 @@ namespace JSI
 
         }
 
-        public JSIFAR(Vessel _vessel)
-            : base(_vessel)
+        public JSIFAR()
         {
-
             JUtil.LogMessage(this, "A supported version of FAR is {0}", (farFound) ? "present" : "not available");
         }
 

@@ -675,8 +675,7 @@ namespace JSI
             }
         }
 
-        public JSIMechJeb(Vessel _vessel)
-            : base(_vessel)
+        public JSIMechJeb()
         {
             JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
         }

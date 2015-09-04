@@ -29,8 +29,6 @@ namespace JSI
     /// </summary>
     class JSIGimbal : IJSIModule
     {
-        public JSIGimbal(Vessel _vessel) : base(_vessel) { }
-
         /// <summary>
         /// Locks / unlocks gimbals on the currently-active stage.
         /// </summary>

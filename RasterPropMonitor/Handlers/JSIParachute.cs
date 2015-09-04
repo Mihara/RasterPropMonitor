@@ -129,7 +129,7 @@ namespace JSI
             }
         }
 
-        public JSIParachute(Vessel _vessel) : base(_vessel)
+        public JSIParachute() 
         {
             JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
         }

@@ -454,11 +454,11 @@ namespace JSI
             {
                 installedModules = new List<IJSIModule>();
 
-                installedModules.Add(new JSIParachute(vessel));
-                installedModules.Add(new JSIMechJeb(vessel));
-                installedModules.Add(new JSIInternalRPMButtons(vessel));
-                installedModules.Add(new JSIGimbal(vessel));
-                installedModules.Add(new JSIFAR(vessel));
+                installedModules.Add(new JSIParachute());
+                installedModules.Add(new JSIMechJeb());
+                installedModules.Add(new JSIInternalRPMButtons());
+                installedModules.Add(new JSIGimbal());
+                installedModules.Add(new JSIFAR());
             }
 
             if (triggeredEvents == null)
@@ -498,10 +498,7 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel))
             {
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                IJSIModule.vessel = vessel;
 
                 FetchPerPartData();
                 FetchAltitudes();
@@ -609,10 +606,7 @@ namespace JSI
                 timeToUpdate = false;
                 resultCache.Clear();
 
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
@@ -1716,7 +1710,6 @@ namespace JSI
             // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
             if (data != GameScenes.FLIGHT && customVariables != null)
             {
-                //JUtil.LogMessage(this, " ... tearing down statics");
                 customVariables = null;
                 knownLoadedAssemblies = null;
                 mappedVariables = null;
@@ -1725,10 +1718,7 @@ namespace JSI
 
                 protractor = null;
 
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(null);
-                }
+                IJSIModule.vessel = null;
                 installedModules = null;
 
                 VariableOrNumber.Clear();
@@ -1764,20 +1754,18 @@ namespace JSI
 
         private void VesselChangeCallback(Vessel v)
         {
-            if (v == vessel)
+            if (v.id == vessel.id)
             {
                 //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.vesselName, vessel.vesselName);
                 timeToUpdate = true;
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                resultCache.Clear();
+                IJSIModule.vessel = vessel;
             }
         }
 
         private void VesselModifiedCallback(Vessel v)
         {
-            if (v == vessel && JUtil.IsActiveVessel(vessel))
+            if (v.id == vessel.id && JUtil.IsActiveVessel(vessel))
             {
                 //JUtil.LogMessage(this, "onVesselModified({0}), I am {1}, so I am modified", v.vesselName, vessel.vesselName);
                 timeToUpdate = true;

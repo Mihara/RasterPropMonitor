@@ -30,23 +30,7 @@ namespace JSI
     /// </summary>
     public class IJSIModule
     {
-        protected Vessel vessel;
-
-        protected IJSIModule(Vessel vessel)
-        {
-            this.vessel = vessel;
-        }
-
-        /// <summary>
-        /// Because the Vessel may change when the craft docks, we must
-        /// refresh the local vessel ID.  Since we need to loop over all of the
-        /// parts for Invalidate, we may as well update it then.
-        /// </summary>
-        /// <param name="vessel"></param>
-        public void Invalidate(Vessel vessel)
-        {
-            this.vessel = vessel;
-        }
+        internal static Vessel vessel;
 
         public delegate object DynamicMethodDelegate(object instance, object[] args);
 
