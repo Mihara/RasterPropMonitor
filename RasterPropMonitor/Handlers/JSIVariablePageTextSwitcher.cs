@@ -25,6 +25,19 @@ namespace JSI
 {
     public class JSIVariablePageTextSwitcher : InternalModule
     {
+        private struct PageDefinition
+        {
+            internal readonly string variableName;
+            internal readonly string range;
+            internal readonly string page;
+            internal PageDefinition(string variableName, string range, string page)
+            {
+                this.variableName = variableName;
+                this.range = range;
+                this.page = page;
+            }
+        };
+
         [KSPField]
         public string variableName;
         [KSPField]
@@ -38,6 +51,7 @@ namespace JSI
         [KSPField]
         public int refreshRate = 10;
         private int activePage;
+        private PageDefinition[] definitions = null;
         private List<string> text = new List<string>();
         private List<VariableOrNumberRange> range = new List<VariableOrNumberRange>();
         private VariableOrNumberRange legacyRange;
@@ -100,10 +114,47 @@ namespace JSI
             }
         }
 
+        public void Configure(ConfigNode node)
+        {
+            ConfigNode[] pages = node.GetNodes("PAGE_DEFINITION");
+
+            if (pages != null && pages.Length > 0)
+            {
+                definitions = new PageDefinition[pages.Length];
+
+                for (int i = 0; i < pages.Length; ++i)
+                {
+                    string variableName = pages[i].GetValue("variableName");
+                    string range = pages[i].GetValue("range");
+                    string page = pages[i].GetValue("page");
+                    if (string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(range) || string.IsNullOrEmpty(page))
+                    {
+                        JUtil.LogErrorMessage(this, "Incorrect page definition for page {0}", i);
+                        definitions = null;
+                        if (string.IsNullOrEmpty(definitionIn))
+                        {
+                            // Make sure we aren't crashing later.
+                            definitionIn = definitionOut;
+                        }
+                        return;
+                    }
+                    definitions[i] = new PageDefinition(variableName, range, page);
+                }
+            }
+        }
+
         public void Start()
         {
-            if (string.IsNullOrEmpty(definitionIn))
+            if (string.IsNullOrEmpty(definitionIn) && definitions != null)
             {
+                for (int i = 0; i < definitions.Length; ++i)
+                {
+                    string[] varrange = definitions[i].range.Split(',');
+                    range.Add(new VariableOrNumberRange(definitions[i].variableName, varrange[0], varrange[1]));
+                    text.Add(JUtil.LoadPageDefinition(definitions[i].page));
+                }
+                definitions = null;
+                initialized = true;
             }
             else
             {

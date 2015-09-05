@@ -461,6 +461,24 @@ namespace JSI
                     {
                         JUtil.LogErrorMessage(ourMonitor, "Caught exception when trying to instantiate module '{0}'. Something's fishy here", moduleName);
                     }
+                    if (thatModule != null)
+                    {
+                        try
+                        {
+                            MethodInfo configureMethod = thatModule.GetType().GetMethod("Configure", BindingFlags.Instance | BindingFlags.Public);
+                            ParameterInfo[] parms = configureMethod.GetParameters();
+
+                            if (parms.Length == 1 && parms[0].ParameterType == typeof(ConfigNode))
+                            {
+                                configureMethod.Invoke(thatModule, new object[] { handlerConfiguration });
+                            }
+                        }
+                        catch//(Exception e)
+                        {
+                            //JUtil.LogMessage(ourMonitor, "Exception {0}", e);
+                            //JUtil.LogMessage(ourMonitor, "Module didn't have a Configure method.  This could be normal.");
+                        }
+                    }
                 }
 
                 if (thatModule == null)
