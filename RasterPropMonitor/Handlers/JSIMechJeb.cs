@@ -214,7 +214,7 @@ namespace JSI
             CLOSEST_APPROACH = 9,
         }
         #endregion
-        
+
         static private readonly bool mjFound;
 
         private double deltaV, deltaVStage;
@@ -270,6 +270,7 @@ namespace JSI
                     throw new NotImplementedException("mjCoreVesselState");
                 }
 
+                // VesselExtensions 
                 Type mjVesselExtensions_t = loadedMechJebAssy.assembly.GetExportedTypes()
                     .SingleOrDefault(t => t.FullName == "MuMech.VesselExtensions");
                 if (mjVesselExtensions_t == null)
@@ -379,7 +380,7 @@ namespace JSI
                 {
                     throw new NotImplementedException("mjEditableAngle_t");
                 }
-                MethodInfo mjAbsoluteVectorToDouble = null;         
+                MethodInfo mjAbsoluteVectorToDouble = null;
                 foreach (MethodInfo method in mjEditableAngle_t.GetMethods(BindingFlags.Static | BindingFlags.Public))
                 {
                     // The method name reports as "op_Implicit", but there are two
@@ -659,7 +660,7 @@ namespace JSI
                     throw new NotImplementedException("mjModuleUsers");
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 mjMechJebCore_t = null;
                 JUtil.LogMessage(null, "Exception initializing JSIMechJeb: {0}", e);
@@ -679,22 +680,6 @@ namespace JSI
         {
             JUtil.LogMessage(this, "A supported version of MechJeb is {0}", (mjFound) ? "present" : "not available");
         }
-
-        //private void InvalidateResults()
-        //{
-        //    //activeJeb = null;
-
-        //    landingCurrent = false;
-        //    deltaVCurrent = false;
-
-        //    deltaV = 0.0;
-        //    deltaVStage = 0.0;
-
-        //    landingLat = 0.0;
-        //    landingLon = 0.0;
-        //    landingAlt = 0.0;
-        //    landingErr = -1.0;
-        //}
 
         #region Internal Methods
         /// <summary>
@@ -761,7 +746,7 @@ namespace JSI
             object predictor = GetComputerModule(masterMechJeb, "MechJebModuleLandingPredictions");
             if (predictor != null && ModuleEnabled(predictor) == true)
             {
-                return getPredictionsResult(predictor, new object[] {});
+                return getPredictionsResult(predictor, new object[] { });
             }
 
             return null;
@@ -928,7 +913,7 @@ namespace JSI
                 activeJeb = GetMasterMechJeb(vessel);
             }
             catch { }
-            
+
             return (activeJeb != null);
         }
 
@@ -969,16 +954,7 @@ namespace JSI
 
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (landingCurrent == false)
-                {
-                    UpdateLandingStats();
-                }
+                UpdateLandingStats();
 
                 return landingErr;
             }
@@ -997,16 +973,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (landingCurrent == false)
-                {
-                    UpdateLandingStats();
-                }
+                UpdateLandingStats();
 
                 return landingLat;
             }
@@ -1025,16 +992,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (landingCurrent == false)
-                {
-                    UpdateLandingStats();
-                }
+                UpdateLandingStats();
 
                 return landingLon;
             }
@@ -1053,16 +1011,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (landingCurrent == false)
-                {
-                    UpdateLandingStats();
-                }
+                UpdateLandingStats();
 
                 return landingAlt;
             }
@@ -1081,16 +1030,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (deltaVCurrent == false)
-                {
-                    UpdateDeltaVStats();
-                }
+                UpdateDeltaVStats();
 
                 return deltaV;
             }
@@ -1109,16 +1049,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                //if (moduleInvalidated)
-                {
-                    //InvalidateResults();
-                    //moduleInvalidated = false;
-                }
-
-                //if (deltaVCurrent == false)
-                {
-                    UpdateDeltaVStats();
-                }
+                UpdateDeltaVStats();
 
                 return deltaVStage;
             }
