@@ -27,6 +27,10 @@ namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
     {
+        private const float KelvinToCelsius = -273.15f;
+        private const float MetersToFeet = 3.2808399f;
+        private const float MetersPerSecondToKnots = 1.94384449f;
+
         //--- The guts of the variable processor
         #region VariableToObject
         /// <summary>

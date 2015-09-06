@@ -97,7 +97,6 @@ namespace JSI
             "AG9"
         };
         private const float gee = 9.81f;
-        private const float KelvinToCelsius = -273.15f;
         private readonly double upperAtmosphereLimit = Math.Log(100000.0);
         private static double standardAtmosphere = -1.0;
         #endregion
