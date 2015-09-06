@@ -28,6 +28,8 @@ It's sort of an approximation of how actual MFDs work, though they typically use
 * Make sure that there is only one RasterPropMonitor.dll and that it is located at GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll -- several earlier third-party capsules distributed old versions incorrectly. They *will* fail to work in 0.23.
 * Make sure that you're using the appropriate versions of every other plugin, in particular SCANsat and MechJeb -- failures of loading the interface DLLs for those can cause RasterPropMonitor to stop working, and there's little I can do about this. Blame Squad and be sure to eradicate MechJebRPM.dll if you do not use MechJeb / delete SCANsatRPM.dll if you do not use SCANsat.
 
+If these steps do not solve your problem, please follow the steps in (this post on the forum)[http://forum.kerbalspaceprogram.com/threads/92229] and post the required information on the (RPM forum)[http://forum.kerbalspaceprogram.com/threads/117471] or open an issue on (GitHub)[https://github.com/Mihara/RasterPropMonitor/issues].
+
 ### I get lots of exclamation signs and gibberish all over my screens!
 
 Update Active Texture Management to latest version and remember, for the future, that not all textures can be safely resized -- with any capsule that uses RasterPropMonitor, the problem may recur if you don't manage your Active Texture Management settings intelligently. "Aggressive" settings are called that for a reason.
