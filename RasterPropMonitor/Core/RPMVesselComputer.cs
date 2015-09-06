@@ -62,6 +62,7 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static Dictionary<string, MappedVariable> mappedVariables;
         private static SortedDictionary<string, string> systemNamedResources;
+        private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
 
         private static Protractor protractor = null;
@@ -131,6 +132,7 @@ namespace JSI
 
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
+        private Dictionary<string, PluginEvaluator> pluginVariables = new Dictionary<string, PluginEvaluator>();
 
         // Craft-relative basis vectors
         private Vector3 forward;
@@ -452,11 +454,36 @@ namespace JSI
             {
                 installedModules = new List<IJSIModule>();
 
-                installedModules.Add(new JSIParachute(vessel));
-                installedModules.Add(new JSIMechJeb(vessel));
-                installedModules.Add(new JSIInternalRPMButtons(vessel));
-                installedModules.Add(new JSIGimbal(vessel));
-                installedModules.Add(new JSIFAR(vessel));
+                installedModules.Add(new JSIParachute());
+                installedModules.Add(new JSIMechJeb());
+                installedModules.Add(new JSIInternalRPMButtons());
+                installedModules.Add(new JSIGimbal());
+                installedModules.Add(new JSIFAR());
+            }
+
+            if (triggeredEvents == null)
+            {
+                triggeredEvents = new List<TriggeredEventTemplate>();
+
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_TRIGGERED_EVENT"))
+                {
+                    string eventName = node.GetValue("eventName").Trim();
+
+                    try
+                    {
+                        TriggeredEventTemplate triggeredVar = new TriggeredEventTemplate(node);
+
+                        if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
+                        {
+                            triggeredEvents.Add(triggeredVar);
+                            JUtil.LogMessage(this, "I know about event {0}", eventName);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                    }
+                }
             }
         }
 
@@ -471,10 +498,7 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel))
             {
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                IJSIModule.vessel = vessel;
 
                 FetchPerPartData();
                 FetchAltitudes();
@@ -511,6 +535,7 @@ namespace JSI
 
             pluginBoolVariables = null;
             pluginDoubleVariables = null;
+            pluginVariables = null;
 
             target = null;
             targetDockingNode = null;
@@ -581,10 +606,7 @@ namespace JSI
                 timeToUpdate = false;
                 resultCache.Clear();
 
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
@@ -602,6 +624,11 @@ namespace JSI
                 long vesseldata = stopwatch.ElapsedMilliseconds;
 #endif
                 FetchTargetData();
+
+                for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                {
+                    activeTriggeredEvents[i].Update(this);
+                }
 #if SHOW_FIXEDUPDATE_TIMING
                 long targetdata = stopwatch.ElapsedMilliseconds;
                 stopwatch.Stop();
@@ -614,6 +641,13 @@ namespace JSI
         #endregion
 
         #region Interface Methods
+        /// <summary>
+        /// Get a plugin or internal method.
+        /// </summary>
+        /// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
+        /// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
+        /// <param name="delegateType">The expected signature of the method.</param>
+        /// <returns></returns>
         public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
         {
             Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
@@ -1260,12 +1294,122 @@ namespace JSI
         }
 
         /// <summary>
+        /// Creates a new PluginEvaluator object for the method supplied (if
+        /// the method exists), attached to an IJSIModule.
+        /// </summary>
+        /// <param name="packedMethod"></param>
+        /// <returns></returns>
+        private PluginEvaluator GetInternalMethod(string packedMethod)
+        {
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2 || string.IsNullOrEmpty(tokens[0]) || string.IsNullOrEmpty(tokens[1]))
+            {
+                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+
+            // Backwards compatibility:
+            if (tokens[0] == "MechJebRPMButtons")
+            {
+                tokens[0] = "JSIMechJeb";
+            }
+            IJSIModule jsiModule = null;
+            foreach (IJSIModule module in installedModules)
+            {
+                if (module.GetType().Name == tokens[0])
+                {
+                    jsiModule = module;
+                    break;
+                }
+            }
+
+            PluginEvaluator pluginEval = null;
+            if (jsiModule != null)
+            {
+                foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+                {
+                    if (m.Name == tokens[1])
+                    {
+                        //JUtil.LogMessage(this, "Found method {1}: return type is {0}, IsStatic is {2}, with {3} parameters", m.ReturnType, tokens[1],m.IsStatic, m.GetParameters().Length);
+                        ParameterInfo[] parms = m.GetParameters();
+                        bool usesVessel = false;
+                        if (parms.Length == 1)
+                        {
+                            if (parms[0].ParameterType == typeof(Vessel))
+                            {
+                                usesVessel = true;
+                            }
+                            else
+                            {
+                                JUtil.LogErrorMessage(this, "GetInternalMethod failed: unexpected first parameter in plugin method {0}", packedMethod);
+                                return null;
+                            }
+                        }
+                        else if (parms.Length > 1)
+                        {
+                            JUtil.LogErrorMessage(this, "GetInternalMethod failed: {1} parameters in plugin method {0}", packedMethod, parms.Length);
+                            return null;
+                        }
+
+                        if (m.ReturnType == typeof(bool))
+                        {
+                            try
+                            {
+                                if (usesVessel)
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, bool>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, bool>), jsiModule, m);
+                                    pluginEval = new PluginBoolVessel(method);
+                                }
+                                else
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
+                                    pluginEval = new PluginBoolVoid(method);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
+                            }
+                        }
+                        else if (m.ReturnType == typeof(double))
+                        {
+                            try
+                            {
+                                if (usesVessel)
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, double>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, double>), jsiModule, m);
+                                    pluginEval = new PluginDoubleVessel(method);
+                                }
+                                else
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
+                                    pluginEval = new PluginDoubleVoid(method);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
+                            }
+                        }
+                        else
+                        {
+                            JUtil.LogErrorMessage(this, "I need to support a return type of {0}", m.ReturnType);
+                            throw new Exception("Not Implemented");
+                        }
+                    }
+                }
+            }
+
+            return pluginEval;
+        }
+
+        /// <summary>
         /// Get an internal method (one that is built into an IJSIModule)
         /// </summary>
         /// <param name="packedMethod"></param>
         /// <param name="delegateType"></param>
         /// <returns></returns>
-        private Delegate GetInternalMethod(string packedMethod, Type delegateType)
+        public Delegate GetInternalMethod(string packedMethod, Type delegateType)
         {
             string[] tokens = packedMethod.Split(':');
             if (tokens.Length != 2)
@@ -1298,7 +1442,14 @@ namespace JSI
                 {
                     if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
                     {
-                        stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                        if (m.IsStatic)
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, m);
+                        }
+                        else
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                        }
                     }
                 }
             }
@@ -1559,18 +1710,15 @@ namespace JSI
             // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
             if (data != GameScenes.FLIGHT && customVariables != null)
             {
-                //JUtil.LogMessage(this, " ... tearing down statics");
                 customVariables = null;
                 knownLoadedAssemblies = null;
                 mappedVariables = null;
                 systemNamedResources = null;
+                triggeredEvents = null;
 
                 protractor = null;
 
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(null);
-                }
+                IJSIModule.vessel = null;
                 installedModules = null;
 
                 VariableOrNumber.Clear();
@@ -1606,20 +1754,18 @@ namespace JSI
 
         private void VesselChangeCallback(Vessel v)
         {
-            if (v == vessel)
+            if (v.id == vessel.id)
             {
                 //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.vesselName, vessel.vesselName);
                 timeToUpdate = true;
-                for (int i = 0; i < installedModules.Count; ++i)
-                {
-                    installedModules[i].Invalidate(vessel);
-                }
+                resultCache.Clear();
+                IJSIModule.vessel = vessel;
             }
         }
 
         private void VesselModifiedCallback(Vessel v)
         {
-            if (v == vessel && JUtil.IsActiveVessel(vessel))
+            if (v.id == vessel.id && JUtil.IsActiveVessel(vessel))
             {
                 //JUtil.LogMessage(this, "onVesselModified({0}), I am {1}, so I am modified", v.vesselName, vessel.vesselName);
                 timeToUpdate = true;

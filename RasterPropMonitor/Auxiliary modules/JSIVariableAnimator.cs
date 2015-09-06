@@ -89,10 +89,9 @@ namespace JSI
                         JUtil.LogMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
                     }
                 }
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
-                }
+
+                JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+
                 foreach (VariableAnimationSet thatSet in variableSets)
                 {
                     alwaysActive |= thatSet.alwaysActive;

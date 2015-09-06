@@ -26,12 +26,12 @@ using System.Globalization;
 
 namespace JSI
 {
-    public class JSIActionGroupSwitch : InternalModule
+    internal class JSIActionGroupSwitch : InternalModule
     {
         [KSPField]
         public string animationName = string.Empty;
         [KSPField]
-        public bool animateExterior;
+        public bool animateExterior = false;
         [KSPField]
         public string switchTransform = string.Empty;
         [KSPField]
@@ -46,13 +46,13 @@ namespace JSI
         [KSPField]
         public string masterVariableRange = string.Empty;
         [KSPField]
-        public bool reverse;
+        public bool reverse = false;
         [KSPField]
         public float customSpeed = 1f;
         [KSPField]
-        public string internalLightName;
+        public string internalLightName = string.Empty;
         [KSPField]
-        public string needsElectricCharge;
+        public string needsElectricCharge = string.Empty;
         private bool needsElectricChargeValue;
         [KSPField]
         public string switchSound = "Squad/Sounds/sound_click_flick";
@@ -79,7 +79,7 @@ namespace JSI
         [KSPField]
         public int refreshRate = 60;
         // Neater.
-        private static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
+        internal static readonly Dictionary<string, KSPActionGroup> groupList = new Dictionary<string, KSPActionGroup> { 
 			{ "gear",KSPActionGroup.Gear },
 			{ "brakes",KSPActionGroup.Brakes },
 			{ "lights",KSPActionGroup.Light },
@@ -209,11 +209,8 @@ namespace JSI
                         else
                         {
                             consumingWhileActive = true;
-                            if (JUtil.debugLoggingEnabled)
-                            {
-                                JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
-                                    internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
-                            }
+                            JUtil.LogMessage(this, "Switch in prop {0} prop id {1} will consume {2} while active at a rate of {3}", internalProp.propName,
+                                internalProp.propID, consumeWhileActiveName, consumeWhileActiveAmount);
                         }
                     }
                 }
@@ -399,7 +396,7 @@ namespace JSI
                 }
                 else
                 {
-                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1}.", internalProp.propName, internalProp.propID);
+                    JUtil.LogMessage(this, "Warning, neither color nor animation are defined in prop {0} #{1} (this may be okay).", internalProp.propName, internalProp.propID);
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
@@ -607,7 +604,7 @@ namespace JSI
             if (masterVariable != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                if(!masterVariable.IsInRange(comp))
+                if (!masterVariable.IsInRange(comp))
                 {
                     newState = false;
                     forcedShutdown = true;
@@ -667,4 +664,3 @@ namespace JSI
 
     }
 }
-

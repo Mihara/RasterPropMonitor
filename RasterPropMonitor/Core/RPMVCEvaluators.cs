@@ -25,6 +25,66 @@ namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
     {
+        // Delegate wrappers
+        private interface PluginEvaluator
+        {
+            object Evaluate(Vessel vessel);
+        };
+        private class PluginBoolVoid : PluginEvaluator
+        {
+            Func<bool> method;
+
+            internal PluginBoolVoid(Delegate method)
+            {
+                this.method = (Func<bool>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                bool value = method();
+                return value.GetHashCode();
+            }
+        };
+        private class PluginDoubleVoid : PluginEvaluator
+        {
+            Func<double> method;
+
+            internal PluginDoubleVoid(Delegate method)
+            {
+                this.method = (Func<double>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                return method();
+            }
+        };
+        private class PluginBoolVessel: PluginEvaluator
+        {
+            Func<Vessel, bool> method;
+
+            internal PluginBoolVessel(Delegate method)
+            {
+                this.method = (Func<Vessel, bool>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                bool value = method(vessel);
+                return value.GetHashCode();
+            }
+        };
+        private class PluginDoubleVessel : PluginEvaluator
+        {
+            Func<Vessel, double> method;
+
+            internal PluginDoubleVessel(Delegate method)
+            {
+                this.method = (Func<Vessel, double>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                return method(vessel);
+            }
+        };
+
         // Plugin-modifiable Evaluators
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateAngleOfAttack;
