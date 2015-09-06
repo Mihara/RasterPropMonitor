@@ -54,6 +54,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\MathVariable.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMVCTriggeredEvent.cs" />
     <Compile Include="Core\RPMVCVariableToObject.cs" />
