@@ -42,6 +42,9 @@ namespace JSI
         public string targetColor = string.Empty;
         private Color targetColorValue = Color.magenta;
         [KSPField]
+        public string waypointColor = string.Empty;
+        private Color waypointColorValue = Color.magenta;
+        [KSPField]
         public string normalColor = string.Empty;
         private Color normalColorValue = new Color(0.930f, 0, 1);
         [KSPField]
@@ -168,7 +171,7 @@ namespace JSI
             markerRadialMinus = BuildMarker(0, 1, scaledMarkerSize, gizmoTexture, radialColorValue, drawingLayer, internalProp.propID, displayShader);
 
             markerDockingAlignment = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, dockingColorValue, drawingLayer, internalProp.propID, displayShader);
-            markerNavWaypoint = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, dockingColorValue, drawingLayer, internalProp.propID, displayShader);
+            markerNavWaypoint = BuildMarker(0, 2, scaledMarkerSize, gizmoTexture, waypointColorValue, drawingLayer, internalProp.propID, displayShader);
         }
 
         public bool RenderPFD(RenderTexture screen, float aspect)
@@ -244,20 +247,20 @@ namespace JSI
                 JUtil.ShowHide(true, markerManeuver, markerManeuverMinus);
             }
 
-            /* Feature disabled until I can get a career game going and get a waypoint contract.
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
                 GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
                 Material material = navWaypointIndicator.renderer.sharedMaterial;
                 markerNavWaypoint.renderer.material.mainTexture = material.mainTexture;
+                markerNavWaypoint.renderer.material.mainTextureScale = Vector2.one;
+                markerNavWaypoint.renderer.material.mainTextureOffset = Vector2.zero;
                 
                 Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
-                Vector3d waypointDirection = (waypointPosition - comp.CoM).normalized;
-                MoveMarker(markerNavWaypoint, waypointDirection, material.color, gymbal);
+                Vector3 waypointDirection = (waypointPosition - vessel.CoM).normalized;
+                MoveMarker(markerNavWaypoint, waypointDirection, gymbal);
                 JUtil.ShowHide(true, markerNavWaypoint);
             }
-            */
 
             ITargetable target = FlightGlobals.fetch.VesselTarget;
             if (target != null)
@@ -376,6 +379,10 @@ namespace JSI
                 if (!string.IsNullOrEmpty(dockingColor))
                 {
                     dockingColorValue = ConfigNode.ParseColor32(dockingColor);
+                }
+                if (!string.IsNullOrEmpty(waypointColor))
+                {
+                    waypointColorValue = ConfigNode.ParseColor32(waypointColor);
                 }
 
                 Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
