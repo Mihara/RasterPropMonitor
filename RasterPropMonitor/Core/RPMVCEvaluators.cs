@@ -90,11 +90,13 @@ namespace JSI
         private Func<double> evaluateAngleOfAttack;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
+        private Func<double> evaluateDragForce;
         private Func<double> evaluateDynamicPressure;
         private Func<double> evaluateLandingError;
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
         private Func<double> evaluateLandingLongitude;
+        private Func<double> evaluateLiftForce;
         private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
 
@@ -181,6 +183,16 @@ namespace JSI
             return evaluateDeltaVStage();
         }
 
+        private double DragForce()
+        {
+            if(evaluateDragForce == null)
+            {
+                evaluateDragForce = FallbackEvaluateDragForce;
+            }
+
+            return evaluateDragForce();
+        }
+
         private double DynamicPressure()
         {
             if (evaluateDynamicPressure == null)
@@ -246,6 +258,16 @@ namespace JSI
             }
 
             return evaluateLandingLongitude();
+        }
+
+        private double LiftForce()
+        {
+            if (evaluateLiftForce == null)
+            {
+                evaluateLiftForce = FallbackEvaluateLiftForce;
+            }
+
+            return evaluateLiftForce();
         }
 
         private bool MechJebAvailable()
@@ -360,6 +382,52 @@ namespace JSI
             return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
         }
 
+        private double FallbackEvaluateDragForce()
+        {
+            // Equations based on https://github.com/NathanKell/AeroGUI/blob/master/AeroGUI/AeroGUI.cs and MechJeb.
+            double dragForce = 0.0;
+
+            if (altitudeASL < vessel.mainBody.RealMaxAtmosphereAltitude())
+            {
+                Vector3 pureDragV = Vector3.zero, pureLiftV = Vector3.zero;
+
+                for (int i = 0; i < vessel.parts.Count; i++)
+                {
+                    Part p = vessel.parts[i];
+
+                    pureDragV += -p.dragVectorDir * p.dragScalar;
+
+                    if (!p.hasLiftModule)
+                    {
+                        Vector3 bodyLift = p.transform.rotation * (p.bodyLiftScalar * p.DragCubes.LiftForce);
+                        bodyLift = Vector3.ProjectOnPlane(bodyLift, -p.dragVectorDir);
+                        pureLiftV += bodyLift;
+
+                        for (int m = 0; m < p.Modules.Count; m++)
+                        {
+                            PartModule pm = p.Modules[m];
+                            if (pm.isEnabled && pm is ModuleLiftingSurface)
+                            {
+                                ModuleLiftingSurface liftingSurface = pm as ModuleLiftingSurface;
+                                if (!p.ShieldedFromAirstream)
+                                {
+                                    pureLiftV += liftingSurface.liftForce;
+                                    pureDragV += liftingSurface.dragForce;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Per NathanKell here http://forum.kerbalspaceprogram.com/threads/125746-Drag-Api?p=2029514&viewfull=1#post2029514
+                // drag is in kN.  Divide by wet mass to get m/s^2 acceleration
+                Vector3 force = pureDragV + pureLiftV;
+                dragForce = Vector3.Dot(force, -vessel.srf_velocity.normalized);
+            }
+
+            return dragForce;
+        }
+
         private double FallbackEvaluateDynamicPressure()
         {
             return vessel.dynamicPressurekPa;
@@ -382,6 +450,50 @@ namespace JSI
             return sideslipAngle;
         }
 
+        private double FallbackEvaluateLiftForce()
+        {
+            double liftForce = 0.0;
+
+            if (altitudeASL < vessel.mainBody.RealMaxAtmosphereAltitude())
+            {
+                Vector3 pureDragV = Vector3.zero, pureLiftV = Vector3.zero;
+
+                for (int i = 0; i < vessel.parts.Count; i++)
+                {
+                    Part p = vessel.parts[i];
+
+                    pureDragV += -p.dragVectorDir * p.dragScalar;
+
+                    if (!p.hasLiftModule)
+                    {
+                        Vector3 bodyLift = p.transform.rotation * (p.bodyLiftScalar * p.DragCubes.LiftForce);
+                        bodyLift = Vector3.ProjectOnPlane(bodyLift, -p.dragVectorDir);
+                        pureLiftV += bodyLift;
+
+                        for (int m = 0; m < p.Modules.Count; m++)
+                        {
+                            PartModule pm = p.Modules[m];
+                            if (pm.isEnabled && pm is ModuleLiftingSurface)
+                            {
+                                ModuleLiftingSurface liftingSurface = pm as ModuleLiftingSurface;
+                                if (!p.ShieldedFromAirstream)
+                                {
+                                    pureLiftV += liftingSurface.liftForce;
+                                    pureDragV += liftingSurface.dragForce;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Vector3 force = pureDragV + pureLiftV;
+                Vector3 liftDir = -Vector3.Cross(vessel.transform.right, vessel.srf_velocity.normalized); 
+                liftForce = Vector3.Dot(force, liftDir);
+            }
+
+            return liftForce;
+        }
+
         private double FallbackEvaluateTerminalVelocity()
         {
             // Terminal velocity computation based on MechJeb 2.5.1 or one of the later snapshots
@@ -390,7 +502,7 @@ namespace JSI
                 return float.PositiveInfinity;
             }
 
-            Vector3d pureDragV = Vector3d.zero, pureLiftV = Vector3d.zero;
+            Vector3 pureDragV = Vector3.zero, pureLiftV = Vector3.zero;
 
             for (int i = 0; i < vessel.parts.Count; i++)
             {
@@ -412,19 +524,11 @@ namespace JSI
                             continue;
                         }
 
-                        if (pm is ModuleControlSurface)
-                        {
-                            ModuleControlSurface cs = (pm as ModuleControlSurface);
-
-                            if (p.ShieldedFromAirstream || cs.deploy)
-                                continue;
-
-                            pureLiftV += cs.liftForce;
-                            pureDragV += cs.dragForce;
-                        }
-                        else if (pm is ModuleLiftingSurface)
+                        if (pm is ModuleLiftingSurface)
                         {
                             ModuleLiftingSurface liftingSurface = (ModuleLiftingSurface)pm;
+                            if (p.ShieldedFromAirstream)
+                                continue;
                             pureLiftV += liftingSurface.liftForce;
                             pureDragV += liftingSurface.dragForce;
                         }
@@ -432,11 +536,12 @@ namespace JSI
                 }
             }
 
+            // Why?
             pureDragV = pureDragV / totalShipWetMass;
             pureLiftV = pureLiftV / totalShipWetMass;
 
-            Vector3d force = pureDragV + pureLiftV;
-            double drag = Vector3d.Dot(force, -vessel.srf_velocity.normalized);
+            Vector3 force = pureDragV + pureLiftV;
+            double drag = Vector3.Dot(force, -vessel.srf_velocity.normalized);
 
             return Math.Sqrt(localGeeDirect / drag) * vessel.srfSpeed;
         }
