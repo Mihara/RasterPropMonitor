@@ -38,32 +38,44 @@ namespace JSI
 
             internal TriggeredEventTemplate(ConfigNode node)
             {
-                eventName = node.GetValue("eventName").Trim();
-                if (string.IsNullOrEmpty(eventName))
+                if(!node.HasValue("eventName"))
                 {
-                    throw new Exception("TriggeredEvent: eventName not valid");
+                    throw new Exception("TriggeredEvent: eventName field not found");
                 }
+                eventName = node.GetValue("eventName").Trim();
 
-                variableName = node.GetValue("variableName").Trim();
-                if (string.IsNullOrEmpty(variableName))
+                if (!node.HasValue("variableName"))
                 {
-                    throw new Exception("TriggeredEvent: variableName not valid");
+                    throw new Exception("TriggeredEvent: variableName field not found");
+                }
+                variableName = node.GetValue("variableName").Trim();
+
+                if (!node.HasValue("range"))
+                {
+                    throw new Exception("TriggeredEvent: range field not found");
                 }
                 range = node.GetValue("range").Trim();
-                if (string.IsNullOrEmpty(range))
-                {
-                    throw new Exception("TriggeredEvent: range not valid");
-                }
 
+                if (!node.HasValue("triggerEvent"))
+                {
+                    throw new Exception("TriggeredEvent: triggerEvent field not found");
+                }
                 triggerEvent = node.GetValue("triggerEvent").Trim();
-                if (string.IsNullOrEmpty(triggerEvent))
-                {
-                    throw new Exception("TriggeredEvent: triggerEvent not valid");
-                }
 
+                if (!node.HasValue("triggerState"))
+                {
+                    throw new Exception("TriggeredEvent: triggerState field not found");
+                }
                 triggerState = node.GetValue("triggerState").Trim();
-                eventState = node.GetValue("eventState").Trim();
-                oneShot = node.GetValue("oneShot").Trim();
+
+                if (node.HasValue("eventState"))
+                {
+                    eventState = node.GetValue("eventState").Trim();
+                }
+                if (node.HasValue("oneShot"))
+                {
+                    oneShot = node.GetValue("oneShot").Trim();
+                }
             }
         }
 
@@ -166,6 +178,8 @@ namespace JSI
                 {
                     oneShot = false;
                 }
+
+                JUtil.LogMessage(this, "Triggered Event {0} created", eventName);
             }
 
             internal void Update(RPMVesselComputer comp)
@@ -177,6 +191,7 @@ namespace JSI
                     {
                         if (!triggered)
                         {
+                            JUtil.LogMessage(this, "Event {0} triggered", eventName);
                             triggered = true;
                             armed = oneShot;
                             DoEvent(comp.vessel);
@@ -185,6 +200,7 @@ namespace JSI
                 }
                 else if (!inRange)
                 {
+                    JUtil.LogMessage(this, "Event {0} armed", eventName);
                     armed = true;
                     triggered = false;
                 }

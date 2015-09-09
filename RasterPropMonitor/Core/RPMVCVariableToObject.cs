@@ -27,6 +27,10 @@ namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
     {
+        private const float KelvinToCelsius = -273.15f;
+        internal const float MetersToFeet = 3.2808399f;
+        internal const float MetersPerSecondToKnots = 1.94384449f;
+
         //--- The guts of the variable processor
         #region VariableToObject
         /// <summary>
@@ -128,6 +132,19 @@ namespace JSI
                     if (mappedVariables.ContainsKey(input))
                     {
                         return mappedVariables[input].Evaluate(this);
+                    }
+                    else
+                    {
+                        return input;
+                    }
+                }
+
+                // Mapped variables - if the first token is MATH, we'll evaluate it here
+                if (tokens.Length > 1 && tokens[0] == "MATH")
+                {
+                    if (mathVariables.ContainsKey(input))
+                    {
+                        return mathVariables[input].Evaluate(this);
                     }
                     else
                     {

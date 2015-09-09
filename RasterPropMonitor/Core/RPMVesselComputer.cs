@@ -61,6 +61,7 @@ namespace JSI
         private static Dictionary<string, CustomVariable> customVariables;
         private static List<string> knownLoadedAssemblies;
         private static Dictionary<string, MappedVariable> mappedVariables;
+        private static Dictionary<string, MathVariable> mathVariables;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
@@ -97,7 +98,6 @@ namespace JSI
             "AG9"
         };
         private const float gee = 9.81f;
-        private const float KelvinToCelsius = -273.15f;
         private readonly double upperAtmosphereLimit = Math.Log(100000.0);
         private static double standardAtmosphere = -1.0;
         #endregion
@@ -427,6 +427,32 @@ namespace JSI
                         {
                             string completeVarName = "MAPPED_" + varName;
                             mappedVariables.Add(completeVarName, mappedVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+
+            if (mathVariables == null)
+            {
+                mathVariables = new Dictionary<string, MathVariable>();
+                // And parse known custom variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE"))
+                {
+                    string varName = node.GetValue("name");
+
+                    try
+                    {
+                        MathVariable mathVar = new MathVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && mathVar != null)
+                        {
+                            string completeVarName = "MATH_" + varName;
+                            mathVariables.Add(completeVarName, mathVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }

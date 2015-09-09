@@ -48,6 +48,15 @@ namespace JSI
                 varName = floatval.ToString();
             }
 
+            if (varName == "MetersToFeet")
+            {
+                varName = RPMVesselComputer.MetersToFeet.ToString();
+            }
+            else if (varName == "MetersPerSecondToKnots")
+            {
+                varName = RPMVesselComputer.MetersPerSecondToKnots.ToString();
+            }
+
             if(!vars.ContainsKey(varName))
             {
                 VariableOrNumber VoN = new VariableOrNumber(varName);
