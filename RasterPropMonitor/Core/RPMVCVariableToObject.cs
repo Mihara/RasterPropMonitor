@@ -545,6 +545,14 @@ namespace JSI
                     return ((localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1.0f) ? -1.0 : 1.0;
                 case "EFFECTIVETHROTTLE":
                     return (totalMaximumThrust > 0.0f) ? (double)(totalCurrentThrust / totalMaximumThrust) : 0.0;
+                case "DRAG":
+                    return DragForce();
+                case "DRAGACCEL":
+                    return DragForce() / totalShipWetMass;
+                case "LIFT":
+                    return LiftForce();
+                case "LIFTACCEL":
+                    return LiftForce() / totalShipWetMass;
 
                 // Maneuvers
                 case "MNODETIMESECS":

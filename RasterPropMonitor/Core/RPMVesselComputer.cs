@@ -265,7 +265,7 @@ namespace JSI
         private float localGeeDirect;
         private bool orbitSensibility;
         private ResourceDataStorage resources = new ResourceDataStorage();
-        private string[] resourcesAlphabetic;
+        private string[] resourcesAlphabetic = null;
         private float slopeAngle;
         private double speedHorizontal;
         private double speedVertical;
@@ -992,11 +992,11 @@ namespace JSI
         /// </summary>
         private void FetchPerPartData()
         {
-            totalShipDryMass = totalShipWetMass = 0.0f;
             totalCurrentThrust = totalMaximumThrust = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
             float hottestShield = float.MinValue;
+            float totalResourceMass = 0.0f;
 
             float averageIspContribution = 0.0f;
 
@@ -1011,13 +1011,7 @@ namespace JSI
                     resources.Add(resource);
                 }
 
-                if (thatPart.physicalSignificance != Part.PhysicalSignificance.NONE)
-                {
-                    totalShipDryMass += thatPart.mass;
-                    totalShipWetMass += thatPart.mass;
-                }
-
-                totalShipWetMass += thatPart.GetResourceMass();
+                totalResourceMass += thatPart.GetResourceMass();
 
                 foreach (PartModule pm in thatPart.Modules)
                 {
@@ -1091,6 +1085,9 @@ namespace JSI
                 }
             }
 
+            totalShipWetMass = vessel.GetTotalMass();
+            totalShipDryMass = totalShipWetMass - totalResourceMass;
+
             if (averageIspContribution > 0.0f)
             {
                 actualAverageIsp = totalMaximumThrust / averageIspContribution;
@@ -1100,7 +1097,7 @@ namespace JSI
                 actualAverageIsp = 0.0f;
             }
 
-            resourcesAlphabetic = resources.Alphabetic();
+            resources.GetActiveResourceNames(ref resourcesAlphabetic);
 
             // We can use the stock routines to get at the per-stage resources.
             foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources())
@@ -1108,6 +1105,7 @@ namespace JSI
                 resources.SetActive(thatResource);
             }
 
+            // MOARdV TODO: Migrate this to a callback system:
             // I seriously hope you don't have crew jumping in and out more than once per second.
             vesselCrew = vessel.GetVesselCrew();
             // The sneaky bit: This way we can get at their panic and whee values!
