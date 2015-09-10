@@ -255,6 +255,10 @@ namespace JSI
                 markerNavWaypoint.renderer.material.mainTexture = material.mainTexture;
                 markerNavWaypoint.renderer.material.mainTextureScale = Vector2.one;
                 markerNavWaypoint.renderer.material.mainTextureOffset = Vector2.zero;
+                if (string.IsNullOrEmpty(waypointColor))
+                {
+                    markerNavWaypoint.renderer.material.SetVector("_Color", material.GetVector("_Color"));
+                }
                 
                 Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
                 Vector3 waypointDirection = (waypointPosition - vessel.CoM).normalized;
