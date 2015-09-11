@@ -106,7 +106,7 @@ namespace JSI
             try
             {
                 ModuleDockingNode dockingNode = part.FindModuleImplementing<ModuleDockingNode>();
-                JUtil.LogMessage(this, "part.transform - up is {0}; dockingNode.nodeTransform up is {1}", scanTransform.up, dockingNode.nodeTransform.up);
+                JUtil.LogMessage(this, "part.transform - up is {0}; dockingNode.nodeTransform up is {1}; position is {2} and {3}", scanTransform.up, dockingNode.nodeTransform.up, scanTransform.position, dockingNode.nodeTransform.position);
             //    scanTransform = dockingNode.nodeTransform;
             }
             catch (Exception e)
@@ -165,7 +165,7 @@ namespace JSI
                     {
                         Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
                         float dotAngle = Vector3.Dot(vectorToTarget, scanTransform.up);
-                        if (dotAngle > scanDotValue)
+                        if (dotAngle < scanDotValue)
                         {
                             JUtil.LogMessage(this, "FixedUpdate: Target is out of scan angle");
                             FlightGlobals.fetch.SetVesselTarget(null);
@@ -192,7 +192,7 @@ namespace JSI
                 {
                     Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
                     float dotAngle = Vector3.Dot(vectorToTarget, scanTransform.up);
-                    if (dotAngle > scanDotValue)
+                    if (dotAngle < scanDotValue)
                     {
                         JUtil.LogMessage(this, "FixedUpdate: Target is out of scan angle");
                         FlightGlobals.fetch.SetVesselTarget(null);
@@ -222,7 +222,7 @@ namespace JSI
                         if (distSq < selectedDistance)
                         {
                             float dotValue = Vector3.Dot(distance.normalized, scanTransform.up);
-                            if (dotValue < scanDotValue)
+                            if (dotValue > scanDotValue)
                             {
                                 selectedDistance = distSq;
                                 selectedTarget = FlightGlobals.fetch.vessels[i];
