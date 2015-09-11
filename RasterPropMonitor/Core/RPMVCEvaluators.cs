@@ -57,7 +57,20 @@ namespace JSI
                 return method();
             }
         };
-        private class PluginBoolVessel: PluginEvaluator
+        private class PluginStringVoid : PluginEvaluator
+        {
+            Func<string> method;
+
+            internal PluginStringVoid(Delegate method)
+            {
+                this.method = (Func<string>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                return method();
+            }
+        };
+        private class PluginBoolVessel : PluginEvaluator
         {
             Func<Vessel, bool> method;
 
@@ -78,6 +91,19 @@ namespace JSI
             internal PluginDoubleVessel(Delegate method)
             {
                 this.method = (Func<Vessel, double>)method;
+            }
+            public object Evaluate(Vessel vessel)
+            {
+                return method(vessel);
+            }
+        };
+        private class PluginStringVessel : PluginEvaluator
+        {
+            Func<Vessel, string> method;
+
+            internal PluginStringVessel(Delegate method)
+            {
+                this.method = (Func<Vessel, string>)method;
             }
             public object Evaluate(Vessel vessel)
             {
@@ -185,7 +211,7 @@ namespace JSI
 
         private double DragForce()
         {
-            if(evaluateDragForce == null)
+            if (evaluateDragForce == null)
             {
                 evaluateDragForce = FallbackEvaluateDragForce;
             }
@@ -487,7 +513,7 @@ namespace JSI
                 }
 
                 Vector3 force = pureDragV + pureLiftV;
-                Vector3 liftDir = -Vector3.Cross(vessel.transform.right, vessel.srf_velocity.normalized); 
+                Vector3 liftDir = -Vector3.Cross(vessel.transform.right, vessel.srf_velocity.normalized);
                 liftForce = Vector3.Dot(force, liftDir);
             }
 
