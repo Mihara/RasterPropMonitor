@@ -47,6 +47,9 @@ namespace JSI
         public string resourceName = "ElectricCharge";
         private int resourceId;
 
+        [KSPField]
+        public string radarTransform = string.Empty;
+
         // Will we refine our target to the nearest docking port?
         [KSPField]
         public bool targetDockingPorts = false;
@@ -54,7 +57,7 @@ namespace JSI
         // Do we restrict the tracking angle to the scan angle (must keep in
         // the radar cone to maintain track)?
         [KSPField]
-        public bool restrictTrackingAngle = false;
+        public bool restrictTracking = false;
 
         // Can we maintain a target while the scanner is off?
         [KSPField]
@@ -71,7 +74,7 @@ namespace JSI
         private Transform scanTransform;
         // Because the docking port's basis isn't the same as the part's, we
         // have to look at the forward vector instead of the up vector.
-        private bool useFwd;
+        private bool scanTransformIsDockingNode;
 
         public void Start()
         {
@@ -106,18 +109,35 @@ namespace JSI
                 resourceAmount = 0.0f;
             }
 
-            scanTransform = part.transform;
-            useFwd = false;
-            try
+            if (!string.IsNullOrEmpty(radarTransform))
             {
-                List<ModuleDockingNode> dockingNode = part.FindModulesImplementing<ModuleDockingNode>();
-                scanTransform = dockingNode[0].nodeTransform;
-                useFwd = true;
+                scanTransformIsDockingNode = false;
+                try
+                {
+                    Transform[] transforms = part.FindModelTransforms(radarTransform);
+                    scanTransform = transforms[0];
+                }
+                catch (Exception e)
+                {
+                    JUtil.LogErrorMessage(this, "Unable to find the named transform {1}: exception {0}", e, radarTransform);
+                    scanTransform = part.transform;
+                }
             }
-            catch (Exception e)
+            else
             {
-                // no-op
-                JUtil.LogErrorMessage(this, "Setting dockingNode transform: exception {0}", e);
+                scanTransform = part.transform;
+                scanTransformIsDockingNode = false;
+                try
+                {
+                    List<ModuleDockingNode> dockingNode = part.FindModulesImplementing<ModuleDockingNode>();
+                    scanTransform = dockingNode[0].nodeTransform;
+                    scanTransformIsDockingNode = true;
+                }
+                catch (Exception e)
+                {
+                    // no-op
+                    JUtil.LogErrorMessage(this, "Setting dockingNode transform: exception {0}", e);
+                }
             }
 
         }
@@ -166,10 +186,16 @@ namespace JSI
                     }
 
                     // Target locked; tracking
-                    if (restrictTrackingAngle)
+                    if (restrictTracking)
                     {
-                        Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
-                        float dotAngle = Vector3.Dot(vectorToTarget, (useFwd) ? scanTransform.forward : scanTransform.up);
+                        Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position);
+                        if (vectorToTarget.sqrMagnitude > maxRangeMetersSquared)
+                        {
+                            JUtil.LogMessage(this, "Target is out of range, losing lock");
+                            FlightGlobals.fetch.SetVesselTarget(null);
+                            return;
+                        }
+                        float dotAngle = Vector3.Dot(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
                         if (dotAngle < scanDotValue)
                         {
                             JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
@@ -193,10 +219,16 @@ namespace JSI
                     return;
                 }
 
-                if (restrictTrackingAngle)
+                if (restrictTracking)
                 {
-                    Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
-                    float dotAngle = Vector3.Dot(vectorToTarget, (useFwd) ? scanTransform.forward : scanTransform.up);
+                    Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position);
+                    if (vectorToTarget.sqrMagnitude > maxRangeMetersSquared)
+                    {
+                        JUtil.LogMessage(this, "Target is out of range, losing lock");
+                        FlightGlobals.fetch.SetVesselTarget(null);
+                        return;
+                    }
+                    float dotAngle = Vector3.Dot(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
                     if (dotAngle < scanDotValue)
                     {
                         JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
@@ -209,7 +241,8 @@ namespace JSI
 
         private void ScanForTargets()
         {
-            float selectedDistance = maxRangeMetersSquared;
+            float selectedDistance = maxRangeMeters;
+            float selectedDistanceSquared = maxRangeMetersSquared;
             Vessel selectedTarget = null;
 
             for (int i = 0; i < FlightGlobals.fetch.vessels.Count; ++i)
@@ -220,16 +253,17 @@ namespace JSI
                 {
                     Vector3 distance = (FlightGlobals.fetch.vessels[i].GetTransform().position - scanTransform.position);
                     float manhattanDistance = Mathf.Max(Mathf.Abs(distance.x), Mathf.Max(Mathf.Abs(distance.y), Mathf.Abs(distance.z)));
-                    if (manhattanDistance < maxRangeMeters)
+                    if (manhattanDistance < selectedDistance)
                     {
-                        // Within Manhattan distance.  Check for actual distance.
+                        // Within Manhattan distance.  Check for real distance (squared, so we're not wasting cycles on a square root operation).
                         float distSq = distance.sqrMagnitude;
-                        if (distSq < selectedDistance)
+                        if (distSq < selectedDistanceSquared)
                         {
-                            float dotValue = Vector3.Dot(distance.normalized, (useFwd) ? scanTransform.forward : scanTransform.up);
+                            float dotValue = Vector3.Dot(distance.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
                             if (dotValue > scanDotValue)
                             {
-                                selectedDistance = distSq;
+                                selectedDistanceSquared = distSq;
+                                selectedDistance = Mathf.Sqrt(distSq);
                                 selectedTarget = FlightGlobals.fetch.vessels[i];
                             }
                         }
@@ -240,7 +274,7 @@ namespace JSI
 
             if (selectedTarget != null)
             {
-                JUtil.LogMessage(this, "Detected target {1} at {0:0.000} km.  Locking on.", Mathf.Sqrt(selectedDistance) * 0.001f, selectedTarget.vesselName);
+                JUtil.LogMessage(this, "Detected target {1} at {0:0.000} km.  Locking on.", Mathf.Sqrt(selectedDistanceSquared) * 0.001f, selectedTarget.vesselName);
                 FlightGlobals.fetch.SetVesselTarget(selectedTarget);
             }
         }
@@ -256,9 +290,9 @@ namespace JSI
             {
                 infoString += "\nMust keep radar on to track.";
             }
-            if (restrictTrackingAngle)
+            if (restrictTracking)
             {
-                infoString += "\nMust keep target in scanning cone to track.";
+                infoString += "\nMust keep target in scanning cone and range to track.";
             }
             if (targetDockingPorts)
             {
