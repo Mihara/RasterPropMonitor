@@ -19,6 +19,7 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace JSI
@@ -752,6 +753,40 @@ namespace JSI
             {
                 return false;
             }
+        }
+
+        public void RadarEnable(bool enabled)
+        {
+            try
+            {
+                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
+                for (int i = 0; i < radars.Count; ++i)
+                {
+                    radars[i].radarEnabled = enabled;
+                }
+            }
+            catch { }
+        }
+
+        public bool RadarEnableState()
+        {
+            bool enabled = false;
+
+            try
+            {
+                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
+                for(int i=0; i<radars.Count; ++i)
+                {
+                    if(radars[i].radarEnabled)
+                    {
+                        enabled = true;
+                        break;
+                    }
+                }
+            }
+            catch { }
+
+            return enabled;
         }
 
         /// <summary>
