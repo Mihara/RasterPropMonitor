@@ -51,10 +51,6 @@ namespace JSI
         [KSPField]
         public bool targetDockingPorts = false;
 
-        [UI_Toggle(disabledText = "No", enabledText = "Yes")]
-        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Target Debris: ", isPersistant = true)]
-        public bool targetDebris = false;
-
         // Do we restrict the tracking angle to the scan angle (must keep in
         // the radar cone to maintain track)?
         [KSPField]
@@ -64,11 +60,18 @@ namespace JSI
         [KSPField]
         public bool trackWhileOff = true;
 
-        [UI_Toggle(disabledText = "Off", enabledText = "On")]
-        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Radar Mode: ", isPersistant = true)]
+        [UI_Toggle(disabledText = "Standby", enabledText = "Active")]
+        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Radar: ", isPersistant = true)]
         public bool radarEnabled = false;
 
+        [UI_Toggle(disabledText = "Ignore", enabledText = "Target")]
+        [KSPField(guiActive = true, guiActiveEditor = true, guiName = "Debris: ", isPersistant = true)]
+        public bool targetDebris = false;
+
         private Transform scanTransform;
+        // Because the docking port's basis isn't the same as the part's, we
+        // have to look at the forward vector instead of the up vector.
+        private bool useFwd;
 
         public void Start()
         {
@@ -77,9 +80,11 @@ namespace JSI
                 return;
             }
 
-            JUtil.LogMessage(this, "Start!");
-
-            scanDotValue = Mathf.Cos(scanAngle);
+            scanAngle = Mathf.Clamp(scanAngle, 0.0f, 180.0f);
+            // Find the equivalent in dot-product format; subtract an epsilon
+            // that's about 1.8 degrees at boresight, but a few millidegrees
+            // out farther.
+            scanDotValue = Mathf.Cos(scanAngle) - (1.0f / 2048.0f);
 
             maxRangeMeters = maxRange * 1000.0f;
             maxRangeMetersSquared = maxRangeMeters * maxRangeMeters;
@@ -101,13 +106,13 @@ namespace JSI
                 resourceAmount = 0.0f;
             }
 
-            // TODO: Use the docking node transform if it exists
             scanTransform = part.transform;
+            useFwd = false;
             try
             {
-                ModuleDockingNode dockingNode = part.FindModuleImplementing<ModuleDockingNode>();
-                JUtil.LogMessage(this, "part.transform - up is {0}; dockingNode.nodeTransform up is {1}; position is {2} and {3}", scanTransform.up, dockingNode.nodeTransform.up, scanTransform.position, dockingNode.nodeTransform.position);
-            //    scanTransform = dockingNode.nodeTransform;
+                List<ModuleDockingNode> dockingNode = part.FindModulesImplementing<ModuleDockingNode>();
+                scanTransform = dockingNode[0].nodeTransform;
+                useFwd = true;
             }
             catch (Exception e)
             {
@@ -144,7 +149,7 @@ namespace JSI
                 {
                     if (!powered)
                     {
-                        JUtil.LogMessage(this, "FixedUpdate: Want to scan, but there's no power");
+                        JUtil.LogMessage(this, "Want to scan, but there's no power");
                         return;
                     }
 
@@ -155,7 +160,7 @@ namespace JSI
                 {
                     if (!trackWhileOff && !powered)
                     {
-                        JUtil.LogMessage(this, "FixedUpdate: Radar ran out of power, trackWhileOff is false, so clearing target");
+                        JUtil.LogMessage(this, "Radar ran out of power and trackWhileOff is false, so clearing target");
                         FlightGlobals.fetch.SetVesselTarget(null);
                         return;
                     }
@@ -164,10 +169,10 @@ namespace JSI
                     if (restrictTrackingAngle)
                     {
                         Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
-                        float dotAngle = Vector3.Dot(vectorToTarget, scanTransform.up);
+                        float dotAngle = Vector3.Dot(vectorToTarget, (useFwd) ? scanTransform.forward : scanTransform.up);
                         if (dotAngle < scanDotValue)
                         {
-                            JUtil.LogMessage(this, "FixedUpdate: Target is out of scan angle");
+                            JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
                             FlightGlobals.fetch.SetVesselTarget(null);
                             return;
                         }
@@ -179,11 +184,11 @@ namespace JSI
                     }
                 }
             }
-            else if(target != null)
+            else if (target != null)
             {
                 if (!trackWhileOff)
                 {
-                    JUtil.LogMessage(this, "FixedUpdate: Radar is off, trackWhileOff is false, so clearing target");
+                    JUtil.LogMessage(this, "Radar is off and trackWhileOff is false, so clearing target");
                     FlightGlobals.fetch.SetVesselTarget(null);
                     return;
                 }
@@ -191,10 +196,10 @@ namespace JSI
                 if (restrictTrackingAngle)
                 {
                     Vector3 vectorToTarget = (target.GetTransform().position - scanTransform.position).normalized;
-                    float dotAngle = Vector3.Dot(vectorToTarget, scanTransform.up);
+                    float dotAngle = Vector3.Dot(vectorToTarget, (useFwd) ? scanTransform.forward : scanTransform.up);
                     if (dotAngle < scanDotValue)
                     {
-                        JUtil.LogMessage(this, "FixedUpdate: Target is out of scan angle");
+                        JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
                         FlightGlobals.fetch.SetVesselTarget(null);
                         return;
                     }
@@ -221,7 +226,7 @@ namespace JSI
                         float distSq = distance.sqrMagnitude;
                         if (distSq < selectedDistance)
                         {
-                            float dotValue = Vector3.Dot(distance.normalized, scanTransform.up);
+                            float dotValue = Vector3.Dot(distance.normalized, (useFwd) ? scanTransform.forward : scanTransform.up);
                             if (dotValue > scanDotValue)
                             {
                                 selectedDistance = distSq;
@@ -235,27 +240,27 @@ namespace JSI
 
             if (selectedTarget != null)
             {
-                JUtil.LogMessage(this, "Detected target {1} at {0:0.000} km.  Locking on.", Mathf.Sqrt(selectedDistance)*0.001f, selectedTarget.vesselName);
+                JUtil.LogMessage(this, "Detected target {1} at {0:0.000} km.  Locking on.", Mathf.Sqrt(selectedDistance) * 0.001f, selectedTarget.vesselName);
                 FlightGlobals.fetch.SetVesselTarget(selectedTarget);
             }
         }
 
         public override string GetInfo()
         {
-            string infoString =string.Format("Max Range: {0:0.0}km\nUp to {1:0.0}* off-axis", maxRange, scanAngle);
-            if(resourceAmount > 0.0f)
+            string infoString = string.Format("Max Range: {0:0.0}km\nUp to {1:0.0}° off-axis", maxRange, scanAngle);
+            if (resourceAmount > 0.0f)
             {
                 infoString += string.Format("\nConsumes {0:0.000} {1}/sec", resourceAmount, resourceName);
             }
-            if(!trackWhileOff)
+            if (!trackWhileOff)
             {
                 infoString += "\nMust keep radar on to track.";
             }
-            if(restrictTrackingAngle)
+            if (restrictTrackingAngle)
             {
                 infoString += "\nMust keep target in scanning cone to track.";
             }
-            if(targetDockingPorts)
+            if (targetDockingPorts)
             {
                 infoString += "\nWill select nearest docking port on target vessel.";
             }
