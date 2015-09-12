@@ -137,6 +137,14 @@ namespace JSI
         // MechJebModuleLandingAutopilot.StopLanding
         private static readonly DynamicAction stopLanding;
 
+        private static readonly DynamicMethodDelegate spaceplaneAutoland;
+        private static readonly DynamicMethodDelegate spaceplaneHoldHeading;
+        private static readonly DynamicAction spaceplaneAPOff;
+        private static readonly FieldInfo spaceplaneAPMode;
+        private static readonly FieldInfo spaceplaneAltitude;
+        private static readonly FieldInfo spaceplaneHeading;
+        private static readonly FieldInfo spaceplaneGlideslope;
+
         // EditableDouble
         // EditableDouble.val (set)
         private static readonly DynamicMethodDelegate setEditableDouble;
@@ -195,6 +203,13 @@ namespace JSI
             HORIZONTAL_PLUS = 20,
             HORIZONTAL_MINUS = 21,
             VERTICAL_PLUS = 22,
+        }
+
+        public enum SpaceplaneMode
+        {
+            AUTOLAND = 0,
+            HOLD = 1,
+            OFF = 2,
         }
 
         // Imported directly from MJ
@@ -533,6 +548,46 @@ namespace JSI
                 }
                 stopLanding = DynamicMethodDelegateFactory.CreateAction(mjStopLanding);
 
+                Type mjSpaceplaneAutopilot_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleSpaceplaneAutopilot");
+                MethodInfo mjSPAutoland = mjSpaceplaneAutopilot_t.GetMethod("Autoland", BindingFlags.Instance | BindingFlags.Public);
+                if (mjSPAutoland == null)
+                {
+                    throw new NotImplementedException("mjSPAutoland");
+                }
+                spaceplaneAutoland = DynamicMethodDelegateFactory.Create(mjSPAutoland);
+                MethodInfo mjSPHoldHeadingAndAltitude = mjSpaceplaneAutopilot_t.GetMethod("HoldHeadingAndAltitude", BindingFlags.Instance | BindingFlags.Public);
+                if (mjSPHoldHeadingAndAltitude == null)
+                {
+                    throw new NotImplementedException("mjSPHoldHeadingAndAltitude");
+                }
+                spaceplaneHoldHeading = DynamicMethodDelegateFactory.Create(mjSPHoldHeadingAndAltitude);
+                MethodInfo mjSPAutopilotOff = mjSpaceplaneAutopilot_t.GetMethod("AutopilotOff", BindingFlags.Instance | BindingFlags.Public);
+                if (mjSPAutopilotOff == null)
+                {
+                    throw new NotImplementedException("mjSPAutopilotOff");
+                }
+                spaceplaneAPOff = DynamicMethodDelegateFactory.CreateAction(mjSPAutopilotOff);
+                spaceplaneAPMode = mjSpaceplaneAutopilot_t.GetField("mode", BindingFlags.Instance | BindingFlags.Public);
+                if (spaceplaneAPMode == null)
+                {
+                    throw new NotImplementedException("spaceplaneAPMode");
+                }
+                spaceplaneAltitude = mjSpaceplaneAutopilot_t.GetField("targetAltitude", BindingFlags.Instance | BindingFlags.Public);
+                if (spaceplaneAltitude == null)
+                {
+                    throw new NotImplementedException("spaceplaneAltitude");
+                }
+                spaceplaneHeading = mjSpaceplaneAutopilot_t.GetField("targetHeading", BindingFlags.Instance | BindingFlags.Public);
+                if (spaceplaneHeading == null)
+                {
+                    throw new NotImplementedException("spaceplaneHeading");
+                }
+                spaceplaneGlideslope = mjSpaceplaneAutopilot_t.GetField("glideslope", BindingFlags.Instance | BindingFlags.Public);
+                if (spaceplaneGlideslope == null)
+                {
+                    throw new NotImplementedException("spaceplaneGlideslope");
+                }
 
                 // EditableDouble
                 Type mjEditableDouble_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -1195,6 +1250,72 @@ namespace JSI
 
             placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
         }
+
+        public double SpaceplaneHoldAltitude()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object altitude = spaceplaneAltitude.GetValue(ap);
+                return getEditableDouble(altitude);
+            }
+            else
+            {
+                return 0.0;
+            }
+
+        }
+
+        public bool SpaceplaneAltitudeProximity()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object holdaltitude = spaceplaneAltitude.GetValue(ap);
+                double goalAltitude = getEditableDouble(holdaltitude);
+                double currentAltitude = vessel.altitude;
+
+                return (Math.Abs(currentAltitude - goalAltitude) <= 500.0);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public double SpaceplaneHoldHeading()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object heading = spaceplaneHeading.GetValue(ap);
+                return getEditableDouble(heading);
+            }
+            else
+            {
+                return 0.0;
+            }
+
+        }
+
+        public double SpaceplaneGlideslope()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object slope = spaceplaneGlideslope.GetValue(ap);
+                return getEditableDouble(slope);
+            }
+            else
+            {
+                return 0.0;
+            }
+
+        }
         #endregion
 
         #region MechJebRPMButtons
@@ -1684,6 +1805,89 @@ namespace JSI
             object ap = GetComputerModule(activeJeb, "MechJebModuleRendezvousAutopilot");
             return ModuleEnabled(ap);
         }
+
+        /// <summary>
+        /// Instructs the craft to hold heading (or disables autopilot).
+        /// </summary>
+        /// <param name="state"></param>
+        public void ButtonSpaceplaceHoldHeading(bool state)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            object controller = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneGuidance");
+            if(ap != null && controller != null)
+            {
+                if (state)
+                {
+                    spaceplaneHoldHeading(ap, new object[] { controller });
+                }
+                else
+                {
+                    spaceplaneAPOff(ap);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if SP autopilot is in Hold Heading mode
+        /// </summary>
+        /// <returns></returns>
+        public bool ButtonSpaceplaceHoldHeadingState()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object mode = spaceplaneAPMode.GetValue(ap);
+                return ((int)mode == (int)SpaceplaneMode.HOLD);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Enables / disabled spaceplane Autoland mode
+        /// </summary>
+        /// <returns></returns>
+        public void ButtonSpaceplaceAutoland(bool state)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            object controller = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneGuidance");
+            if (ap != null && controller != null)
+            {
+                if (state)
+                {
+                    spaceplaneAutoland(ap, new object[] { controller });
+                }
+                else
+                {
+                    spaceplaneAPOff(ap);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if SP autopilot is in Autoland mode
+        /// </summary>
+        /// <returns></returns>
+        public bool ButtonSpaceplaceAutolandState()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object mode = spaceplaneAPMode.GetValue(ap);
+                return ((int)mode == (int)SpaceplaneMode.AUTOLAND);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
 
         // All the other buttons are pretty much identical and just use different enum values.
 

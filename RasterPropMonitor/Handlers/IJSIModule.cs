@@ -28,7 +28,7 @@ namespace JSI
     /// This class exists to provide a base class that RasterPropMonitorComputer
     /// manages for tracking various built-in plugin action handlers.
     /// </summary>
-    public class IJSIModule
+    public class IJSIModule : Object
     {
         internal static Vessel vessel;
 
