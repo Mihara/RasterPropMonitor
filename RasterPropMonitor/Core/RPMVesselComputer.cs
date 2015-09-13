@@ -302,7 +302,7 @@ namespace JSI
             }
         }
         private Vector3d velocityRelativeTarget;
-        private double approachSpeed;
+        private float approachSpeed;
         private Quaternion targetOrientation;
 
         // Diagnostics
@@ -1144,12 +1144,12 @@ namespace JSI
                 // If our target is somehow our own celestial body, approach speed is equal to vertical speed.
                 if (targetBody == vessel.mainBody)
                 {
-                    approachSpeed = speedVertical;
+                    approachSpeed = (float)speedVertical;
                 }
                 else
                 {
                     // In all other cases, that should work. I think.
-                    approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                    approachSpeed = Vector3.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
                 }
             }
             else
@@ -1157,7 +1157,7 @@ namespace JSI
                 velocityRelativeTarget = targetSeparation = Vector3d.zero;
                 targetOrbit = null;
                 targetDistance = 0.0;
-                approachSpeed = 0.0;
+                approachSpeed = 0.0f;
                 targetBody = null;
                 targetVessel = null;
                 targetDockingNode = null;

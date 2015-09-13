@@ -1329,11 +1329,11 @@ namespace JSI
                 case "SLOPEALARM":
                     return (speedVerticalRounded < 0.0 && altitudeBottom < 100.0 && slopeAngle > 15.0f).GetHashCode();
                 case "DOCKINGANGLEALARM":
-                    return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
+                    return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0.0f &&
                     (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
                     Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
-                    return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
+                    return (targetDockingNode != null && approachSpeed > 2.5f && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
                     return (speedVerticalRounded < 0 && altitudeBottom < 150).GetHashCode();
                 case "PODTEMPERATUREALARM":
