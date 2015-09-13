@@ -30,6 +30,7 @@ namespace JSI
         private const float KelvinToCelsius = -273.15f;
         internal const float MetersToFeet = 3.2808399f;
         internal const float MetersPerSecondToKnots = 1.94384449f;
+        internal const float MetersPerSecondToFeetPerMinute = 196.850394f;
 
         //--- The guts of the variable processor
         #region VariableToObject
