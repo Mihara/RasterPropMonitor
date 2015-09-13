@@ -384,17 +384,17 @@ namespace JSI
             if (evaluateTimeToImpact == null)
             {
                 Func<double> accessor = null;
-                /*
+                
                 if (accessor == null)
                 {
-                    accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetTimeToImpact", typeof(Func<double>));
+                    accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingTime", typeof(Func<double>));
                     double value = accessor();
                     if (double.IsNaN(value))
                     {
                         accessor = null;
                     }
                 }
-                */
+
                 if (accessor == null)
                 {
                     accessor = FallbackEvaluateTimeToImpact;
