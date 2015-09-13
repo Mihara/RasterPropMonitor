@@ -1139,6 +1139,16 @@ namespace JSI
                             targetOrbit.timeToPe :
                             -targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
                     return double.NaN;
+                case "TARGETLAUNCHTIMESECS":
+                    if (targetVessel != null && targetVessel.mainBody == vessel.mainBody && (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH || vessel.situation == Vessel.Situations.SPLASHED))
+                    {
+                        // MOARdV TODO: Make phase angle a variable?
+                        return TimeToPhaseAngle(12.7, vessel.mainBody, vessel.longitude, target.GetOrbit());
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
 
                 // Protractor-type values (phase angle, ejection angle)
                 case "TARGETBODYPHASEANGLE":

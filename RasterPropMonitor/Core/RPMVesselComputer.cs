@@ -1729,6 +1729,49 @@ namespace JSI
         }
 
         /// <summary>
+        /// Originally from MechJeb
+        /// Computes the time until the phase angle between the launchpad and the target equals the given angle.
+        /// The convention used is that phase angle is the angle measured starting at the target and going east until
+        /// you get to the launchpad. 
+        /// The time returned will not be exactly accurate unless the target is in an exactly circular orbit. However,
+        /// the time returned will go to exactly zero when the desired phase angle is reached.
+        /// </summary>
+        /// <param name="phaseAngle"></param>
+        /// <param name="launchBody"></param>
+        /// <param name="launchLongitude"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        private static double TimeToPhaseAngle(double phaseAngle, CelestialBody launchBody, double launchLongitude, Orbit target)
+        {
+            double launchpadAngularRate = 360 / launchBody.rotationPeriod;
+            double targetAngularRate = 360.0 / target.period;
+            if (Vector3d.Dot(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
+
+            Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
+            Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
+            currentTargetDirection = Vector3d.Exclude(launchBody.angularVelocity, currentTargetDirection);
+
+            double currentPhaseAngle = Math.Abs(Vector3d.Angle(currentLaunchpadDirection, currentTargetDirection));
+            if (Vector3d.Dot(Vector3d.Cross(currentTargetDirection, currentLaunchpadDirection), launchBody.angularVelocity) < 0)
+            {
+                currentPhaseAngle = 360 - currentPhaseAngle;
+            }
+
+            double phaseAngleRate = launchpadAngularRate - targetAngularRate;
+
+            double phaseAngleDifference = JUtil.ClampDegrees360(phaseAngle - currentPhaseAngle);
+
+            if (phaseAngleRate < 0)
+            {
+                phaseAngleRate *= -1;
+                phaseAngleDifference = 360 - phaseAngleDifference;
+            }
+
+
+            return phaseAngleDifference / phaseAngleRate;
+        }
+
+        /// <summary>
         /// Determines if enough screen updates have passed to trigger another data update.
         /// </summary>
         /// <returns>true if it's time to update things</returns>
