@@ -427,13 +427,8 @@ namespace JSI
                         return 0.0;
                     }
 
-                // Time to impact. This is quite imprecise, because a precise calculation pulls in pages upon pages of MechJeb code.
-                // It accounts for gravity now, though. Pull requests welcome.
                 case "TIMETOIMPACTSECS":
-                    {
-                        double secondsToImpact = EstimateSecondsToImpact();
-                        return (double.IsNaN(secondsToImpact) || secondsToImpact > 365.0 * 24.0 * 60.0 * 60.0 || secondsToImpact < 0.0) ? -1.0 : secondsToImpact;
-                    }
+                    return TimeToImpact();
                 case "SPEEDATIMPACT":
                     return SpeedAtImpact(totalCurrentThrust);
                 case "BESTSPEEDATIMPACT":

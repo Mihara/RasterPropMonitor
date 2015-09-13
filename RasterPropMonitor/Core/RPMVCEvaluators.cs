@@ -125,6 +125,7 @@ namespace JSI
         private Func<double> evaluateLiftForce;
         private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
+        private Func<double> evaluateTimeToImpact;
 
         //--- Plugin-enabled evaluators
         #region PluginEvaluators
@@ -377,6 +378,38 @@ namespace JSI
 
             return evaluateTerminalVelocity();
         }
+
+        private double TimeToImpact()
+        {
+            if (evaluateTimeToImpact == null)
+            {
+                Func<double> accessor = null;
+                /*
+                if (accessor == null)
+                {
+                    accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetTimeToImpact", typeof(Func<double>));
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+                */
+                if (accessor == null)
+                {
+                    accessor = FallbackEvaluateTimeToImpact;
+                }
+
+                evaluateTimeToImpact = accessor;
+            }
+
+            double timeToImpact = evaluateTimeToImpact();
+            if (double.IsNaN(timeToImpact) || timeToImpact > 365.0 * 24.0 * 60.0 * 60.0 || timeToImpact < 0.0)
+            {
+                timeToImpact = -1.0;
+            }
+            return timeToImpact;
+        }
         #endregion
 
         //--- Fallback evaluators
@@ -570,6 +603,65 @@ namespace JSI
             double drag = Vector3.Dot(force, -vessel.srf_velocity.normalized);
 
             return Math.Sqrt(localGeeDirect / drag) * vessel.srfSpeed;
+        }
+
+        /// <summary>
+        /// Estimates the number of seconds before impact.  It's not precise,
+        /// since precise is also computationally expensive.
+        /// </summary>
+        /// <returns></returns>
+        private double FallbackEvaluateTimeToImpact()
+        {
+            double secondsToImpact;
+            if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING)
+            {
+                // Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
+                //  t = (v+sqrt(v²+2gd))/g or something.
+
+                // What is the vertical component of current acceleration?
+                double accelUp = Vector3d.Dot(vessel.acceleration, up);
+
+                double altitude = altitudeTrue;
+                if (vessel.mainBody.ocean && altitudeASL > 0.0)
+                {
+                    // AltitudeTrue shows distance above the floor of the ocean,
+                    // so use ASL if it's closer in this case, and we're not
+                    // already below SL.
+                    altitude = Math.Min(altitudeASL, altitudeTrue);
+                }
+
+                if (accelUp < 0.0 || speedVertical >= 0.0 || Planetarium.TimeScale > 1.0)
+                {
+                    // If accelUp is negative, we can't use it in the general
+                    // equation for finding time to impact, since it could
+                    // make the term inside the sqrt go negative.
+                    // If we're going up, we can use this as well, since
+                    // the precision is not critical.
+                    // If we are warping, accelUp is always zero, so if we
+                    // do not use this case, we would fall to the simple
+                    // formula, which is wrong.
+                    secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * localGeeASL * altitude)) / localGeeASL;
+                }
+                else if (accelUp > 0.005)
+                {
+                    // This general case takes into account vessel acceleration,
+                    // so estimates on craft that include parachutes or do
+                    // powered descents are more accurate.
+                    secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * accelUp * altitude)) / accelUp;
+                }
+                else
+                {
+                    // If accelUp is small, we get floating point precision
+                    // errors that tend to make secondsToImpact get really big.
+                    secondsToImpact = altitude / -speedVertical;
+                }
+            }
+            else
+            {
+                secondsToImpact = Double.NaN;
+            }
+
+            return secondsToImpact;
         }
         #endregion
     }
