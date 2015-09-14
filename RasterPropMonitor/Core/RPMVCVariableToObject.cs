@@ -778,6 +778,10 @@ namespace JSI
                     return SideSlip();
                 // These values get odd when they're way out on the edge of the
                 // navball because they're projected into two dimensions.
+                case "PITCHSURFPROGRADE":
+                    return GetRelativePitch(vessel.srf_velocity.normalized);
+                case "PITCHSURFRETROGRADE":
+                    return GetRelativePitch(-vessel.srf_velocity.normalized);
                 case "PITCHPROGRADE":
                     return GetRelativePitch(prograde);
                 case "PITCHRETROGRADE":
@@ -808,6 +812,10 @@ namespace JSI
                     {
                         return 0.0;
                     }
+                case "YAWSURFPROGRADE":
+                    return GetRelativeYaw(vessel.srf_velocity.normalized);
+                case "YAWSURFRETROGRADE":
+                    return GetRelativeYaw(-vessel.srf_velocity.normalized);
                 case "YAWPROGRADE":
                     return GetRelativeYaw(prograde);
                 case "YAWRETROGRADE":
