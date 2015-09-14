@@ -485,6 +485,7 @@ namespace JSI
                 installedModules.Add(new JSIInternalRPMButtons());
                 installedModules.Add(new JSIGimbal());
                 installedModules.Add(new JSIFAR());
+                installedModules.Add(new JSIKAC());
             }
 
             if (triggeredEvents == null)
@@ -1408,6 +1409,26 @@ namespace JSI
                                 {
                                     Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
                                     pluginEval = new PluginDoubleVoid(method);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
+                            }
+                        }
+                        else if (m.ReturnType == typeof(string))
+                        {
+                            try
+                            {
+                                if (usesVessel)
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, string>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, string>), jsiModule, m);
+                                    pluginEval = new PluginStringVessel(method);
+                                }
+                                else
+                                {
+                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
+                                    pluginEval = new PluginStringVoid(method);
                                 }
                             }
                             catch (Exception e)
