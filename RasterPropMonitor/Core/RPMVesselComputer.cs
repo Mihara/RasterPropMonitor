@@ -927,6 +927,13 @@ namespace JSI
                 altitudeBottom += lowestPoint;
             }
             altitudeBottom = Math.Max(0.0, altitudeBottom);
+
+            if (Planetarium.GetUniversalTime() >= lastTimePerSecond + 1.0)
+            {
+                terrainDelta = altitudeBottom - lastTerrainHeight;
+                lastTerrainHeight = altitudeBottom;
+                lastTimePerSecond = Planetarium.GetUniversalTime();
+            }
         }
 
         /// <summary>
@@ -1218,13 +1225,6 @@ namespace JSI
             radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
             normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
 
-            if (Planetarium.GetUniversalTime() >= lastTimePerSecond + 1.0)
-            {
-                terrainDelta = vessel.terrainAltitude - lastTerrainHeight;
-                lastTerrainHeight = vessel.terrainAltitude;
-                lastTimePerSecond = Planetarium.GetUniversalTime();
-            }
-
             if (vessel.patchedConicSolver != null)
             {
                 node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
@@ -1494,42 +1494,42 @@ namespace JSI
 
         /// <summary>
         /// Determines the pitch angle between the vector supplied and the front of the craft.
-        /// Original code from FAR.
+        /// Original code from FAR, changed to Unity Vector3.Angle to provide the range 0-180.
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Pitch in degrees</returns>
         private double GetRelativePitch(Vector3 normalizedVectorOfInterest)
         {
             // vector projected onto a plane that divides the airplane into left and right halves
-            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right);
-            float dotpitch = Vector3.Dot(tmpVec.normalized, top);
-            float pitch = Mathf.Rad2Deg * Mathf.Asin(dotpitch);
-            if (float.IsNaN(pitch))
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right).normalized;
+            float dotpitch = Vector3.Dot(tmpVec, top);
+            float angle = Vector3.Angle(tmpVec, forward);
+            if(dotpitch > 0.0f)
             {
-                pitch = (dotpitch > 0.0f) ? 90.0f : -90.0f;
+                angle = -angle;
             }
 
-            return pitch;
+            return angle;
         }
 
         /// <summary>
         /// Determines the yaw angle between the vector supplied and the front of the craft.
-        /// Original code from FAR.
+        /// Original code from FAR, changed to Unity Vector3.Angle to provide the range 0-180.
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Yaw in degrees</returns>
         private double GetRelativeYaw(Vector3 normalizedVectorOfInterest)
         {
             //velocity vector projected onto the vehicle-horizontal plane
-            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top);
-            float dotyaw = Vector3.Dot(tmpVec.normalized, right);
-            float yaw = Mathf.Rad2Deg * Mathf.Asin(dotyaw);
-            if (float.IsNaN(yaw))
-            {
-                yaw = (dotyaw > 0.0f) ? 90.0f : -90.0f;
-            }
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top).normalized;
+            float dotyaw = Vector3.Dot(tmpVec, right);
+            float angle = Vector3.Angle(tmpVec, forward);
 
-            return yaw;
+            if(dotyaw < 0.0f)
+            {
+                angle = -angle;
+            }
+            return angle;
         }
 
         /// <summary>
