@@ -1289,6 +1289,7 @@ namespace JSI
                 }
             }
 
+            //JUtil.LogMessage(this, "searching for {0} : {1}", tokens[0], tokens[1]);
             PluginEvaluator pluginEval = null;
             if (jsiModule != null)
             {
@@ -1383,6 +1384,11 @@ namespace JSI
                             throw new Exception("Not Implemented");
                         }
                     }
+                }
+
+                if (pluginEval == null)
+                {
+                    JUtil.LogErrorMessage(this, "I failed to find the method for {0}:{1}", tokens[0], tokens[1]);
                 }
             }
 
@@ -1504,7 +1510,7 @@ namespace JSI
             Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right).normalized;
             float dotpitch = Vector3.Dot(tmpVec, top);
             float angle = Vector3.Angle(tmpVec, forward);
-            if(dotpitch > 0.0f)
+            if (dotpitch > 0.0f)
             {
                 angle = -angle;
             }
@@ -1525,7 +1531,7 @@ namespace JSI
             float dotyaw = Vector3.Dot(tmpVec, right);
             float angle = Vector3.Angle(tmpVec, forward);
 
-            if(dotyaw < 0.0f)
+            if (dotyaw < 0.0f)
             {
                 angle = -angle;
             }
