@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Reflection;
 using UnityEngine;
@@ -211,10 +231,10 @@ namespace JSI
             if (node.HasNode("CONTEXTREDIRECT"))
             {
                 ConfigNode[] redirectnodes = node.GetNodes("CONTEXTREDIRECT");
-                for (int i = 0; i < redirectnodes.Length; ++i )
+                for (int i = 0; i < redirectnodes.Length; ++i)
                 {
                     string[] redirects = redirectnodes[i].GetValues("redirect");
-                    for(int j=0; j<redirects.Length; ++j)
+                    for (int j = 0; j < redirects.Length; ++j)
                     {
                         string[] tokens = redirects[j].Split(',');
                         if (tokens.Length > 2 || !IsValidPageName(tokens[0].Trim()) || !IsValidPageName(tokens[1].Trim()))
@@ -243,6 +263,7 @@ namespace JSI
                         redirectGlobals[from] = to;
                     }
                 }
+
                 JUtil.LogMessage(this, "Page '{2}' (#{0}) registers {1} page redirects and {3} global button redirects.", idNum, redirectPages.Count, name, redirectGlobals.Count);
             }
 
@@ -439,6 +460,24 @@ namespace JSI
                     catch
                     {
                         JUtil.LogErrorMessage(ourMonitor, "Caught exception when trying to instantiate module '{0}'. Something's fishy here", moduleName);
+                    }
+                    if (thatModule != null)
+                    {
+                        try
+                        {
+                            MethodInfo configureMethod = thatModule.GetType().GetMethod("Configure", BindingFlags.Instance | BindingFlags.Public);
+                            ParameterInfo[] parms = configureMethod.GetParameters();
+
+                            if (parms.Length == 1 && parms[0].ParameterType == typeof(ConfigNode))
+                            {
+                                configureMethod.Invoke(thatModule, new object[] { handlerConfiguration });
+                            }
+                        }
+                        catch//(Exception e)
+                        {
+                            //JUtil.LogMessage(ourMonitor, "Exception {0}", e);
+                            //JUtil.LogMessage(ourMonitor, "Module didn't have a Configure method.  This could be normal.");
+                        }
                     }
                 }
 

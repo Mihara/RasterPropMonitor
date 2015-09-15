@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,6 +39,9 @@ namespace JSI
         [KSPField(isPersistant = true)]
         public string data = "";
         private Dictionary<string, int> persistentVars = new Dictionary<string, int>();
+
+        [KSPField]
+        public string triggeredEvents = string.Empty;
 
         // Yes, it's a really braindead way of doing it, but I ran out of elegant ones,
         // because nothing appears to work as documented -- IF it's documented.
@@ -103,6 +126,18 @@ namespace JSI
                 }
 
                 ParseData();
+
+                // TODO: If there are triggered events, register for an undock
+                // callback so we can void and rebuild the callbacks after undocking.
+                // Although it didn't work when I tried it...
+                if (!string.IsNullOrEmpty(triggeredEvents))
+                {
+                    string[] varstring = triggeredEvents.Split('|');
+                    for (int i = 0; i < varstring.Length; ++i)
+                    {
+                        comp.AddTriggeredEvent(varstring[i].Trim());
+                    }
+                }
             }
         }
 
@@ -123,10 +158,7 @@ namespace JSI
                     }
                 }
 
-                if (JUtil.debugLoggingEnabled)
-                {
-                    JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
-                }
+                JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
             }
         }
 
@@ -205,7 +237,24 @@ namespace JSI
             SetVar(persistentVarName, varvalue ? 1 : 0);
         }
 
-        
+        internal int GetPropVar(string persistentVarName, int propID)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            return GetVar(propVar);
+        }
+
+        internal bool HasPropVar(string persistentVarName, int propID)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            return HasVar(propVar);
+        }
+
+        internal void SetPropVar(string persistentVarName, int propID, int varvalue)
+        {
+            string propVar = "%PROP%" + propID + persistentVarName;
+            SetVar(propVar, varvalue);
+        }
+
         internal string GetStoredString(int index)
         {
             if (storedStringsArray != null && index <= storedStringsArray.Length)

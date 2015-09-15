@@ -22,7 +22,6 @@ namespace JSI
         // even though I'm pretty sure there are quite a few other fonts in there.
         private const string fontName = "Arial";
         private string sourceString;
-        private PersistenceAccessor persistence;
 
         public void Start()
         {
@@ -36,13 +35,11 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshRate);
             }
-            persistence = new PersistenceAccessor(internalProp);
         }
 
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
 
         private bool UpdateCheck()
@@ -68,9 +65,8 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, persistence);
+            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, internalProp.propID);
             oneshotComplete = true;
         }
     }
 }
-

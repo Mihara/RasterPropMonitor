@@ -29,7 +29,7 @@ namespace JSI
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(soundCheckRate);
-                electricChargeReserve = (float)comp.ProcessVariable("SYSR_ELECTRICCHARGE", null);
+                electricChargeReserve = (float)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
             }
             audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);
             audioOutput.audio = internalModel.gameObject.AddComponent<AudioSource>();
@@ -80,7 +80,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     soundCheckCountdown = soundCheckRate;
-                    electricChargeReserve = (float)comp.ProcessVariable("SYSR_ELECTRICCHARGE", null);
+                    electricChargeReserve = (float)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
                     if (electricChargeReserve < 0.01f)
                     {
                         StopPlaying();

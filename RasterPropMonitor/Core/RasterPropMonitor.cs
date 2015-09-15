@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using UnityEngine;
 using System.Collections.Generic;
@@ -70,7 +90,7 @@ namespace JSI
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
-        private PersistenceAccessor persistence;
+        private RasterPropMonitorComputer rpmComp;
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
@@ -124,7 +144,7 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
 
-                persistence = new PersistenceAccessor(internalProp);
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -206,13 +226,14 @@ namespace JSI
                         break;
                     }
                 }
+
                 JUtil.LogMessage(this, "Done setting up pages, {0} pages ready.", pages.Count);
 
                 textRenderer = new TextRenderer(fontTexture, new Vector2((float)fontLetterWidth, (float)fontLetterHeight), fontDefinitionString, 17, screenPixelWidth, screenPixelHeight);
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = persistence.GetVar(persistentVarName, pages.Count);
+                int activePageID = rpmComp.GetVar(persistentVarName, pages.Count);
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -269,7 +290,7 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
-            persistence = null;
+            rpmComp = null;
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -330,7 +351,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                persistence.SetVar(persistentVarName, activePage.pageNumber);
+                rpmComp.SetVar(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
@@ -408,7 +429,7 @@ namespace JSI
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < linesArray.Length; i++)
             {
-                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, persistence));
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID));
             }
             textRefreshRequired = false;
             screenBuffer = bf.ToString();
@@ -422,7 +443,7 @@ namespace JSI
             if (needsElectricCharge)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE", null);
+                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
             }
         }
 

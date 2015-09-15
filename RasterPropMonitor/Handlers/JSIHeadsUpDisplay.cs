@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -80,8 +100,6 @@ namespace JSI
 
         private bool startupComplete;
         private bool firstRenderComplete;
-
-        private PersistenceAccessor persistence;
 
         /// <summary>
         /// Initialize the renderable game objects for the HUD.
@@ -287,7 +305,7 @@ namespace JSI
 
             if (progradeLadderIcon != null)
             {
-                float AoA = comp.ProcessVariable("PITCH", persistence).MassageToFloat() - comp.ProcessVariable("ANGLEOFATTACK", persistence).MassageToFloat();
+                float AoA = comp.AbsoluteAoA;
                 AoA = (float)JUtil.ClampDegrees180(AoA);
                 if (float.IsNaN(AoA))
                 {
@@ -341,7 +359,7 @@ namespace JSI
 
             if (progradeHeadingIcon != null)
             {
-                float slipAngle = comp.ProcessVariable("SIDESLIP", persistence).MassageToFloat();
+                float slipAngle = comp.Sideslip;
                 float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
                 float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
@@ -372,7 +390,7 @@ namespace JSI
 
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(comp, persistence);
+                verticalBars[i].Update(comp);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -460,8 +478,6 @@ namespace JSI
                 {
                     progradeColorValue = ConfigNode.ParseColor32(progradeColor);
                 }
-
-                persistence = new PersistenceAccessor(internalProp);
             }
             catch (Exception e)
             {
@@ -486,8 +502,6 @@ namespace JSI
             {
                 JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
             }
-
-            persistence = null;
         }
     }
 
@@ -509,7 +523,7 @@ namespace JSI
             {
                 throw new Exception("VerticalBar " + node.GetValue("name") + " missing variableName");
             }
-            variable = new VariableOrNumber(node.GetValue("variableName"), this);
+            variable = VariableOrNumber.Instantiate(node.GetValue("variableName"));
 
             if (!node.HasValue("texture"))
             {
@@ -596,18 +610,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp, PersistenceAccessor persistence)
+        internal void Update(RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp, persistence))
+                if (!enablingVariable.IsInRange(comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp, persistence))
+            if (variable.Get(out value, comp))
             {
                 if (useLog10)
                 {

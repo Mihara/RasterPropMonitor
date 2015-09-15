@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
-    <ReleaseVersion>0.22.1</ReleaseVersion>
+    <ReleaseVersion>0.23.0</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
@@ -54,6 +54,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Auxiliary modules\JSIRadar.cs" />
+    <Compile Include="Core\MathVariable.cs" />
+    <Compile Include="Core\RPMVCEvaluators.cs" />
+    <Compile Include="Core\RPMVCTriggeredEvent.cs" />
+    <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MappedVariable.cs" />
@@ -63,9 +68,11 @@
     <Compile Include="Handlers\JSIFAR.cs" />
     <Compile Include="Handlers\JSIGimbal.cs" />
     <Compile Include="Handlers\JSIGraphingBackground.cs" />
+    <Compile Include="Handlers\JSIKAC.cs" />
     <Compile Include="Handlers\JSIMechJeb.cs" />
     <Compile Include="Handlers\JSIParachute.cs" />
     <Compile Include="Handlers\JSISASMenu.cs" />
+    <Compile Include="Handlers\KACWrapper.cs" />
     <Compile Include="Handlers\MechJebRPM.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Core\ButtonHandler.cs" />
@@ -96,7 +103,6 @@
     <Compile Include="Handlers\JSISteerableCamera.cs" />
     <Compile Include="Core\TextMenu.cs" />
     <Compile Include="Auxiliary modules\JSIInternalFlagDecal.cs" />
-    <Compile Include="Core\PersistenceAccessor.cs" />
     <Compile Include="Auxiliary modules\JSIInternalEVAHatch.cs" />
     <Compile Include="Auxiliary modules\JSIPropIDFinder.cs" />
     <Compile Include="Handlers\JSIHeadsUpDisplay.cs" />

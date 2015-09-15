@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +33,6 @@ namespace JSI
 
         private Color32 backgroundColorValue;
         private List<DataSet> dataSets = new List<DataSet>();
-        private PersistenceAccessor persistence;
         private bool startupComplete = false;
         private Material lineMaterial = JUtil.DrawLineMaterial();
         private Material graphMaterial;
@@ -44,7 +63,7 @@ namespace JSI
                 // Render data
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
-                    dataSets[i].RenderData(screen, comp, persistence);
+                    dataSets[i].RenderData(screen, comp);
                 }
             }
             catch
@@ -120,7 +139,6 @@ namespace JSI
                 }
 
                 graphMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
-                persistence = new PersistenceAccessor(internalProp);
                 startupComplete = true;
             }
 
@@ -134,7 +152,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            persistence = null;
         }
     }
 
@@ -234,8 +251,8 @@ namespace JSI
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
             }
             string[] token = node.GetValue("scale").Split(',');
-            scale[0] = new VariableOrNumber(token[0].Trim(), this);
-            scale[1] = new VariableOrNumber(token[1].Trim(), this);
+            scale[0] = VariableOrNumber.Instantiate(token[0]);
+            scale[1] = VariableOrNumber.Instantiate(token[1]);
             variableName = node.GetValue("variableName").Trim();
 
             if (node.HasValue("reverse"))
@@ -278,15 +295,15 @@ namespace JSI
             }
         }
 
-        public void RenderData(RenderTexture screen, RPMVesselComputer comp, PersistenceAccessor persistence)
+        public void RenderData(RenderTexture screen, RPMVesselComputer comp)
         {
             float leftVal, rightVal;
-            if (!scale[0].Get(out leftVal, comp, persistence) || !scale[1].Get(out rightVal, comp, persistence))
+            if (!scale[0].Get(out leftVal, comp) || !scale[1].Get(out rightVal, comp))
             {
                 return; // bad values - can't render
             }
 
-            float eval = comp.ProcessVariable(variableName, persistence).MassageToFloat();
+            float eval = comp.ProcessVariable(variableName).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
                 return; // bad value - can't render
