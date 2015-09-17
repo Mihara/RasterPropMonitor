@@ -387,7 +387,7 @@ namespace JSI
         // and the current vessel reference part is this part or the mouse is over this part.
         public void OnGUI()
         {
-            if (HighLogic.LoadedSceneIsEditor)
+            if (HighLogic.LoadedSceneIsEditor || JUtil.IsInIVA())
                 return;
             if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
             && (transparentPodSetting == "AUTO" && !mouseOver)))
@@ -403,7 +403,7 @@ namespace JSI
         // it should become invisible. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
         // and the current vessel reference part is this part or the mouse is over this part.
         public void LateUpdate()
-        {
+        {            
             if (HighLogic.LoadedSceneIsEditor)
             {
                 if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
@@ -421,6 +421,8 @@ namespace JSI
                 mouseOver = false;
                 return;
             }
+            if (JUtil.IsInIVA())
+                return;
             if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
                 && (transparentPodSetting == "AUTO" && !mouseOver)))
             {
