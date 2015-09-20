@@ -1,6 +1,6 @@
 ﻿using System;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace JSI
 {
@@ -12,14 +12,40 @@ namespace JSI
     {
         [KSPField]
         public string transparentTransforms = string.Empty;
+
         [KSPField]
         public string transparentShaderName = "Transparent/Specular";
+
         [KSPField]
         public string opaqueShaderName = string.Empty;
+
         [KSPField]
         public bool restoreShadersOnIVA = true;
+
         [KSPField]
         public bool disableLoadingInEditor = false;
+
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "TransparentPod")] //ON = transparentpod on, OFF = transparentpod off, AUTO = on when focused.
+        public string transparentPodSetting = "ON";
+
+        [KSPEvent(active = true, guiActive = true, guiActiveUnfocused = true, guiActiveEditor = true, unfocusedRange = 5f, name = "eventToggleTransparency", guiName = "TransparentPod")]
+        public void eventToggleTransparency()
+        {
+            switch (transparentPodSetting)
+            {
+                case "ON":
+                    transparentPodSetting = "OFF";
+                    break;
+
+                case "OFF":
+                    transparentPodSetting = "AUTO";
+                    break;
+
+                default:
+                    transparentPodSetting = "ON";
+                    break;
+            }
+        }
 
         // I would love to know what exactly possessed Squad to have the IVA space use it's own coordinate system.
         // This rotation adjusts IVA space to match the 'real' space...
@@ -36,6 +62,7 @@ namespace JSI
         private bool hasOpaqueShader;
         private readonly Dictionary<Transform, Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
+        private bool mouseOver = false;
 
         public override string GetInfo()
         {
@@ -57,7 +84,6 @@ namespace JSI
             // Apply shaders to transforms on startup.
             if (!string.IsNullOrEmpty(transparentTransforms))
             {
-
                 transparentShader = Shader.Find(transparentShaderName);
 
                 foreach (string transformName in transparentTransforms.Split('|'))
@@ -181,7 +207,6 @@ namespace JSI
 
         private void ResetIVA()
         {
-
             if (HighLogic.LoadedSceneIsFlight)
             {
                 JUtil.LogMessage(this, "Need to reset IVA in part ", part.partName);
@@ -209,7 +234,7 @@ namespace JSI
                 // and populate it with crew, which is what we want.
                 part.SpawnCrew();
 
-                // Once that happens, the internal will have the correct location for viewing from IVA relative to the 
+                // Once that happens, the internal will have the correct location for viewing from IVA relative to the
                 // current active vessel. (Yeah, internal space is bizarre like that.) So we make note of it.
                 originalParent = part.internalModel.transform.parent;
                 originalPosition = part.internalModel.transform.localPosition;
@@ -249,7 +274,6 @@ namespace JSI
 
         public override void OnUpdate()
         {
-
             // In the editor, none of this logic should matter, even though the IVA probably exists already.
             if (HighLogic.LoadedSceneIsEditor)
                 return;
@@ -303,7 +327,6 @@ namespace JSI
             // So we do have an internal model, right?
             if (part.internalModel != null)
             {
-
                 if (JUtil.IsInIVA())
                 {
                     // If the user is IVA, we move the internals to the original position,
@@ -328,10 +351,18 @@ namespace JSI
 
                     // So once everything is hidden again, we undo the change in shaders to conceal the fact that you can't see other internals.
                     SetShaders(false);
-
                 }
                 else
                 {
+                    // If transparentPodSetting = OFF or AUTO and not the focused active part we treat the part like a non-transparent part.
+                    // and we turn off the shaders (if set) and exit OnUpdate. onGUI and LateUpdate will do the rest.
+                    if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
+                        && (transparentPodSetting == "AUTO" && !mouseOver)))
+                    {
+                        SetShaders(false);
+                        JUtil.SetMainCameraCullingMaskForIVA(true);
+                        return;
+                    }
                     // Otherwise, we're out of IVA, so we can proceed with setting up the pods for exterior view.
                     JUtil.SetMainCameraCullingMaskForIVA(true);
 
@@ -348,8 +379,65 @@ namespace JSI
                     part.internalModel.transform.localPosition = Vector3.zero;
                     part.internalModel.transform.localScale = Vector3.one;
                 }
-
             }
+        }
+
+        // During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
+        // so that portraits show up correctly. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
+        // and the current vessel reference part is this part or the mouse is over this part.
+        public void OnGUI()
+        {
+            if (HighLogic.LoadedSceneIsEditor || JUtil.IsInIVA())
+                return;
+            if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
+            && (transparentPodSetting == "AUTO" && !mouseOver)))
+            {
+                if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null)
+                {
+                    part.internalModel.SetVisible(true);
+                }
+            }
+        }
+
+        // But before the rest of the world is to be drawn, if the internal exists and is the active internal,
+        // it should become invisible. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
+        // and the current vessel reference part is this part or the mouse is over this part.
+        public void LateUpdate()
+        {            
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
+                {
+                    SetShaders(false);
+                    JUtil.SetCameraCullingMaskForIVA("Main Camera", false);
+                    part.internalModel.SetVisible(false);
+                }
+                else
+                {
+                    SetShaders(true);
+                    JUtil.SetCameraCullingMaskForIVA("Main Camera", true);
+                    part.internalModel.SetVisible(true);
+                }
+                mouseOver = false;
+                return;
+            }
+            if (JUtil.IsInIVA())
+                return;
+            if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
+                && (transparentPodSetting == "AUTO" && !mouseOver)))
+            {
+                if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null && !JUtil.UserIsInPod(part))
+                {
+                    part.internalModel.SetVisible(false);
+                }
+            }
+            mouseOver = false;
+        }
+
+        // When mouse is over this part set a flag for the transparentPodSetting = "AUTO" setting.
+        private void OnMouseOver()
+        {
+            mouseOver = true;
         }
     }
 
@@ -365,7 +453,6 @@ namespace JSI
 
     public class JSINonTransparentPod : PartModule
     {
-
         /* Correction. You can actually do this, so this method is unnecessary.
          * So much the better.
 
@@ -420,6 +507,5 @@ namespace JSI
                 part.internalModel.SetVisible(false);
             }
         }
-
     }
 }
