@@ -360,6 +360,8 @@ namespace JSI
                     return JUtil.PseudoLog10(speedVertical);
                 case "VERTSPEEDROUNDED":
                     return speedVerticalRounded;
+                case "RADARALTVERTSPEED":
+                    return radarAltitudeRate;
                 case "TERMINALVELOCITY":
                     return TerminalVelocity();
                 case "SURFSPEED":

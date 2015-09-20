@@ -282,8 +282,11 @@ namespace JSI
         private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
-        private double lastTimePerSecond;
-        private double lastTerrainHeight, terrainDelta;
+        private double lastAltitudeBottomSampleTime;
+        private double lastAltitudeBottom, terrainDelta;
+        // radarAltitudeRate as computed using a simple exponential smoothing.
+        private float radarAltitudeRate = 0.0f;
+        private double lastRadarAltitudeTime;
 
         // Target values
         private ITargetable target;
@@ -910,6 +913,7 @@ namespace JSI
             }
             //JUtil.LogMessage(this, "vessel.altitude = {0}, vessel.pqsAltitude = {2}, altitudeASL = {1}", vessel.altitude, altitudeASL, vessel.pqsAltitude);
 
+            float priorAltitudeBottom = (float)altitudeBottom;
             altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {
@@ -928,11 +932,18 @@ namespace JSI
             }
             altitudeBottom = Math.Max(0.0, altitudeBottom);
 
-            if (Planetarium.GetUniversalTime() >= lastTimePerSecond + 1.0)
+            float d1 = (float)altitudeBottom - priorAltitudeBottom;
+            float t1 = (float)(Planetarium.GetUniversalTime() - lastRadarAltitudeTime);
+            // simple exponential smoothing - radar altitude gets very noisy when terrain is hilly.
+            const float alpha = 0.0625f;
+            radarAltitudeRate = radarAltitudeRate * (1.0f - alpha) + (d1 / t1) * alpha;
+            lastRadarAltitudeTime = Planetarium.GetUniversalTime();
+
+            if (Planetarium.GetUniversalTime() >= lastAltitudeBottomSampleTime + 1.0)
             {
-                terrainDelta = altitudeBottom - lastTerrainHeight;
-                lastTerrainHeight = altitudeBottom;
-                lastTimePerSecond = Planetarium.GetUniversalTime();
+                terrainDelta = altitudeBottom - lastAltitudeBottom;
+                lastAltitudeBottom = altitudeBottom;
+                lastAltitudeBottomSampleTime = Planetarium.GetUniversalTime();
             }
         }
 
@@ -1500,22 +1511,22 @@ namespace JSI
 
         /// <summary>
         /// Determines the pitch angle between the vector supplied and the front of the craft.
-        /// Original code from FAR, changed to Unity Vector3.Angle to provide the range 0-180.
+        /// Original code from FAR.
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Pitch in degrees</returns>
         private double GetRelativePitch(Vector3 normalizedVectorOfInterest)
         {
             // vector projected onto a plane that divides the airplane into left and right halves
-            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right).normalized;
-            float dotpitch = Vector3.Dot(tmpVec, top);
-            float angle = Vector3.Angle(tmpVec, forward);
-            if (dotpitch > 0.0f)
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right);
+            float dotpitch = Vector3.Dot(tmpVec.normalized, top);
+            float pitch = Mathf.Rad2Deg * Mathf.Asin(dotpitch);
+            if (float.IsNaN(pitch))
             {
-                angle = -angle;
+                pitch = (dotpitch > 0.0f) ? 90.0f : -90.0f;
             }
 
-            return angle;
+            return pitch;
         }
 
         /// <summary>
