@@ -536,13 +536,15 @@ namespace JSI
                 case "EFFECTIVEACCEL":
                     return vessel.acceleration.magnitude;
                 case "REALISP":
-                    return (double)actualAverageIsp;
+                    return actualAverageIsp;
+                case "MAXISP":
+                    return actualMaxIsp;
                 case "HOVERPOINT":
-                    return (double)(localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f);
+                    return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f);
                 case "HOVERPOINTEXISTS":
                     return ((localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1.0f) ? -1.0 : 1.0;
                 case "EFFECTIVETHROTTLE":
-                    return (totalMaximumThrust > 0.0f) ? (double)(totalCurrentThrust / totalMaximumThrust) : 0.0;
+                    return (totalMaximumThrust > 0.0f) ? (totalCurrentThrust / totalMaximumThrust) : 0.0f;
                 case "DRAG":
                     return DragForce();
                 case "DRAGACCEL":
@@ -566,9 +568,9 @@ namespace JSI
                     }
                     return 0d;
                 case "MNODEBURNTIMESECS":
-                    if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
+                    if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0.0f)
                     {
-                        return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
+                        return actualAverageIsp * (1.0f - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
                     }
                     return double.NaN;
                 case "MNODEEXISTS":

@@ -246,6 +246,7 @@ namespace JSI
 
         // Tracked vessel variables
         private float actualAverageIsp;
+        private float actualMaxIsp;
         private double altitudeASL;
         //public double AltitudeASL
         //{
@@ -959,6 +960,7 @@ namespace JSI
             float totalResourceMass = 0.0f;
 
             float averageIspContribution = 0.0f;
+            float maxIspContribution = 0.0f;
 
             anyEnginesOverheating = anyEnginesFlameout = false;
 
@@ -998,6 +1000,13 @@ namespace JSI
                         foreach (Propellant thatResource in thatEngineModule.propellants)
                         {
                             resources.MarkPropellant(thatResource);
+                        }
+
+                        float minIsp, maxIsp;
+                        thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
+                        if(maxIsp > 0.0f)
+                        {
+                            maxIspContribution += maxThrust / maxIsp;
                         }
                     }
                     else if (pm is ModuleAblator)
@@ -1055,6 +1064,15 @@ namespace JSI
             else
             {
                 actualAverageIsp = 0.0f;
+            }
+
+            if (maxIspContribution > 0.0f)
+            {
+                actualMaxIsp = totalMaximumThrust / maxIspContribution;
+            }
+            else
+            {
+                actualMaxIsp = 0.0f;
             }
 
             resources.GetActiveResourceNames(ref resourcesAlphabetic);
