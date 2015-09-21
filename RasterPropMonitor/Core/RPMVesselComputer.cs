@@ -601,9 +601,14 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            // FixedUpdate tracks values related to the vessel (position, CoM, etc)
             // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel) && timeToUpdate)
+            if (JUtil.VesselIsInIVA(vessel)) UpdateVariables();
+        }
+
+        public void UpdateVariables()
+        { 
+            // Update values related to the vessel (position, CoM, etc)
+            if (timeToUpdate)
             {
 #if SHOW_FIXEDUPDATE_TIMING
                 stopwatch.Reset();
