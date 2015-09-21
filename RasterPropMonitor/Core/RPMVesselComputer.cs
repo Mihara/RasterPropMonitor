@@ -719,10 +719,6 @@ namespace JSI
                             {
                                 rpmComp = RasterPropMonitorComputer.Instantiate(part);
                             }
-                            else
-                            {
-                                JUtil.LogErrorMessage(this, "Unable to deduce the current part prior to VariableToObject.");
-                            }
                         }
 
                         returnValue = VariableToObject(input, propId, out cacheable);
@@ -862,10 +858,6 @@ namespace JSI
                         }
                     }
                 }
-            }
-            else
-            {
-                JUtil.LogMessage(this, "Not in IVA");
             }
 
             return currentPart;
