@@ -178,6 +178,11 @@ namespace JSI
             }
         }
 
+        public double GetDragForce()
+        {
+            return double.NaN;
+        }
+
         public double GetDynamicPressure()
         {
             if (farFound)
@@ -188,6 +193,11 @@ namespace JSI
             {
                 return double.NaN;
             }
+        }
+
+        public double GetLiftForce()
+        {
+            return double.NaN;
         }
 
         public double GetSideSlip()

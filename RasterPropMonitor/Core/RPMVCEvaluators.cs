@@ -214,7 +214,22 @@ namespace JSI
         {
             if (evaluateDragForce == null)
             {
-                evaluateDragForce = FallbackEvaluateDragForce;
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    evaluateDragForce = FallbackEvaluateDragForce;
+                }
             }
 
             return evaluateDragForce();
@@ -291,7 +306,22 @@ namespace JSI
         {
             if (evaluateLiftForce == null)
             {
-                evaluateLiftForce = FallbackEvaluateLiftForce;
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    evaluateLiftForce = FallbackEvaluateLiftForce;
+                }
             }
 
             return evaluateLiftForce();
