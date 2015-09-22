@@ -48,6 +48,13 @@ namespace JSI
         private static readonly MethodInfo farSetSpoilers;
         //public static bool VesselSpoilerSetting(Vessel v)
         private static readonly MethodInfo farGetSpoilerSetting;
+        //public static FlightGUI VesselFlightInfo(Vessel v)
+        private static readonly MethodInfo farGetVesselFlightGUI;
+        //public VesselFlightInfo InfoParameters get()
+        private static readonly MethodInfo farGetVesselFlightInfo;
+
+        private static readonly FieldInfo flightInfoDragForce;
+        private static readonly FieldInfo flightInfoLiftForce;
 
         static JSIFAR()
         {
@@ -125,6 +132,45 @@ namespace JSI
                     throw new NotImplementedException("farGetSpoilerSetting");
                 }
 
+                farGetVesselFlightGUI = farAPI_t.GetMethod("VesselFlightInfo", BindingFlags.Static | BindingFlags.Public);
+                if (farGetVesselFlightGUI == null)
+                {
+                    throw new NotImplementedException("farGetVesselFlightInfo");
+                }
+
+                Type FlightGUI_t = loadedFARAPIAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "FerramAerospaceResearch.FARGUI.FARFlightGUI.FlightGUI");
+                if (FlightGUI_t == null)
+                {
+                    throw new NotImplementedException("FlightGUI_t");
+                }
+                PropertyInfo fgInfoGui = FlightGUI_t.GetProperty("InfoParameters", BindingFlags.Instance | BindingFlags.Public); ;
+                if (fgInfoGui != null)
+                {
+                    farGetVesselFlightInfo = fgInfoGui.GetGetMethod();
+                }
+                if (farGetVesselFlightInfo == null)
+                {
+                    throw new NotImplementedException("farGetVesselFlightInfo");
+                }
+
+                Type FlightInfo_t = loadedFARAPIAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "FerramAerospaceResearch.FARGUI.FARFlightGUI.VesselFlightInfo");
+                if (FlightInfo_t == null)
+                {
+                    throw new NotImplementedException("FlightInfo_t");
+                }
+                flightInfoLiftForce = FlightInfo_t.GetField("liftForce");
+                if (flightInfoLiftForce == null)
+                {
+                    throw new NotImplementedException("flightInfoLiftForce");
+                }
+                flightInfoDragForce = FlightInfo_t.GetField("dragForce");
+                if (flightInfoDragForce == null)
+                {
+                    throw new NotImplementedException("flightInfoDragForce");
+                }
+
                 farFound = true;
             }
             catch (Exception e)
@@ -180,6 +226,23 @@ namespace JSI
 
         public double GetDragForce()
         {
+            if (farFound)
+            {
+                object flightGUI = farGetVesselFlightGUI.Invoke(null, new object[] { vessel });
+                if (flightGUI != null)
+                {
+                    object flightInfo = farGetVesselFlightInfo.Invoke(flightGUI, null);
+                    if (flightInfo != null)
+                    {
+                        object dragForce = flightInfoDragForce.GetValue(flightInfo);
+                        if (dragForce != null)
+                        {
+                            return (double)dragForce;
+                        }
+                    }
+                }
+            }
+
             return double.NaN;
         }
 
@@ -197,6 +260,23 @@ namespace JSI
 
         public double GetLiftForce()
         {
+            if (farFound)
+            {
+                object flightGUI = farGetVesselFlightGUI.Invoke(null, new object[] { vessel });
+                if (flightGUI != null)
+                {
+                    object flightInfo = farGetVesselFlightInfo.Invoke(flightGUI, null);
+                    if (flightInfo != null)
+                    {
+                        object liftForce = flightInfoLiftForce.GetValue(flightInfo);
+                        if (liftForce != null)
+                        {
+                            return (double)liftForce;
+                        }
+                    }
+                }
+            }
+
             return double.NaN;
         }
 

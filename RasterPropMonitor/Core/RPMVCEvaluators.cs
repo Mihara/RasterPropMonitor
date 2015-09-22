@@ -414,7 +414,7 @@ namespace JSI
             if (evaluateTimeToImpact == null)
             {
                 Func<double> accessor = null;
-                
+
                 if (accessor == null)
                 {
                     accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingTime", typeof(Func<double>));
