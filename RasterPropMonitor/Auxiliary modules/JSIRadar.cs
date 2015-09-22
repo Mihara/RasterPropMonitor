@@ -36,7 +36,6 @@ namespace JSI
         // How far off-axis can we scan?
         [KSPField]
         public float scanAngle = 30.0f;
-        private float scanDotValue;
 
         // How much resource do we use?
         [KSPField]
@@ -84,10 +83,6 @@ namespace JSI
             }
 
             scanAngle = Mathf.Clamp(scanAngle, 0.0f, 180.0f);
-            // Find the equivalent in dot-product format; subtract an epsilon
-            // that's about 1.8 degrees at boresight, but a few millidegrees
-            // out farther.
-            scanDotValue = Mathf.Cos(scanAngle) - (1.0f / 2048.0f);
 
             maxRangeMeters = maxRange * 1000.0f;
             maxRangeMetersSquared = maxRangeMeters * maxRangeMeters;
@@ -195,8 +190,8 @@ namespace JSI
                             FlightGlobals.fetch.SetVesselTarget(null);
                             return;
                         }
-                        float dotAngle = Vector3.Dot(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
-                        if (dotAngle < scanDotValue)
+                        float angle = Vector3.Angle(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
+                        if (angle > scanAngle)
                         {
                             JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
                             FlightGlobals.fetch.SetVesselTarget(null);
@@ -228,8 +223,8 @@ namespace JSI
                         FlightGlobals.fetch.SetVesselTarget(null);
                         return;
                     }
-                    float dotAngle = Vector3.Dot(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
-                    if (dotAngle < scanDotValue)
+                    float angle = Vector3.Angle(vectorToTarget.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
+                    if (angle > scanAngle)
                     {
                         JUtil.LogMessage(this, "Target is out of scan angle, losing lock");
                         FlightGlobals.fetch.SetVesselTarget(null);
@@ -259,8 +254,8 @@ namespace JSI
                         float distSq = distance.sqrMagnitude;
                         if (distSq < selectedDistanceSquared)
                         {
-                            float dotValue = Vector3.Dot(distance.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
-                            if (dotValue > scanDotValue)
+                            float angle = Vector3.Angle(distance.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
+                            if (angle > scanAngle)
                             {
                                 selectedDistanceSquared = distSq;
                                 selectedDistance = Mathf.Sqrt(distSq);

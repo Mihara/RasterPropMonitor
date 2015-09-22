@@ -63,6 +63,8 @@ namespace JSI
         private static readonly FieldInfo mjReentryOutcome;
         // ReentrySimulation.Result.endPosition
         private static readonly FieldInfo mjReentryEndPosition;
+        // ReentrySimulation.Result.endUT
+        private static readonly FieldInfo mjReentryTime;
 
         // ComputerModule
         // ComputerModule.enabled (get)
@@ -234,7 +236,8 @@ namespace JSI
 
         private double deltaV, deltaVStage;
 
-        private double landingLat, landingLon, landingAlt, landingErr = -1.0;
+        private double lastUpdate = 0.0;
+        private double landingLat, landingLon, landingAlt, landingErr = -1.0, landingTime = -1.0;
 
         static JSIMechJeb()
         {
@@ -502,6 +505,11 @@ namespace JSI
                 if (mjReentryEndPosition == null)
                 {
                     throw new NotImplementedException("mjReentryEndPosition");
+                }
+                mjReentryTime = mjReentryResult_t.GetField("endUT", BindingFlags.Instance | BindingFlags.Public);
+                if (mjReentryTime == null)
+                {
+                    throw new NotImplementedException("mjReentryTime");
                 }
 
                 // UserPool
@@ -841,11 +849,15 @@ namespace JSI
         /// <summary>
         /// Update the landing prediction stats
         /// </summary>
-        private void UpdateLandingStats()
+        private void UpdateLandingStats(object activeJeb)
         {
+            if(Planetarium.GetUniversalTime() - lastUpdate < 0.5)
+            {
+                // Don't update more than twice a second.
+                return;
+            }
             try
             {
-                object activeJeb = GetMasterMechJeb(vessel);
                 object result = GetLandingResults(activeJeb);
                 if (result != null)
                 {
@@ -880,6 +892,10 @@ namespace JSI
                             landingErr = Vector3d.Distance(vessel.mainBody.GetRelSurfacePosition(landingLat, landingLon, landingAlt),
                                                 vessel.mainBody.GetRelSurfacePosition(targetLat, targetLon, targetAlt));
                         }
+                        object endTime = mjReentryTime.GetValue(result);
+                        landingTime = (double)endTime;
+
+                        lastUpdate = Planetarium.GetUniversalTime();
                     }
                 }
             }
@@ -892,57 +908,53 @@ namespace JSI
         /// <summary>
         /// Updates dV stats (dV and dVStage)
         /// </summary>
-        private void UpdateDeltaVStats()
+        private void UpdateDeltaVStats(object activeJeb)
         {
             try
             {
-                object activeJeb = GetMasterMechJeb(vessel);
-                if (activeJeb != null)
+                object stagestats = GetComputerModule(activeJeb, "MechJebModuleStageStats");
+
+                requestUpdate(stagestats, new object[] { this });
+
+                int atmStatsLength = 0, vacStatsLength = 0;
+
+                object atmStatsO = mjAtmStageStats.GetValue(stagestats);
+                object vacStatsO = mjVacStageStats.GetValue(stagestats);
+                if (atmStatsO != null)
                 {
-                    object stagestats = GetComputerModule(activeJeb, "MechJebModuleStageStats");
+                    atmStatsLength = stageStatsGetLength(atmStatsO);
+                }
+                if (vacStatsO != null)
+                {
+                    vacStatsLength = stageStatsGetLength(vacStatsO);
+                }
 
-                    requestUpdate(stagestats, new object[] { this });
+                deltaV = deltaVStage = 0.0;
 
-                    int atmStatsLength = 0, vacStatsLength = 0;
+                if (atmStatsLength > 0 && atmStatsLength == vacStatsLength)
+                {
+                    double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
 
-                    object atmStatsO = mjAtmStageStats.GetValue(stagestats);
-                    object vacStatsO = mjVacStageStats.GetValue(stagestats);
-                    if (atmStatsO != null)
+                    for (int i = 0; i < atmStatsLength; ++i)
                     {
-                        atmStatsLength = stageStatsGetLength(atmStatsO);
-                    }
-                    if (vacStatsO != null)
-                    {
-                        vacStatsLength = stageStatsGetLength(vacStatsO);
-                    }
-
-                    deltaV = deltaVStage = 0.0;
-
-                    if (atmStatsLength > 0 && atmStatsLength == vacStatsLength)
-                    {
-                        double atmospheresLocal = vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres;
-
-                        for (int i = 0; i < atmStatsLength; ++i)
+                        object atmStat = stageStatsGetIndex(atmStatsO, new object[] { i });
+                        object vacStat = stageStatsGetIndex(vacStatsO, new object[] { i });
+                        if (atmStat == null || vacStat == null)
                         {
-                            object atmStat = stageStatsGetIndex(atmStatsO, new object[] { i });
-                            object vacStat = stageStatsGetIndex(vacStatsO, new object[] { i });
-                            if (atmStat == null || vacStat == null)
-                            {
-                                throw new NotImplementedException("atmStat or vacState did not evaluate");
-                            }
-
-                            float atm = (float)mjStageDv.GetValue(atmStat);
-                            float vac = (float)mjStageDv.GetValue(vacStat);
-                            double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
-
-                            deltaV += stagedV;
-
-                            if (i == (atmStatsLength - 1))
-                            {
-                                deltaVStage = stagedV;
-                            }
-
+                            throw new NotImplementedException("atmStat or vacState did not evaluate");
                         }
+
+                        float atm = (float)mjStageDv.GetValue(atmStat);
+                        float vac = (float)mjStageDv.GetValue(vacStat);
+                        double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
+
+                        deltaV += stagedV;
+
+                        if (i == (atmStatsLength - 1))
+                        {
+                            deltaVStage = stagedV;
+                        }
+
                     }
                 }
             }
@@ -1009,7 +1021,7 @@ namespace JSI
 
             if (activeJeb != null)
             {
-                UpdateLandingStats();
+                UpdateLandingStats(activeJeb);
 
                 return landingErr;
             }
@@ -1028,7 +1040,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                UpdateLandingStats();
+                UpdateLandingStats(activeJeb);
 
                 return landingLat;
             }
@@ -1047,9 +1059,28 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                UpdateLandingStats();
+                UpdateLandingStats(activeJeb);
 
                 return landingLon;
+            }
+            else
+            {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Provide the MechJeb estimate for landing time.
+        /// </summary>
+        /// <returns></returns>
+        public double GetLandingTime()
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            if (activeJeb != null)
+            {
+                UpdateLandingStats(activeJeb);
+
+                return landingTime - Planetarium.GetUniversalTime();
             }
             else
             {
@@ -1066,7 +1097,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                UpdateLandingStats();
+                UpdateLandingStats(activeJeb);
 
                 return landingAlt;
             }
@@ -1085,7 +1116,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                UpdateDeltaVStats();
+                UpdateDeltaVStats(activeJeb);
 
                 return deltaV;
             }
@@ -1104,7 +1135,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             if (activeJeb != null)
             {
-                UpdateDeltaVStats();
+                UpdateDeltaVStats(activeJeb);
 
                 return deltaVStage;
             }
@@ -1815,7 +1846,7 @@ namespace JSI
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
             object controller = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneGuidance");
-            if(ap != null && controller != null)
+            if (ap != null && controller != null)
             {
                 if (state)
                 {

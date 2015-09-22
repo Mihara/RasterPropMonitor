@@ -403,7 +403,7 @@ namespace JSI
         // it should become invisible. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
         // and the current vessel reference part is this part or the mouse is over this part.
         public void LateUpdate()
-        {            
+        {
             if (HighLogic.LoadedSceneIsEditor)
             {
                 if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
