@@ -605,9 +605,14 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            // FixedUpdate tracks values related to the vessel (position, CoM, etc)
             // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel) && timeToUpdate)
+            if (JUtil.VesselIsInIVA(vessel)) UpdateVariables();
+        }
+
+        public void UpdateVariables()
+        { 
+            // Update values related to the vessel (position, CoM, etc)
+            if (timeToUpdate)
             {
 #if SHOW_FIXEDUPDATE_TIMING
                 stopwatch.Reset();
@@ -717,10 +722,6 @@ namespace JSI
                             if (part != null)
                             {
                                 rpmComp = RasterPropMonitorComputer.Instantiate(part);
-                            }
-                            else
-                            {
-                                JUtil.LogErrorMessage(this, "Unable to deduce the current part prior to VariableToObject.");
                             }
                         }
 
@@ -861,10 +862,6 @@ namespace JSI
                         }
                     }
                 }
-            }
-            else
-            {
-                JUtil.LogMessage(this, "Not in IVA");
             }
 
             return currentPart;
