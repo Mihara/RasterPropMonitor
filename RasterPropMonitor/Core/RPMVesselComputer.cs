@@ -1213,7 +1213,14 @@ namespace JSI
 
             speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
-            speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
+            if (speedVertical < vessel.srfSpeed)
+            {
+                speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
+            }
+            else
+            {
+                speedHorizontal = 0.0;
+            }
 
             // Record the vessel-relative basis
             // north isn't actually used anywhere...
