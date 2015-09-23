@@ -98,11 +98,24 @@ namespace JSI
 			{ "custom09",KSPActionGroup.Custom09 },
 			{ "custom10",KSPActionGroup.Custom10 }
 		};
-        private readonly Dictionary<string, bool> customGroupList = new Dictionary<string, bool> {
-			{ "intlight",false },
-			{ "dummy",false },
-			{ "plugin",false },
-		};
+        internal enum CustomActions
+        {
+            None,
+            IntLight,
+            Dummy,
+            Plugin,
+            Stage
+        };
+        private bool customGroupState = false;
+        internal static readonly Dictionary<string, CustomActions> customGroupList = new Dictionary<string, CustomActions> {
+            { "---none---", CustomActions.None},
+            { "intlight", CustomActions.IntLight },
+            { "dummy",CustomActions.Dummy },
+            { "plugin",CustomActions.Plugin },
+            { "stage",CustomActions.Stage }
+        };
+        private KSPActionGroup kspAction = KSPActionGroup.None;
+        private CustomActions customAction = CustomActions.None;
         private Animation anim;
         private bool currentState;
         private bool isCustomAction;
@@ -217,7 +230,8 @@ namespace JSI
 
                 if (groupList.ContainsKey(actionName))
                 {
-                    currentState = vessel.ActionGroups[groupList[actionName]];
+                    kspAction = groupList[actionName];
+                    currentState = vessel.ActionGroups[kspAction];
                     // action group switches may not belong to a radio group
                     switchGroupIdentifier = -1;
                 }
@@ -285,6 +299,11 @@ namespace JSI
                     }
                 }
 
+                if (customGroupList.ContainsKey(actionName))
+                {
+                    customAction = customGroupList[actionName];
+                }
+
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
                 {
                     rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
@@ -325,18 +344,18 @@ namespace JSI
                             {
                                 int activeSwitch = rpmComp.GetVar(persistentVarName, 0);
 
-                                currentState = customGroupList[actionName] = (switchGroupIdentifier == activeSwitch);
+                                currentState = customGroupState = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupList[actionName] = rpmComp.GetBool(persistentVarName, initialState);
+                                currentState = customGroupState = rpmComp.GetBool(persistentVarName, initialState);
                             }
 
-                            if (actionName == "intlight")
+                            if (customAction == CustomActions.IntLight)
                             {
                                 // We have to restore lighting after reading the
                                 // persistent variable.
-                                SetInternalLights(customGroupList[actionName]);
+                                SetInternalLights(customGroupState);
                             }
                         }
                     }
@@ -457,9 +476,9 @@ namespace JSI
             {
                 if (switchGroupIdentifier >= 0)
                 {
-                    if (!forcedShutdown && !customGroupList[actionName])
+                    if (!forcedShutdown && !customGroupState)
                     {
-                        customGroupList[actionName] = true;
+                        customGroupState = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
                             rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
@@ -469,27 +488,27 @@ namespace JSI
                 }
                 else
                 {
-                    customGroupList[actionName] = !customGroupList[actionName];
+                    customGroupState = !customGroupState;
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        rpmComp.SetVar(persistentVarName, customGroupList[actionName]);
+                        rpmComp.SetVar(persistentVarName, customGroupState);
                     }
                 }
             }
             else
             {
-                vessel.ActionGroups.ToggleGroup(groupList[actionName]);
+                vessel.ActionGroups.ToggleGroup(kspAction);
             }
             // Now we do extra things that with regular actions can't happen.
-            switch (actionName)
+            switch (customAction)
             {
-                case "intlight":
-                    SetInternalLights(customGroupList[actionName]);
+                case CustomActions.IntLight:
+                    SetInternalLights(customGroupState);
                     break;
-                case "plugin":
-                    actionHandler((stateHandler != null) ? !stateHandler() : customGroupList[actionName]);
+                case CustomActions.Plugin:
+                    actionHandler((stateHandler != null) ? !stateHandler() : customGroupState);
                     break;
-                case "stage":
+                case CustomActions.Stage:
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
                     {
                         Staging.ActivateNextStage();
@@ -543,7 +562,7 @@ namespace JSI
                     {
                         int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                         newState = (switchGroupIdentifier == activeGroupId);
-                        customGroupList[actionName] = newState;
+                        customGroupState = newState;
                     }
                     else
                     {
@@ -560,22 +579,22 @@ namespace JSI
                         {
                             int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
                             newState = (switchGroupIdentifier == activeGroupId);
-                            customGroupList[actionName] = newState;
+                            customGroupState = newState;
                         }
                         else
                         {
-                            newState = rpmComp.GetBool(persistentVarName, customGroupList[actionName]);
+                            newState = rpmComp.GetBool(persistentVarName, customGroupState);
                         }
                     }
                     else
                     {
-                        newState = customGroupList[actionName];
+                        newState = customGroupState;
                     }
                 }
             }
             else
             {
-                newState = vessel.ActionGroups[groupList[actionName]];
+                newState = vessel.ActionGroups[kspAction];
             }
 
             // If needsElectricCharge is true and there is no charge, the state value is overridden to false and the click action is reexecuted.
