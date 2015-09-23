@@ -1767,6 +1767,7 @@ namespace JSI
                 mappedVariables = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
+                mathVariables = null;
 
                 protractor = null;
 
