@@ -285,20 +285,21 @@ namespace JSI
             private void Click()
             {
                 delta += increment;
-                JUtil.LogMessage(this, "Click!: delta = {0}", delta);
+                //JUtil.LogMessage(this, "Click!: delta = {0}", delta);
             }
 
             private void TimedClick()
             {
                 lastUpdate = pressStart = Planetarium.GetUniversalTime();
+                delta = incrementCurve.Evaluate(0.0f);
 
-                JUtil.LogMessage(this, "TimedClick! @ {0}", pressStart);
+                //JUtil.LogMessage(this, "TimedClick! @ {0}", pressStart);
                 pressed = true;
             }
 
             private void TimedRelease()
             {
-                JUtil.LogMessage(this, "TimedRelease!");
+                //JUtil.LogMessage(this, "TimedRelease!");
                 pressed = false;
             }
         }
