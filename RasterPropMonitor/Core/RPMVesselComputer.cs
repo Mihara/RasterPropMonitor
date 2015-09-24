@@ -246,6 +246,7 @@ namespace JSI
 
         // Tracked vessel variables
         private float actualAverageIsp;
+        private float actualMaxIsp;
         private double altitudeASL;
         //public double AltitudeASL
         //{
@@ -282,8 +283,11 @@ namespace JSI
         private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
-        private double lastTimePerSecond;
-        private double lastTerrainHeight, terrainDelta;
+        private double lastAltitudeBottomSampleTime;
+        private double lastAltitudeBottom, terrainDelta;
+        // radarAltitudeRate as computed using a simple exponential smoothing.
+        private float radarAltitudeRate = 0.0f;
+        private double lastRadarAltitudeTime;
 
         // Target values
         private ITargetable target;
@@ -302,7 +306,7 @@ namespace JSI
             }
         }
         private Vector3d velocityRelativeTarget;
-        private double approachSpeed;
+        private float approachSpeed;
         private Quaternion targetOrientation;
 
         // Diagnostics
@@ -601,9 +605,14 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            // FixedUpdate tracks values related to the vessel (position, CoM, etc)
             // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel) && timeToUpdate)
+            if (JUtil.VesselIsInIVA(vessel)) UpdateVariables();
+        }
+
+        public void UpdateVariables()
+        { 
+            // Update values related to the vessel (position, CoM, etc)
+            if (timeToUpdate)
             {
 #if SHOW_FIXEDUPDATE_TIMING
                 stopwatch.Reset();
@@ -713,10 +722,6 @@ namespace JSI
                             if (part != null)
                             {
                                 rpmComp = RasterPropMonitorComputer.Instantiate(part);
-                            }
-                            else
-                            {
-                                JUtil.LogErrorMessage(this, "Unable to deduce the current part prior to VariableToObject.");
                             }
                         }
 
@@ -858,10 +863,6 @@ namespace JSI
                     }
                 }
             }
-            else
-            {
-                JUtil.LogMessage(this, "Not in IVA");
-            }
 
             return currentPart;
         }
@@ -880,65 +881,6 @@ namespace JSI
                     yield return thatPart;
                 }
             }
-        }
-
-        /// <summary>
-        /// Estimates the number of seconds before impact.  It's not precise,
-        /// since precise is also computationally expensive.
-        /// </summary>
-        /// <returns></returns>
-        private double EstimateSecondsToImpact()
-        {
-            double secondsToImpact;
-            if (vessel.situation == Vessel.Situations.SUB_ORBITAL || vessel.situation == Vessel.Situations.FLYING)
-            {
-                // Mental note: the local g taken from vessel.mainBody.GeeASL will suffice.
-                //  t = (v+sqrt(v²+2gd))/g or something.
-
-                // What is the vertical component of current acceleration?
-                double accelUp = Vector3d.Dot(vessel.acceleration, up);
-
-                double altitude = altitudeTrue;
-                if (vessel.mainBody.ocean && altitudeASL > 0.0)
-                {
-                    // AltitudeTrue shows distance above the floor of the ocean,
-                    // so use ASL if it's closer in this case, and we're not
-                    // already below SL.
-                    altitude = Math.Min(altitudeASL, altitudeTrue);
-                }
-
-                if (accelUp < 0.0 || speedVertical >= 0.0 || Planetarium.TimeScale > 1.0)
-                {
-                    // If accelUp is negative, we can't use it in the general
-                    // equation for finding time to impact, since it could
-                    // make the term inside the sqrt go negative.
-                    // If we're going up, we can use this as well, since
-                    // the precision is not critical.
-                    // If we are warping, accelUp is always zero, so if we
-                    // do not use this case, we would fall to the simple
-                    // formula, which is wrong.
-                    secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * localGeeASL * altitude)) / localGeeASL;
-                }
-                else if (accelUp > 0.005)
-                {
-                    // This general case takes into account vessel acceleration,
-                    // so estimates on craft that include parachutes or do
-                    // powered descents are more accurate.
-                    secondsToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2 * accelUp * altitude)) / accelUp;
-                }
-                else
-                {
-                    // If accelUp is small, we get floating point precision
-                    // errors that tend to make secondsToImpact get really big.
-                    secondsToImpact = altitude / -speedVertical;
-                }
-            }
-            else
-            {
-                secondsToImpact = Double.NaN;
-            }
-
-            return secondsToImpact;
         }
 
         /// <summary>
@@ -969,6 +911,7 @@ namespace JSI
             }
             //JUtil.LogMessage(this, "vessel.altitude = {0}, vessel.pqsAltitude = {2}, altitudeASL = {1}", vessel.altitude, altitudeASL, vessel.pqsAltitude);
 
+            float priorAltitudeBottom = (float)altitudeBottom;
             altitudeBottom = (vessel.mainBody.ocean) ? Math.Min(altitudeASL, altitudeTrue) : altitudeTrue;
             if (altitudeBottom < 500d)
             {
@@ -986,6 +929,20 @@ namespace JSI
                 altitudeBottom += lowestPoint;
             }
             altitudeBottom = Math.Max(0.0, altitudeBottom);
+
+            float d1 = (float)altitudeBottom - priorAltitudeBottom;
+            float t1 = (float)(Planetarium.GetUniversalTime() - lastRadarAltitudeTime);
+            // simple exponential smoothing - radar altitude gets very noisy when terrain is hilly.
+            const float alpha = 0.0625f;
+            radarAltitudeRate = radarAltitudeRate * (1.0f - alpha) + (d1 / t1) * alpha;
+            lastRadarAltitudeTime = Planetarium.GetUniversalTime();
+
+            if (Planetarium.GetUniversalTime() >= lastAltitudeBottomSampleTime + 1.0)
+            {
+                terrainDelta = altitudeBottom - lastAltitudeBottom;
+                lastAltitudeBottom = altitudeBottom;
+                lastAltitudeBottomSampleTime = Planetarium.GetUniversalTime();
+            }
         }
 
         /// <summary>
@@ -1000,6 +957,7 @@ namespace JSI
             float totalResourceMass = 0.0f;
 
             float averageIspContribution = 0.0f;
+            float maxIspContribution = 0.0f;
 
             anyEnginesOverheating = anyEnginesFlameout = false;
 
@@ -1039,6 +997,13 @@ namespace JSI
                         foreach (Propellant thatResource in thatEngineModule.propellants)
                         {
                             resources.MarkPropellant(thatResource);
+                        }
+
+                        float minIsp, maxIsp;
+                        thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
+                        if(maxIsp > 0.0f)
+                        {
+                            maxIspContribution += maxThrust / maxIsp;
                         }
                     }
                     else if (pm is ModuleAblator)
@@ -1096,6 +1061,15 @@ namespace JSI
             else
             {
                 actualAverageIsp = 0.0f;
+            }
+
+            if (maxIspContribution > 0.0f)
+            {
+                actualMaxIsp = totalMaximumThrust / maxIspContribution;
+            }
+            else
+            {
+                actualMaxIsp = 0.0f;
             }
 
             resources.GetActiveResourceNames(ref resourcesAlphabetic);
@@ -1203,12 +1177,12 @@ namespace JSI
                 // If our target is somehow our own celestial body, approach speed is equal to vertical speed.
                 if (targetBody == vessel.mainBody)
                 {
-                    approachSpeed = speedVertical;
+                    approachSpeed = (float)speedVertical;
                 }
                 else
                 {
                     // In all other cases, that should work. I think.
-                    approachSpeed = Vector3d.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
+                    approachSpeed = Vector3.Dot(velocityRelativeTarget, (target.GetTransform().position - vessel.GetTransform().position).normalized);
                 }
             }
             else
@@ -1216,7 +1190,7 @@ namespace JSI
                 velocityRelativeTarget = targetSeparation = Vector3d.zero;
                 targetOrbit = null;
                 targetDistance = 0.0;
-                approachSpeed = 0.0;
+                approachSpeed = 0.0f;
                 targetBody = null;
                 targetVessel = null;
                 targetDockingNode = null;
@@ -1276,13 +1250,6 @@ namespace JSI
             prograde = vessel.orbit.GetVel().normalized;
             radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
             normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
-
-            if (Planetarium.GetUniversalTime() >= lastTimePerSecond + 1.0)
-            {
-                terrainDelta = vessel.terrainAltitude - lastTerrainHeight;
-                lastTerrainHeight = vessel.terrainAltitude;
-                lastTimePerSecond = Planetarium.GetUniversalTime();
-            }
 
             if (vessel.patchedConicSolver != null)
             {
@@ -1348,6 +1315,7 @@ namespace JSI
                 }
             }
 
+            //JUtil.LogMessage(this, "searching for {0} : {1}", tokens[0], tokens[1]);
             PluginEvaluator pluginEval = null;
             if (jsiModule != null)
             {
@@ -1442,6 +1410,11 @@ namespace JSI
                             throw new Exception("Not Implemented");
                         }
                     }
+                }
+
+                if (pluginEval == null)
+                {
+                    JUtil.LogErrorMessage(this, "I failed to find the method for {0}:{1}", tokens[0], tokens[1]);
                 }
             }
 
@@ -1573,22 +1546,22 @@ namespace JSI
 
         /// <summary>
         /// Determines the yaw angle between the vector supplied and the front of the craft.
-        /// Original code from FAR.
+        /// Original code from FAR, changed to Unity Vector3.Angle to provide the range 0-180.
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Yaw in degrees</returns>
         private double GetRelativeYaw(Vector3 normalizedVectorOfInterest)
         {
             //velocity vector projected onto the vehicle-horizontal plane
-            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top);
-            float dotyaw = Vector3.Dot(tmpVec.normalized, right);
-            float yaw = Mathf.Rad2Deg * Mathf.Asin(dotyaw);
-            if (float.IsNaN(yaw))
-            {
-                yaw = (dotyaw > 0.0f) ? 90.0f : -90.0f;
-            }
+            Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top).normalized;
+            float dotyaw = Vector3.Dot(tmpVec, right);
+            float angle = Vector3.Angle(tmpVec, forward);
 
-            return yaw;
+            if (dotyaw < 0.0f)
+            {
+                angle = -angle;
+            }
+            return angle;
         }
 
         /// <summary>
@@ -1726,6 +1699,49 @@ namespace JSI
                 return double.NaN;
             }
             return impactTime - decelTime / 2.0 - Planetarium.GetUniversalTime();
+        }
+
+        /// <summary>
+        /// Originally from MechJeb
+        /// Computes the time until the phase angle between the launchpad and the target equals the given angle.
+        /// The convention used is that phase angle is the angle measured starting at the target and going east until
+        /// you get to the launchpad. 
+        /// The time returned will not be exactly accurate unless the target is in an exactly circular orbit. However,
+        /// the time returned will go to exactly zero when the desired phase angle is reached.
+        /// </summary>
+        /// <param name="phaseAngle"></param>
+        /// <param name="launchBody"></param>
+        /// <param name="launchLongitude"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        private static double TimeToPhaseAngle(double phaseAngle, CelestialBody launchBody, double launchLongitude, Orbit target)
+        {
+            double launchpadAngularRate = 360 / launchBody.rotationPeriod;
+            double targetAngularRate = 360.0 / target.period;
+            if (Vector3d.Dot(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
+
+            Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
+            Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
+            currentTargetDirection = Vector3d.Exclude(launchBody.angularVelocity, currentTargetDirection);
+
+            double currentPhaseAngle = Math.Abs(Vector3d.Angle(currentLaunchpadDirection, currentTargetDirection));
+            if (Vector3d.Dot(Vector3d.Cross(currentTargetDirection, currentLaunchpadDirection), launchBody.angularVelocity) < 0)
+            {
+                currentPhaseAngle = 360 - currentPhaseAngle;
+            }
+
+            double phaseAngleRate = launchpadAngularRate - targetAngularRate;
+
+            double phaseAngleDifference = JUtil.ClampDegrees360(phaseAngle - currentPhaseAngle);
+
+            if (phaseAngleRate < 0)
+            {
+                phaseAngleRate *= -1;
+                phaseAngleDifference = 360 - phaseAngleDifference;
+            }
+
+
+            return phaseAngleDifference / phaseAngleRate;
         }
 
         /// <summary>

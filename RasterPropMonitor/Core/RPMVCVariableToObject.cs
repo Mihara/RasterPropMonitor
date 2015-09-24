@@ -360,6 +360,8 @@ namespace JSI
                     return JUtil.PseudoLog10(speedVertical);
                 case "VERTSPEEDROUNDED":
                     return speedVerticalRounded;
+                case "RADARALTVERTSPEED":
+                    return radarAltitudeRate;
                 case "TERMINALVELOCITY":
                     return TerminalVelocity();
                 case "SURFSPEED":
@@ -427,13 +429,8 @@ namespace JSI
                         return 0.0;
                     }
 
-                // Time to impact. This is quite imprecise, because a precise calculation pulls in pages upon pages of MechJeb code.
-                // It accounts for gravity now, though. Pull requests welcome.
                 case "TIMETOIMPACTSECS":
-                    {
-                        double secondsToImpact = EstimateSecondsToImpact();
-                        return (double.IsNaN(secondsToImpact) || secondsToImpact > 365.0 * 24.0 * 60.0 * 60.0 || secondsToImpact < 0.0) ? -1.0 : secondsToImpact;
-                    }
+                    return TimeToImpact();
                 case "SPEEDATIMPACT":
                     return SpeedAtImpact(totalCurrentThrust);
                 case "BESTSPEEDATIMPACT":
@@ -539,13 +536,15 @@ namespace JSI
                 case "EFFECTIVEACCEL":
                     return vessel.acceleration.magnitude;
                 case "REALISP":
-                    return (double)actualAverageIsp;
+                    return actualAverageIsp;
+                case "MAXISP":
+                    return actualMaxIsp;
                 case "HOVERPOINT":
-                    return (double)(localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f);
+                    return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f);
                 case "HOVERPOINTEXISTS":
                     return ((localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1.0f) ? -1.0 : 1.0;
                 case "EFFECTIVETHROTTLE":
-                    return (totalMaximumThrust > 0.0f) ? (double)(totalCurrentThrust / totalMaximumThrust) : 0.0;
+                    return (totalMaximumThrust > 0.0f) ? (totalCurrentThrust / totalMaximumThrust) : 0.0f;
                 case "DRAG":
                     return DragForce();
                 case "DRAGACCEL":
@@ -569,9 +568,9 @@ namespace JSI
                     }
                     return 0d;
                 case "MNODEBURNTIMESECS":
-                    if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0)
+                    if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0.0f)
                     {
-                        return actualAverageIsp * (1 - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
+                        return actualAverageIsp * (1.0f - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
                     }
                     return double.NaN;
                 case "MNODEEXISTS":
@@ -783,6 +782,10 @@ namespace JSI
                     return SideSlip();
                 // These values get odd when they're way out on the edge of the
                 // navball because they're projected into two dimensions.
+                case "PITCHSURFPROGRADE":
+                    return GetRelativePitch(vessel.srf_velocity.normalized);
+                case "PITCHSURFRETROGRADE":
+                    return GetRelativePitch(-vessel.srf_velocity.normalized);
                 case "PITCHPROGRADE":
                     return GetRelativePitch(prograde);
                 case "PITCHRETROGRADE":
@@ -813,6 +816,10 @@ namespace JSI
                     {
                         return 0.0;
                     }
+                case "YAWSURFPROGRADE":
+                    return GetRelativeYaw(vessel.srf_velocity.normalized);
+                case "YAWSURFRETROGRADE":
+                    return GetRelativeYaw(-vessel.srf_velocity.normalized);
                 case "YAWPROGRADE":
                     return GetRelativeYaw(prograde);
                 case "YAWRETROGRADE":
@@ -1139,6 +1146,16 @@ namespace JSI
                             targetOrbit.timeToPe :
                             -targetOrbit.meanAnomaly / (2 * Math.PI / targetOrbit.period);
                     return double.NaN;
+                case "TARGETLAUNCHTIMESECS":
+                    if (targetVessel != null && targetVessel.mainBody == vessel.mainBody && (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH || vessel.situation == Vessel.Situations.SPLASHED))
+                    {
+                        // MOARdV TODO: Make phase angle a variable?
+                        return TimeToPhaseAngle(12.7, vessel.mainBody, vessel.longitude, target.GetOrbit());
+                    }
+                    else
+                    {
+                        return 0.0;
+                    }
 
                 // Protractor-type values (phase angle, ejection angle)
                 case "TARGETBODYPHASEANGLE":
@@ -1324,11 +1341,11 @@ namespace JSI
                 case "SLOPEALARM":
                     return (speedVerticalRounded < 0.0 && altitudeBottom < 100.0 && slopeAngle > 15.0f).GetHashCode();
                 case "DOCKINGANGLEALARM":
-                    return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0 &&
+                    return (targetDockingNode != null && targetDistance < 10 && approachSpeed > 0.0f &&
                     (Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, up)) > 1.5 ||
                     Math.Abs(JUtil.NormalAngle(-targetDockingNode.GetFwdVector(), forward, -right)) > 1.5)).GetHashCode();
                 case "DOCKINGSPEEDALARM":
-                    return (targetDockingNode != null && approachSpeed > 2.5 && targetDistance < 15).GetHashCode();
+                    return (targetDockingNode != null && approachSpeed > 2.5f && targetDistance < 15).GetHashCode();
                 case "ALTITUDEALARM":
                     return (speedVerticalRounded < 0 && altitudeBottom < 150).GetHashCode();
                 case "PODTEMPERATUREALARM":
