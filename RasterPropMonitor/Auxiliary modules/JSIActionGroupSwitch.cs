@@ -104,7 +104,8 @@ namespace JSI
             IntLight,
             Dummy,
             Plugin,
-            Stage
+            Stage,
+            Transfer
         };
         private bool customGroupState = false;
         internal static readonly Dictionary<string, CustomActions> customGroupList = new Dictionary<string, CustomActions> {
@@ -112,6 +113,7 @@ namespace JSI
             { "intlight", CustomActions.IntLight },
             { "dummy",CustomActions.Dummy },
             { "plugin",CustomActions.Plugin },
+            { "transfer", CustomActions.Transfer},
             { "stage",CustomActions.Stage }
         };
         private KSPActionGroup kspAction = KSPActionGroup.None;
@@ -129,6 +131,10 @@ namespace JSI
         private Func<bool> stateHandler;
         private Action<bool> actionHandler;
         private bool isPluginAction;
+
+        private Func<double> transferGetter;
+        private Action<double> transferSetter;
+        private string transferPersistentName;
 
         // Consume-on-toggle and consume-while-active
         private bool consumingOnToggleUp, consumingOnToggleDown;
@@ -284,6 +290,61 @@ namespace JSI
                                 JUtil.LogMessage(this, "Plugin handlers did not start, reverting to dummy mode.");
                             }
                             break;
+                        case "transfer":
+                            persistentVarName = string.Empty;
+                            comp.UpdateDataRefreshRate(refreshRate);
+
+                            foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
+                            {
+                                if (node.GetValue("name") == internalProp.propName)
+                                {
+                                    foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("TRANSFERACTION"))
+                                    {
+                                        if (pluginConfig.HasValue("name") && pluginConfig.HasValue("perPodPersistenceName"))
+                                        {
+                                            transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
+                                            if (pluginConfig.HasValue("setMethod"))
+                                            {
+                                                string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("setMethod").Trim();
+                                                transferSetter = (Action<double>)comp.GetMethod(action, internalProp, typeof(Action<double>));
+
+                                                if (transferSetter == null)
+                                                {
+                                                    JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
+                                                }
+                                                else
+                                                {
+                                                    JUtil.LogMessage(this, "Got setter {0}", action);
+                                                    isPluginAction = true;
+                                                    break;
+                                                }
+                                            }
+                                            else if (pluginConfig.HasValue("getMethod"))
+                                            {
+                                                string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("getMethod").Trim();
+                                                transferGetter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
+
+                                                if (transferGetter == null)
+                                                {
+                                                    JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
+                                                }
+                                                else
+                                                {
+                                                    JUtil.LogMessage(this, "Got getter {0}", action);
+                                                    isPluginAction = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (transferGetter == null && transferSetter == null)
+                            {
+                                actionName = "dummy";
+                                JUtil.LogMessage(this, "Transfer handlers did not start, reverting to dummy mode.");
+                            }
+                            break;
                         default:
                             persistentVarName = "switch" + internalProp.propID + "_" + moduleID;
                             break;
@@ -304,7 +365,8 @@ namespace JSI
                     customAction = customGroupList[actionName];
                 }
 
-                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName))
+                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
+                    transferGetter != null || transferSetter != null)
                 {
                     rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
@@ -338,7 +400,7 @@ namespace JSI
                     }
                     else
                     {
-                        if (rpmComp != null)
+                        if (rpmComp != null && !string.IsNullOrEmpty(persistentVarName))
                         {
                             if (switchGroupIdentifier >= 0)
                             {
@@ -512,6 +574,17 @@ namespace JSI
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
                     {
                         Staging.ActivateNextStage();
+                    }
+                    break;
+                case CustomActions.Transfer:
+                    if (transferGetter != null)
+                    {
+                        double value = transferGetter();
+                        rpmComp.SetVar(transferPersistentName, (int)value);
+                    }
+                    else if (rpmComp.HasVar(transferPersistentName))
+                    {
+                        transferSetter((double)rpmComp.GetVar(transferPersistentName));
                     }
                     break;
             }
