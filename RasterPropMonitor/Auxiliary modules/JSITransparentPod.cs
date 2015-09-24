@@ -78,6 +78,9 @@ namespace JSI
                 return;
             }
             GameEvents.onGameSceneSwitchRequested.Add(this.OnGameSceneSwitch);
+            GameEvents.onCrewTransferred.Add(this.OnCrewTransferred);
+            GameEvents.onVesselChange.Add(this.OnVesselChange);
+            GameEvents.onCrewBoardVessel.Add(this.OnCrewboardVessel);
 
             JUtil.LogMessage(this, "Cleaning pod windows...");
 
@@ -253,6 +256,9 @@ namespace JSI
         {
             JUtil.SetMainCameraCullingMaskForIVA(false);
             GameEvents.onGameSceneSwitchRequested.Remove(this.OnGameSceneSwitch);
+            GameEvents.onCrewTransferred.Remove(this.OnCrewTransferred);
+            GameEvents.onVesselChange.Remove(this.OnVesselChange);
+            GameEvents.onCrewBoardVessel.Remove(this.OnCrewboardVessel);
         }
 
         // So, we also add a GameEvent to fire when the GameScene is about to switch.
@@ -266,24 +272,25 @@ namespace JSI
             }
         }
 
-        // We also do the same if the part is packed, just in case.
-        public virtual void OnPartPack()
+        // So these next three methods are called when crew transfers occur or vessel change occurs or crew board vessel
+        // In all three cases we check the portrait cams for stowaways.
+        public void OnCrewTransferred(GameEvents.HostedFromToAction<ProtoCrewMember, Part> fromToAction)
         {
-            JUtil.SetMainCameraCullingMaskForIVA(false);
+            CheckStowaways();
         }
 
-        public override void OnUpdate()
+        public void OnVesselChange(Vessel vessel)
         {
-            // In the editor, none of this logic should matter, even though the IVA probably exists already.
-            if (HighLogic.LoadedSceneIsEditor)
-                return;
+            CheckStowaways();
+        }
 
-            // If the root part changed, or the IVA is mysteriously missing, we reset it and take note of where it ended up.
-            if (vessel.rootPart != knownRootPart || lastActiveVessel != FlightGlobals.ActiveVessel || part.internalModel == null)
-            {
-                ResetIVA();
-            }
+        public void OnCrewboardVessel(GameEvents.FromToAction<Part, Part> fromToAction)
+        {
+            CheckStowaways();
+        }
 
+        public void CheckStowaways()
+        {
             // Now we need to make sure that the list of portraits in the GUI conforms to what actually is in the active vessel.
             // This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
             // that I can't readily debug, and it shouldn't happen anyway.
@@ -322,6 +329,25 @@ namespace JSI
                         }
                     }
                 }
+            }
+        }
+
+        // We also do the same if the part is packed, just in case.
+        public virtual void OnPartPack()
+        {
+            JUtil.SetMainCameraCullingMaskForIVA(false);
+        }
+
+        public override void OnUpdate()
+        {
+            // In the editor, none of this logic should matter, even though the IVA probably exists already.
+            if (HighLogic.LoadedSceneIsEditor)
+                return;
+
+            // If the root part changed, or the IVA is mysteriously missing, we reset it and take note of where it ended up.
+            if (vessel.rootPart != knownRootPart || lastActiveVessel != FlightGlobals.ActiveVessel || part.internalModel == null)
+            {
+                ResetIVA();
             }
 
             // So we do have an internal model, right?
