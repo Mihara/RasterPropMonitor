@@ -139,6 +139,7 @@ namespace JSI
         // MechJebModuleLandingAutopilot.StopLanding
         private static readonly DynamicAction stopLanding;
 
+        // Spaceplane autopilot
         private static readonly DynamicMethodDelegate spaceplaneAutoland;
         private static readonly DynamicMethodDelegate spaceplaneHoldHeading;
         private static readonly DynamicAction spaceplaneAPOff;
@@ -146,6 +147,14 @@ namespace JSI
         private static readonly FieldInfo spaceplaneAltitude;
         private static readonly FieldInfo spaceplaneHeading;
         private static readonly FieldInfo spaceplaneGlideslope;
+
+        // Launch Guidance
+        private static readonly FieldInfo launchOrbitAltitude;
+
+        // EditableDoubleMult
+        private static readonly DynamicMethodDelegate setEditableDoubleMult;
+        private static readonly DynamicFuncDouble getEditableDoubleMult;
+        private static readonly FieldInfo getEditableDoubleMultMultiplier;
 
         // EditableDouble
         // EditableDouble.val (set)
@@ -389,6 +398,48 @@ namespace JSI
                 if (mjAbsoluteVectorLon == null)
                 {
                     throw new NotImplementedException("mjAbsoluteVectorLon");
+                }
+
+                // MechJebModuleAscentAutopilot
+                Type mjMechJebModuleAscentAutopilot_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleAscentAutopilot");
+                if (mjMechJebModuleAscentAutopilot_t == null)
+                {
+                    throw new NotImplementedException("mjMechJebModuleAscentAutopilot_t");
+                }
+                launchOrbitAltitude = mjMechJebModuleAscentAutopilot_t.GetField("desiredOrbitAltitude");
+                if (launchOrbitAltitude == null)
+                {
+                    throw new NotImplementedException("launchOrbitAltitude");
+                }
+
+                Type mjEditableDoubleMult_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.EditableDoubleMult");
+                if (mjEditableDoubleMult_t == null)
+                {
+                    throw new NotImplementedException("mjEditableDoubleMult_t");
+                }
+                getEditableDoubleMultMultiplier = mjEditableDoubleMult_t.GetField("multiplier");
+                if (getEditableDoubleMultMultiplier == null)
+                {
+                    throw new NotImplementedException("getEditableDoubleMultMultiplier");
+                }
+                PropertyInfo edmVal = mjEditableDoubleMult_t.GetProperty("val");
+                if (edmVal == null)
+                {
+                    throw new NotImplementedException("edmVal");
+                }
+                // getEditableDoubleMult
+                MethodInfo mjGetEDM = edmVal.GetGetMethod();
+                if (mjGetEDM != null)
+                {
+                    getEditableDoubleMult = DynamicMethodDelegateFactory.CreateFuncDouble(mjGetEDM);
+                }
+                // setEditableDoubleMult
+                MethodInfo mjSetEDM = edmVal.GetSetMethod();
+                if (mjSetEDM != null)
+                {
+                    setEditableDoubleMult = DynamicMethodDelegateFactory.Create(mjSetEDM);
                 }
 
                 // EditableAngle
@@ -851,7 +902,7 @@ namespace JSI
         /// </summary>
         private void UpdateLandingStats(object activeJeb)
         {
-            if(Planetarium.GetUniversalTime() - lastUpdate < 0.5)
+            if (Planetarium.GetUniversalTime() - lastUpdate < 0.5)
             {
                 // Don't update more than twice a second.
                 return;
@@ -1145,6 +1196,43 @@ namespace JSI
             }
         }
 
+        public double GetLaunchAltitude()
+        {
+            double alt = double.NaN;
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ascent = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
+            if (ascent != null)
+            {
+                object desiredAlt = launchOrbitAltitude.GetValue(ascent);
+                if (desiredAlt != null)
+                {
+                    //object mult_o = getEditableDoubleMultMultiplier.GetValue(desiredAlt);
+                    object alt_o = getEditableDoubleMult(desiredAlt);
+
+                    if (alt_o != null)
+                    {
+                        alt = (double)alt_o;
+                    }
+                }
+            }
+
+            return alt;
+        }
+
+        public void SetLaunchAltitude(double altitude)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ascent = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
+            if (ascent != null)
+            {
+                object desiredAlt = launchOrbitAltitude.GetValue(ascent);
+                if (desiredAlt != null)
+                {
+                    setEditableDoubleMult(desiredAlt, new object[] { altitude });
+                }
+            }
+        }
+
         public double GetForceRollAngle()
         {
             object activeJeb = GetMasterMechJeb(vessel);
@@ -1295,7 +1383,17 @@ namespace JSI
             {
                 return 0.0;
             }
+        }
 
+        public void SetSpaceplaneHoldAltitude(double altitude)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object holdAltitude = spaceplaneAltitude.GetValue(ap);
+                setEditableDouble(holdAltitude, new object[] { altitude });
+            }
         }
 
         public bool SpaceplaneAltitudeProximity()
@@ -1332,6 +1430,17 @@ namespace JSI
 
         }
 
+        public void SetSpaceplaneHoldHeading(double heading)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object holdHeading = spaceplaneHeading.GetValue(ap);
+                setEditableDouble(holdHeading, new object[] { heading });
+            }
+        }
+
         public double SpaceplaneGlideslope()
         {
             object activeJeb = GetMasterMechJeb(vessel);
@@ -1346,6 +1455,17 @@ namespace JSI
                 return 0.0;
             }
 
+        }
+
+        public void SetSpaceplaneGlideslope(double angle)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
+            if (ap != null)
+            {
+                object slope = spaceplaneGlideslope.GetValue(ap);
+                setEditableDouble(slope, new object[] { angle });
+            }
         }
         #endregion
 
