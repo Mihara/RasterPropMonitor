@@ -255,7 +255,7 @@ namespace JSI
                         if (distSq < selectedDistanceSquared)
                         {
                             float angle = Vector3.Angle(distance.normalized, (scanTransformIsDockingNode) ? scanTransform.forward : scanTransform.up);
-                            if (angle > scanAngle)
+                            if (angle < scanAngle)
                             {
                                 selectedDistanceSquared = distSq;
                                 selectedDistance = Mathf.Sqrt(distSq);
