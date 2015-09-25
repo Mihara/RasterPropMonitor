@@ -142,6 +142,7 @@ namespace JSI
         }
 
         #region Persistence
+        // MOARdV TODO: Convert persistence values to floats to support new input options
         private void ParseData()
         {
             persistentVars.Clear();

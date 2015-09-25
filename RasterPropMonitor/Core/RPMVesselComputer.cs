@@ -1,5 +1,4 @@
-﻿//#define HACK_IN_A_NAVPOINT
-//#define SHOW_FIXEDUPDATE_TIMING
+﻿//#define SHOW_FIXEDUPDATE_TIMING
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -606,11 +605,14 @@ namespace JSI
         public void FixedUpdate()
         {
             // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel)) UpdateVariables();
+            if (JUtil.VesselIsInIVA(vessel))
+            {
+                UpdateVariables();
+            }
         }
 
         public void UpdateVariables()
-        { 
+        {
             // Update values related to the vessel (position, CoM, etc)
             if (timeToUpdate)
             {
@@ -1001,7 +1003,7 @@ namespace JSI
 
                         float minIsp, maxIsp;
                         thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
-                        if(maxIsp > 0.0f)
+                        if (maxIsp > 0.0f)
                         {
                             maxIspContribution += maxThrust / maxIsp;
                         }
@@ -1204,17 +1206,6 @@ namespace JSI
         /// </summary>
         private void FetchVesselData()
         {
-#if HACK_IN_A_NAVPOINT
-            //--- MOARdV: Keeping this hack around since I don't have a career
-            // game with waypoints to use for reference.
-            if(FinePrint.WaypointManager.navIsActive() == false)
-            {
-                double lat = vessel.mainBody.GetLatitude(coM) + 0.1;
-                double lon = vessel.mainBody.GetLongitude(coM) + 0.05;
-                FinePrint.WaypointManager.navWaypoint.SetupNavWaypoint(vessel.mainBody, lat, lon, 1000.0, "Squad/Contracts/Icons/seismic", Color.blue);
-                FinePrint.WaypointManager.activateNavPoint();
-            }
-#endif
             orbitSensibility = JUtil.OrbitMakesSense(vessel);
 
             localGeeASL = (float)(vessel.orbit.referenceBody.GeeASL * gee);
@@ -1222,7 +1213,14 @@ namespace JSI
 
             speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
-            speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
+            if (speedVertical < vessel.srfSpeed)
+            {
+                speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
+            }
+            else
+            {
+                speedHorizontal = 0.0;
+            }
 
             // Record the vessel-relative basis
             // north isn't actually used anywhere...
@@ -1776,6 +1774,7 @@ namespace JSI
                 mappedVariables = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
+                mathVariables = null;
 
                 protractor = null;
 
