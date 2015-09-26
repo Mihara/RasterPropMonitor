@@ -152,7 +152,7 @@ namespace JSI
 
     public class VariableAnimationSet
     {
-        private readonly VariableOrNumber[] scaleEnds = new VariableOrNumber[3];
+        private readonly VariableOrNumberRange variable;
         private readonly Animation onAnim;
         private readonly Animation offAnim;
         private readonly bool thresholdMode;
@@ -184,6 +184,8 @@ namespace JSI
         private bool currentState;
         private double lastStateChange;
         private Part part;
+        private float lastScaledValue = -1.0f;
+        private float epsilon = 1.0f / 256.0f;
         public readonly bool alwaysActive = false;
 
         private enum Mode
@@ -219,20 +221,20 @@ namespace JSI
                 throw new ArgumentException("Could not parse 'scale' parameter.");
             }
 
+            string variableName = string.Empty;
             if (node.HasValue("variableName"))
             {
-                string variableName;
                 variableName = node.GetValue("variableName").Trim();
-                scaleEnds[2] = VariableOrNumber.Instantiate(variableName);
             }
             else if (node.HasValue("stateMethod"))
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(part.vessel);
                 string stateMethod = node.GetValue("stateMethod").Trim();
+                // Verify the state method actually exists
                 Func<bool> stateFunction = (Func<bool>)comp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
-                    scaleEnds[2] = VariableOrNumber.Instantiate("PLUGIN_" + stateMethod);
+                    variableName = "PLUGIN_" + stateMethod;
                 }
                 else
                 {
@@ -244,8 +246,8 @@ namespace JSI
                 throw new ArgumentException("Missing variable name.");
             }
 
-            scaleEnds[0] = VariableOrNumber.Instantiate(tokens[0]);
-            scaleEnds[1] = VariableOrNumber.Instantiate(tokens[1]);
+            variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+            // MOARdV TODO: How do I tune epsilon?
 
             // That takes care of the scale, now what to do about that scale:
 
@@ -280,6 +282,8 @@ namespace JSI
                     onAnim.enabled = true;
                     onAnim[animationName].speed = 0;
                     onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
+                    float numFrames = onAnim[animationName].clip.frameRate * onAnim[animationName].clip.length;
+                    epsilon = 1.0f / (numFrames * 2.0f);
                     looping = node.HasValue("loopingAnimation");
                     if (looping)
                     {
@@ -329,12 +333,15 @@ namespace JSI
             else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject"))
             {
                 if (node.HasValue("colorName"))
+                {
                     colorName = node.GetValue("colorName");
+                }
                 passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
                 colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
                 mode = Mode.Color;
+                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
             {
@@ -352,6 +359,7 @@ namespace JSI
                     rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
                 }
                 mode = Mode.Rotation;
+                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localTranslationStart") && node.HasValue("localTranslationEnd"))
             {
@@ -360,6 +368,7 @@ namespace JSI
                 vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
                 vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
                 mode = Mode.Translation;
+                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localScaleStart") && node.HasValue("localScaleEnd"))
             {
@@ -368,6 +377,7 @@ namespace JSI
                 vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
                 vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
                 mode = Mode.Scale;
+                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd"))
             {
@@ -376,6 +386,7 @@ namespace JSI
                 textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
                 textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
                 mode = Mode.TextureShift;
+                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureScaleStart") && node.HasValue("textureScaleEnd"))
             {
@@ -384,6 +395,7 @@ namespace JSI
                 textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
                 textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
                 mode = Mode.TextureScale;
+                epsilon = 1.0f / 256.0f;
             }
             else
             {
@@ -565,15 +577,41 @@ namespace JSI
 
         public void Update(RPMVesselComputer comp)
         {
-            var scaleResults = new float[3];
-            for (int i = 0; i < 3; i++)
+            float scaledValue;
+            if (!variable.InverseLerp(comp, out scaledValue))
             {
-                if (!scaleEnds[i].Get(out scaleResults[i], comp))
+                return;
+            }
+
+            // MOARdV TODO: What's a good epsilon here?  .001 may be too
+            // precise.  For an RGB lerp, 1/256 (or so) may be the finest
+            // precision we can represent.
+            if (Mathf.Abs(scaledValue - lastScaledValue) < epsilon)
+            {
+                if (thresholdMode && flashingDelay > 0.0 && scaledValue >= threshold.x && scaledValue <= threshold.y)
                 {
-                    return;
+                    // If we're blinking our lights, they need to keep blinking
+                    if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay)
+                    {
+                        if (currentState)
+                        {
+                            TurnOff();
+                        }
+                        else
+                        {
+                            TurnOn();
+                        }
+                    }
+
+                    if (alarmActive && audioOutput != null)
+                    {
+                        audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                    }
                 }
             }
-            float scaledValue = Mathf.InverseLerp(scaleResults[0], scaleResults[1], scaleResults[2]);
+
+            lastScaledValue = scaledValue;
+
             if (thresholdMode)
             {
                 if (scaledValue >= threshold.x && scaledValue <= threshold.y)
@@ -655,11 +693,7 @@ namespace JSI
                     case Mode.LoopingAnimation:
                     // MOARdV TODO: Define what this actually does
                     case Mode.Animation:
-                        float lerp = JUtil.DualLerp(reverse ? 1f : 0f, reverse ? 0f : 1f, scaleResults[0], scaleResults[1], scaleResults[2]);
-                        if (float.IsNaN(lerp) || float.IsInfinity(lerp))
-                        {
-                            lerp = reverse ? 1f : 0f;
-                        }
+                        float lerp = (reverse) ? (1.0f - scaledValue) : scaledValue;
                         onAnim[animationName].normalizedTime = lerp;
                         break;
                 }
