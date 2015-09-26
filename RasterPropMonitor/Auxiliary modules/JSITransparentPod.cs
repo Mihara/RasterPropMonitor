@@ -25,6 +25,9 @@ namespace JSI
         [KSPField]
         public bool disableLoadingInEditor = false;
 
+        [KSPField]
+        public float distanceToCameraThreshold = 100f;
+
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = true, guiName = "TransparentPod")] //ON = transparentpod on, OFF = transparentpod off, AUTO = on when focused.
         public string transparentPodSetting = "ON";
 
@@ -63,6 +66,8 @@ namespace JSI
         private readonly Dictionary<Transform, Shader> shadersBackup = new Dictionary<Transform, Shader>();
 
         private bool mouseOver = false;
+
+        private float distanceToCamera = 0f;
 
         public override string GetInfo()
         {
@@ -247,6 +252,9 @@ namespace JSI
                 // And then we remember the root part and the active vessel these coordinates refer to.
                 knownRootPart = vessel.rootPart;
                 lastActiveVessel = FlightGlobals.ActiveVessel;
+
+                //Finally we check for Stowaways on the PortraitCams
+                CheckStowaways();
             }
         }
 
@@ -295,29 +303,29 @@ namespace JSI
             // This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
             // that I can't readily debug, and it shouldn't happen anyway.
 
-            // Only the pods in the active vessel should be doing it since the list refers to them.
-            if (vessel.isActiveVessel)
+            // First, every pod should check through the list of portaits and remove everyone who is not from the active vessel, or NO vessel.
+            var stowaways = new List<Kerbal>();
+            foreach (Kerbal thatKerbal in KerbalGUIManager.ActiveCrew)
             {
-                // First, every pod should check through the list of portaits and remove everyone who is from some other vessel, or NO vessel.
-                var stowaways = new List<Kerbal>();
-                foreach (Kerbal thatKerbal in KerbalGUIManager.ActiveCrew)
+                if (thatKerbal.InPart == null)
                 {
-                    if (thatKerbal.InPart == null)
+                    stowaways.Add(thatKerbal);
+                }
+                else
+                {
+                    if (thatKerbal.InVessel != FlightGlobals.ActiveVessel)
                     {
                         stowaways.Add(thatKerbal);
                     }
-                    else
-                    {
-                        if (thatKerbal.InVessel != vessel)
-                        {
-                            stowaways.Add(thatKerbal);
-                        }
-                    }
                 }
-                foreach (Kerbal thatKerbal in stowaways)
-                {
-                    KerbalGUIManager.RemoveActiveCrew(thatKerbal);
-                }
+            }
+            foreach (Kerbal thatKerbal in stowaways)
+            {
+                KerbalGUIManager.RemoveActiveCrew(thatKerbal);
+            }
+            // Only the pods in the active vessel should be doing this since the list refers to them.
+            if (vessel.isActiveVessel)
+            {
                 // Then, every pod should check the list of seats in itself and see if anyone is missing who should be present.
                 foreach (InternalSeat seat in part.internalModel.seats)
                 {
@@ -380,6 +388,30 @@ namespace JSI
                 }
                 else
                 {
+                    // If the current part is not part of the active vessel, we calculate the distance from the part to the flight camera.
+                    // If this distance is > 500m we turn off transparency for the part.
+                    // Uses Maths calcs intead of built in Unity functions as this is up to 5 times faster.
+                    if (!vessel.isActiveVessel)
+                    {
+                        Vector3 heading;
+                        float distanceSquared;
+                        Transform thisPart = this.part.transform;
+                        Transform flightCamera = FlightCamera.fetch.transform;
+                        heading.x = thisPart.position.x - flightCamera.position.x;
+                        heading.y = thisPart.position.y - flightCamera.position.y;
+                        heading.z = thisPart.position.z - flightCamera.position.z;
+                        distanceSquared = heading.x * heading.x + heading.y * heading.y + heading.z * heading.z;
+                        distanceToCamera = Mathf.Sqrt(distanceSquared);
+
+                        if (distanceToCamera > distanceToCameraThreshold)
+                        {
+                            SetShaders(false);
+                            JUtil.SetMainCameraCullingMaskForIVA(true);
+                            return;
+                        }
+                    }
+                    distanceToCamera = 0f;
+
                     // If transparentPodSetting = OFF or AUTO and not the focused active part we treat the part like a non-transparent part.
                     // and we turn off the shaders (if set) and exit OnUpdate. onGUI and LateUpdate will do the rest.
                     if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
@@ -410,24 +442,19 @@ namespace JSI
 
         // During the drawing of the GUI, when the portraits are to be drawn, if the internal exists, it should be visible,
         // so that portraits show up correctly. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
-        // and the current vessel reference part is this part or the mouse is over this part.
+        // and this part is part of the active vessel.
         public void OnGUI()
         {
             if (HighLogic.LoadedSceneIsEditor || JUtil.IsInIVA())
                 return;
-            if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
-            && (transparentPodSetting == "AUTO" && !mouseOver)))
+            if ((transparentPodSetting == "OFF" || transparentPodSetting == "AUTO") && vessel.isActiveVessel && part.internalModel != null)
             {
-                if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null)
-                {
-                    part.internalModel.SetVisible(true);
-                }
+                part.internalModel.SetVisible(true);
             }
         }
 
-        // But before the rest of the world is to be drawn, if the internal exists and is the active internal,
-        // it should become invisible. This is only checked when transparentPodSetting is "OFF" or on "AUTO"
-        // and the current vessel reference part is this part or the mouse is over this part.
+        // Before the rest of the world is to be drawn, in the editor or flight mode we turn off the internalModel if transparentPodSetting is "OFF" or on "AUTO" and the mouse is not over this part.
+        // If in IVA we do nothing. If the distance to the camera is other the threshold (for not active vessel) we also turn off the internal.
         public void LateUpdate()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -435,27 +462,36 @@ namespace JSI
                 if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
                 {
                     SetShaders(false);
-                    JUtil.SetCameraCullingMaskForIVA("Main Camera", false);
-                    part.internalModel.SetVisible(false);
+                    JUtil.SetCameraCullingMaskForIVA("Main Camera", true);
+                    if (part.internalModel != null)
+                        part.internalModel.SetVisible(false);
                 }
                 else
                 {
                     SetShaders(true);
                     JUtil.SetCameraCullingMaskForIVA("Main Camera", true);
-                    part.internalModel.SetVisible(true);
+                    if (part.internalModel != null)
+                        part.internalModel.SetVisible(true);
                 }
                 mouseOver = false;
                 return;
             }
+
             if (JUtil.IsInIVA())
                 return;
+
             if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
-                && (transparentPodSetting == "AUTO" && !mouseOver)))
+                        && (transparentPodSetting == "AUTO" && !mouseOver)))
             {
-                if (JUtil.cameraMaskShowsIVA && vessel.isActiveVessel && part.internalModel != null && !JUtil.UserIsInPod(part))
+                if (JUtil.cameraMaskShowsIVA && part.internalModel != null && !JUtil.UserIsInPod(part))
                 {
                     part.internalModel.SetVisible(false);
                 }
+            }
+
+            if (distanceToCamera > distanceToCameraThreshold && part.internalModel != null)
+            {
+                part.internalModel.SetVisible(false);
             }
             mouseOver = false;
         }
