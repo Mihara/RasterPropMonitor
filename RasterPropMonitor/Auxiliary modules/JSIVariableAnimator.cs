@@ -200,6 +200,11 @@ namespace JSI
             TextureScale,
         }
 
+        // MOARdV TODO: If I understand the Unity docs correctly, we are leaking
+        // some things here (material .get methods make copies, for instance).
+        // I haven't seen conclusive signs of destructors working in child
+        // objects like this, so do I need a manual method?  Or make it a MonoBehavior
+        // with only the OnDestroy implemented?
         public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
         {
             part = thisProp.part;
@@ -247,10 +252,8 @@ namespace JSI
             }
 
             variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
-            // MOARdV TODO: How do I tune epsilon?
 
             // That takes care of the scale, now what to do about that scale:
-
             if (node.HasValue("reverse"))
             {
                 if (!bool.TryParse(node.GetValue("reverse"), out reverse))
@@ -338,10 +341,19 @@ namespace JSI
                 }
                 passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                Vector4 range = (activeColor - passiveColor);
+                float maxRange = Mathf.Max(Mathf.Abs(range.x), Mathf.Abs(range.y), Mathf.Abs(range.z), Mathf.Abs(range.w));
                 colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
                 mode = Mode.Color;
-                epsilon = 1.0f / 256.0f;
+                if (maxRange > 0.0f)
+                {
+                    epsilon = 1.0f / (256.0f * maxRange);
+                }
+                else
+                {
+                    epsilon = 1.0f / 256.0f;
+                }
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
             {
