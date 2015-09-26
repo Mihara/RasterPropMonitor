@@ -486,7 +486,6 @@ namespace JSI
                 installedModules.Add(new JSIParachute());
                 installedModules.Add(new JSIMechJeb());
                 installedModules.Add(new JSIInternalRPMButtons());
-                installedModules.Add(new JSIGimbal());
                 installedModules.Add(new JSIFAR());
                 installedModules.Add(new JSIKAC());
             }
@@ -1302,6 +1301,10 @@ namespace JSI
             if (tokens[0] == "MechJebRPMButtons")
             {
                 tokens[0] = "JSIMechJeb";
+            }
+            else if(tokens[0] == "JSIGimbal")
+            {
+                tokens[0] = "JSIInternalRPMButtons";
             }
             IJSIModule jsiModule = null;
             foreach (IJSIModule module in installedModules)

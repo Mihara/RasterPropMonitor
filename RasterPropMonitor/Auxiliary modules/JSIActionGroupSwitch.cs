@@ -128,7 +128,7 @@ namespace JSI
         private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
         private Renderer colorShiftRenderer;
-        private Func<bool> stateHandler;
+        private string stateVariable = string.Empty;
         private Action<bool> actionHandler;
         private bool isPluginAction;
 
@@ -268,14 +268,18 @@ namespace JSI
 
                                             if (actionHandler == null)
                                             {
-                                                JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", pluginConfig.GetValue("name"));
+                                                JUtil.LogErrorMessage(this, "Failed to instantiate action handler {0}", action);
                                             }
                                             else
                                             {
                                                 if (pluginConfig.HasValue("stateMethod"))
                                                 {
                                                     string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
-                                                    stateHandler = (Func<bool>)comp.GetMethod(state, internalProp, typeof(Func<bool>));
+                                                    stateVariable = "PLUGIN_" + state;
+                                                }
+                                                else if(pluginConfig.HasValue("stateVariable"))
+                                                {
+                                                    stateVariable = pluginConfig.GetValue("stateVariable").Trim();
                                                 }
                                                 isPluginAction = true;
                                                 break;
@@ -303,6 +307,15 @@ namespace JSI
                                         if (pluginConfig.HasValue("name") && pluginConfig.HasValue("perPodPersistenceName"))
                                         {
                                             transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
+                                            if (pluginConfig.HasValue("stateMethod"))
+                                            {
+                                                string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
+                                                stateVariable = "PLUGIN_" + state;
+                                            }
+                                            else if (pluginConfig.HasValue("stateVariable"))
+                                            {
+                                                stateVariable = pluginConfig.GetValue("stateVariable").Trim();
+                                            }
                                             if (pluginConfig.HasValue("setMethod"))
                                             {
                                                 string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("setMethod").Trim();
@@ -314,8 +327,7 @@ namespace JSI
                                                 }
                                                 else
                                                 {
-                                                    JUtil.LogMessage(this, "Got setter {0}", action);
-                                                    isPluginAction = true;
+                                                    //JUtil.LogMessage(this, "Got setter {0}", action);
                                                     break;
                                                 }
                                             }
@@ -330,8 +342,7 @@ namespace JSI
                                                 }
                                                 else
                                                 {
-                                                    JUtil.LogMessage(this, "Got getter {0}", action);
-                                                    isPluginAction = true;
+                                                    //JUtil.LogMessage(this, "Got getter {0}", action);
                                                     break;
                                                 }
                                             }
@@ -342,6 +353,7 @@ namespace JSI
                             if (transferGetter == null && transferSetter == null)
                             {
                                 actionName = "dummy";
+                                stateVariable = string.Empty;
                                 JUtil.LogMessage(this, "Transfer handlers did not start, reverting to dummy mode.");
                             }
                             break;
@@ -394,9 +406,16 @@ namespace JSI
 
                 if (isCustomAction)
                 {
-                    if (isPluginAction && stateHandler != null)
+                    if (isPluginAction && !string.IsNullOrEmpty(stateVariable))
                     {
-                        currentState = stateHandler();
+                        try
+                        {
+                            currentState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                        }
+                        catch
+                        {
+                            // no-op
+                        }
                     }
                     else
                     {
@@ -568,7 +587,17 @@ namespace JSI
                     SetInternalLights(customGroupState);
                     break;
                 case CustomActions.Plugin:
-                    actionHandler((stateHandler != null) ? !stateHandler() : customGroupState);
+                    if(string.IsNullOrEmpty(stateVariable))
+                    {
+                        actionHandler(customGroupState);
+                    }
+                    else
+                    {
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
+                        // negate the value - 1 is true, 0 is false
+                        actionHandler(ivalue < 1);
+                    }
                     break;
                 case CustomActions.Stage:
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
@@ -577,6 +606,16 @@ namespace JSI
                     }
                     break;
                 case CustomActions.Transfer:
+                    if(!string.IsNullOrEmpty(stateVariable))
+                    {
+                        // stateVariable can disable the button functionality.
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
+                        if(ivalue < 1)
+                        {
+                            return; // early - button disabled
+                        }
+                    }
                     if (transferGetter != null)
                     {
                         double value = transferGetter();
@@ -623,9 +662,17 @@ namespace JSI
             // So there's no check for internal cameras.
 
             bool newState;
-            if (isPluginAction && stateHandler != null)
+            if (isPluginAction && !string.IsNullOrEmpty(stateVariable))
             {
-                newState = stateHandler();
+                try
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    newState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                }
+                catch
+                {
+                    newState = currentState;
+                }
             }
             else if (isCustomAction)
             {
