@@ -43,6 +43,9 @@ namespace JSI
         [KSPField]
         public float stepSize = 0.0f;
 
+        [KSPField]
+        public bool loopInput = false;
+
         private RasterPropMonitorComputer rpmComp;
         private List<NumericInput> numericInputs = new List<NumericInput>();
 
@@ -87,6 +90,11 @@ namespace JSI
                 {
                     maxRange = VariableOrNumber.Instantiate(maxValue);
                     //JUtil.LogMessage(this, "Created upper bound variable");
+                }
+                if((minRange == null || maxRange == null) && loopInput == true)
+                {
+                    JUtil.LogErrorMessage(this, "Overriding loopInput - minValue or maxValue is missing");
+                    loopInput = false;
                 }
 
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
@@ -177,7 +185,22 @@ namespace JSI
                         float v;
                         if (minRange.Get(out v, comp))
                         {
-                            var = Mathf.Max(var, v);
+                            if (loopInput)
+                            {
+                                if (var < v)
+                                {
+                                    float diff = v - var;
+                                    if (maxRange.Get(out v, comp))
+                                    {
+                                        var = v - diff;
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                var = Mathf.Max(var, v);
+                            }
                         }
                     }
 
@@ -186,7 +209,22 @@ namespace JSI
                         float v;
                         if (maxRange.Get(out v, comp))
                         {
-                            var = Mathf.Min(var, v);
+                            if (loopInput)
+                            {
+                                if(var > v)
+                                {
+                                    float diff = var - v;
+                                    if(minRange.Get(out v, comp))
+                                    {
+                                        var = v + diff;
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                var = Mathf.Min(var, v);
+                            }
                         }
                     }
 
@@ -208,13 +246,13 @@ namespace JSI
             private float delta = 0.0f;
             private double pressStart = 0.0;
             private double lastUpdate = 0.0;
-            private float increment = 0.0f;
-            private FloatCurve incrementCurve = null;
+            private readonly float increment = 0.0f;
+            private readonly FloatCurve incrementCurve = null;
             private bool pressed = false;
-            private bool pressAndHold = false;
+            private readonly bool pressAndHold = false;
             private readonly bool reverse = false;
             private Animation anim;
-            private string animationName;
+            private readonly string animationName;
             private bool lastPressed = false;
             private readonly float customSpeed = 1.0f;
             private FXGroup audioOutput;
@@ -285,6 +323,7 @@ namespace JSI
                 {
                     customSpeed = 1.0f;
                 }
+
                 if (!string.IsNullOrEmpty(animationName))
                 {
                     // Set up the animation
