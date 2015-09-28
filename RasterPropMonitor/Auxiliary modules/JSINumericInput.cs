@@ -177,8 +177,8 @@ namespace JSI
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                     // MOARdV TODO: persistent floats
-                    float var = (float)rpmComp.GetVar(perPodPersistenceName);
-                    var += change + remainder;
+                    float val = (float)rpmComp.GetVar(perPodPersistenceName);
+                    val += change + remainder;
 
                     if (minRange != null)
                     {
@@ -187,19 +187,19 @@ namespace JSI
                         {
                             if (loopInput)
                             {
-                                if (var < v)
+                                if (val < v)
                                 {
-                                    float diff = v - var;
+                                    float diff = v - val;
                                     if (maxRange.Get(out v, comp))
                                     {
-                                        var = v - diff;
+                                        val = v - diff;
                                     }
 
                                 }
                             }
                             else
                             {
-                                var = Mathf.Max(var, v);
+                                val = Mathf.Max(val, v);
                             }
                         }
                     }
@@ -211,32 +211,32 @@ namespace JSI
                         {
                             if (loopInput)
                             {
-                                if(var > v)
+                                if(val > v)
                                 {
-                                    float diff = var - v;
+                                    float diff = val - v;
                                     if(minRange.Get(out v, comp))
                                     {
-                                        var = v + diff;
+                                        val = v + diff;
                                     }
 
                                 }
                             }
                             else
                             {
-                                var = Mathf.Min(var, v);
+                                val = Mathf.Min(val, v);
                             }
                         }
                     }
 
                     if (stepSize > 0.0f)
                     {
-                        remainder = var % stepSize;
+                        remainder = val % stepSize;
                         //JUtil.LogMessage(this, "Adjusting {0} to {1} due to stepSize {2}, (remainder {3})",
-                        //    var, var-remainder, stepSize, remainder);
-                        var -= remainder;
+                        //    val, val-remainder, stepSize, remainder);
+                        val -= remainder;
                     }
 
-                    rpmComp.SetVar(perPodPersistenceName, (int)var);
+                    rpmComp.SetVar(perPodPersistenceName, (int)val);
                 }
             }
         }
