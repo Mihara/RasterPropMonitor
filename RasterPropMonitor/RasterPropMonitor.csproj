@@ -67,7 +67,6 @@
     <Compile Include="Core\TextRenderer.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
     <Compile Include="Handlers\JSIFAR.cs" />
-    <Compile Include="Handlers\JSIGimbal.cs" />
     <Compile Include="Handlers\JSIGraphingBackground.cs" />
     <Compile Include="Handlers\JSIKAC.cs" />
     <Compile Include="Handlers\JSIMechJeb.cs" />

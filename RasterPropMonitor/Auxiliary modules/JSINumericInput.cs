@@ -43,6 +43,9 @@ namespace JSI
         [KSPField]
         public float stepSize = 0.0f;
 
+        [KSPField]
+        public bool loopInput = false;
+
         private RasterPropMonitorComputer rpmComp;
         private List<NumericInput> numericInputs = new List<NumericInput>();
 
@@ -71,7 +74,7 @@ namespace JSI
                     return;
                 }
 
-                if(stepSize < 0.0f)
+                if (stepSize < 0.0f)
                 {
                     stepSize = 0.0f;
                 }
@@ -88,16 +91,21 @@ namespace JSI
                     maxRange = VariableOrNumber.Instantiate(maxValue);
                     //JUtil.LogMessage(this, "Created upper bound variable");
                 }
+                if((minRange == null || maxRange == null) && loopInput == true)
+                {
+                    JUtil.LogErrorMessage(this, "Overriding loopInput - minValue or maxValue is missing");
+                    loopInput = false;
+                }
 
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
-                if(!rpmComp.HasVar(perPodPersistenceName))
+                if (!rpmComp.HasVar(perPodPersistenceName))
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
-                    
+
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
                     float value;
-                    if(von.Get(out value, comp))
+                    if (von.Get(out value, comp))
                     {
                         //JUtil.LogMessage(this, " ... Initialized to {0}", (int)value);
                         rpmComp.SetVar(perPodPersistenceName, (int)value);
@@ -159,25 +167,40 @@ namespace JSI
                 //JUtil.LogMessage(this, "OnUpdate()");
                 double time = Planetarium.GetUniversalTime();
                 float change = 0.0f;
-                for(int i=0; i<numericInputs.Count; ++i)
+                for (int i = 0; i < numericInputs.Count; ++i)
                 {
                     change += numericInputs[i].Update(time);
                 }
 
-                if(change < 0.0f || change > 0.0f)
+                if (change < 0.0f || change > 0.0f)
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                     // MOARdV TODO: persistent floats
-                    float var = (float)rpmComp.GetVar(perPodPersistenceName);
-                    var += change + remainder;
+                    float val = (float)rpmComp.GetVar(perPodPersistenceName);
+                    val += change + remainder;
 
                     if (minRange != null)
                     {
                         float v;
                         if (minRange.Get(out v, comp))
                         {
-                            var = Mathf.Max(var, v);
+                            if (loopInput)
+                            {
+                                if (val < v)
+                                {
+                                    float diff = v - val;
+                                    if (maxRange.Get(out v, comp))
+                                    {
+                                        val = v - diff;
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                val = Mathf.Max(val, v);
+                            }
                         }
                     }
 
@@ -186,19 +209,34 @@ namespace JSI
                         float v;
                         if (maxRange.Get(out v, comp))
                         {
-                            var = Mathf.Min(var, v);
+                            if (loopInput)
+                            {
+                                if(val > v)
+                                {
+                                    float diff = val - v;
+                                    if(minRange.Get(out v, comp))
+                                    {
+                                        val = v + diff;
+                                    }
+
+                                }
+                            }
+                            else
+                            {
+                                val = Mathf.Min(val, v);
+                            }
                         }
                     }
 
                     if (stepSize > 0.0f)
                     {
-                        remainder = var % stepSize;
+                        remainder = val % stepSize;
                         //JUtil.LogMessage(this, "Adjusting {0} to {1} due to stepSize {2}, (remainder {3})",
-                        //    var, var-remainder, stepSize, remainder);
-                        var -= remainder;
+                        //    val, val-remainder, stepSize, remainder);
+                        val -= remainder;
                     }
 
-                    rpmComp.SetVar(perPodPersistenceName, (int)var);
+                    rpmComp.SetVar(perPodPersistenceName, (int)val);
                 }
             }
         }
@@ -208,9 +246,16 @@ namespace JSI
             private float delta = 0.0f;
             private double pressStart = 0.0;
             private double lastUpdate = 0.0;
-            private float increment = 0.0f;
-            private FloatCurve incrementCurve = null;
+            private readonly float increment = 0.0f;
+            private readonly FloatCurve incrementCurve = null;
             private bool pressed = false;
+            private readonly bool pressAndHold = false;
+            private readonly bool reverse = false;
+            private Animation anim;
+            private readonly string animationName;
+            private bool lastPressed = false;
+            private readonly float customSpeed = 1.0f;
+            private FXGroup audioOutput;
 
             internal NumericInput(ConfigNode node, InternalProp internalProp)
             {
@@ -220,7 +265,7 @@ namespace JSI
                 }
 
                 // XNOR!
-                if(!(node.HasValue("increment") ^ node.HasNode("incrementCurve")))
+                if (!(node.HasValue("increment") ^ node.HasNode("incrementCurve")))
                 {
                     throw new Exception("USERINPUTSET missing increment or incrementCurve, or it has both");
                 }
@@ -234,10 +279,10 @@ namespace JSI
                     ConfigNode incNode = node.GetNode("incrementCurve");
                     string[] keys = incNode.GetValues("key");
                     incrementCurve = new FloatCurve();
-                    for (int i = 0; i < keys.Length; ++i )
+                    for (int i = 0; i < keys.Length; ++i)
                     {
                         string[] values = keys[i].Split(' ');
-                        if(values.Length == 2)
+                        if (values.Length == 2)
                         {
                             incrementCurve.Add(float.Parse(values[0]), float.Parse(values[1]));
                         }
@@ -250,6 +295,63 @@ namespace JSI
                             JUtil.LogErrorMessage(this, "Found a curve key with {0} entries?!?", values.Length);
                         }
                     }
+                    pressAndHold = true;
+                }
+
+                if (node.HasValue("reverse"))
+                {
+                    bool.TryParse(node.GetValue("reverse"), out reverse);
+                }
+
+                if (node.HasValue("animationName"))
+                {
+                    animationName = node.GetValue("animationName").Trim();
+                }
+
+                float switchSoundVolume = 0.5f;
+                if (node.HasValue("switchSoundVolume") && !float.TryParse("switchSoundVolume", out switchSoundVolume))
+                {
+                    switchSoundVolume = 0.5f;
+                }
+
+                if (node.HasValue("switchSound"))
+                {
+                    audioOutput = JUtil.SetupIVASound(internalProp, node.GetValue("switchSound").Trim(), switchSoundVolume, false);
+                }
+
+                if (node.HasValue("customSpeed") && !float.TryParse("customSpeed", out customSpeed))
+                {
+                    customSpeed = 1.0f;
+                }
+
+                if (!string.IsNullOrEmpty(animationName))
+                {
+                    // Set up the animation
+                    Animation[] animators = internalProp.FindModelAnimators(animationName);
+                    if (animators.Length > 0)
+                    {
+                        anim = animators[0];
+                    }
+                    else
+                    {
+                        JUtil.LogErrorMessage(this, "Could not find animation \"{0}\" on prop \"{1}\"",
+                            animationName, internalProp.name);
+                        return;
+                    }
+                    anim[animationName].wrapMode = WrapMode.Once;
+
+                    if (reverse)
+                    {
+                        anim[animationName].speed = float.MaxValue;
+                        anim[animationName].normalizedTime = 0.0f;
+
+                    }
+                    else
+                    {
+                        anim[animationName].speed = float.MinValue;
+                        anim[animationName].normalizedTime = 1.0f;
+                    }
+                    anim.Play(animationName);
                 }
 
                 string switchTransform = node.GetValue("switchTransform");
@@ -259,13 +361,13 @@ namespace JSI
                 }
                 else
                 {
-                    SmarterButton.CreateButton(internalProp, switchTransform, Click);
+                    SmarterButton.CreateButton(internalProp, switchTransform, Click, TimedRelease);
                 }
             }
 
             internal float Update(double currentTime)
             {
-                if(pressed)
+                if (pressed && pressAndHold)
                 {
                     float dT = (float)(currentTime - lastUpdate);
                     float netTime = (float)(currentTime - pressStart);
@@ -279,13 +381,40 @@ namespace JSI
                 float retVal = delta;
                 delta = 0.0f;
 
+                if (pressed != lastPressed)
+                {
+                    if (pressed && audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+                        CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+                    {
+                        audioOutput.audio.Play();
+                    }
+
+                    if (anim != null)
+                    {
+                        if (pressed ^ reverse)
+                        {
+                            anim[animationName].normalizedTime = 0;
+                            anim[animationName].speed = 1f * customSpeed;
+                            anim.Play(animationName);
+                        }
+                        else
+                        {
+                            anim[animationName].normalizedTime = 1;
+                            anim[animationName].speed = -1f * customSpeed;
+                            anim.Play(animationName);
+                        }
+                    }
+
+                    lastPressed = pressed;
+                }
+
                 return retVal;
             }
 
             private void Click()
             {
                 delta += increment;
-                //JUtil.LogMessage(this, "Click!: delta = {0}", delta);
+                pressed = true;
             }
 
             private void TimedClick()
@@ -293,13 +422,11 @@ namespace JSI
                 lastUpdate = pressStart = Planetarium.GetUniversalTime();
                 delta = incrementCurve.Evaluate(0.0f);
 
-                //JUtil.LogMessage(this, "TimedClick! @ {0}", pressStart);
                 pressed = true;
             }
 
             private void TimedRelease()
             {
-                //JUtil.LogMessage(this, "TimedRelease!");
                 pressed = false;
             }
         }
