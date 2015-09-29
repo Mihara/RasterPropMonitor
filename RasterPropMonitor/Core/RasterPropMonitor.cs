@@ -94,7 +94,7 @@ namespace JSI
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
-        private double electricChargeReserve;
+        private float electricChargeReserve;
         public Texture2D noSignalTexture;
         private Material screenMat;
         private bool startupComplete;
@@ -303,7 +303,7 @@ namespace JSI
 
         public void GlobalButtonClick(int buttonID)
         {
-            if (needsElectricCharge && electricChargeReserve < 0.01d)
+            if (needsElectricCharge && electricChargeReserve < 0.01f)
             {
                 return;
             }
@@ -318,7 +318,7 @@ namespace JSI
             // Or do we allow a button release to have effects?
             /* Mihara: Yes, I think we should. Otherwise if the charge
              * manages to run out in the middle of a pressed button, it will never stop.
-            if (needsElectricCharge && electricChargeReserve < 0.01d)
+            if (needsElectricCharge && electricChargeReserve < 0.01f)
                 return;
             */
             activePage.GlobalButtonRelease(buttonID);
@@ -339,7 +339,7 @@ namespace JSI
 
         public void PageButtonClick(MonitorPage triggeredPage)
         {
-            if (needsElectricCharge && electricChargeReserve < 0.01d)
+            if (needsElectricCharge && electricChargeReserve < 0.01f)
             {
                 return;
             }
@@ -395,7 +395,7 @@ namespace JSI
             screenTexture.DiscardContents();
             RenderTexture.active = screenTexture;
 
-            if (needsElectricCharge && electricChargeReserve < 0.01d)
+            if (needsElectricCharge && electricChargeReserve < 0.01f)
             {
                 // If we're out of electric charge, we're drawing a blank screen.
                 GL.Clear(true, true, emptyColorValue);
@@ -443,7 +443,7 @@ namespace JSI
             if (needsElectricCharge)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = (double)comp.ProcessVariable("SYSR_ELECTRICCHARGE");
+                electricChargeReserve = comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat();
             }
         }
 
@@ -508,7 +508,7 @@ namespace JSI
                 else
                 {
                     CheckForElectricCharge();
-                    if (needsElectricCharge && electricChargeReserve < 0.01d)
+                    if (needsElectricCharge && electricChargeReserve < 0.01f)
                     {
                         RenderScreen();
                     }

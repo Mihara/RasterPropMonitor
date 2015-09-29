@@ -410,7 +410,7 @@ namespace JSI
                     {
                         try
                         {
-                            currentState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                            currentState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
                         }
                         catch
                         {
@@ -594,7 +594,7 @@ namespace JSI
                     else
                     {
                         RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
+                        int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
                         // negate the value - 1 is true, 0 is false
                         actionHandler(ivalue < 1);
                     }
@@ -610,7 +610,7 @@ namespace JSI
                     {
                         // stateVariable can disable the button functionality.
                         RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
+                        int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
                         if(ivalue < 1)
                         {
                             return; // early - button disabled
@@ -667,7 +667,7 @@ namespace JSI
                 try
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    newState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                    newState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
                 }
                 catch
                 {
