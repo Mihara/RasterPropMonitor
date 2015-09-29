@@ -146,7 +146,8 @@ namespace JSI
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
                 if (ladderMaterial.mainTexture != null)
                 {
-                    Vector2 horizonDrawSize = 0.5f * horizonTextureSize;
+                    float diagonal = horizonSize.magnitude / Mathf.Min(horizonSize.x, horizonSize.y) * 0.5f;
+                    Vector2 horizonDrawSize = diagonal * horizonSize;
                     horizonTextureSize.x = 0.5f * (horizonTextureSize.x / ladderMaterial.mainTexture.width);
                     horizonTextureSize.y = 0.5f * (horizonTextureSize.y / ladderMaterial.mainTexture.height);
 
