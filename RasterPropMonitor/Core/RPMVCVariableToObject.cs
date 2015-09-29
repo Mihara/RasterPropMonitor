@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using UnityEngine;
 
 namespace JSI
 {
@@ -776,6 +777,12 @@ namespace JSI
                     return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
                 case "ROLL":
                     return (rotationVesselSurface.eulerAngles.z > 180) ? (360.0 - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
+                case "PITCHRATE":
+                    return -vessel.angularVelocity.x * Mathf.Rad2Deg;
+                case "ROLLRATE":
+                    return -vessel.angularVelocity.y * Mathf.Rad2Deg;
+                case "YAWRATE":
+                    return -vessel.angularVelocity.z * Mathf.Rad2Deg;
                 case "ANGLEOFATTACK":
                     return AngleOfAttack();
                 case "SIDESLIP":
