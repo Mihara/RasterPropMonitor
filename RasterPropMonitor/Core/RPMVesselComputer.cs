@@ -119,7 +119,7 @@ namespace JSI
                 return part;
             }
         }
-        private ExternalVariableHandlers plugins;
+        private ExternalVariableHandlers plugins = null;
         private RasterPropMonitorComputer rpmComp;
 
         // Data refresh
@@ -749,6 +749,11 @@ namespace JSI
 
                             if (part != null)
                             {
+                                if(plugins == null)
+                                {
+                                    plugins = new ExternalVariableHandlers(part);
+                                }
+
                                 rpmComp = RasterPropMonitorComputer.Instantiate(part);
                             }
                         }
