@@ -56,14 +56,15 @@
   <ItemGroup>
     <Compile Include="Auxiliary modules\JSINumericInput.cs" />
     <Compile Include="Auxiliary modules\JSIRadar.cs" />
+    <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MathVariable.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMVCTriggeredEvent.cs" />
     <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
-    <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MappedVariable.cs" />
     <Compile Include="Core\Protractor.cs" />
+    <Compile Include="Core\SelectVariable.cs" />
     <Compile Include="Core\TextRenderer.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
     <Compile Include="Handlers\JSIFAR.cs" />

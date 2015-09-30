@@ -61,6 +61,7 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static Dictionary<string, MappedVariable> mappedVariables;
         private static Dictionary<string, MathVariable> mathVariables;
+        private static Dictionary<string, SelectVariable> selectVariables;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
@@ -456,6 +457,32 @@ namespace JSI
                         {
                             string completeVarName = "MATH_" + varName;
                             mathVariables.Add(completeVarName, mathVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+
+            if (selectVariables == null)
+            {
+                selectVariables = new Dictionary<string, SelectVariable>();
+                // And parse known select variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE"))
+                {
+                    string varName = node.GetValue("name");
+
+                    try
+                    {
+                        SelectVariable selectVar = new SelectVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && selectVar != null)
+                        {
+                            string completeVarName = "SELECT_" + varName;
+                            selectVariables.Add(completeVarName, selectVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -1778,6 +1805,7 @@ namespace JSI
                 systemNamedResources = null;
                 triggeredEvents = null;
                 mathVariables = null;
+                selectVariables = null;
 
                 protractor = null;
 
