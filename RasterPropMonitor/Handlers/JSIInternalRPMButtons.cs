@@ -826,6 +826,100 @@ namespace JSI
             return enabled;
         }
 
+        public double GetSASMode()
+        {
+            if(vessel == null)
+            {
+                return 0.0; // StabilityAssist
+            }
+            double mode;
+            switch(vessel.Autopilot.Mode)
+            {
+                case VesselAutopilot.AutopilotMode.StabilityAssist:
+                    mode = 0.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Prograde:
+                    mode = 1.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Retrograde:
+                    mode = 2.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Normal:
+                    mode = 3.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Antinormal:
+                    mode = 4.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.RadialIn:
+                    mode = 5.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.RadialOut:
+                    mode = 6.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Target:
+                    mode = 7.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.AntiTarget:
+                    mode = 8.0;
+                    break;
+                case VesselAutopilot.AutopilotMode.Maneuver:
+                    mode = 9.0;
+                    break;
+                default:
+                    mode = 0.0;
+                    break;
+            }
+            return mode;
+        }
+
+        public void SetSASMode(double mode)
+        {
+            int imode = (int)mode;
+            VesselAutopilot.AutopilotMode autopilotMode;
+            switch(imode)
+            {
+                case 0:
+                    autopilotMode = VesselAutopilot.AutopilotMode.StabilityAssist;
+                    break;
+                case 1:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Prograde;
+                    break;
+                case 2:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Retrograde;
+                    break;
+                case 3:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Normal;
+                    break;
+                case 4:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Antinormal;
+                    break;
+                case 5:
+                    autopilotMode = VesselAutopilot.AutopilotMode.RadialIn;
+                    break;
+                case 6:
+                    autopilotMode = VesselAutopilot.AutopilotMode.RadialOut;
+                    break;
+                case 7:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Target;
+                    break;
+                case 8:
+                    autopilotMode = VesselAutopilot.AutopilotMode.AntiTarget;
+                    break;
+                case 9:
+                    autopilotMode = VesselAutopilot.AutopilotMode.Maneuver;
+                    break;
+                default:
+                    JUtil.LogErrorMessage(this, "SetSASMode: attempt to set a SAS mode with the invalid value {0}", imode);
+                    return;
+            }
+
+            if (vessel.Autopilot.CanSetMode(autopilotMode))
+            {
+                vessel.Autopilot.SetMode(autopilotMode);
+                ForceUpdateSASModeToggleButtons(autopilotMode);
+            }
+        }
+
         /// <summary>
         /// Infers the docking node this vessel controls
         /// </summary>
