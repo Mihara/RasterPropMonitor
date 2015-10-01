@@ -51,6 +51,7 @@ namespace JSI
             {
                 rs[index] = new ResourceData();
                 rs[index].name = thatResource.name;
+                rs[index].nameSysr = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
                 rs[index].density = thatResource.density;
                 ++index;
             }
@@ -146,6 +147,100 @@ namespace JSI
             return mass;
         }
 
+        private static readonly string[] keywords =
+        {
+            "VAL",
+            "DENSITY",
+            "DELTA",
+            "DELTAINV",
+            "MASS",
+            "MAXMASS",
+            "MAX",
+            "PERCENT"
+        };
+
+        public object ListElement(string resourceQuery)
+        {
+            try
+            {
+                int i = 0;
+                for (; i < keywords.Length; ++i)
+                {
+                    if (resourceQuery.EndsWith(keywords[i], StringComparison.Ordinal))
+                    {
+                        //JUtil.LogMessage(this, "matched {0} to {1}", resourceQuery, keywords[i]);
+                        break;
+                    }
+                }
+                int substringLength = resourceQuery.Length - "SYSR_".Length;
+                string valueType;
+                if (i == keywords.Length)
+                {
+                    valueType = "VAL";
+                }
+                else
+                {
+                    substringLength -= keywords[i].Length;
+                    valueType = keywords[i];
+                }
+
+                string resourceName = resourceQuery.Substring("SYSR_".Length, substringLength);
+                bool stage = false;
+                if(resourceName.EndsWith("STAGE"))
+                {
+                    stage = true;
+                    resourceName = resourceName.Substring(0, resourceName.Length - "STAGE".Length);
+                }
+                //JUtil.LogMessage(this, "I think I should chop {0} down to {1}, with valueType {2} and stage {3}",
+                //    resourceQuery, resourceName, valueType, stage);
+
+                ResourceData resource = Array.Find(rs, t => t.nameSysr == resourceName);
+                object v = null;
+                switch (valueType)
+                {
+                    case "":
+                    case "VAL":
+                        v = stage ? resource.stage : resource.current;
+                        break;
+                    case "DENSITY":
+                        v = resource.density;
+                        break;
+                    case "DELTA":
+                        v = resource.delta;
+                        break;
+                    case "DELTAINV":
+                        v = -resource.delta;
+                        break;
+                    case "MASS":
+                        v = resource.density * (stage ? resource.stage : resource.current);
+                        break;
+                    case "MAXMASS":
+                        v = resource.density * (stage ? resource.stagemax : resource.max);
+                        break;
+                    case "MAX":
+                        v = stage ? resource.stagemax : resource.max;
+                        break;
+                    case "PERCENT":
+                        if (stage)
+                        {
+                            v = resource.stagemax > 0 ? resource.stage / resource.stagemax : 0d;
+                        }
+                        else
+                        {
+                            v = resource.max > 0 ? resource.current / resource.max : 0d;
+                        }
+                        break;
+                }
+
+                return v;
+            }
+            catch(Exception e)
+            {
+                JUtil.LogErrorMessage(this, "ListElement horked on {0}", e);
+            }
+            return null;
+        }
+
         public object ListElement(string resourceName, string valueType, bool stage)
         {
             double v = 0.0;
@@ -229,6 +324,7 @@ namespace JSI
         private class ResourceData
         {
             public string name;
+            public string nameSysr;
 
             public float current;
             public float max;
