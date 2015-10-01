@@ -567,6 +567,12 @@ namespace JSI
                     }
                     // else: can't turn off a radio group switch.
                 }
+                else if(customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
+                    customGroupState = (ivalue < 1) && !forcedShutdown;
+                }
                 else
                 {
                     customGroupState = !customGroupState;
@@ -587,17 +593,7 @@ namespace JSI
                     SetInternalLights(customGroupState);
                     break;
                 case CustomActions.Plugin:
-                    if(string.IsNullOrEmpty(stateVariable))
-                    {
-                        actionHandler(customGroupState);
-                    }
-                    else
-                    {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
-                        // negate the value - 1 is true, 0 is false
-                        actionHandler(ivalue < 1);
-                    }
+                    actionHandler(customGroupState);
                     break;
                 case CustomActions.Stage:
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
