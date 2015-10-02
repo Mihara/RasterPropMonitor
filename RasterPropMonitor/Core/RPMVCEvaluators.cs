@@ -28,7 +28,7 @@ namespace JSI
         // Delegate wrappers
         private interface PluginEvaluator
         {
-            object Evaluate(Vessel vessel);
+            object Evaluate();
         };
         private class PluginBoolVoid : PluginEvaluator
         {
@@ -38,7 +38,7 @@ namespace JSI
             {
                 this.method = (Func<bool>)method;
             }
-            public object Evaluate(Vessel vessel)
+            public object Evaluate()
             {
                 bool value = method();
                 return value.GetHashCode();
@@ -52,7 +52,7 @@ namespace JSI
             {
                 this.method = (Func<double>)method;
             }
-            public object Evaluate(Vessel vessel)
+            public object Evaluate()
             {
                 return method();
             }
@@ -65,49 +65,9 @@ namespace JSI
             {
                 this.method = (Func<string>)method;
             }
-            public object Evaluate(Vessel vessel)
+            public object Evaluate()
             {
                 return method();
-            }
-        };
-        private class PluginBoolVessel : PluginEvaluator
-        {
-            Func<Vessel, bool> method;
-
-            internal PluginBoolVessel(Delegate method)
-            {
-                this.method = (Func<Vessel, bool>)method;
-            }
-            public object Evaluate(Vessel vessel)
-            {
-                bool value = method(vessel);
-                return value.GetHashCode();
-            }
-        };
-        private class PluginDoubleVessel : PluginEvaluator
-        {
-            Func<Vessel, double> method;
-
-            internal PluginDoubleVessel(Delegate method)
-            {
-                this.method = (Func<Vessel, double>)method;
-            }
-            public object Evaluate(Vessel vessel)
-            {
-                return method(vessel);
-            }
-        };
-        private class PluginStringVessel : PluginEvaluator
-        {
-            Func<Vessel, string> method;
-
-            internal PluginStringVessel(Delegate method)
-            {
-                this.method = (Func<Vessel, string>)method;
-            }
-            public object Evaluate(Vessel vessel)
-            {
-                return method(vessel);
             }
         };
 

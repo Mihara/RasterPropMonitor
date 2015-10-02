@@ -185,7 +185,7 @@ namespace JSI
                 {
                     if (pluginVariables.ContainsKey(tokens[1]))
                     {
-                        return pluginVariables[tokens[1]].Evaluate(vessel);
+                        return pluginVariables[tokens[1]].Evaluate();
                     }
                     else if (pluginBoolVariables.ContainsKey(tokens[1]))
                     {
@@ -219,7 +219,7 @@ namespace JSI
                             JUtil.LogMessage(this, "Adding {0} as a PluginEvaluator", tokens[1]);
                             pluginVariables.Add(tokens[1], pluginMethod);
 
-                            return pluginMethod.Evaluate(vessel);
+                            return pluginMethod.Evaluate();
                         }
 
                         string[] internalModule = tokens[1].Split(':');
@@ -1664,7 +1664,7 @@ namespace JSI
                     PluginEvaluator pluginMethod = GetInternalMethod(tokens[1]);
                     if (pluginMethod != null)
                     {
-                        return (string variable) => { return pluginMethod.Evaluate(vessel); };
+                        return (string variable) => { return pluginMethod.Evaluate(); };
                     }
 
                     string[] internalModule = tokens[1].Split(':');

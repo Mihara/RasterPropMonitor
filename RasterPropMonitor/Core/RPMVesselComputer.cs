@@ -486,6 +486,7 @@ namespace JSI
                 }
             }
 
+            // TODO: Not really needed - the resource object tracks the SYSR names.
             if (systemNamedResources == null)
             {
                 // Let's deal with the system resource library.
@@ -1403,20 +1404,7 @@ namespace JSI
                     {
                         //JUtil.LogMessage(this, "Found method {1}: return type is {0}, IsStatic is {2}, with {3} parameters", m.ReturnType, tokens[1],m.IsStatic, m.GetParameters().Length);
                         ParameterInfo[] parms = m.GetParameters();
-                        bool usesVessel = false;
-                        if (parms.Length == 1)
-                        {
-                            if (parms[0].ParameterType == typeof(Vessel))
-                            {
-                                usesVessel = true;
-                            }
-                            else
-                            {
-                                JUtil.LogErrorMessage(this, "GetInternalMethod failed: unexpected first parameter in plugin method {0}", packedMethod);
-                                return null;
-                            }
-                        }
-                        else if (parms.Length > 1)
+                        if (parms.Length > 0)
                         {
                             JUtil.LogErrorMessage(this, "GetInternalMethod failed: {1} parameters in plugin method {0}", packedMethod, parms.Length);
                             return null;
@@ -1426,16 +1414,8 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, bool>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, bool>), jsiModule, m);
-                                    pluginEval = new PluginBoolVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
-                                    pluginEval = new PluginBoolVoid(method);
-                                }
+                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
+                                pluginEval = new PluginBoolVoid(method);
                             }
                             catch (Exception e)
                             {
@@ -1446,16 +1426,8 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, double>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, double>), jsiModule, m);
-                                    pluginEval = new PluginDoubleVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
-                                    pluginEval = new PluginDoubleVoid(method);
-                                }
+                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
+                                pluginEval = new PluginDoubleVoid(method);
                             }
                             catch (Exception e)
                             {
@@ -1466,16 +1438,8 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, string>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, string>), jsiModule, m);
-                                    pluginEval = new PluginStringVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
-                                    pluginEval = new PluginStringVoid(method);
-                                }
+                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
+                                pluginEval = new PluginStringVoid(method);
                             }
                             catch (Exception e)
                             {
