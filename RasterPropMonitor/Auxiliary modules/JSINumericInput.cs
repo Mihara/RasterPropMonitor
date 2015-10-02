@@ -20,7 +20,6 @@
  ****************************************************************************/
 using System;
 using System.Collections.Generic;
-//using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -91,7 +90,7 @@ namespace JSI
                     maxRange = VariableOrNumber.Instantiate(maxValue);
                     //JUtil.LogMessage(this, "Created upper bound variable");
                 }
-                if((minRange == null || maxRange == null) && loopInput == true)
+                if ((minRange == null || maxRange == null) && loopInput == true)
                 {
                     JUtil.LogErrorMessage(this, "Overriding loopInput - minValue or maxValue is missing");
                     loopInput = false;
@@ -189,12 +188,10 @@ namespace JSI
                             {
                                 if (val < v)
                                 {
-                                    float diff = v - val;
                                     if (maxRange.Get(out v, comp))
                                     {
-                                        val = v - diff;
+                                        val = v;
                                     }
-
                                 }
                             }
                             else
@@ -211,14 +208,12 @@ namespace JSI
                         {
                             if (loopInput)
                             {
-                                if(val > v)
+                                if (val > v)
                                 {
-                                    float diff = val - v;
-                                    if(minRange.Get(out v, comp))
+                                    if (minRange.Get(out v, comp))
                                     {
-                                        val = v + diff;
+                                        val = v;
                                     }
-
                                 }
                             }
                             else
