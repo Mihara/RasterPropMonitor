@@ -1,4 +1,5 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
+//#define USE_VARIABLECACHE
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -129,10 +130,16 @@ namespace JSI
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
+#if USE_VARIABLECACHE
+        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
+        private uint masterSerialNumber = 0u;
+#endif
 
+#if !USE_VARIABLECACHE
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
         private Dictionary<string, PluginEvaluator> pluginVariables = new Dictionary<string, PluginEvaluator>();
+#endif
 
         // Craft-relative basis vectors
         private Vector3 forward;
@@ -350,6 +357,11 @@ namespace JSI
             {
                 protractor = new Protractor();
             }
+            if (!GameDatabase.Instance.IsReady())
+            {
+                throw new Exception("GameDatabase is not ready?");
+            }
+
             // MOARdV TODO: Only add this instance to the library if there is
             // crew capacity.  Probes should not apply.  Except, what about docking?
             vessel = GetComponent<Vessel>();
@@ -373,10 +385,21 @@ namespace JSI
             GameEvents.onUndock.Add(UndockCallback);
             GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
 
+            if (knownLoadedAssemblies == null)
+            {
+                knownLoadedAssemblies = new List<string>();
+                foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
+                {
+                    string thatName = thatAssembly.assembly.GetName().Name;
+                    knownLoadedAssemblies.Add(thatName.ToUpper());
+                    JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
+                }
+            }
+
             if (customVariables == null)
             {
                 customVariables = new Dictionary<string, CustomVariable>();
-                // And parse known custom variables
+                // Parse known custom variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
                 {
                     string varName = node.GetValue("name");
@@ -399,25 +422,8 @@ namespace JSI
                 }
             }
 
-            if (knownLoadedAssemblies == null)
-            {
-                knownLoadedAssemblies = new List<string>();
-                foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
-                {
-                    string thatName = thatAssembly.assembly.GetName().Name;
-                    knownLoadedAssemblies.Add(thatName.ToUpper());
-                    JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
-                }
-
-            }
-
             if (mappedVariables == null)
             {
-                if (!GameDatabase.Instance.IsReady())
-                {
-                    throw new Exception("GameDatabase is not ready?");
-                }
-
                 mappedVariables = new Dictionary<string, MappedVariable>();
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
                 {
@@ -582,6 +588,9 @@ namespace JSI
             }
 
             resultCache.Clear();
+#if USE_VARIABLECACHE
+            variableCache.Clear();
+#endif
 
             vessel = null;
             navBall = null;
@@ -589,9 +598,11 @@ namespace JSI
             part = null;
             rpmComp = null;
 
+#if !USE_VARIABLECACHE
             pluginBoolVariables = null;
             pluginDoubleVariables = null;
             pluginVariables = null;
+#endif
 
             target = null;
             targetDockingNode = null;
@@ -669,6 +680,9 @@ namespace JSI
 
                 timeToUpdate = false;
                 resultCache.Clear();
+#if USE_VARIABLECACHE
+                ++masterSerialNumber;
+#endif
 
                 IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
@@ -732,6 +746,68 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input, int propId = -1)
         {
+            if (rpmComp == null)
+            {
+                if (part == null)
+                {
+                    part = DeduceCurrentPart();
+                }
+
+                if (part != null)
+                {
+                    if (plugins == null)
+                    {
+                        plugins = new ExternalVariableHandlers(part);
+                    }
+
+                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
+                }
+            }
+
+#if USE_VARIABLECACHE
+            VariableCache vc = variableCache[input];
+            if(vc != null)
+            {
+                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
+                {
+                    try
+                    {
+                        object newValue = vc.accessor(input);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch(Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+                }
+
+                return vc.cachedValue;
+            }
+            else
+            {
+                bool cacheable;
+                VariableEvaluator evaluator = GetEvaluator(input, propId, out cacheable);
+                if(evaluator != null)
+                {
+                    vc = new VariableCache(cacheable, evaluator);
+                    try
+                    {
+                        object newValue = vc.accessor(input);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+
+                    variableCache[input] = vc;
+                    return vc.cachedValue;
+                }
+            }
+
+            #endif
             object returnValue = resultCache[input];
             if (returnValue == null)
             {
@@ -740,24 +816,6 @@ namespace JSI
                 {
                     if (plugins == null || !plugins.ProcessVariable(input, out returnValue, out cacheable))
                     {
-                        if (rpmComp == null)
-                        {
-                            if (part == null)
-                            {
-                                part = DeduceCurrentPart();
-                            }
-
-                            if (part != null)
-                            {
-                                if(plugins == null)
-                                {
-                                    plugins = new ExternalVariableHandlers(part);
-                                }
-
-                                rpmComp = RasterPropMonitorComputer.Instantiate(part);
-                            }
-                        }
-
                         returnValue = VariableToObject(input, propId, out cacheable);
                     }
                 }
@@ -1876,6 +1934,21 @@ namespace JSI
                 // Note that we need longer strings first so we invert numbers.
                 int lengthComparison = -x.Length.CompareTo(y.Length);
                 return lengthComparison == 0 ? -string.Compare(x, y, StringComparison.Ordinal) : lengthComparison;
+            }
+        }
+
+        delegate object VariableEvaluator(string s);
+        private class VariableCache
+        {
+            internal object cachedValue = null;
+            internal readonly VariableEvaluator accessor;
+            internal uint serialNumber = 0;
+            internal readonly bool cacheable;
+
+            internal VariableCache(bool cacheable, VariableEvaluator accessor)
+            {
+                this.cacheable = cacheable;
+                this.accessor = accessor;
             }
         }
     }
