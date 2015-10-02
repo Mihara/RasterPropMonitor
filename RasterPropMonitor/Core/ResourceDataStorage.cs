@@ -100,9 +100,9 @@ namespace JSI
                     ResourceData r = Array.Find(rs, t => t.name == resource.info.name);
                     r.ispropellant = true;
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    JUtil.LogErrorMessage(this, "Error in MarkPropellant({0}): {1}", resource.info.name,e);
+                    JUtil.LogErrorMessage(this, "Error in MarkPropellant({0}): {1}", resource.info.name, e);
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace JSI
                 }
             }
 
-            if(currentIndex > 0 && result.Length > currentIndex)
+            if (currentIndex > 0 && result.Length > currentIndex)
             {
                 Array.Resize(ref result, currentIndex);
             }
@@ -186,7 +186,7 @@ namespace JSI
 
                 string resourceName = resourceQuery.Substring("SYSR_".Length, substringLength);
                 bool stage = false;
-                if(resourceName.EndsWith("STAGE"))
+                if (resourceName.EndsWith("STAGE"))
                 {
                     stage = true;
                     resourceName = resourceName.Substring(0, resourceName.Length - "STAGE".Length);
@@ -234,7 +234,7 @@ namespace JSI
 
                 return v;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "ListElement horked on {0}", e);
             }
