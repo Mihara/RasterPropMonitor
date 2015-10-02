@@ -24,10 +24,19 @@ using System.Text;
 
 namespace JSI
 {
+    /// <summary>
+    /// IComplexVariable defines the evaluation interface for a category of
+    /// user-defined variables.
+    /// </summary>
+    interface IComplexVariable
+    {
+        object Evaluate(RPMVesselComputer comp);
+    }
+
     // A CustomVariable defines a user-defined variable that consists of one or
     // more RPM variables.  The CustomVariable applies a single logical operator
     // across all the variables.
-    class CustomVariable
+    class CustomVariable : IComplexVariable
     {
         enum Operator
         {
@@ -101,7 +110,7 @@ namespace JSI
             }
         }
 
-        internal object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RPMVesselComputer comp)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
             bool evaluation = sourceVariables[0].IsInRange(comp) ^ reverse[0];

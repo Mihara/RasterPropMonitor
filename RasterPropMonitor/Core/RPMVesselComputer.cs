@@ -58,11 +58,8 @@ namespace JSI
          */
         private static Dictionary<Guid, RPMVesselComputer> instances;
 
-        private static Dictionary<string, CustomVariable> customVariables;
+        private static Dictionary<string, IComplexVariable> customVariables;
         private static List<string> knownLoadedAssemblies;
-        private static Dictionary<string, MappedVariable> mappedVariables;
-        private static Dictionary<string, MathVariable> mathVariables;
-        private static Dictionary<string, SelectVariable> selectVariables;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
@@ -398,7 +395,8 @@ namespace JSI
 
             if (customVariables == null)
             {
-                customVariables = new Dictionary<string, CustomVariable>();
+                customVariables = new Dictionary<string, IComplexVariable>();
+
                 // Parse known custom variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
                 {
@@ -420,11 +418,8 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (mappedVariables == null)
-            {
-                mappedVariables = new Dictionary<string, MappedVariable>();
+                // And parse known mapped variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
                 {
                     string varName = node.GetValue("mappedVariable");
@@ -436,7 +431,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && mappedVar != null)
                         {
                             string completeVarName = "MAPPED_" + varName;
-                            mappedVariables.Add(completeVarName, mappedVar);
+                            customVariables.Add(completeVarName, mappedVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -445,12 +440,8 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (mathVariables == null)
-            {
-                mathVariables = new Dictionary<string, MathVariable>();
-                // And parse known custom variables
+                // And parse known math variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE"))
                 {
                     string varName = node.GetValue("name");
@@ -462,7 +453,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && mathVar != null)
                         {
                             string completeVarName = "MATH_" + varName;
-                            mathVariables.Add(completeVarName, mathVar);
+                            customVariables.Add(completeVarName, mathVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -471,11 +462,7 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (selectVariables == null)
-            {
-                selectVariables = new Dictionary<string, SelectVariable>();
                 // And parse known select variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE"))
                 {
@@ -488,7 +475,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && selectVar != null)
                         {
                             string completeVarName = "SELECT_" + varName;
-                            selectVariables.Add(completeVarName, selectVar);
+                            customVariables.Add(completeVarName, selectVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -1864,11 +1851,8 @@ namespace JSI
             {
                 customVariables = null;
                 knownLoadedAssemblies = null;
-                mappedVariables = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
-                mathVariables = null;
-                selectVariables = null;
 
                 protractor = null;
 

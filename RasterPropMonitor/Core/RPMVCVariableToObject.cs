@@ -144,9 +144,9 @@ namespace JSI
                 // Mapped variables - if the first token is MAPPED, we'll evaluate it here
                 if (tokens.Length > 1 && tokens[0] == "MAPPED")
                 {
-                    if (mappedVariables.ContainsKey(input))
+                    if (customVariables.ContainsKey(input))
                     {
-                        return mappedVariables[input].Evaluate(this);
+                        return customVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -157,9 +157,9 @@ namespace JSI
                 // Math variables - if the first token is MATH, we'll evaluate it here
                 if (tokens.Length > 1 && tokens[0] == "MATH")
                 {
-                    if (mathVariables.ContainsKey(input))
+                    if (customVariables.ContainsKey(input))
                     {
-                        return mathVariables[input].Evaluate(this);
+                        return customVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -170,9 +170,9 @@ namespace JSI
                 // Select variables - if the first token is SELECT, we'll evaluate it here
                 if (tokens.Length > 1 && tokens[0] == "SELECT")
                 {
-                    if (selectVariables.ContainsKey(input))
+                    if (customVariables.ContainsKey(input))
                     {
-                        return selectVariables[input].Evaluate(this);
+                        return customVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -1645,54 +1645,12 @@ namespace JSI
                     return (string variable) => { return variable; };
                 }
 
-                // Custom variables - if the first token is CUSTOM, we'll evaluate it here
-                if (tokens.Length > 1 && tokens[0] == "CUSTOM")
+                // Custom variables - if the first token is CUSTOM, MAPPED, MATH, or SELECT, we'll evaluate it here
+                if (tokens.Length > 1 && (tokens[0] == "CUSTOM" || tokens[0] == "MAPPED" || tokens[0] == "MATH" || tokens[0] == "SELECT"))
                 {
                     if (customVariables.ContainsKey(input))
                     {
                         var o = customVariables[input];
-                        return (string variable) => { return o.Evaluate(this); };
-                    }
-                    else
-                    {
-                        return (string variable) => { return variable; };
-                    }
-                }
-
-                // Mapped variables - if the first token is MAPPED, we'll evaluate it here
-                if (tokens.Length > 1 && tokens[0] == "MAPPED")
-                {
-                    if (mappedVariables.ContainsKey(input))
-                    {
-                        var o = mappedVariables[input];
-                        return (string variable) => { return o.Evaluate(this); };
-                    }
-                    else
-                    {
-                        return (string variable) => { return variable; };
-                    }
-                }
-
-                // Math variables - if the first token is MATH, we'll evaluate it here
-                if (tokens.Length > 1 && tokens[0] == "MATH")
-                {
-                    if (mathVariables.ContainsKey(input))
-                    {
-                        var o = mathVariables[input];
-                        return (string variable) => { return o.Evaluate(this); };
-                    }
-                    else
-                    {
-                        return (string variable) => { return variable; };
-                    }
-                }
-
-                // Select variables - if the first token is SELECT, we'll evaluate it here
-                if (tokens.Length > 1 && tokens[0] == "SELECT")
-                {
-                    if (selectVariables.ContainsKey(input))
-                    {
-                        var o = selectVariables[input];
                         return (string variable) => { return o.Evaluate(this); };
                     }
                     else

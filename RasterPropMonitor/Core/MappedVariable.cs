@@ -23,7 +23,7 @@ using UnityEngine;
 
 namespace JSI
 {
-    class MappedVariable
+    class MappedVariable : IComplexVariable
     {
         private readonly VariableOrNumberRange sourceVariable;
         public readonly string mappedVariable;
@@ -50,7 +50,7 @@ namespace JSI
             mappedRange = ConfigNode.ParseVector2(node.GetValue("mappedRange"));
         }
 
-        public double Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RPMVesselComputer comp)
         {
             float lerp;
             if (sourceVariable.InverseLerp(comp, out lerp))
