@@ -236,7 +236,7 @@ namespace JSI
             }
             catch (Exception e)
             {
-                JUtil.LogErrorMessage(this, "ListElement horked on {0}", e);
+                JUtil.LogErrorMessage(this, "ListElement({1}) threw exception {0}", e, resourceQuery);
             }
             return null;
         }
