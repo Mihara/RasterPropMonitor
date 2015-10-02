@@ -410,7 +410,7 @@ namespace JSI
                     {
                         try
                         {
-                            currentState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                            currentState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
                         }
                         catch
                         {
@@ -567,6 +567,12 @@ namespace JSI
                     }
                     // else: can't turn off a radio group switch.
                 }
+                else if(customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
+                    customGroupState = (ivalue < 1) && !forcedShutdown;
+                }
                 else
                 {
                     customGroupState = !customGroupState;
@@ -587,17 +593,7 @@ namespace JSI
                     SetInternalLights(customGroupState);
                     break;
                 case CustomActions.Plugin:
-                    if(string.IsNullOrEmpty(stateVariable))
-                    {
-                        actionHandler(customGroupState);
-                    }
-                    else
-                    {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
-                        // negate the value - 1 is true, 0 is false
-                        actionHandler(ivalue < 1);
-                    }
+                    actionHandler(customGroupState);
                     break;
                 case CustomActions.Stage:
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
@@ -610,7 +606,7 @@ namespace JSI
                     {
                         // stateVariable can disable the button functionality.
                         RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = (int)comp.ProcessVariable(stateVariable, -1);
+                        int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
                         if(ivalue < 1)
                         {
                             return; // early - button disabled
@@ -667,7 +663,7 @@ namespace JSI
                 try
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    newState = ((int)comp.ProcessVariable(stateVariable, -1)) > 0;
+                    newState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
                 }
                 catch
                 {

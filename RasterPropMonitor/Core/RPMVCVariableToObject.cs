@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using UnityEngine;
 
 namespace JSI
 {
@@ -140,12 +141,25 @@ namespace JSI
                     }
                 }
 
-                // Mapped variables - if the first token is MATH, we'll evaluate it here
+                // Math variables - if the first token is MATH, we'll evaluate it here
                 if (tokens.Length > 1 && tokens[0] == "MATH")
                 {
                     if (mathVariables.ContainsKey(input))
                     {
                         return mathVariables[input].Evaluate(this);
+                    }
+                    else
+                    {
+                        return input;
+                    }
+                }
+
+                // Select variables - if the first token is SELECT, we'll evaluate it here
+                if (tokens.Length > 1 && tokens[0] == "SELECT")
+                {
+                    if (selectVariables.ContainsKey(input))
+                    {
+                        return selectVariables[input].Evaluate(this);
                     }
                     else
                     {
@@ -773,9 +787,15 @@ namespace JSI
                 case "HEADING":
                     return rotationVesselSurface.eulerAngles.y;
                 case "PITCH":
-                    return (rotationVesselSurface.eulerAngles.x > 180) ? (360.0 - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
+                    return (rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x;
                 case "ROLL":
-                    return (rotationVesselSurface.eulerAngles.z > 180) ? (360.0 - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
+                    return (rotationVesselSurface.eulerAngles.z > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.z) : -rotationVesselSurface.eulerAngles.z;
+                case "PITCHRATE":
+                    return -vessel.angularVelocity.x * Mathf.Rad2Deg;
+                case "ROLLRATE":
+                    return -vessel.angularVelocity.y * Mathf.Rad2Deg;
+                case "YAWRATE":
+                    return -vessel.angularVelocity.z * Mathf.Rad2Deg;
                 case "ANGLEOFATTACK":
                     return AngleOfAttack();
                 case "SIDESLIP":

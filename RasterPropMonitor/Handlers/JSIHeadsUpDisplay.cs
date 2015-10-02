@@ -146,12 +146,14 @@ namespace JSI
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
                 if (ladderMaterial.mainTexture != null)
                 {
+                    float diagonal = horizonSize.magnitude / Mathf.Min(horizonSize.x, horizonSize.y) * 0.5f;
+                    Vector2 horizonDrawSize = diagonal * horizonSize;
                     horizonTextureSize.x = 0.5f * (horizonTextureSize.x / ladderMaterial.mainTexture.width);
                     horizonTextureSize.y = 0.5f * (horizonTextureSize.y / ladderMaterial.mainTexture.height);
 
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
-                    ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), new Vector2(horizonSize.x * 0.5f, horizonSize.y * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+                    ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                     ladderMesh.transform.position = new Vector3(0, 0, 1.4f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
