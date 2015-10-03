@@ -61,6 +61,7 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static Dictionary<string, MappedVariable> mappedVariables;
         private static Dictionary<string, MathVariable> mathVariables;
+        private static Dictionary<string, SelectVariable> selectVariables;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
@@ -118,7 +119,7 @@ namespace JSI
                 return part;
             }
         }
-        private ExternalVariableHandlers plugins;
+        private ExternalVariableHandlers plugins = null;
         private RasterPropMonitorComputer rpmComp;
 
         // Data refresh
@@ -466,6 +467,32 @@ namespace JSI
                 }
             }
 
+            if (selectVariables == null)
+            {
+                selectVariables = new Dictionary<string, SelectVariable>();
+                // And parse known select variables
+                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE"))
+                {
+                    string varName = node.GetValue("name");
+
+                    try
+                    {
+                        SelectVariable selectVar = new SelectVariable(node);
+
+                        if (!string.IsNullOrEmpty(varName) && selectVar != null)
+                        {
+                            string completeVarName = "SELECT_" + varName;
+                            selectVariables.Add(completeVarName, selectVar);
+                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+                }
+            }
+
             if (systemNamedResources == null)
             {
                 // Let's deal with the system resource library.
@@ -722,6 +749,11 @@ namespace JSI
 
                             if (part != null)
                             {
+                                if(plugins == null)
+                                {
+                                    plugins = new ExternalVariableHandlers(part);
+                                }
+
                                 rpmComp = RasterPropMonitorComputer.Instantiate(part);
                             }
                         }
@@ -1778,6 +1810,7 @@ namespace JSI
                 systemNamedResources = null;
                 triggeredEvents = null;
                 mathVariables = null;
+                selectVariables = null;
 
                 protractor = null;
 

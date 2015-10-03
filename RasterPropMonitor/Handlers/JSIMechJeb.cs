@@ -1961,7 +1961,7 @@ namespace JSI
         /// Instructs the craft to hold heading (or disables autopilot).
         /// </summary>
         /// <param name="state"></param>
-        public void ButtonSpaceplaceHoldHeading(bool state)
+        public void ButtonSpaceplaneHoldHeading(bool state)
         {
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
@@ -1983,7 +1983,7 @@ namespace JSI
         /// Returns true if SP autopilot is in Hold Heading mode
         /// </summary>
         /// <returns></returns>
-        public bool ButtonSpaceplaceHoldHeadingState()
+        public bool ButtonSpaceplaneHoldHeadingState()
         {
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
@@ -2002,7 +2002,7 @@ namespace JSI
         /// Enables / disabled spaceplane Autoland mode
         /// </summary>
         /// <returns></returns>
-        public void ButtonSpaceplaceAutoland(bool state)
+        public void ButtonSpaceplaneAutoland(bool state)
         {
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");
@@ -2024,7 +2024,7 @@ namespace JSI
         /// Returns true if SP autopilot is in Autoland mode
         /// </summary>
         /// <returns></returns>
-        public bool ButtonSpaceplaceAutolandState()
+        public bool ButtonSpaceplaneAutolandState()
         {
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleSpaceplaneAutopilot");

@@ -56,6 +56,10 @@ namespace JSI
             {
                 varName = RPMVesselComputer.MetersPerSecondToKnots.ToString();
             }
+            else if (varName == "MetersPerSecondToFeetPerMinute")
+            {
+                varName = RPMVesselComputer.MetersPerSecondToFeetPerMinute.ToString();
+            }
 
             if(!vars.ContainsKey(varName))
             {
