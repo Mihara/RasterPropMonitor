@@ -25,59 +25,13 @@ namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
     {
-        // Delegate wrappers
-        private interface PluginEvaluator
-        {
-            object Evaluate();
-        };
-        private class PluginBoolVoid : PluginEvaluator
-        {
-            Func<bool> method;
-
-            internal PluginBoolVoid(Delegate method)
-            {
-                this.method = (Func<bool>)method;
-            }
-            public object Evaluate()
-            {
-                bool value = method();
-                return value.GetHashCode();
-            }
-        };
-        private class PluginDoubleVoid : PluginEvaluator
-        {
-            Func<double> method;
-
-            internal PluginDoubleVoid(Delegate method)
-            {
-                this.method = (Func<double>)method;
-            }
-            public object Evaluate()
-            {
-                return method();
-            }
-        };
-        private class PluginStringVoid : PluginEvaluator
-        {
-            Func<string> method;
-
-            internal PluginStringVoid(Delegate method)
-            {
-                this.method = (Func<string>)method;
-            }
-            public object Evaluate()
-            {
-                return method();
-            }
-        };
-
         // Plugin-modifiable Evaluators
         private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateAngleOfAttack;
         private Func<double> evaluateDeltaV;
         private Func<double> evaluateDeltaVStage;
         private Func<double> evaluateDragForce;
-        private Func<double> evaluateDynamicPressure;
+        //private Func<double> evaluateDynamicPressure;
         private Func<double> evaluateLandingError;
         private Func<double> evaluateLandingAltitude;
         private Func<double> evaluateLandingLatitude;
@@ -195,9 +149,9 @@ namespace JSI
             return evaluateDragForce();
         }
 
-        private double DynamicPressure()
+        private VariableEvaluator DynamicPressure()
         {
-            if (evaluateDynamicPressure == null)
+            //if (evaluateDynamicPressure == null)
             {
                 Func<double> accessor = null;
 
@@ -213,13 +167,17 @@ namespace JSI
 
                 if (accessor == null)
                 {
-                    accessor = FallbackEvaluateDynamicPressure;
+                    //accessor = FallbackEvaluateDynamicPressure;
+                    return (string variable) => { return vessel.dynamicPressurekPa; };
                 }
-
-                evaluateDynamicPressure = accessor;
+                else
+                {
+                    return (string variable) => { return accessor(); };
+                }
+                //evaluateDynamicPressure = accessor;
             }
 
-            return evaluateDynamicPressure();
+            //return evaluateDynamicPressure();
         }
 
         private double LandingError()
@@ -477,10 +435,10 @@ namespace JSI
             return dragForce;
         }
 
-        private double FallbackEvaluateDynamicPressure()
-        {
-            return vessel.dynamicPressurekPa;
-        }
+        //private double FallbackEvaluateDynamicPressure()
+        //{
+        //    return vessel.dynamicPressurekPa;
+        //}
 
         private double FallbackEvaluateSideSlip()
         {

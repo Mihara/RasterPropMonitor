@@ -1,5 +1,5 @@
-﻿//#define SHOW_FIXEDUPDATE_TIMING
-//#define USE_VARIABLECACHE
+﻿#define USE_VARIABLECACHE
+//#define SHOW_FIXEDUPDATE_TIMING
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -135,7 +135,7 @@ namespace JSI
 #if !USE_VARIABLECACHE
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
-        private Dictionary<string, PluginEvaluator> pluginVariables = new Dictionary<string, PluginEvaluator>();
+        private Dictionary<string, Delegate> pluginVariables = new Dictionary<string, Delegate>();
 #endif
 
         // Craft-relative basis vectors
@@ -610,7 +610,6 @@ namespace JSI
             evaluateAngleOfAttack = null;
             evaluateDeltaV = null;
             evaluateDeltaVStage = null;
-            evaluateDynamicPressure = null;
             evaluateLandingError = null;
             evaluateLandingAltitude = null;
             evaluateLandingLatitude = null;
@@ -1366,7 +1365,7 @@ namespace JSI
         /// </summary>
         /// <param name="packedMethod"></param>
         /// <returns></returns>
-        private PluginEvaluator GetInternalMethod(string packedMethod)
+        private Delegate GetInternalMethod(string packedMethod)
         {
             string[] tokens = packedMethod.Split(':');
             if (tokens.Length != 2 || string.IsNullOrEmpty(tokens[0]) || string.IsNullOrEmpty(tokens[1]))
@@ -1395,7 +1394,7 @@ namespace JSI
             }
 
             //JUtil.LogMessage(this, "searching for {0} : {1}", tokens[0], tokens[1]);
-            PluginEvaluator pluginEval = null;
+            Delegate pluginEval = null;
             if (jsiModule != null)
             {
                 foreach (MethodInfo m in jsiModule.GetType().GetMethods())
@@ -1414,8 +1413,7 @@ namespace JSI
                         {
                             try
                             {
-                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
-                                pluginEval = new PluginBoolVoid(method);
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
                             }
                             catch (Exception e)
                             {
@@ -1426,8 +1424,7 @@ namespace JSI
                         {
                             try
                             {
-                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
-                                pluginEval = new PluginDoubleVoid(method);
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
                             }
                             catch (Exception e)
                             {
@@ -1438,8 +1435,7 @@ namespace JSI
                         {
                             try
                             {
-                                Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
-                                pluginEval = new PluginStringVoid(method);
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
                             }
                             catch (Exception e)
                             {

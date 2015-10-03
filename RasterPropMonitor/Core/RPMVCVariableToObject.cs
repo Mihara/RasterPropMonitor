@@ -1,4 +1,4 @@
-﻿//#define USE_VARIABLECACHE
+﻿#define USE_VARIABLECACHE
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -1661,10 +1661,31 @@ namespace JSI
 
                 if (tokens.Length == 2 && tokens[0] == "PLUGIN")
                 {
-                    PluginEvaluator pluginMethod = GetInternalMethod(tokens[1]);
+                    Delegate pluginMethod = GetInternalMethod(tokens[1]);
                     if (pluginMethod != null)
                     {
-                        return (string variable) => { return pluginMethod.Evaluate(); };
+                        MethodInfo mi = pluginMethod.Method;
+                        if(mi.ReturnType == typeof(bool))
+                        {
+                            Func<bool> method = (Func<bool>)pluginMethod;
+                            return (string variable) => { return method().GetHashCode(); };
+                        }
+                        else if (mi.ReturnType == typeof(double))
+                        {
+                            Func<double> method = (Func<double>)pluginMethod;
+                            return (string variable) => { return method(); };
+                        }
+                        else if (mi.ReturnType == typeof(string))
+                        {
+                            Func<string> method = (Func<string>)pluginMethod;
+                            return (string variable) => { return method(); };
+                        }
+                        else
+                        {
+                            JUtil.LogErrorMessage(this, "Unable to create a plugin handler for return type {0}", mi.ReturnType);
+                            return (string variable) => { return variable; };
+
+                        }
                     }
 
                     string[] internalModule = tokens[1].Split(':');
@@ -2005,8 +2026,7 @@ namespace JSI
                 case "ATMDENSITY":
                     return (string variable) => { return vessel.atmDensity; };
                 case "DYNAMICPRESSURE":
-                    // TODO:
-                    return (string variable) => { return DynamicPressure(); };
+                    return DynamicPressure();
                 case "ATMOSPHEREDEPTH":
                     return (string variable) =>
                     {
