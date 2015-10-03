@@ -445,11 +445,14 @@ namespace JSI
         // and this part is part of the active vessel.
         public void OnGUI()
         {
-            if (HighLogic.LoadedSceneIsEditor || JUtil.IsInIVA())
-                return;
-            if ((transparentPodSetting == "OFF" || transparentPodSetting == "AUTO") && vessel.isActiveVessel && part.internalModel != null)
+            if (HighLogic.LoadedSceneIsFlight)
             {
-                part.internalModel.SetVisible(true);
+                if (JUtil.IsInIVA())
+                    return;
+                if ((transparentPodSetting == "OFF" || transparentPodSetting == "AUTO") && vessel.isActiveVessel && part.internalModel != null)
+                {
+                    part.internalModel.SetVisible(true);
+                }
             }
         }
 
@@ -476,24 +479,26 @@ namespace JSI
                 mouseOver = false;
                 return;
             }
-
-            if (JUtil.IsInIVA())
-                return;
-
-            if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
-                        && (transparentPodSetting == "AUTO" && !mouseOver)))
+            if (HighLogic.LoadedSceneIsFlight)
             {
-                if (JUtil.cameraMaskShowsIVA && part.internalModel != null && !JUtil.UserIsInPod(part))
+                if (JUtil.IsInIVA())
+                    return;
+
+                if (transparentPodSetting == "OFF" || ((transparentPodSetting == "AUTO" && FlightGlobals.ActiveVessel.referenceTransformId != this.part.flightID)
+                            && (transparentPodSetting == "AUTO" && !mouseOver)))
+                {
+                    if (JUtil.cameraMaskShowsIVA && part.internalModel != null && !JUtil.UserIsInPod(part))
+                    {
+                        part.internalModel.SetVisible(false);
+                    }
+                }
+
+                if (distanceToCamera > distanceToCameraThreshold && part.internalModel != null)
                 {
                     part.internalModel.SetVisible(false);
                 }
+                mouseOver = false;
             }
-
-            if (distanceToCamera > distanceToCameraThreshold && part.internalModel != null)
-            {
-                part.internalModel.SetVisible(false);
-            }
-            mouseOver = false;
         }
 
         // When mouse is over this part set a flag for the transparentPodSetting = "AUTO" setting.
