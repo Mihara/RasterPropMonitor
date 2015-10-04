@@ -235,7 +235,7 @@ namespace JSI
         {
             get
             {
-                return (float)SideSlip();
+                return EvaluateSideSlip();
             }
         }
         // Helper to get the AoA in absolute terms (instead of relative to the
@@ -244,7 +244,7 @@ namespace JSI
         {
             get
             {
-                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - (float)AngleOfAttack();
+                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - EvaluateAngleOfAttack();
             }
         }
 
@@ -606,14 +606,14 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            evaluateMechJebAvailable = null;
+            //evaluateMechJebAvailable = null;
             evaluateAngleOfAttack = null;
-            evaluateDeltaV = null;
-            evaluateDeltaVStage = null;
-            evaluateLandingError = null;
-            evaluateLandingAltitude = null;
-            evaluateLandingLatitude = null;
-            evaluateLandingLongitude = null;
+            //evaluateDeltaV = null;
+            //evaluateDeltaVStage = null;
+            //evaluateLandingError = null;
+            //evaluateLandingAltitude = null;
+            //evaluateLandingLatitude = null;
+            //evaluateLandingLongitude = null;
             evaluateSideSlip = null;
             evaluateTerminalVelocity = null;
         }

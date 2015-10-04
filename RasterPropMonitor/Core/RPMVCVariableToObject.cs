@@ -2052,11 +2052,9 @@ namespace JSI
 
                 // The delta V calculation.
                 case "DELTAV":
-                    // TODO:
-                    return (string variable) => { return DeltaV(); };
+                    return DeltaV();
                 case "DELTAVSTAGE":
-                    // TODO:
-                    return (string variable) => { return DeltaVStage(); };
+                    return DeltaVStage();
 
                 // Thrust and related
                 case "THRUST":
@@ -2086,17 +2084,13 @@ namespace JSI
                 case "EFFECTIVETHROTTLE":
                     return (string variable) => { return (totalMaximumThrust > 0.0f) ? (totalCurrentThrust / totalMaximumThrust) : 0.0f; };
                 case "DRAG":
-                    // TODO:
-                    return (string variable) => { return DragForce(); };
+                    return DragForce();
                 case "DRAGACCEL":
-                    // TODO:
-                    return (string variable) => { return DragForce() / totalShipWetMass; };
+                    return DragAccel();
                 case "LIFT":
-                    // TODO:
-                    return (string variable) => { return LiftForce(); };
+                    return LiftForce();
                 case "LIFTACCEL":
-                    // TODO:
-                    return (string variable) => { return LiftForce() / totalShipWetMass; };
+                    return LiftAccel();
 
                 // Maneuvers
                 case "MNODETIMESECS":
@@ -2404,11 +2398,9 @@ namespace JSI
                 case "YAWRATE":
                     return (string variable) => { return -vessel.angularVelocity.z * Mathf.Rad2Deg; };
                 case "ANGLEOFATTACK":
-                    // TODO:
-                    return (string variable) => { return AngleOfAttack(); };
+                    return AngleOfAttack();
                 case "SIDESLIP":
-                    // TODO:
-                    return (string variable) => { return SideSlip(); };
+                    return SideSlip();
                 // These values get odd when they're way out on the edge of the
                 // navball because they're projected into two dimensions.
                 case "PITCHSURFPROGRADE":
@@ -2966,13 +2958,13 @@ namespace JSI
                     };
 
                 case "PREDICTEDLANDINGALTITUDE":
-                    return (string variable) => { return LandingAltitude(); };
+                    return LandingAltitude();
                 case "PREDICTEDLANDINGLATITUDE":
-                    return (string variable) => { return LandingLatitude(); };
+                    return LandingLatitude();
                 case "PREDICTEDLANDINGLONGITUDE":
-                    return (string variable) => { return LandingLongitude(); };
+                    return LandingLongitude();
                 case "PREDICTEDLANDINGERROR":
-                    return (string variable) => { return LandingError(); };
+                    return LandingError();
 
                 // FLight control status
                 case "THROTTLE":
@@ -3115,7 +3107,7 @@ namespace JSI
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
                 case "MECHJEBAVAILABLE":
-                    return (string variable) => { return MechJebAvailable().GetHashCode(); };
+                    return MechJebAvailable();
 
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":

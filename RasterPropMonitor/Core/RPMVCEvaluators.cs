@@ -26,24 +26,23 @@ namespace JSI
     public partial class RPMVesselComputer : VesselModule
     {
         // Plugin-modifiable Evaluators
-        private Func<bool> evaluateMechJebAvailable;
+        //private Func<bool> evaluateMechJebAvailable;
         private Func<double> evaluateAngleOfAttack;
-        private Func<double> evaluateDeltaV;
-        private Func<double> evaluateDeltaVStage;
-        private Func<double> evaluateDragForce;
-        //private Func<double> evaluateDynamicPressure;
-        private Func<double> evaluateLandingError;
-        private Func<double> evaluateLandingAltitude;
-        private Func<double> evaluateLandingLatitude;
-        private Func<double> evaluateLandingLongitude;
-        private Func<double> evaluateLiftForce;
+        //private Func<double> evaluateDeltaV;
+        //private Func<double> evaluateDeltaVStage;
+        //private Func<double> evaluateDragForce;
+        //private Func<double> evaluateLandingError;
+        //private Func<double> evaluateLandingAltitude;
+        //private Func<double> evaluateLandingLatitude;
+        //private Func<double> evaluateLandingLongitude;
+        //private Func<double> evaluateLiftForce;
         private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
         private Func<double> evaluateTimeToImpact;
 
         //--- Plugin-enabled evaluators
         #region PluginEvaluators
-        private double AngleOfAttack()
+        private float EvaluateAngleOfAttack()
         {
             if (evaluateAngleOfAttack == null)
             {
@@ -61,209 +60,253 @@ namespace JSI
 
                 if (accessor == null)
                 {
-                    accessor = FallbackEvaluateAngleOfAttack;
+                    evaluateAngleOfAttack = FallbackEvaluateAngleOfAttack;
                 }
-
-                evaluateAngleOfAttack = accessor;
+                else
+                {
+                    evaluateAngleOfAttack = accessor;
+                }
             }
 
-            return evaluateAngleOfAttack();
+            return (float)evaluateAngleOfAttack();
         }
 
-        private double DeltaV()
+        private VariableEvaluator AngleOfAttack()
         {
-            if (evaluateDeltaV == null)
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetAngleOfAttack", typeof(Func<double>));
+            if (accessor != null)
             {
-                Func<double> accessor = null;
-
-                accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetDeltaV", typeof(Func<double>));
-                if (accessor != null)
+                double value = accessor();
+                if (double.IsNaN(value))
                 {
-                    double value = accessor();
-                    if (double.IsNaN(value))
-                    {
-                        accessor = null;
-                    }
+                    accessor = null;
                 }
-
-                if (accessor == null)
-                {
-                    accessor = FallbackEvaluateDeltaV;
-                }
-
-                evaluateDeltaV = accessor;
             }
 
-            return evaluateDeltaV();
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateAngleOfAttack(); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
         }
 
-        private double DeltaVStage()
+        private VariableEvaluator DeltaV()
         {
-            if (evaluateDeltaVStage == null)
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetDeltaV", typeof(Func<double>));
+            if (accessor != null)
             {
-                Func<double> accessor = null;
-
-                accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetStageDeltaV", typeof(Func<double>));
-                if (accessor != null)
+                double value = accessor();
+                if (double.IsNaN(value))
                 {
-                    double value = accessor();
-                    if (double.IsNaN(value))
-                    {
-                        accessor = null;
-                    }
+                    accessor = null;
                 }
-
-                if (accessor == null)
-                {
-                    accessor = FallbackEvaluateDeltaVStage;
-                }
-
-                evaluateDeltaVStage = accessor;
             }
 
-            return evaluateDeltaVStage();
+            if (accessor == null)
+            {
+                return (string variable) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false))); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
         }
 
-        private double DragForce()
+        private VariableEvaluator DeltaVStage()
         {
-            if (evaluateDragForce == null)
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetStageDeltaV", typeof(Func<double>));
+            if (accessor != null)
             {
-                Func<double> accessor = null;
-
-                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
-                if (accessor != null)
+                double value = accessor();
+                if (double.IsNaN(value))
                 {
-                    double value = accessor();
-                    if (double.IsNaN(value))
-                    {
-                        accessor = null;
-                    }
-                }
-
-                if (accessor == null)
-                {
-                    evaluateDragForce = FallbackEvaluateDragForce;
+                    accessor = null;
                 }
             }
 
-            return evaluateDragForce();
+            if (accessor == null)
+            {
+                return (string variable) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true))); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
+        }
+
+        private VariableEvaluator DragAccel()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateDragForce() / totalShipWetMass; };
+            }
+            else
+            {
+                return (string variable) => { return accessor() / totalShipWetMass; };
+            }
+        }
+
+        private VariableEvaluator DragForce()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateDragForce(); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
         }
 
         private VariableEvaluator DynamicPressure()
         {
-            //if (evaluateDynamicPressure == null)
-            {
-                Func<double> accessor = null;
+            Func<double> accessor = null;
 
-                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDynamicPressure", typeof(Func<double>));
-                if (accessor != null)
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDynamicPressure", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
                 {
-                    double value = accessor();
-                    if (double.IsNaN(value))
-                    {
-                        accessor = null;
-                    }
-                }
-
-                if (accessor == null)
-                {
-                    //accessor = FallbackEvaluateDynamicPressure;
-                    return (string variable) => { return vessel.dynamicPressurekPa; };
-                }
-                else
-                {
-                    return (string variable) => { return accessor(); };
-                }
-                //evaluateDynamicPressure = accessor;
-            }
-
-            //return evaluateDynamicPressure();
-        }
-
-        private double LandingError()
-        {
-            if (evaluateLandingError == null)
-            {
-                evaluateLandingError = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingError", typeof(Func<double>));
-            }
-
-            return evaluateLandingError();
-        }
-
-        private double LandingAltitude()
-        {
-            if (evaluateLandingAltitude == null)
-            {
-                evaluateLandingAltitude = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
-            }
-
-            return evaluateLandingAltitude();
-        }
-
-        private double LandingLatitude()
-        {
-            if (evaluateLandingLatitude == null)
-            {
-                evaluateLandingLatitude = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
-            }
-
-            return evaluateLandingLatitude();
-        }
-
-        private double LandingLongitude()
-        {
-            if (evaluateLandingLongitude == null)
-            {
-                evaluateLandingLongitude = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
-            }
-
-            return evaluateLandingLongitude();
-        }
-
-        private double LiftForce()
-        {
-            if (evaluateLiftForce == null)
-            {
-                Func<double> accessor = null;
-
-                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
-                if (accessor != null)
-                {
-                    double value = accessor();
-                    if (double.IsNaN(value))
-                    {
-                        accessor = null;
-                    }
-                }
-
-                if (accessor == null)
-                {
-                    evaluateLiftForce = FallbackEvaluateLiftForce;
+                    accessor = null;
                 }
             }
 
-            return evaluateLiftForce();
+            if (accessor == null)
+            {
+                return (string variable) => { return vessel.dynamicPressurekPa; };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
         }
 
-        private bool MechJebAvailable()
+        private VariableEvaluator LandingError()
         {
-            if (evaluateMechJebAvailable == null)
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingError", typeof(Func<double>));
+
+            return (string variable) => { return accessor(); };
+        }
+
+        private VariableEvaluator LandingAltitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
+
+            return (string variable) => { return accessor(); };
+        }
+
+        private VariableEvaluator LandingLatitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
+
+            return (string variable) => { return accessor(); };
+        }
+
+        private VariableEvaluator LandingLongitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
+
+            return (string variable) => { return accessor(); };
+        }
+
+        private VariableEvaluator LiftAccel()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
+            if (accessor != null)
             {
-                Func<bool> accessor = null;
-
-                accessor = (Func<bool>)GetInternalMethod("JSIMechJeb:GetMechJebAvailable", typeof(Func<bool>));
-                if (accessor == null)
+                double value = accessor();
+                if (double.IsNaN(value))
                 {
-                    accessor = JUtil.ReturnFalse;
+                    accessor = null;
                 }
-
-                evaluateMechJebAvailable = accessor;
             }
 
-            return evaluateMechJebAvailable();
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateLiftForce() / totalShipWetMass; };
+            }
+            else
+            {
+                return (string variable) => { return accessor() / totalShipWetMass; };
+            }
         }
 
-        private double SideSlip()
+        private VariableEvaluator LiftForce()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateLiftForce(); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
+        }
+
+        private VariableEvaluator MechJebAvailable()
+        {
+            Func<bool> accessor = null;
+
+            accessor = (Func<bool>)GetInternalMethod("JSIMechJeb:GetMechJebAvailable", typeof(Func<bool>));
+            if (accessor == null)
+            {
+                return (string variable) => { return false; };
+            }
+            else
+            {
+                return (string variable) => { return accessor().GetHashCode(); };
+            }
+        }
+
+        private float EvaluateSideSlip()
         {
             if (evaluateSideSlip == null)
             {
@@ -281,13 +324,39 @@ namespace JSI
 
                 if (accessor == null)
                 {
-                    accessor = FallbackEvaluateSideSlip;
+                    evaluateSideSlip = FallbackEvaluateSideSlip;
                 }
-
-                evaluateSideSlip = accessor;
+                else
+                {
+                    evaluateSideSlip = accessor;
+                }
             }
 
-            return evaluateSideSlip();
+            return (float)evaluateSideSlip();
+        }
+
+        private VariableEvaluator SideSlip()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetSideSlip", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable) => { return FallbackEvaluateSideSlip(); };
+            }
+            else
+            {
+                return (string variable) => { return accessor(); };
+            }
         }
 
         private double TerminalVelocity()
@@ -369,24 +438,14 @@ namespace JSI
             Vector3 velVectorNorm = vessel.srf_velocity.normalized;
 
             Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.forward * Vector3.Dot(refTransform.forward, velVectorNorm);   //velocity vector projected onto a plane that divides the airplane into left and right halves
-            double AoA = Vector3.Dot(tmpVec.normalized, refTransform.forward);
-            AoA = Mathf.Rad2Deg * Math.Asin(AoA);
-            if (double.IsNaN(AoA))
+            float AoA = Vector3.Dot(tmpVec.normalized, refTransform.forward);
+            AoA = Mathf.Rad2Deg * Mathf.Asin(AoA);
+            if (float.IsNaN(AoA))
             {
-                AoA = 0.0;
+                AoA = 0.0f;
             }
 
-            return AoA;
-        }
-
-        private double FallbackEvaluateDeltaV()
-        {
-            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false)));
-        }
-
-        private double FallbackEvaluateDeltaVStage()
-        {
-            return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true)));
+            return (double)AoA;
         }
 
         private double FallbackEvaluateDragForce()
@@ -435,11 +494,6 @@ namespace JSI
             return dragForce;
         }
 
-        //private double FallbackEvaluateDynamicPressure()
-        //{
-        //    return vessel.dynamicPressurekPa;
-        //}
-
         private double FallbackEvaluateSideSlip()
         {
             // Code courtesy FAR.
@@ -447,14 +501,14 @@ namespace JSI
             Vector3 velVectorNorm = vessel.srf_velocity.normalized;
 
             Vector3 tmpVec = refTransform.up * Vector3.Dot(refTransform.up, velVectorNorm) + refTransform.right * Vector3.Dot(refTransform.right, velVectorNorm);     //velocity vector projected onto the vehicle-horizontal plane
-            double sideslipAngle = Vector3.Dot(tmpVec.normalized, refTransform.right);
-            sideslipAngle = Mathf.Rad2Deg * Math.Asin(sideslipAngle);
-            if (double.IsNaN(sideslipAngle))
+            float sideslipAngle = Vector3.Dot(tmpVec.normalized, refTransform.right);
+            sideslipAngle = Mathf.Rad2Deg * Mathf.Asin(sideslipAngle);
+            if (float.IsNaN(sideslipAngle))
             {
-                sideslipAngle = 0.0;
+                sideslipAngle = 0.0f;
             }
 
-            return sideslipAngle;
+            return (double)sideslipAngle;
         }
 
         private double FallbackEvaluateLiftForce()
