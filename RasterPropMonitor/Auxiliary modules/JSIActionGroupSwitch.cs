@@ -304,7 +304,7 @@ namespace JSI
                                 {
                                     foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("TRANSFERACTION"))
                                     {
-                                        if (pluginConfig.HasValue("name") && pluginConfig.HasValue("perPodPersistenceName"))
+                                        if ((pluginConfig.HasValue("name") || pluginConfig.HasValue("getVariable")) && pluginConfig.HasValue("perPodPersistenceName"))
                                         {
                                             transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                             if (pluginConfig.HasValue("stateMethod"))
