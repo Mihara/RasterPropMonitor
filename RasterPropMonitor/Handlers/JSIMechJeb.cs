@@ -148,7 +148,7 @@ namespace JSI
         private static readonly FieldInfo spaceplaneHeading;
         private static readonly FieldInfo spaceplaneGlideslope;
 
-        // Launch Guidance
+        // Ascent Autopilot
         private static readonly FieldInfo launchOrbitAltitude;
 
         // EditableDoubleMult
@@ -1198,7 +1198,7 @@ namespace JSI
 
         public double GetLaunchAltitude()
         {
-            double alt = double.NaN;
+            double alt = 0.0;
             object activeJeb = GetMasterMechJeb(vessel);
             object ascent = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
             if (ascent != null)
