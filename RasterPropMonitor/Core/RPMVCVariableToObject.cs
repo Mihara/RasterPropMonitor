@@ -2443,6 +2443,30 @@ namespace JSI
                             return 0.0;
                         }
                     };
+                case "PITCHTARGETRELPLUS":
+                    return (string variable) =>
+                    {
+                        if (target != null && velocityRelativeTarget.sqrMagnitude > 0.0)
+                        {
+                            return GetRelativePitch(velocityRelativeTarget.normalized);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+                case "PITCHTARGETRELMINUS":
+                    return (string variable) =>
+                    {
+                        if (target != null && velocityRelativeTarget.sqrMagnitude > 0.0)
+                        {
+                            return GetRelativePitch(-velocityRelativeTarget.normalized);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
                 case "YAWSURFPROGRADE":
                     return (string variable) => { return GetRelativeYaw(vessel.srf_velocity.normalized); };
                 case "YAWSURFRETROGRADE":
@@ -2477,6 +2501,30 @@ namespace JSI
                         if (target != null)
                         {
                             return GetRelativeYaw(-targetSeparation.normalized);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+                case "YAWTARGETRELPLUS":
+                    return (string variable) =>
+                    {
+                        if (target != null && velocityRelativeTarget.sqrMagnitude > 0.0)
+                        {
+                            return GetRelativeYaw(velocityRelativeTarget.normalized);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+                case "YAWTARGETRELMINUS":
+                    return (string variable) =>
+                    {
+                        if (target != null && velocityRelativeTarget.sqrMagnitude > 0.0)
+                        {
+                            return GetRelativeYaw(-velocityRelativeTarget.normalized);
                         }
                         else
                         {
