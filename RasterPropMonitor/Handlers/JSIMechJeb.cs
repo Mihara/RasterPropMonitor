@@ -177,6 +177,10 @@ namespace JSI
         //private static readonly DynamicMethodDelegate deltaVAndTimeForInterplanetaryTransferEjection;
         // OrbitalManeuverCalculator.DeltaVToCircularize
         private static readonly DynamicMethodDelegate deltaVToCircularize;
+        // OrbitalManeuverCalculator.DeltaVToChangeApoapsis
+        private static readonly DynamicMethodDelegate deltaVToChangeApoapsis;
+        // OrbitalManeuverCalculator.DeltaVToChangePeriapsis
+        private static readonly DynamicMethodDelegate deltaVToChangePeriapsis;
         #endregion
 
         #region MechJeb enum imports
@@ -690,6 +694,18 @@ namespace JSI
                     throw new NotImplementedException("mjDeltaVToCircularize");
                 }
                 deltaVToCircularize = DynamicMethodDelegateFactory.Create(mjDeltaVToCircularize);
+                MethodInfo mjDeltaVToChangeApoapsis = mjOrbitalManeuverCalculator_t.GetMethod("DeltaVToChangeApoapsis", BindingFlags.Static | BindingFlags.Public);
+                if (mjDeltaVToChangeApoapsis == null)
+                {
+                    throw new NotImplementedException("mjDeltaVToChangeApoapsis");
+                }
+                deltaVToChangeApoapsis = DynamicMethodDelegateFactory.Create(mjDeltaVToChangeApoapsis);
+                MethodInfo mjDeltaVToChangePeriapsis = mjOrbitalManeuverCalculator_t.GetMethod("DeltaVToChangePeriapsis", BindingFlags.Static | BindingFlags.Public);
+                if (mjDeltaVToChangePeriapsis == null)
+                {
+                    throw new NotImplementedException("mjDeltaVToChangePeriapsis");
+                }
+                deltaVToChangePeriapsis = DynamicMethodDelegateFactory.Create(mjDeltaVToChangePeriapsis);
 
                 // MechJebModuleStageStats
                 Type mjModuleStageStats_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -1350,6 +1366,73 @@ namespace JSI
                 }
                 mjSmartassForceRol.SetValue(activeSmartass, state);
                 engageSmartass(activeSmartass, new object[] { true });
+            }
+        }
+
+        public void CircularizeAtAltitude(double altitude)
+        {
+            if (GetMechJebAvailable() && altitude >= vessel.orbit.PeA && altitude <= vessel.orbit.ApA)
+            {
+                // Add validation
+                double UT = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), vessel.orbit.referenceBody.Radius + altitude);
+
+                Vector3d dV;
+
+                dV = (Vector3d)deltaVToCircularize(null, new object[] { vessel.orbit, UT });
+
+                if (vessel.patchedConicSolver != null)
+                {
+                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+                    {
+                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+                    }
+                }
+
+                placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
+            }
+        }
+
+        public void ChangeApoapsis(double altitude)
+        {
+            if (GetMechJebAvailable() && altitude >= vessel.orbit.PeA)
+            {
+                double UT = vessel.orbit.NextPeriapsisTime(Planetarium.GetUniversalTime());
+
+                Vector3d dV;
+
+                dV = (Vector3d)deltaVToChangeApoapsis(null, new object[] { vessel.orbit, UT, vessel.orbit.referenceBody.Radius + altitude });
+
+                if (vessel.patchedConicSolver != null)
+                {
+                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+                    {
+                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+                    }
+                }
+
+                placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
+            }
+        }
+
+        public void ChangePeriapsis(double altitude)
+        {
+            if (GetMechJebAvailable() && altitude <= vessel.orbit.ApA)
+            {
+                double UT = vessel.orbit.NextApoapsisTime(Planetarium.GetUniversalTime());
+
+                Vector3d dV;
+
+                dV = (Vector3d)deltaVToChangePeriapsis(null, new object[] { vessel.orbit, UT, vessel.orbit.referenceBody.Radius + altitude });
+
+                if (vessel.patchedConicSolver != null)
+                {
+                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+                    {
+                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+                    }
+                }
+
+                placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
             }
         }
 
