@@ -55,6 +55,8 @@ namespace JSI
         public string needsElectricCharge = string.Empty;
         private bool needsElectricChargeValue;
         [KSPField]
+        public string resourceName = "SYSR_ELECTRICCHARGE";
+        [KSPField]
         public string switchSound = "Squad/Sounds/sound_click_flick";
         [KSPField]
         public float switchSoundVolume = 0.5f;
@@ -727,7 +729,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01f;
+                    forcedShutdown |= currentState && comp.ProcessVariable(resourceName).MassageToFloat() < 0.01f;
                 }
             }
 

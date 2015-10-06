@@ -178,6 +178,7 @@ namespace JSI
         private readonly string textureLayer;
         private readonly Mode mode;
         private readonly float resourceAmount;
+        private readonly string resourceName;
         private readonly bool looping;
         // runtime values:
         private bool alarmActive;
@@ -466,6 +467,15 @@ namespace JSI
                 if (node.HasValue("resourceAmount"))
                 {
                     resourceAmount = float.Parse(node.GetValue("resourceAmount"));
+
+                    if(node.HasValue("resourceName"))
+                    {
+                        resourceName = node.GetValue("resourceName");
+                    }
+                    else
+                    {
+                        resourceName = "ElectricCharge";
+                    }
                 }
 
                 TurnOff();
@@ -520,7 +530,7 @@ namespace JSI
                 float requesting = (resourceAmount * TimeWarp.deltaTime);
                 if (requesting > 0.0f)
                 {
-                    float extracted = part.RequestResource("ElectricCharge", requesting);
+                    float extracted = part.RequestResource(resourceName, requesting);
                     if (extracted < 0.5f * requesting)
                     {
                         // Insufficient power - shut down
