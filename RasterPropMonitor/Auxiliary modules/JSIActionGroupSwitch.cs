@@ -132,7 +132,7 @@ namespace JSI
         private Action<bool> actionHandler;
         private bool isPluginAction;
 
-        private Func<double> transferGetter;
+        private string transferGetter = string.Empty;
         private Action<double> transferSetter;
         private string transferPersistentName;
 
@@ -304,7 +304,7 @@ namespace JSI
                                 {
                                     foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("TRANSFERACTION"))
                                     {
-                                        if (pluginConfig.HasValue("name") && pluginConfig.HasValue("perPodPersistenceName"))
+                                        if ((pluginConfig.HasValue("name") || pluginConfig.HasValue("getVariable")) && pluginConfig.HasValue("perPodPersistenceName"))
                                         {
                                             transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                             if (pluginConfig.HasValue("stateMethod"))
@@ -334,23 +334,28 @@ namespace JSI
                                             else if (pluginConfig.HasValue("getMethod"))
                                             {
                                                 string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("getMethod").Trim();
-                                                transferGetter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
+                                                var getter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
 
-                                                if (transferGetter == null)
+                                                if (getter == null)
                                                 {
                                                     JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
                                                 }
                                                 else
                                                 {
+                                                    transferGetter = "PLUGIN_" + action;
                                                     //JUtil.LogMessage(this, "Got getter {0}", action);
                                                     break;
                                                 }
+                                            }
+                                            else if(pluginConfig.HasValue("getVariable"))
+                                            {
+                                                transferGetter = pluginConfig.GetValue("getVariable").Trim();
                                             }
                                         }
                                     }
                                 }
                             }
-                            if (transferGetter == null && transferSetter == null)
+                            if (string.IsNullOrEmpty(transferGetter) && transferSetter == null)
                             {
                                 actionName = "dummy";
                                 stateVariable = string.Empty;
@@ -378,7 +383,7 @@ namespace JSI
                 }
 
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
-                    transferGetter != null || transferSetter != null)
+                    !string.IsNullOrEmpty(transferGetter) || transferSetter != null)
                 {
                     rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
@@ -612,9 +617,10 @@ namespace JSI
                             return; // early - button disabled
                         }
                     }
-                    if (transferGetter != null)
+                    if (!string.IsNullOrEmpty(transferGetter))
                     {
-                        double value = transferGetter();
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                        float value = comp.ProcessVariable(transferGetter, internalProp.propID).MassageToFloat();
                         rpmComp.SetVar(transferPersistentName, (int)value);
                     }
                     else if (rpmComp.HasVar(transferPersistentName))

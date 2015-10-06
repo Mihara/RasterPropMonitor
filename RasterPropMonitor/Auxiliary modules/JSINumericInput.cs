@@ -234,6 +234,10 @@ namespace JSI
                     rpmComp.SetVar(perPodPersistenceName, (int)val);
                 }
             }
+            else
+            {
+                remainder = 0.0f;
+            }
         }
 
         private class NumericInput

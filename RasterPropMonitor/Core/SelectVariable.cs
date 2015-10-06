@@ -27,7 +27,7 @@ namespace JSI
     // A SelectVariable defines a user-defined variable that consists of one or
     // more RPM variables.  Separate variables and ranges determine which result
     // is returned when the Select variable is chosen.
-    class SelectVariable
+    class SelectVariable : IComplexVariable
     {
         public readonly string name;
 
@@ -68,7 +68,7 @@ namespace JSI
 
         }
 
-        internal object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RPMVesselComputer comp)
         {
             int i = 0;
             for (; i < sourceVariables.Count; ++i)

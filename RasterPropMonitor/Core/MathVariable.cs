@@ -25,7 +25,7 @@ using UnityEngine;
 
 namespace JSI
 {
-    class MathVariable
+    class MathVariable : IComplexVariable
     {
         enum Operator
         {
@@ -93,7 +93,7 @@ namespace JSI
             }
         }
 
-        internal object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RPMVesselComputer comp)
         {
             float value = 0.0f;
             if(!sourceVariables[0].Get(out value, comp))

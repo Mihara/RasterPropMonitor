@@ -1,4 +1,5 @@
-﻿//#define SHOW_FIXEDUPDATE_TIMING
+﻿#define USE_VARIABLECACHE
+//#define SHOW_FIXEDUPDATE_TIMING
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -57,11 +58,8 @@ namespace JSI
          */
         private static Dictionary<Guid, RPMVesselComputer> instances;
 
-        private static Dictionary<string, CustomVariable> customVariables;
+        private static Dictionary<string, IComplexVariable> customVariables;
         private static List<string> knownLoadedAssemblies;
-        private static Dictionary<string, MappedVariable> mappedVariables;
-        private static Dictionary<string, MathVariable> mathVariables;
-        private static Dictionary<string, SelectVariable> selectVariables;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
@@ -129,10 +127,16 @@ namespace JSI
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
+#if USE_VARIABLECACHE
+        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
+        private uint masterSerialNumber = 0u;
+#endif
 
+#if !USE_VARIABLECACHE
         private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
         private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
-        private Dictionary<string, PluginEvaluator> pluginVariables = new Dictionary<string, PluginEvaluator>();
+        private Dictionary<string, Delegate> pluginVariables = new Dictionary<string, Delegate>();
+#endif
 
         // Craft-relative basis vectors
         private Vector3 forward;
@@ -231,7 +235,7 @@ namespace JSI
         {
             get
             {
-                return (float)SideSlip();
+                return EvaluateSideSlip();
             }
         }
         // Helper to get the AoA in absolute terms (instead of relative to the
@@ -240,7 +244,7 @@ namespace JSI
         {
             get
             {
-                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - (float)AngleOfAttack();
+                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - EvaluateAngleOfAttack();
             }
         }
 
@@ -350,6 +354,11 @@ namespace JSI
             {
                 protractor = new Protractor();
             }
+            if (!GameDatabase.Instance.IsReady())
+            {
+                throw new Exception("GameDatabase is not ready?");
+            }
+
             // MOARdV TODO: Only add this instance to the library if there is
             // crew capacity.  Probes should not apply.  Except, what about docking?
             vessel = GetComponent<Vessel>();
@@ -373,10 +382,22 @@ namespace JSI
             GameEvents.onUndock.Add(UndockCallback);
             GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
 
+            if (knownLoadedAssemblies == null)
+            {
+                knownLoadedAssemblies = new List<string>();
+                foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
+                {
+                    string thatName = thatAssembly.assembly.GetName().Name;
+                    knownLoadedAssemblies.Add(thatName.ToUpper());
+                    JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
+                }
+            }
+
             if (customVariables == null)
             {
-                customVariables = new Dictionary<string, CustomVariable>();
-                // And parse known custom variables
+                customVariables = new Dictionary<string, IComplexVariable>();
+
+                // Parse known custom variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
                 {
                     string varName = node.GetValue("name");
@@ -397,28 +418,8 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (knownLoadedAssemblies == null)
-            {
-                knownLoadedAssemblies = new List<string>();
-                foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
-                {
-                    string thatName = thatAssembly.assembly.GetName().Name;
-                    knownLoadedAssemblies.Add(thatName.ToUpper());
-                    JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
-                }
-
-            }
-
-            if (mappedVariables == null)
-            {
-                if (!GameDatabase.Instance.IsReady())
-                {
-                    throw new Exception("GameDatabase is not ready?");
-                }
-
-                mappedVariables = new Dictionary<string, MappedVariable>();
+                // And parse known mapped variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
                 {
                     string varName = node.GetValue("mappedVariable");
@@ -430,7 +431,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && mappedVar != null)
                         {
                             string completeVarName = "MAPPED_" + varName;
-                            mappedVariables.Add(completeVarName, mappedVar);
+                            customVariables.Add(completeVarName, mappedVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -439,12 +440,8 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (mathVariables == null)
-            {
-                mathVariables = new Dictionary<string, MathVariable>();
-                // And parse known custom variables
+                // And parse known math variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE"))
                 {
                     string varName = node.GetValue("name");
@@ -456,7 +453,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && mathVar != null)
                         {
                             string completeVarName = "MATH_" + varName;
-                            mathVariables.Add(completeVarName, mathVar);
+                            customVariables.Add(completeVarName, mathVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -465,11 +462,7 @@ namespace JSI
 
                     }
                 }
-            }
 
-            if (selectVariables == null)
-            {
-                selectVariables = new Dictionary<string, SelectVariable>();
                 // And parse known select variables
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE"))
                 {
@@ -482,7 +475,7 @@ namespace JSI
                         if (!string.IsNullOrEmpty(varName) && selectVar != null)
                         {
                             string completeVarName = "SELECT_" + varName;
-                            selectVariables.Add(completeVarName, selectVar);
+                            customVariables.Add(completeVarName, selectVar);
                             JUtil.LogMessage(this, "I know about {0}", completeVarName);
                         }
                     }
@@ -493,6 +486,7 @@ namespace JSI
                 }
             }
 
+            // TODO: Not really needed - the resource object tracks the SYSR names.
             if (systemNamedResources == null)
             {
                 // Let's deal with the system resource library.
@@ -582,6 +576,9 @@ namespace JSI
             }
 
             resultCache.Clear();
+#if USE_VARIABLECACHE
+            variableCache.Clear();
+#endif
 
             vessel = null;
             navBall = null;
@@ -589,9 +586,11 @@ namespace JSI
             part = null;
             rpmComp = null;
 
+#if !USE_VARIABLECACHE
             pluginBoolVariables = null;
             pluginDoubleVariables = null;
             pluginVariables = null;
+#endif
 
             target = null;
             targetDockingNode = null;
@@ -607,15 +606,14 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            evaluateMechJebAvailable = null;
+            //evaluateMechJebAvailable = null;
             evaluateAngleOfAttack = null;
-            evaluateDeltaV = null;
-            evaluateDeltaVStage = null;
-            evaluateDynamicPressure = null;
-            evaluateLandingError = null;
-            evaluateLandingAltitude = null;
-            evaluateLandingLatitude = null;
-            evaluateLandingLongitude = null;
+            //evaluateDeltaV = null;
+            //evaluateDeltaVStage = null;
+            //evaluateLandingError = null;
+            //evaluateLandingAltitude = null;
+            //evaluateLandingLatitude = null;
+            //evaluateLandingLongitude = null;
             evaluateSideSlip = null;
             evaluateTerminalVelocity = null;
         }
@@ -669,6 +667,9 @@ namespace JSI
 
                 timeToUpdate = false;
                 resultCache.Clear();
+#if USE_VARIABLECACHE
+                ++masterSerialNumber;
+#endif
 
                 IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
@@ -732,6 +733,68 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input, int propId = -1)
         {
+            if (rpmComp == null)
+            {
+                if (part == null)
+                {
+                    part = DeduceCurrentPart();
+                }
+
+                if (part != null)
+                {
+                    if (plugins == null)
+                    {
+                        plugins = new ExternalVariableHandlers(part);
+                    }
+
+                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
+                }
+            }
+
+#if USE_VARIABLECACHE
+            VariableCache vc = variableCache[input];
+            if(vc != null)
+            {
+                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
+                {
+                    try
+                    {
+                        object newValue = vc.accessor(input);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch(Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+                }
+
+                return vc.cachedValue;
+            }
+            else
+            {
+                bool cacheable;
+                VariableEvaluator evaluator = GetEvaluator(input, propId, out cacheable);
+                if(evaluator != null)
+                {
+                    vc = new VariableCache(cacheable, evaluator);
+                    try
+                    {
+                        object newValue = vc.accessor(input);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+
+                    variableCache[input] = vc;
+                    return vc.cachedValue;
+                }
+            }
+
+            #endif
             object returnValue = resultCache[input];
             if (returnValue == null)
             {
@@ -740,24 +803,6 @@ namespace JSI
                 {
                     if (plugins == null || !plugins.ProcessVariable(input, out returnValue, out cacheable))
                     {
-                        if (rpmComp == null)
-                        {
-                            if (part == null)
-                            {
-                                part = DeduceCurrentPart();
-                            }
-
-                            if (part != null)
-                            {
-                                if(plugins == null)
-                                {
-                                    plugins = new ExternalVariableHandlers(part);
-                                }
-
-                                rpmComp = RasterPropMonitorComputer.Instantiate(part);
-                            }
-                        }
-
                         returnValue = VariableToObject(input, propId, out cacheable);
                     }
                 }
@@ -1320,7 +1365,7 @@ namespace JSI
         /// </summary>
         /// <param name="packedMethod"></param>
         /// <returns></returns>
-        private PluginEvaluator GetInternalMethod(string packedMethod)
+        private Delegate GetInternalMethod(string packedMethod)
         {
             string[] tokens = packedMethod.Split(':');
             if (tokens.Length != 2 || string.IsNullOrEmpty(tokens[0]) || string.IsNullOrEmpty(tokens[1]))
@@ -1349,7 +1394,7 @@ namespace JSI
             }
 
             //JUtil.LogMessage(this, "searching for {0} : {1}", tokens[0], tokens[1]);
-            PluginEvaluator pluginEval = null;
+            Delegate pluginEval = null;
             if (jsiModule != null)
             {
                 foreach (MethodInfo m in jsiModule.GetType().GetMethods())
@@ -1358,20 +1403,7 @@ namespace JSI
                     {
                         //JUtil.LogMessage(this, "Found method {1}: return type is {0}, IsStatic is {2}, with {3} parameters", m.ReturnType, tokens[1],m.IsStatic, m.GetParameters().Length);
                         ParameterInfo[] parms = m.GetParameters();
-                        bool usesVessel = false;
-                        if (parms.Length == 1)
-                        {
-                            if (parms[0].ParameterType == typeof(Vessel))
-                            {
-                                usesVessel = true;
-                            }
-                            else
-                            {
-                                JUtil.LogErrorMessage(this, "GetInternalMethod failed: unexpected first parameter in plugin method {0}", packedMethod);
-                                return null;
-                            }
-                        }
-                        else if (parms.Length > 1)
+                        if (parms.Length > 0)
                         {
                             JUtil.LogErrorMessage(this, "GetInternalMethod failed: {1} parameters in plugin method {0}", packedMethod, parms.Length);
                             return null;
@@ -1381,16 +1413,7 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, bool>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, bool>), jsiModule, m);
-                                    pluginEval = new PluginBoolVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
-                                    pluginEval = new PluginBoolVoid(method);
-                                }
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
                             }
                             catch (Exception e)
                             {
@@ -1401,16 +1424,7 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, double>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, double>), jsiModule, m);
-                                    pluginEval = new PluginDoubleVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
-                                    pluginEval = new PluginDoubleVoid(method);
-                                }
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
                             }
                             catch (Exception e)
                             {
@@ -1421,16 +1435,7 @@ namespace JSI
                         {
                             try
                             {
-                                if (usesVessel)
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<Vessel, string>), m) : Delegate.CreateDelegate(typeof(Func<Vessel, string>), jsiModule, m);
-                                    pluginEval = new PluginStringVessel(method);
-                                }
-                                else
-                                {
-                                    Delegate method = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
-                                    pluginEval = new PluginStringVoid(method);
-                                }
+                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
                             }
                             catch (Exception e)
                             {
@@ -1806,11 +1811,8 @@ namespace JSI
             {
                 customVariables = null;
                 knownLoadedAssemblies = null;
-                mappedVariables = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
-                mathVariables = null;
-                selectVariables = null;
 
                 protractor = null;
 
@@ -1876,6 +1878,21 @@ namespace JSI
                 // Note that we need longer strings first so we invert numbers.
                 int lengthComparison = -x.Length.CompareTo(y.Length);
                 return lengthComparison == 0 ? -string.Compare(x, y, StringComparison.Ordinal) : lengthComparison;
+            }
+        }
+
+        delegate object VariableEvaluator(string s);
+        private class VariableCache
+        {
+            internal object cachedValue = null;
+            internal readonly VariableEvaluator accessor;
+            internal uint serialNumber = 0;
+            internal readonly bool cacheable;
+
+            internal VariableCache(bool cacheable, VariableEvaluator accessor)
+            {
+                this.cacheable = cacheable;
+                this.accessor = accessor;
             }
         }
     }
