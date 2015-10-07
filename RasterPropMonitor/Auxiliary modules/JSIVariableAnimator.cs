@@ -189,7 +189,6 @@ namespace JSI
         private double lastAnimUpdate;
         private Part part;
         private float lastScaledValue = -1.0f;
-        private float epsilon = 1.0f / 256.0f;
         public readonly bool alwaysActive = false;
 
         private enum Mode
@@ -289,8 +288,6 @@ namespace JSI
                     onAnim.enabled = true;
                     onAnim[animationName].speed = 0;
                     onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
-                    float numFrames = onAnim[animationName].clip.frameRate * onAnim[animationName].clip.length;
-                    epsilon = 1.0f / (numFrames * 2.0f);
                     looping = node.HasValue("loopingAnimation");
                     if (looping)
                     {
@@ -350,14 +347,6 @@ namespace JSI
                 colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
                 mode = Mode.Color;
-                if (maxRange > 0.0f)
-                {
-                    epsilon = 1.0f / (256.0f * maxRange);
-                }
-                else
-                {
-                    epsilon = 1.0f / 256.0f;
-                }
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
             {
@@ -375,7 +364,6 @@ namespace JSI
                     rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
                 }
                 mode = Mode.Rotation;
-                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localTranslationStart") && node.HasValue("localTranslationEnd"))
             {
@@ -384,7 +372,6 @@ namespace JSI
                 vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
                 vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
                 mode = Mode.Translation;
-                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localScaleStart") && node.HasValue("localScaleEnd"))
             {
@@ -393,7 +380,6 @@ namespace JSI
                 vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
                 vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
                 mode = Mode.Scale;
-                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd"))
             {
@@ -402,7 +388,6 @@ namespace JSI
                 textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
                 textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
                 mode = Mode.TextureShift;
-                epsilon = 1.0f / 256.0f;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureScaleStart") && node.HasValue("textureScaleEnd"))
             {
@@ -411,14 +396,13 @@ namespace JSI
                 textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
                 textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
                 mode = Mode.TextureScale;
-                epsilon = 1.0f / 256.0f;
             }
             else
             {
                 throw new ArgumentException("Cannot initiate any of the possible action modes.");
             }
 
-            if(!(node.HasValue("maxRateChange") && float.TryParse(node.GetValue("maxRateChange"), out maxRateChange)))
+            if (!(node.HasValue("maxRateChange") && float.TryParse(node.GetValue("maxRateChange"), out maxRateChange)))
             {
                 maxRateChange = 0.0f;
             }
@@ -485,7 +469,7 @@ namespace JSI
                 {
                     resourceAmount = float.Parse(node.GetValue("resourceAmount"));
 
-                    if(node.HasValue("resourceName"))
+                    if (node.HasValue("resourceName"))
                     {
                         resourceName = node.GetValue("resourceName");
                     }
@@ -623,7 +607,7 @@ namespace JSI
             }
 
             float delta = Mathf.Abs(scaledValue - lastScaledValue);
-            if (delta < epsilon)
+            if (delta < float.Epsilon)
             {
                 if (thresholdMode && flashingDelay > 0.0 && scaledValue >= threshold.x && scaledValue <= threshold.y)
                 {
@@ -646,13 +630,13 @@ namespace JSI
                     }
                 }
 
-                if (maxRateChange > 0.0f && delta < float.Epsilon)
+                if (maxRateChange > 0.0f)
                 {
                     lastAnimUpdate = universalTime;
                 }
                 return;
             }
-            
+
             if (maxRateChange > 0.0f && lastScaledValue >= 0.0f)
             {
                 float maxDelta = (float)(universalTime - lastAnimUpdate) * maxRateChange;
