@@ -134,9 +134,10 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(comp);
+                variableSets[unit].Update(comp, universalTime);
             }
         }
 
@@ -180,10 +181,12 @@ namespace JSI
         private readonly float resourceAmount;
         private readonly string resourceName;
         private readonly bool looping;
+        private readonly float maxRateChange;
         // runtime values:
         private bool alarmActive;
         private bool currentState;
         private double lastStateChange;
+        private double lastAnimUpdate;
         private Part part;
         private float lastScaledValue = -1.0f;
         private float epsilon = 1.0f / 256.0f;
@@ -415,6 +418,20 @@ namespace JSI
                 throw new ArgumentException("Cannot initiate any of the possible action modes.");
             }
 
+            if(!(node.HasValue("maxRateChange") && float.TryParse(node.GetValue("maxRateChange"), out maxRateChange)))
+            {
+                maxRateChange = 0.0f;
+            }
+            if (maxRateChange >= 60.0f)
+            {
+                // Animation rate is too fast to even notice @60Hz
+                maxRateChange = 0.0f;
+            }
+            else
+            {
+                lastAnimUpdate = Planetarium.GetUniversalTime();
+            }
+
             if (node.HasValue("threshold"))
             {
                 threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
@@ -478,11 +495,11 @@ namespace JSI
                     }
                 }
 
-                TurnOff();
+                TurnOff(Planetarium.GetUniversalTime());
             }
         }
 
-        private void TurnOn()
+        private void TurnOn(double universalTime)
         {
             if (!currentState)
             {
@@ -534,16 +551,16 @@ namespace JSI
                     if (extracted < 0.5f * requesting)
                     {
                         // Insufficient power - shut down
-                        TurnOff();
+                        TurnOff(universalTime);
                         return; // early, so we don't think it's on
                     }
                 }
             }
             currentState = true;
-            lastStateChange = Planetarium.GetUniversalTime();
+            lastStateChange = universalTime;
         }
 
-        private void TurnOff()
+        private void TurnOff(double universalTime)
         {
             if (currentState)
             {
@@ -594,10 +611,10 @@ namespace JSI
                 }
             }
             currentState = false;
-            lastStateChange = Planetarium.GetUniversalTime();
+            lastStateChange = universalTime;
         }
 
-        public void Update(RPMVesselComputer comp)
+        public void Update(RPMVesselComputer comp, double universalTime)
         {
             float scaledValue;
             if (!variable.InverseLerp(comp, out scaledValue))
@@ -605,23 +622,21 @@ namespace JSI
                 return;
             }
 
-            // MOARdV TODO: What's a good epsilon here?  .001 may be too
-            // precise.  For an RGB lerp, 1/256 (or so) may be the finest
-            // precision we can represent.
-            if (Mathf.Abs(scaledValue - lastScaledValue) < epsilon)
+            float delta = Mathf.Abs(scaledValue - lastScaledValue);
+            if (delta < epsilon)
             {
                 if (thresholdMode && flashingDelay > 0.0 && scaledValue >= threshold.x && scaledValue <= threshold.y)
                 {
                     // If we're blinking our lights, they need to keep blinking
-                    if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay)
+                    if (lastStateChange < universalTime - flashingDelay)
                     {
                         if (currentState)
                         {
-                            TurnOff();
+                            TurnOff(universalTime);
                         }
                         else
                         {
-                            TurnOn();
+                            TurnOn(universalTime);
                         }
                     }
 
@@ -630,9 +645,33 @@ namespace JSI
                         audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
                     }
                 }
+
+                if (maxRateChange > 0.0f && delta < float.Epsilon)
+                {
+                    lastAnimUpdate = universalTime;
+                }
+                return;
+            }
+            
+            if (maxRateChange > 0.0f && lastScaledValue >= 0.0f)
+            {
+                float maxDelta = (float)(universalTime - lastAnimUpdate) * maxRateChange;
+
+                if (Mathf.Abs(lastScaledValue - scaledValue) > maxDelta)
+                {
+                    if (scaledValue < lastScaledValue)
+                    {
+                        scaledValue = lastScaledValue - maxDelta;
+                    }
+                    else
+                    {
+                        scaledValue = lastScaledValue + maxDelta;
+                    }
+                }
             }
 
             lastScaledValue = scaledValue;
+            lastAnimUpdate = universalTime;
 
             if (thresholdMode)
             {
@@ -644,17 +683,17 @@ namespace JSI
                         {
                             if (currentState)
                             {
-                                TurnOff();
+                                TurnOff(universalTime);
                             }
                             else
                             {
-                                TurnOn();
+                                TurnOn(universalTime);
                             }
                         }
                     }
                     else
                     {
-                        TurnOn();
+                        TurnOn(universalTime);
                     }
                     if (audioOutput != null && !alarmActive)
                     {
@@ -664,7 +703,7 @@ namespace JSI
                 }
                 else
                 {
-                    TurnOff();
+                    TurnOff(universalTime);
                     if (audioOutput != null && alarmActive)
                     {
                         if (!alarmMustPlayOnce)
