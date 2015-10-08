@@ -1611,9 +1611,9 @@ namespace JSI
                         }
                         else
                         {
-                        return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
-                            resources.ListElement(resourcesAlphabetic[resourceID], toks[2].Substring("STAGE".Length), true) :
-                            resources.ListElement(resourcesAlphabetic[resourceID], toks[2], false);
+                            return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
+                                resources.ListElement(resourcesAlphabetic[resourceID], toks[2].Substring("STAGE".Length), true) :
+                                resources.ListElement(resourcesAlphabetic[resourceID], toks[2], false);
                         }
                     };
                 }
@@ -1665,7 +1665,7 @@ namespace JSI
                     if (pluginMethod != null)
                     {
                         MethodInfo mi = pluginMethod.Method;
-                        if(mi.ReturnType == typeof(bool))
+                        if (mi.ReturnType == typeof(bool))
                         {
                             Func<bool> method = (Func<bool>)pluginMethod;
                             return (string variable) => { return method().GetHashCode(); };
@@ -1957,7 +1957,7 @@ namespace JSI
                 case "SPEEDATIMPACT":
                     return (string variable) => { return SpeedAtImpact(totalCurrentThrust); };
                 case "BESTSPEEDATIMPACT":
-                    return (string variable) => { return SpeedAtImpact(totalMaximumThrust); };
+                    return (string variable) => { return SpeedAtImpact(totalLimitedMaximumThrust); };
                 case "SUICIDEBURNSTARTSECS":
                     return (string variable) =>
                     {
@@ -1972,12 +1972,12 @@ namespace JSI
                     // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
                     return (string variable) =>
                     {
-                        if (totalMaximumThrust <= 0.0)
+                        if (totalLimitedMaximumThrust <= 0.0)
                         {
                             // It should be impossible for wet mass to be zero.
                             return -1.0;
                         }
-                        return (speedHorizontal * speedHorizontal) / (2.0 * totalMaximumThrust / totalShipWetMass);
+                        return (speedHorizontal * speedHorizontal) / (2.0 * totalLimitedMaximumThrust / totalShipWetMass);
                     };
 
                 // Altitudes
@@ -2060,15 +2060,19 @@ namespace JSI
                 case "THRUST":
                     return (string variable) => { return totalCurrentThrust; };
                 case "THRUSTMAX":
-                    return (string variable) => { return totalMaximumThrust; };
+                    return (string variable) => { return totalLimitedMaximumThrust; };
+                case "THRUSTMAXRAW":
+                    return (string variable) => { return totalRawMaximumThrust; };
+                case "THRUSTLIMIT":
+                    return (string variable) => { return (totalRawMaximumThrust > 0.0f) ? totalLimitedMaximumThrust / totalRawMaximumThrust : 0.0f; };
                 case "TWR":
                     return (string variable) => { return (totalCurrentThrust / (totalShipWetMass * localGeeASL)); };
                 case "TWRMAX":
-                    return (string variable) => { return (totalMaximumThrust / (totalShipWetMass * localGeeASL)); };
+                    return (string variable) => { return (totalLimitedMaximumThrust / (totalShipWetMass * localGeeASL)); };
                 case "ACCEL":
                     return (string variable) => { return (totalCurrentThrust / totalShipWetMass); };
                 case "MAXACCEL":
-                    return (string variable) => { return (totalMaximumThrust / totalShipWetMass); };
+                    return (string variable) => { return (totalLimitedMaximumThrust / totalShipWetMass); };
                 case "GFORCE":
                     return (string variable) => { return vessel.geeForce_immediate; };
                 case "EFFECTIVEACCEL":
@@ -2078,11 +2082,13 @@ namespace JSI
                 case "MAXISP":
                     return (string variable) => { return actualMaxIsp; };
                 case "HOVERPOINT":
-                    return (string variable) => { return (localGeeDirect / (totalMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f); };
+                    return (string variable) => { return (localGeeDirect / (totalLimitedMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f); };
                 case "HOVERPOINTEXISTS":
-                    return (string variable) => { return ((localGeeDirect / (totalMaximumThrust / totalShipWetMass)) > 1.0f) ? -1.0 : 1.0; };
+                    return (string variable) => { return ((localGeeDirect / (totalLimitedMaximumThrust / totalShipWetMass)) > 1.0f) ? -1.0 : 1.0; };
+                case "EFFECTIVERAWTHROTTLE":
+                    return (string variable) => { return (totalRawMaximumThrust > 0.0f) ? (totalCurrentThrust / totalRawMaximumThrust) : 0.0f; };
                 case "EFFECTIVETHROTTLE":
-                    return (string variable) => { return (totalMaximumThrust > 0.0f) ? (totalCurrentThrust / totalMaximumThrust) : 0.0f; };
+                    return (string variable) => { return (totalLimitedMaximumThrust > 0.0f) ? (totalCurrentThrust / totalLimitedMaximumThrust) : 0.0f; };
                 case "DRAG":
                     return DragForce();
                 case "DRAGACCEL":
@@ -2114,9 +2120,9 @@ namespace JSI
                 case "MNODEBURNTIMESECS":
                     return (string variable) =>
                     {
-                        if (node != null && totalMaximumThrust > 0 && actualAverageIsp > 0.0f)
+                        if (node != null && totalLimitedMaximumThrust > 0 && actualAverageIsp > 0.0f)
                         {
-                            return actualAverageIsp * (1.0f - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalMaximumThrust / (totalShipWetMass * gee));
+                            return actualAverageIsp * (1.0f - Math.Exp(-node.GetBurnVector(vessel.orbit).magnitude / actualAverageIsp / gee)) / (totalLimitedMaximumThrust / (totalShipWetMass * gee));
                         }
                         return double.NaN;
                     };
@@ -3163,7 +3169,7 @@ namespace JSI
                     return (string variable) => { return (speedVerticalRounded < 0 && !vessel.ActionGroups.groups[RPMVesselComputer.gearGroupNumber] && altitudeBottom < 100).GetHashCode(); };
                 case "GROUNDPROXIMITYALARM":
                     // Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
-                    return (string variable) => { return (SpeedAtImpact(totalMaximumThrust) < -10d).GetHashCode(); };
+                    return (string variable) => { return (SpeedAtImpact(totalLimitedMaximumThrust) < -10d).GetHashCode(); };
                 case "TUMBLEALARM":
                     return (string variable) => { return (speedVerticalRounded < 0 && altitudeBottom < 100 && speedHorizontal > 5).GetHashCode(); };
                 case "SLOPEALARM":
@@ -3220,7 +3226,7 @@ namespace JSI
                 case "FUNDS":
                     return (string variable) => { return Funding.Instance != null ? Funding.Instance.Funds : 0.0; };
 
-                
+
                 // Action group flags. To properly format those, use this format:
                 // {0:on;0;OFF}
                 case "GEAR":

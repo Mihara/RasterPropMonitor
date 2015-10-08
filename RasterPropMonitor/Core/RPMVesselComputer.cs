@@ -278,7 +278,8 @@ namespace JSI
         private float totalCurrentThrust;
         private float totalDataAmount;
         private float totalExperimentCount;
-        private float totalMaximumThrust;
+        private float totalLimitedMaximumThrust;
+        private float totalRawMaximumThrust;
         private float totalShipDryMass;
         private float totalShipWetMass;
 
@@ -753,7 +754,7 @@ namespace JSI
 
 #if USE_VARIABLECACHE
             VariableCache vc = variableCache[input];
-            if(vc != null)
+            if (vc != null)
             {
                 if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
                 {
@@ -763,7 +764,7 @@ namespace JSI
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
                     }
@@ -775,7 +776,7 @@ namespace JSI
             {
                 bool cacheable;
                 VariableEvaluator evaluator = GetEvaluator(input, propId, out cacheable);
-                if(evaluator != null)
+                if (evaluator != null)
                 {
                     vc = new VariableCache(cacheable, evaluator);
                     try
@@ -794,7 +795,7 @@ namespace JSI
                 }
             }
 
-            #endif
+#endif
             object returnValue = resultCache[input];
             if (returnValue == null)
             {
@@ -1028,7 +1029,7 @@ namespace JSI
         /// </summary>
         private void FetchPerPartData()
         {
-            totalCurrentThrust = totalMaximumThrust = 0.0f;
+            totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
             float hottestShield = float.MinValue;
@@ -1065,7 +1066,9 @@ namespace JSI
 
                         totalCurrentThrust += GetCurrentThrust(thatEngineModule);
                         float maxThrust = GetMaximumThrust(thatEngineModule);
-                        totalMaximumThrust += maxThrust;
+                        totalRawMaximumThrust += maxThrust;
+                        maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
+                        totalLimitedMaximumThrust += maxThrust;
                         float realIsp = GetRealIsp(thatEngineModule);
                         if (realIsp > 0.0f)
                         {
@@ -1134,7 +1137,7 @@ namespace JSI
 
             if (averageIspContribution > 0.0f)
             {
-                actualAverageIsp = totalMaximumThrust / averageIspContribution;
+                actualAverageIsp = totalLimitedMaximumThrust / averageIspContribution;
             }
             else
             {
@@ -1143,7 +1146,7 @@ namespace JSI
 
             if (maxIspContribution > 0.0f)
             {
-                actualMaxIsp = totalMaximumThrust / maxIspContribution;
+                actualMaxIsp = totalLimitedMaximumThrust / maxIspContribution;
             }
             else
             {
@@ -1379,7 +1382,7 @@ namespace JSI
             {
                 tokens[0] = "JSIMechJeb";
             }
-            else if(tokens[0] == "JSIGimbal")
+            else if (tokens[0] == "JSIGimbal")
             {
                 tokens[0] = "JSIInternalRPMButtons";
             }
@@ -1530,7 +1533,7 @@ namespace JSI
                 float vacISP = engine.atmosphereCurve.Evaluate(0.0f);
                 float maxThrustAtAltitude = engine.maxThrust * engine.realIsp / vacISP;
 
-                return maxThrustAtAltitude * (engine.thrustPercentage / 100.0f);
+                return maxThrustAtAltitude;
             }
             else
             {
@@ -1715,7 +1718,7 @@ namespace JSI
             angleFromHorizontal = JUtil.Clamp(angleFromHorizontal, 0.0, 90.0);
             double sine = Math.Sin(angleFromHorizontal * Math.PI / 180.0);
             double g = localGeeDirect;
-            double T = totalMaximumThrust / totalShipWetMass;
+            double T = totalLimitedMaximumThrust / totalShipWetMass;
             double decelTerm = (2.0 * g * sine) * (2.0 * g * sine) + 4.0 * (T * T - g * g);
             if (decelTerm < 0.0)
             {
