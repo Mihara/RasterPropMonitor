@@ -663,7 +663,7 @@ namespace JSI
                 {
                     if (flashingDelay > 0)
                     {
-                        if (lastStateChange < Planetarium.GetUniversalTime() - flashingDelay)
+                        if (lastStateChange < universalTime - flashingDelay)
                         {
                             if (currentState)
                             {
