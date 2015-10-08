@@ -1051,7 +1051,7 @@ namespace JSI
             return (activeJeb != null);
         }
 
-        public void SetSmartassMode(Target t)
+        internal void SetSmartassMode(Target t)
         {
             EnactTargetAction(vessel, t);
         }
@@ -1060,7 +1060,7 @@ namespace JSI
         /// Return the current Smartass mode
         /// </summary>
         /// <returns></returns>
-        public int GetSmartassMode()
+        internal int GetSmartassMode()
         {
             object activeJeb = GetMasterMechJeb(vessel);
 

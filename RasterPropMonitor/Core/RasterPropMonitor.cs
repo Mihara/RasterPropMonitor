@@ -66,6 +66,8 @@ namespace JSI
         [KSPField]
         public bool needsElectricCharge = true;
         [KSPField]
+        public string resourceName = "SYSR_ELECTRICCHARGE";
+        [KSPField]
         public string defaultFontTint = string.Empty;
         public Color defaultFontTintValue = Color.white;
         [KSPField]
@@ -443,7 +445,7 @@ namespace JSI
             if (needsElectricCharge)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat();
+                electricChargeReserve = comp.ProcessVariable(resourceName).MassageToFloat();
             }
         }
 

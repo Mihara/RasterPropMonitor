@@ -36,11 +36,14 @@ namespace JSI
             DIVIDE,
             MAX,
             MIN,
+            MAXINDEX,
+            MININDEX,
         };
 
         public readonly string name;
         private List<VariableOrNumber> sourceVariables = new List<VariableOrNumber>();
-        private Operator op;
+        private readonly Operator op;
+        private readonly bool indexOperator;
 
         internal MathVariable(ConfigNode node)
         {
@@ -62,30 +65,47 @@ namespace JSI
             if (oper == Operator.NONE.ToString())
             {
                 op = Operator.NONE;
+                indexOperator = false;
             }
             else if (oper == Operator.ADD.ToString())
             {
                 op = Operator.ADD;
+                indexOperator = false;
             }
             else if (oper == Operator.SUBTRACT.ToString())
             {
                 op = Operator.SUBTRACT;
+                indexOperator = false;
             }
             else if (oper == Operator.MULTIPLY.ToString())
             {
                 op = Operator.MULTIPLY;
+                indexOperator = false;
             }
             else if (oper == Operator.DIVIDE.ToString())
             {
                 op = Operator.DIVIDE;
+                indexOperator = false;
             }
             else if (oper == Operator.MAX.ToString())
             {
                 op = Operator.MAX;
+                indexOperator = false;
             }
             else if (oper == Operator.MIN.ToString())
             {
                 op = Operator.MIN;
+                indexOperator = false;
+            }
+            else if (oper == Operator.MAXINDEX.ToString())
+            {
+                op = Operator.MAXINDEX;
+                indexOperator = true;
+            }
+            else if (oper == Operator.MININDEX.ToString())
+            {
+                op = Operator.MININDEX;
+                indexOperator = true;
             }
             else
             {
@@ -95,46 +115,87 @@ namespace JSI
 
         public object Evaluate(RPMVesselComputer comp)
         {
-            float value = 0.0f;
-            if(!sourceVariables[0].Get(out value, comp))
+            if (indexOperator)
             {
-                return 0.0f;
-            }
+                int index = 0;
+                float value = 0.0f;
+                if (!sourceVariables[0].Get(out value, comp))
+                {
+                    return 0;
+                }
 
-            for (int i = 1; i < sourceVariables.Count; ++i)
+                for (int i = 1; i < sourceVariables.Count; ++i)
+                {
+                    float operand;
+                    if (!sourceVariables[i].Get(out operand, comp))
+                    {
+                        return 0;
+                    }
+
+                    switch (op)
+                    {
+                        case Operator.MAXINDEX:
+                            if (operand > value)
+                            {
+                                index = i;
+                                value = operand;
+                            }
+                            break;
+                        case Operator.MININDEX:
+                            if (operand < value)
+                            {
+                                index = i;
+                                value = operand;
+                            }
+                            break;
+                    }
+                }
+
+                return index;
+            }
+            else
             {
-                float operand;
-                if(!sourceVariables[i].Get(out operand, comp))
+                float value = 0.0f;
+                if (!sourceVariables[0].Get(out value, comp))
                 {
                     return 0.0f;
                 }
 
-                switch(op)
+                for (int i = 1; i < sourceVariables.Count; ++i)
                 {
-                    case Operator.NONE:
-                        break;
-                    case Operator.ADD:
-                        value += operand;
-                        break;
-                    case Operator.SUBTRACT:
-                        value -= operand;
-                        break;
-                    case Operator.MULTIPLY:
-                        value *= operand;
-                        break;
-                    case Operator.DIVIDE:
-                        value /= operand;
-                        break;
-                    case Operator.MAX:
-                        value = Mathf.Max(value, operand);
-                        break;
-                    case Operator.MIN:
-                        value = Mathf.Min(value, operand);
-                        break;
-                }
-            }
+                    float operand;
+                    if (!sourceVariables[i].Get(out operand, comp))
+                    {
+                        return 0.0f;
+                    }
 
-            return value;
+                    switch (op)
+                    {
+                        case Operator.NONE:
+                            break;
+                        case Operator.ADD:
+                            value += operand;
+                            break;
+                        case Operator.SUBTRACT:
+                            value -= operand;
+                            break;
+                        case Operator.MULTIPLY:
+                            value *= operand;
+                            break;
+                        case Operator.DIVIDE:
+                            value /= operand;
+                            break;
+                        case Operator.MAX:
+                            value = Mathf.Max(value, operand);
+                            break;
+                        case Operator.MIN:
+                            value = Mathf.Min(value, operand);
+                            break;
+                    }
+                }
+
+                return value;
+            }
         }
     }
 }

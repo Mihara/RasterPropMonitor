@@ -55,9 +55,15 @@ namespace JSI
         public string needsElectricCharge = string.Empty;
         private bool needsElectricChargeValue;
         [KSPField]
+        public string resourceName = "SYSR_ELECTRICCHARGE";
+        [KSPField]
         public string switchSound = "Squad/Sounds/sound_click_flick";
         [KSPField]
         public float switchSoundVolume = 0.5f;
+        [KSPField]
+        public string loopingSound = string.Empty;
+        [KSPField]
+        public float loopingSoundVolume = 0.0f;
         [KSPField]
         public string coloredObject = string.Empty;
         [KSPField]
@@ -124,6 +130,7 @@ namespace JSI
         private string persistentVarName;
         private Light[] lightObjects;
         private FXGroup audioOutput;
+        private FXGroup loopingOutput;
         private int lightCheckCountdown;
         private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
@@ -277,7 +284,7 @@ namespace JSI
                                                     string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
                                                     stateVariable = "PLUGIN_" + state;
                                                 }
-                                                else if(pluginConfig.HasValue("stateVariable"))
+                                                else if (pluginConfig.HasValue("stateVariable"))
                                                 {
                                                     stateVariable = pluginConfig.GetValue("stateVariable").Trim();
                                                 }
@@ -347,7 +354,7 @@ namespace JSI
                                                     break;
                                                 }
                                             }
-                                            else if(pluginConfig.HasValue("getVariable"))
+                                            else if (pluginConfig.HasValue("getVariable"))
                                             {
                                                 transferGetter = pluginConfig.GetValue("getVariable").Trim();
                                             }
@@ -506,6 +513,11 @@ namespace JSI
 
                 audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
 
+                if (!string.IsNullOrEmpty(loopingSound) && loopingSoundVolume > 0.0f)
+                {
+                    loopingOutput = JUtil.SetupIVASound(internalProp, loopingSound, loopingSoundVolume, true);
+                }
+
                 startupComplete = true;
             }
             catch
@@ -572,7 +584,7 @@ namespace JSI
                     }
                     // else: can't turn off a radio group switch.
                 }
-                else if(customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
+                else if (customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
@@ -607,12 +619,12 @@ namespace JSI
                     }
                     break;
                 case CustomActions.Transfer:
-                    if(!string.IsNullOrEmpty(stateVariable))
+                    if (!string.IsNullOrEmpty(stateVariable))
                     {
                         // stateVariable can disable the button functionality.
                         RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                         int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
-                        if(ivalue < 1)
+                        if (ivalue < 1)
                         {
                             return; // early - button disabled
                         }
@@ -645,7 +657,15 @@ namespace JSI
 
             if (!JUtil.IsActiveVessel(vessel))
             {
+                if (loopingOutput != null && currentState == true)
+                {
+                    loopingOutput.audio.volume = 0.0f;
+                }
                 return;
+            }
+            else if (loopingOutput != null && currentState == true && loopingOutput.Active)
+            {
+                loopingOutput.audio.volume = loopingSoundVolume * GameSettings.SHIP_VOLUME;
             }
 
             if (consumingWhileActive && currentState && !forcedShutdown)
@@ -727,7 +747,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && comp.ProcessVariable("SYSR_ELECTRICCHARGE").MassageToFloat() < 0.01f;
+                    forcedShutdown |= currentState && comp.ProcessVariable(resourceName).MassageToFloat() < 0.01f;
                 }
             }
 
@@ -775,11 +795,26 @@ namespace JSI
                         forcedShutdown = true;
                     }
                 }
+
                 if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
                     CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
                 {
                     audioOutput.audio.Play();
                 }
+
+                if (loopingOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+                    CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+                {
+                    if (newState)
+                    {
+                        loopingOutput.audio.Play();
+                    }
+                    else
+                    {
+                        loopingOutput.audio.Stop();
+                    }
+                }
+
                 if (anim != null)
                 {
                     if (newState ^ reverse)
