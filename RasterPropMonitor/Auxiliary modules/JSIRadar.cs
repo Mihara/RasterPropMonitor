@@ -75,6 +75,8 @@ namespace JSI
         // have to look at the forward vector instead of the up vector.
         private bool scanTransformIsDockingNode;
 
+        private string nodeType = string.Empty;
+
         public void Start()
         {
             if (!HighLogic.LoadedSceneIsFlight)
@@ -126,6 +128,7 @@ namespace JSI
                 {
                     List<ModuleDockingNode> dockingNode = part.FindModulesImplementing<ModuleDockingNode>();
                     scanTransform = dockingNode[0].nodeTransform;
+                    nodeType = dockingNode[0].nodeType;
                     scanTransformIsDockingNode = true;
                 }
                 catch (Exception e)
@@ -199,9 +202,33 @@ namespace JSI
                         }
                     }
 
-                    if (powered && targetDockingPorts && (target is Vessel))
+                    if (powered && targetDockingPorts && (target is Vessel) && !(target as Vessel).packed)
                     {
                         // Attempt to refine our target.
+                        ModuleDockingNode closestNode = null;
+                        float closestDistance = float.MaxValue;
+                        var l = (target as Vessel).FindPartModulesImplementing<ModuleDockingNode>();
+                        if (l != null)
+                        {
+                            for (int i = 0; i < l.Count; ++i)
+                            {
+                                if (l[i].state == "Ready" && (string.IsNullOrEmpty(nodeType) || nodeType == l[i].nodeType))
+                                {
+                                    Vector3 vectorToTarget = (l[i].part.transform.position - scanTransform.position);
+                                    if (vectorToTarget.sqrMagnitude < closestDistance)
+                                    {
+                                        closestDistance = vectorToTarget.sqrMagnitude;
+                                        closestNode = l[i];
+                                    }
+                                }
+                            }
+                        }
+
+                        if (closestNode != null)
+                        {
+                            JUtil.LogMessage(this, "Refining target to {1} at {0:0.000} km.", Mathf.Sqrt(closestDistance) * 0.001f, closestNode.vessel.vesselName);
+                            FlightGlobals.fetch.SetVesselTarget(closestNode);
+                        }
                     }
                 }
             }
