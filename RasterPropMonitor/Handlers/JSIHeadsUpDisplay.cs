@@ -154,7 +154,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(0, 0, 1.4f);
+                    ladderMesh.transform.position = new Vector3(0, 0, 1.45f);
                     ladderMesh.renderer.material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
@@ -183,7 +183,7 @@ namespace JSI
                         progradeIconMaterial.SetVector("_Color", progradeColorValue);
 
                         progradeLadderIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), texCoord, drawingLayer);
-                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.35f);
+                        progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.41f);
                         progradeLadderIcon.renderer.material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
                     }
