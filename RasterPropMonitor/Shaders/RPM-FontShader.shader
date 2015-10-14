@@ -50,9 +50,19 @@ Shader "RPM/DisplayShader"
 			{
 				v2f dataOut;
 				// Unfortunately, the original font implementation used a
-				// shader that required RGB to be halved, so we have to expand
-				// it here.
-				dataOut.color = float4(v.color.rgb * 2.0, v.color.a);
+				// Unity shader that used 0.5 as full brightness, which skews
+				// everything.  Doubling alpha appears to fix the problem for
+				// both DX and OGL paths.  When the Unity 5 version of KSP
+				// arrives, I'll break the legacy system and use normal values
+				// for everything.
+				dataOut.color = v.color;
+
+				// This works for DX, but not OGL:
+				//dataOut.color = float4(v.color.rgb * 2.0, v.color.a);
+
+				// This works for both:
+				dataOut.color = float4(v.color.rgb, v.color.a * 2.0);
+
 				dataOut.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
 				dataOut.texcoord = TRANSFORM_TEX(v.texcoord,_MainTex);
 				return dataOut;
