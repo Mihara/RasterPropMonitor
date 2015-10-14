@@ -181,6 +181,10 @@ namespace JSI
         private static readonly DynamicMethodDelegate deltaVToChangeApoapsis;
         // OrbitalManeuverCalculator.DeltaVToChangePeriapsis
         private static readonly DynamicMethodDelegate deltaVToChangePeriapsis;
+
+        // Ascent Autopilot Engaged (starting MJ dev 514)
+        private static readonly DynamicFuncBool getAscentAutopilotEngaged;
+        private static readonly DynamicMethodDelegate setAscentAutopilotEngaged;
         #endregion
 
         #region MechJeb enum imports
@@ -415,6 +419,25 @@ namespace JSI
                 if (launchOrbitAltitude == null)
                 {
                     throw new NotImplementedException("launchOrbitAltitude");
+                }
+                // MOARdV TODO: when the next version of MJ is out, this will be the only way to engage
+                // the AP, so we will want to throw an exception if aapEngaged is null.
+                PropertyInfo aapEngaged = mjMechJebModuleAscentAutopilot_t.GetProperty("Engaged");
+                if(aapEngaged != null)
+                {
+                    MethodInfo getter = aapEngaged.GetGetMethod();
+                    getAscentAutopilotEngaged = DynamicMethodDelegateFactory.CreateFuncBool(getter);
+                    if (getAscentAutopilotEngaged == null)
+                    {
+                        throw new NotImplementedException("getAscentAutopilotEngaged");
+                    }
+
+                    MethodInfo setter = aapEngaged.GetSetMethod();
+                    setAscentAutopilotEngaged = DynamicMethodDelegateFactory.Create(setter);
+                    if (setAscentAutopilotEngaged == null)
+                    {
+                        throw new NotImplementedException("setAscentAutopilotEngaged");
+                    }
                 }
 
                 Type mjEditableDoubleMult_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -1608,22 +1631,39 @@ namespace JSI
         {
             object activeJeb = GetMasterMechJeb(vessel);
             object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
-            object agPilot = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
 
-            if (ap != null && agPilot != null)
+            if (ap != null)
             {
-                object users = mjModuleUsers.GetValue(ap);
-                if (users == null)
+                // MOARdV TODO: When MJ 2.5.4 (or higher) is out, remove the
+                // null check here and eliminate the else path, since getAAPEngaged
+                // will be the only valid path.
+                if (setAscentAutopilotEngaged != null)
                 {
-                    throw new NotImplementedException("mjModuleUsers(ap) was null");
-                }
-                if (ModuleEnabled(ap))
-                {
-                    removeUser(users, new object[] { agPilot });
+                    setAscentAutopilotEngaged(ap, new object[] { state });
                 }
                 else
                 {
-                    addUser(users, new object[] { agPilot });
+                    object users = mjModuleUsers.GetValue(ap);
+                    if (users == null)
+                    {
+                        throw new NotImplementedException("mjModuleUsers(ap) was null");
+                    }
+
+                    object agPilot = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
+                    if(agPilot == null)
+                    {
+                        JUtil.LogErrorMessage(this, "Unable to fetch MechJebModuleAscentGuidance");
+                        return;
+                    }
+
+                    if (ModuleEnabled(ap))
+                    {
+                        removeUser(users, new object[] { agPilot });
+                    }
+                    else
+                    {
+                        addUser(users, new object[] { agPilot });
+                    }
                 }
             }
         }
@@ -1638,7 +1678,18 @@ namespace JSI
             if (activeJeb != null)
             {
                 object ap = GetComputerModule(activeJeb, "MechJebModuleAscentAutopilot");
-                return ModuleEnabled(ap);
+
+                // MOARdV TODO: When MJ 2.5.4 (or higher) is out, remove the
+                // null check here and eliminate the else path, since getAAPEngaged
+                // will be the only valid path.
+                if (getAscentAutopilotEngaged != null)
+                {
+                    return getAscentAutopilotEngaged(ap);
+                }
+                else
+                {
+                    return ModuleEnabled(ap);
+                }
             }
             else
             {
