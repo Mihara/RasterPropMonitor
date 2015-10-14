@@ -1060,7 +1060,7 @@ namespace JSI
         /// Return the current Smartass mode
         /// </summary>
         /// <returns></returns>
-        internal int GetSmartassMode()
+        public int GetSmartassMode()
         {
             object activeJeb = GetMasterMechJeb(vessel);
 
