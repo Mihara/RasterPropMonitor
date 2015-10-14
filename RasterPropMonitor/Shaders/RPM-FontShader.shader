@@ -55,7 +55,6 @@ Shader "RPM/DisplayShader"
 				// both DX and OGL paths.  When the Unity 5 version of KSP
 				// arrives, I'll break the legacy system and use normal values
 				// for everything.
-				dataOut.color = v.color;
 
 				// This works for DX, but not OGL:
 				//dataOut.color = float4(v.color.rgb * 2.0, v.color.a);
