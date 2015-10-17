@@ -150,6 +150,8 @@ namespace JSI
 
         // Ascent Autopilot
         private static readonly FieldInfo launchOrbitAltitude;
+        // Ascent Guidance
+        private static readonly FieldInfo launchOrbitInclination;
 
         // EditableDoubleMult
         private static readonly DynamicMethodDelegate setEditableDoubleMult;
@@ -438,6 +440,18 @@ namespace JSI
                     {
                         throw new NotImplementedException("setAscentAutopilotEngaged");
                     }
+                }
+                // MechJebModuleAscentAutopilot
+                Type mjMechJebModuleAscentGuidance_t = loadedMechJebAssy.assembly.GetExportedTypes()
+                    .SingleOrDefault(t => t.FullName == "MuMech.MechJebModuleAscentGuidance");
+                if (mjMechJebModuleAscentGuidance_t == null)
+                {
+                    throw new NotImplementedException("mjMechJebModuleAscentGuidance_t");
+                }
+                launchOrbitInclination = mjMechJebModuleAscentGuidance_t.GetField("desiredInclination");
+                if (launchOrbitInclination == null)
+                {
+                    throw new NotImplementedException("launchOrbitInclination");
                 }
 
                 Type mjEditableDoubleMult_t = loadedMechJebAssy.assembly.GetExportedTypes()
@@ -1269,6 +1283,30 @@ namespace JSI
                 {
                     setEditableDoubleMult(desiredAlt, new object[] { altitude });
                 }
+            }
+        }
+
+        public double GetLaunchInclination()
+        {
+            double angle = 0.0;
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ascent = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
+            if (ascent != null)
+            {
+                object inclination = launchOrbitInclination.GetValue(ascent);
+                angle = getEditableDouble(inclination);
+            }
+            return angle;
+        }
+
+        public void SetLaunchInclination(double inclination)
+        {
+            object activeJeb = GetMasterMechJeb(vessel);
+            object ascent = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
+            if (ascent != null)
+            {
+                object incline = launchOrbitInclination.GetValue(ascent);
+                setEditableDouble(incline, new object[] { inclination });
             }
         }
 
