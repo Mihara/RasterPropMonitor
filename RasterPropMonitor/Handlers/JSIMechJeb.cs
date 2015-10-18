@@ -1088,7 +1088,7 @@ namespace JSI
             return (activeJeb != null);
         }
 
-        internal void SetSmartassMode(Target t)
+        public void SetSmartassMode(Target t)
         {
             EnactTargetAction(vessel, t);
         }
