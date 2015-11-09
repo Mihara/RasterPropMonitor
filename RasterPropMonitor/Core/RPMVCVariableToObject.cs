@@ -2032,10 +2032,23 @@ namespace JSI
                     {
                         if (vessel.mainBody.atmosphere)
                         {
-                            return ((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
-                            FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0d, 1d);
+                            float depth;
+                            try
+                            {
+                                depth = FlightUIController.fetch.atmos.Value.Clamp(0.0f, 1.0f);
+                            }
+                            catch
+                            {
+                                depth = (float)((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
+                                FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0.0f, 1.0f);
+                            }
+
+                            return depth;
                         }
-                        return 0d;
+                        else
+                        {
+                            return 0.0f;
+                        }
                     };
 
                 // Masses.
