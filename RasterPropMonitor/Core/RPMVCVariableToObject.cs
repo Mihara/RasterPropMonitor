@@ -2228,7 +2228,7 @@ namespace JSI
                             }
                             return vessel.orbit.timeToAp;
                         }
-                        return double.NaN;
+                        return 0.0;
                     };
                 case "NEXTAPSIS":
                     return (string variable) =>
