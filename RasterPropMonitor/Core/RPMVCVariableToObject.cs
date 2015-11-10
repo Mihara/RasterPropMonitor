@@ -1895,7 +1895,18 @@ namespace JSI
                 case "HORZVELOCITYRIGHT":
                     return (string variable) => { return Vector3d.Dot(vessel.srf_velocity, surfaceRight); };
                 case "EASPEED":
-                    return (string variable) => { return vessel.srfSpeed * Math.Sqrt(vessel.atmDensity / standardAtmosphere); };
+                    return (string variable) => 
+                    {
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel.mainBody, vessel.altitude, false) / 1.225);
+                        return vessel.srfSpeed * Math.Sqrt(densityRatio); 
+                    };
+                case "IASPEED":
+                    return (string variable) =>
+                    {
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel.mainBody, vessel.altitude, false) / 1.225);
+                        double pressureRatio = AeroExtensions.StagnationPressureCalc(vessel.mainBody, vessel.mach);
+                        return vessel.srfSpeed * Math.Sqrt(densityRatio) * pressureRatio;
+                    };
                 case "APPROACHSPEED":
                     return (string variable) => { return approachSpeed; };
                 case "SELECTEDSPEED":
