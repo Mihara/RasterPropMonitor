@@ -97,7 +97,6 @@ namespace JSI
         };
         private const float gee = 9.81f;
         private readonly double upperAtmosphereLimit = Math.Log(100000.0);
-        private static double standardAtmosphere = -1.0;
         #endregion
 
         #region Instance Variables
@@ -542,10 +541,6 @@ namespace JSI
         {
             JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
-            if (standardAtmosphere < 0.0)
-            {
-                standardAtmosphere = FlightGlobals.getAtmDensity(FlightGlobals.getStaticPressure(0, FlightGlobals.Bodies[1]), FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel);
-            }
 
             if (JUtil.IsActiveVessel(vessel))
             {

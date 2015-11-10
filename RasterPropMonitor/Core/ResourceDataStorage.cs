@@ -153,10 +153,11 @@ namespace JSI
             "DENSITY",
             "DELTA",
             "DELTAINV",
-            "MASS",
             "MAXMASS",
+            "MASS",
             "MAX",
-            "PERCENT"
+            "PERCENT",
+            "DEPLETED"
         };
 
         public object ListElement(string resourceQuery)
@@ -228,6 +229,18 @@ namespace JSI
                         else
                         {
                             v = resource.max > 0 ? resource.current / resource.max : 0d;
+                        }
+                        break;
+                    case "DEPLETED":
+                        if (stage)
+                        {
+                            bool available = (resource.stagemax > 0.0f && resource.stage < 0.01f);
+                            v = available.GetHashCode();
+                        }
+                        else
+                        {
+                            bool available = (resource.max > 0.0f && resource.current < 0.01f);
+                            v = available.GetHashCode();
                         }
                         break;
                 }

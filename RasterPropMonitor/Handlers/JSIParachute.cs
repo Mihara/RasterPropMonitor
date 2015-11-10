@@ -42,7 +42,16 @@ namespace JSI
         static private readonly DynamicAction deployChute;
         static private readonly DynamicAction cutChute;
         static private readonly FieldInfo rcArmed;
+        static private readonly FieldInfo rcSafeState;
         static private readonly bool rcFound;
+
+        // From RealChute:
+        public enum SafeState
+        {
+            SAFE,
+            RISKY,
+            DANGEROUS
+        }
 
         static JSIParachute()
         {
@@ -68,7 +77,7 @@ namespace JSI
 
                 MethodInfo rcArmChute = rcModuleRealChute.GetMethod("GUIArm", BindingFlags.Instance | BindingFlags.Public);
                 armChute = DynamicMethodDelegateFactory.CreateAction(rcArmChute);
-                if(armChute == null)
+                if (armChute == null)
                 {
                     JUtil.LogMessage(null, "armChute is null");
                 }
@@ -99,8 +108,14 @@ namespace JSI
                 {
                     JUtil.LogMessage(null, "rcArmed is null");
                 }
+
+                rcSafeState = rcModuleRealChute.GetField("safeState", BindingFlags.Instance | BindingFlags.Public);
+                if (rcSafeState == null)
+                {
+                    JUtil.LogMessage(null, "rcSafeState is null");
+                }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 JUtil.LogMessage(null, "static JSIParachute exception {0}", e);
                 rcModuleRealChute = null;
@@ -110,15 +125,17 @@ namespace JSI
                 deployChute = null;
                 cutChute = null;
                 rcArmed = null;
+                rcSafeState = null;
             }
 
-            if (rcModuleRealChute != null 
+            if (rcModuleRealChute != null
                 && armChute != null
                 && getAnyDeployed != null
-                && disarmChute != null 
+                && disarmChute != null
                 && deployChute != null
-                && cutChute != null 
+                && cutChute != null
                 && rcArmed != null
+                && rcSafeState != null
                 )
             {
                 rcFound = true;
@@ -129,7 +146,7 @@ namespace JSI
             }
         }
 
-        public JSIParachute() 
+        public JSIParachute()
         {
             JUtil.LogMessage(this, "A supported version of RealChute is {0}", (rcFound) ? "present" : "not available");
         }
@@ -275,8 +292,60 @@ namespace JSI
                     break;
                 }
             }
+            foreach (PartModule module in FindRealChuteIn(vessel))
+            {
+                object state = rcSafeState.GetValue(module);
+                if ((int)state != (int)SafeState.SAFE)
+                {
+                    allSafe = false;
+                    break;
+                }
+            }
 
             return allSafe;
+        }
+
+        public double ParachuteSafetyValue()
+        {
+            bool allSafe = true;
+            bool allDangerous = true;
+            foreach (ModuleParachute module in FindStockChuteIn(vessel))
+            {
+                if (module.deploySafe != "Safe")
+                {
+                    allSafe = false;
+                }
+                else
+                {
+                    allDangerous = false;
+                }
+            }
+
+            foreach (PartModule module in FindRealChuteIn(vessel))
+            {
+                object state = rcSafeState.GetValue(module);
+                if ((int)state != (int)SafeState.SAFE)
+                {
+                    allSafe = false;
+                }
+                if ((int)state != (int)SafeState.DANGEROUS)
+                {
+                    allDangerous = false;
+                }
+            }
+
+            if (allSafe)
+            {
+                return 1.0;
+            }
+            else if (allDangerous)
+            {
+                return -1.0;
+            }
+            else
+            {
+                return 0.0;
+            }
         }
 
         private static IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
