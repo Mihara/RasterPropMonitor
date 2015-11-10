@@ -157,7 +157,7 @@ namespace JSI
             "MASS",
             "MAX",
             "PERCENT",
-            "AVAIL"
+            "DEPLETED"
         };
 
         public object ListElement(string resourceQuery)
@@ -231,15 +231,15 @@ namespace JSI
                             v = resource.max > 0 ? resource.current / resource.max : 0d;
                         }
                         break;
-                    case "AVAIL":
+                    case "DEPLETED":
                         if (stage)
                         {
-                            bool available = (resource.stagemax > 0.0f && resource.stage > 0.0f);
+                            bool available = (resource.stagemax > 0.0f && resource.stage < 0.01f);
                             v = available.GetHashCode();
                         }
                         else
                         {
-                            bool available = (resource.max > 0.0f && resource.current > 0.0f);
+                            bool available = (resource.max > 0.0f && resource.current < 0.01f);
                             v = available.GetHashCode();
                         }
                         break;
