@@ -509,6 +509,7 @@ namespace JSI
                 installedModules.Add(new JSIInternalRPMButtons());
                 installedModules.Add(new JSIFAR());
                 installedModules.Add(new JSIKAC());
+                installedModules.Add(new JSIEngine());
             }
 
             if (triggeredEvents == null)
@@ -539,7 +540,7 @@ namespace JSI
 
         public void Start()
         {
-            JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            //JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
 
             if (JUtil.IsActiveVessel(vessel))
@@ -555,7 +556,7 @@ namespace JSI
 
         public void OnDestroy()
         {
-            JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
             GameEvents.onStageActivate.Remove(StageActivateCallback);
@@ -602,14 +603,7 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            //evaluateMechJebAvailable = null;
             evaluateAngleOfAttack = null;
-            //evaluateDeltaV = null;
-            //evaluateDeltaVStage = null;
-            //evaluateLandingError = null;
-            //evaluateLandingAltitude = null;
-            //evaluateLandingLatitude = null;
-            //evaluateLandingLongitude = null;
             evaluateSideSlip = null;
             evaluateTerminalVelocity = null;
         }
