@@ -1287,7 +1287,7 @@ namespace JSI
 
             speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
-            if (speedVertical < vessel.srfSpeed)
+            if (Math.Abs(speedVertical) < Math.Abs(vessel.srfSpeed))
             {
                 speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
             }
