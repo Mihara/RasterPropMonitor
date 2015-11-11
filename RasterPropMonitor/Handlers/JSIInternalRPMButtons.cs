@@ -152,18 +152,6 @@ namespace JSI
                                 engine.Shutdown();
                             }
                         }
-                        var engineFX = pm as ModuleEnginesFX;
-                        if (engineFX != null && engineFX.EngineIgnited != state)
-                        {
-                            if (state && engineFX.allowRestart)
-                            {
-                                engineFX.Activate();
-                            }
-                            else if (engineFX.allowShutdown)
-                            {
-                                engineFX.Shutdown();
-                            }
-                        }
                     }
                 }
             }
@@ -183,12 +171,6 @@ namespace JSI
                     {
                         var engine = pm as ModuleEngines;
                         if (engine != null && engine.allowShutdown && engine.getIgnitionState)
-                        {
-                            // early out: at least one engine is enabled.
-                            return true;
-                        }
-                        var engineFX = pm as ModuleEnginesFX;
-                        if (engineFX != null && engineFX.allowShutdown && engineFX.getIgnitionState)
                         {
                             // early out: at least one engine is enabled.
                             return true;
