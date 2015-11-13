@@ -407,10 +407,10 @@ namespace JSI
                 case "HORZVELOCITYRIGHT":
                     return (string variable) => { return Vector3d.Dot(vessel.srf_velocity, surfaceRight); };
                 case "EASPEED":
-                    return (string variable) => 
+                    return (string variable) =>
                     {
                         double densityRatio = (AeroExtensions.GetCurrentDensity(vessel.mainBody, vessel.altitude, false) / 1.225);
-                        return vessel.srfSpeed * Math.Sqrt(densityRatio); 
+                        return vessel.srfSpeed * Math.Sqrt(densityRatio);
                     };
                 case "IASPEED":
                     return (string variable) =>
@@ -862,6 +862,18 @@ namespace JSI
                             return Planetarium.GetUniversalTime() + 426 * 6 * 60 * 60;
                         }
                         return Planetarium.GetUniversalTime() + 365 * 24 * 60 * 60;
+                    };
+                case "TIMEOFDAYSECS":
+                    return (string variable) =>
+                    {
+                        if (GameSettings.KERBIN_TIME)
+                        {
+                            return Planetarium.GetUniversalTime() % (6.0 * 60.0 * 60.0);
+                        }
+                        else
+                        {
+                            return Planetarium.GetUniversalTime() % (24.0 * 60.0 * 60.0);
+                        }
                     };
                 case "METSECS":
                     return (string variable) => { return vessel.missionTime; };
