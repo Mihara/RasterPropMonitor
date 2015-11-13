@@ -345,6 +345,18 @@ namespace JSI
         #region VesselModule Overrides
         public void Awake()
         {
+            if (!GameDatabase.Instance.IsReady())
+            {
+                if (HighLogic.LoadedSceneIsFlight)
+                {
+                    throw new Exception("GameDatabase is not ready?");
+                }
+                else
+                {
+                    // Why are we being called when we're not in flight?
+                    return;
+                }
+            }
             if (instances == null)
             {
                 JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
@@ -353,10 +365,6 @@ namespace JSI
             if (protractor == null)
             {
                 protractor = new Protractor();
-            }
-            if (!GameDatabase.Instance.IsReady())
-            {
-                throw new Exception("GameDatabase is not ready?");
             }
 
             // MOARdV TODO: Only add this instance to the library if there is
@@ -556,6 +564,11 @@ namespace JSI
 
         public void OnDestroy()
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
