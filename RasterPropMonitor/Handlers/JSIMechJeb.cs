@@ -33,8 +33,6 @@ namespace JSI
     internal class JSIMechJeb : IJSIModule
     {
         #region Reflection Definitions
-        // MechJebCore
-        private static readonly Type mjMechJebCore_t;
         // MechJebCore.GetComputerModule(string)
         private static readonly DynamicMethodDelegate getComputerModule;
         // MechJebCore.target
@@ -260,6 +258,7 @@ namespace JSI
 
         static JSIMechJeb()
         {
+            Type mjMechJebCore_t = null;
             try
             {
                 var loadedMechJebAssy = AssemblyLoader.loadedAssemblies.FirstOrDefault(a => a.name == "MechJeb2");
