@@ -336,17 +336,16 @@ namespace JSI
         #region VesselModule Overrides
         public void Awake()
         {
+            vessel = GetComponent<Vessel>();
+            if (vessel == null || vessel.isEVA || !vessel.isCommandable)
+            {
+                vessel = null;
+                Destroy(this);
+                return;
+            }
             if (!GameDatabase.Instance.IsReady())
             {
-                if (HighLogic.LoadedSceneIsFlight)
-                {
-                    throw new Exception("GameDatabase is not ready?");
-                }
-                else
-                {
-                    // Why are we being called when we're not in flight?
-                    return;
-                }
+                throw new Exception("GameDatabase is not ready?");
             }
             if (instances == null)
             {
@@ -356,14 +355,6 @@ namespace JSI
             if (protractor == null)
             {
                 protractor = new Protractor();
-            }
-
-            // MOARdV TODO: Only add this instance to the library if there is
-            // crew capacity.  Probes should not apply.  Except, what about docking?
-            vessel = GetComponent<Vessel>();
-            if (vessel == null)
-            {
-                throw new Exception("RPMVesselComputer: GetComponent<Vessel>() returned null");
             }
             if (instances.ContainsKey(vessel.id))
             {
