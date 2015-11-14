@@ -500,6 +500,7 @@ namespace JSI
                 installedModules.Add(new JSIFAR());
                 installedModules.Add(new JSIKAC());
                 installedModules.Add(new JSIEngine());
+                installedModules.Add(new JSIPilotAssistant());
             }
 
             if (triggeredEvents == null)
