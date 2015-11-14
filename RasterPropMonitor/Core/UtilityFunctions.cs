@@ -1260,6 +1260,8 @@ namespace JSI
                 return (float)(double)thatValue;
             if (thatValue is int)
                 return (float)(int)thatValue;
+            if (thatValue is bool)
+                return (float)(((bool)thatValue).GetHashCode());
             return float.NaN;
         }
 
@@ -1272,6 +1274,8 @@ namespace JSI
                 return (int)(double)thatValue;
             if (thatValue is float)
                 return (int)(float)thatValue;
+            if (thatValue is bool)
+                return ((bool)thatValue).GetHashCode();
             return 0;
         }
 
@@ -1284,6 +1288,8 @@ namespace JSI
                 return (double)(float)thatValue;
             if (thatValue is int)
                 return (double)(int)thatValue;
+            if (thatValue is bool)
+                return (double)(((bool)thatValue).GetHashCode());
             return double.NaN;
         }
 
