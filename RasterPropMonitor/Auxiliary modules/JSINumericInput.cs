@@ -106,6 +106,10 @@ namespace JSI
                     float value;
                     if (von.Get(out value, comp))
                     {
+                        if (stepSize > 0.0f)
+                        {
+                            value = value % stepSize;
+                        }
                         //JUtil.LogMessage(this, " ... Initialized to {0}", (int)value);
                         rpmComp.SetVar(perPodPersistenceName, (int)value);
                     }
