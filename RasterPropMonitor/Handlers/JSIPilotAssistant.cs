@@ -30,6 +30,8 @@ namespace JSI
      * Interace with the Pilot Assistant mod:
      * http://forum.kerbalspaceprogram.com/threads/100073
      * 
+     * Interface consists of several categories of methods: Get*Active,
+     * Set*Active, Get*Mode, Get*Setting, and mode-specific setters.
      */
     class JSIPilotAssistant : IJSIModule
     {
@@ -43,6 +45,18 @@ namespace JSI
         private static readonly FieldInfo vertActive_t;
         private static readonly DynamicFuncDouble GetCurrentVert;
         private static readonly DynamicMethodDelegate SetVert;
+
+        // Horizontal control mode & enable
+        private static readonly FieldInfo horzMode_t;
+        private static readonly FieldInfo horzActive_t;
+        private static readonly DynamicFuncDouble GetCurrentHorz;
+        private static readonly DynamicMethodDelegate SetHorz;
+
+        // Horizontal control mode & enable
+        private static readonly FieldInfo throttleMode_t;
+        private static readonly FieldInfo throttleActive_t;
+        private static readonly DynamicFuncDouble GetCurrentThrottle;
+        private static readonly DynamicMethodDelegate SetThrottle;
 
         static JSIPilotAssistant()
         {
@@ -106,6 +120,52 @@ namespace JSI
                     throw new NotImplementedException("setVert_t");
                 }
                 SetVert = DynamicMethodDelegateFactory.Create(setVert_t);
+
+                horzMode_t = paPilotAssistant_t.GetField("CurrentHrztMode", BindingFlags.Instance | BindingFlags.Public);
+                if (horzMode_t == null)
+                {
+                    throw new NotImplementedException("horzMode_t");
+                }
+                horzActive_t = paPilotAssistant_t.GetField("HrztActive", BindingFlags.Instance | BindingFlags.Public);
+                if (horzActive_t == null)
+                {
+                    throw new NotImplementedException("horzActive_t");
+                }
+                MethodInfo horzSetting_t = paPilotAssistant_t.GetMethod("GetCurrentHrzt", BindingFlags.Instance | BindingFlags.Public);
+                if (horzSetting_t == null)
+                {
+                    throw new NotImplementedException("horzSetting_t");
+                }
+                GetCurrentHorz = DynamicMethodDelegateFactory.CreateFuncDouble(horzSetting_t);
+                MethodInfo setHorz_t = paPilotAssistant_t.GetMethod("SetHrzt", BindingFlags.Instance | BindingFlags.Public);
+                if (setHorz_t == null)
+                {
+                    throw new NotImplementedException("setHorz_t");
+                }
+                SetHorz = DynamicMethodDelegateFactory.Create(setHorz_t);
+
+                throttleMode_t = paPilotAssistant_t.GetField("CurrentThrottleMode", BindingFlags.Instance | BindingFlags.Public);
+                if (throttleMode_t == null)
+                {
+                    throw new NotImplementedException("throttleMode_t");
+                }
+                throttleActive_t = paPilotAssistant_t.GetField("ThrtActive", BindingFlags.Instance | BindingFlags.Public);
+                if (throttleActive_t == null)
+                {
+                    throw new NotImplementedException("throttleActive_t");
+                }
+                MethodInfo throttleSetting_t = paPilotAssistant_t.GetMethod("GetCurrentThrottle", BindingFlags.Instance | BindingFlags.Public);
+                if (throttleSetting_t == null)
+                {
+                    throw new NotImplementedException("throttleSetting_t");
+                }
+                GetCurrentThrottle = DynamicMethodDelegateFactory.CreateFuncDouble(throttleSetting_t);
+                MethodInfo setThrottle_t = paPilotAssistant_t.GetMethod("SetThrottle", BindingFlags.Instance | BindingFlags.Public);
+                if (setThrottle_t == null)
+                {
+                    throw new NotImplementedException("setThrottle_t");
+                }
+                SetThrottle = DynamicMethodDelegateFactory.Create(setThrottle_t);
             }
             catch (Exception e)
             {
@@ -313,6 +373,284 @@ namespace JSI
             catch(Exception e)
             {
                 JUtil.LogMessage(this, "GetVertSetting: {0}", e);
+            }
+            return 0.0;
+        }
+
+        //--- Horizontal control modes -----------------------------------------
+        public bool GetHorzActive()
+        {
+            if (!paFound)
+            {
+                return false;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object horzActive = horzActive_t.GetValue(pilotAssistant);
+
+                return (bool)horzActive;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetHorzActive: {0}", e);
+            }
+            return false;
+        }
+
+        public void SetHorzActive(bool state)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object horzMode = horzMode_t.GetValue(pilotAssistant);
+
+                SetVert(pilotAssistant, new object[] { state, false, horzMode, 0.0 });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetHorzActive: {0}", e);
+            }
+        }
+
+        public void SetHorzBank(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetHorz(pilotAssistant, new object[] { true, true, HrztMode.Bank, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetHorzBank: {0}", e);
+            }
+        }
+
+        public void SetHorzDirection(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetHorz(pilotAssistant, new object[] { true, true, HrztMode.Heading, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetHorzDirection: {0}", e);
+            }
+        }
+
+        public void SetHorzHeading(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetHorz(pilotAssistant, new object[] { true, true, HrztMode.HeadingNum, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetHorzHeading: {0}", e);
+            }
+        }
+
+        public double GetHorzMode()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object horzMode = horzMode_t.GetValue(pilotAssistant);
+
+                int hm = (int)horzMode;
+                return (double)hm;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetHorzMode: {0}", e);
+            }
+            return 0.0;
+        }
+
+        public double GetHorzSetting()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                return GetCurrentHorz(pilotAssistant);
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetHorzSetting: {0}", e);
+            }
+            return 0.0;
+        }
+
+        //--- Throttle control modes -----------------------------------------
+        public bool GetThrottleActive()
+        {
+            if (!paFound)
+            {
+                return false;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object throttleActive = throttleActive_t.GetValue(pilotAssistant);
+
+                return (bool)throttleActive;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetThrottleActive: {0}", e);
+            }
+            return false;
+        }
+
+        public void SetThrottleActive(bool state)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object throttleActive = throttleActive_t.GetValue(pilotAssistant);
+
+                SetThrottle(pilotAssistant, new object[] { state, false, throttleActive, 0.0 });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetThrottleActive: {0}", e);
+            }
+        }
+
+        public void SetThrottleDirect(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetThrottle(pilotAssistant, new object[] { true, true, ThrottleMode.Direct, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetThrottleDirect: {0}", e);
+            }
+        }
+
+        public void SetThrottleAccel(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetThrottle(pilotAssistant, new object[] { true, true, ThrottleMode.Acceleration, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetThrottleAccel: {0}", e);
+            }
+        }
+
+        public void SetThrottleSpeed(double rate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetThrottle(pilotAssistant, new object[] { true, true, ThrottleMode.Speed, rate });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetThrottleSpeed: {0}", e);
+            }
+        }
+
+        public double GetThrottleMode()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object throttleMode = throttleMode_t.GetValue(pilotAssistant);
+
+                int tm = (int)throttleMode;
+                return (double)tm;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetThrottleMode: {0}", e);
+            }
+            return 0.0;
+        }
+
+        public double GetThrottleSetting()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                return GetCurrentThrottle(pilotAssistant);
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetThrottleSetting: {0}", e);
             }
             return 0.0;
         }
