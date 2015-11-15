@@ -1499,6 +1499,18 @@ namespace JSI
                             return 0.0;
                         }
                     };
+                case "TARGETPLANELAUNCHTIMESECS":
+                    return (string variable) =>
+                    {
+                        if (targetVessel != null && targetVessel.mainBody == vessel.mainBody && (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH || vessel.situation == Vessel.Situations.SPLASHED))
+                        {
+                            return TimeToPlane(vessel.mainBody, vessel.latitude, vessel.longitude, target.GetOrbit());
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
 
                 // Protractor-type values (phase angle, ejection angle)
                 case "TARGETBODYPHASEANGLE":
