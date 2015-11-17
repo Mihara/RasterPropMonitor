@@ -413,7 +413,7 @@ namespace JSI
 
                 object horzMode = horzMode_t.GetValue(pilotAssistant);
 
-                SetVert(pilotAssistant, new object[] { state, false, horzMode, 0.0 });
+                SetHorz(pilotAssistant, new object[] { state, false, horzMode, 0.0 });
             }
             catch (Exception e)
             {
@@ -550,7 +550,7 @@ namespace JSI
             {
                 object pilotAssistant = GetPilotAssistant();
 
-                object throttleActive = throttleActive_t.GetValue(pilotAssistant);
+                object throttleActive = throttleMode_t.GetValue(pilotAssistant);
 
                 SetThrottle(pilotAssistant, new object[] { state, false, throttleActive, 0.0 });
             }
