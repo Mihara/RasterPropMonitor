@@ -108,7 +108,8 @@ namespace JSI
                     {
                         if (stepSize > 0.0f)
                         {
-                            value = value % stepSize;
+                            float remainder = value % stepSize;
+                            value -= remainder;
                         }
                         //JUtil.LogMessage(this, " ... Initialized to {0}", (int)value);
                         rpmComp.SetVar(perPodPersistenceName, (int)value);
@@ -236,6 +237,10 @@ namespace JSI
                     }
 
                     rpmComp.SetVar(perPodPersistenceName, (int)val);
+                }
+                else
+                {
+                    remainder = 0.0f;
                 }
             }
             else
