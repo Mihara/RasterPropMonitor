@@ -259,6 +259,8 @@ namespace JSI
         private float hottestPartTemperature;
         private float hottestPartMaxTemperature;
         private string hottestPartName;
+        private float hottestEngineTemperature;
+        private float hottestEngineMaxTemperature;
         private float localGeeASL;
         private float localGeeDirect;
         private bool orbitSensibility;
@@ -1008,10 +1010,11 @@ namespace JSI
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
-            hottestPartTemperature = -1000000.0f;
-            hottestPartMaxTemperature = 1000000.0f;
-            float hottestPart = float.MaxValue;
+            hottestPartTemperature = hottestEngineTemperature = 0.0f;
+            hottestPartMaxTemperature = hottestEngineMaxTemperature = 0.0f;
             hottestPartName = string.Empty;
+            float hottestPart = float.MaxValue;
+            float hottestEngine = float.MaxValue;
             float hottestShield = float.MinValue;
             float totalResourceMass = 0.0f;
 
@@ -1029,7 +1032,6 @@ namespace JSI
                     resources.Add(resource);
                 }
 
-                // Also check thatPart.temperature
                 if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestPart)
                 {
                     hottestPartTemperature = (float)thatPart.skinTemperature;
@@ -1080,6 +1082,19 @@ namespace JSI
                         if (maxIsp > 0.0f)
                         {
                             maxIspContribution += maxThrust / maxIsp;
+                        }
+
+                        if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
+                        {
+                            hottestEngineTemperature = (float)thatPart.skinTemperature;
+                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                        }
+                        if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
+                        {
+                            hottestEngineTemperature = (float)thatPart.skinTemperature;
+                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
                         }
                     }
                     else if (pm is ModuleAblator)

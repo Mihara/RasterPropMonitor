@@ -1643,9 +1643,15 @@ namespace JSI
                 case "HOTTESTPARTMAXTEMP":
                     return (string variable) => { return hottestPartMaxTemperature; };
                 case "HOTTESTPARTTEMPRATIO":
-                    return (string variable) => { return hottestPartTemperature / hottestPartMaxTemperature; };
+                    return (string variable) => { return (hottestPartMaxTemperature > 0.0f) ? (hottestPartTemperature / hottestPartMaxTemperature) : 0.0f; };
                 case "HOTTESTPARTNAME":
                     return (string variable) => { return hottestPartName; };
+                case "HOTTESTENGINETEMP":
+                    return (string variable) => { return hottestEngineTemperature; };
+                case "HOTTESTENGINEMAXTEMP":
+                    return (string variable) => { return hottestEngineMaxTemperature; };
+                case "HOTTESTENGINETEMPRATIO":
+                    return (string variable) => { return (hottestEngineMaxTemperature > 0.0f) ? (hottestEngineTemperature / hottestEngineMaxTemperature) : 0.0f; };
                 case "SLOPEANGLE":
                     return (string variable) => { return slopeAngle; };
                 case "SPEEDDISPLAYMODE":
