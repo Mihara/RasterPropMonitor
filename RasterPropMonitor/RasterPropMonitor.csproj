@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
-    <ReleaseVersion>0.24.0</ReleaseVersion>
+    <ReleaseVersion>0.24.1</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
@@ -68,11 +68,13 @@
     <Compile Include="Core\SelectVariable.cs" />
     <Compile Include="Core\TextRenderer.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
+    <Compile Include="Handlers\JSIEngine.cs" />
     <Compile Include="Handlers\JSIFAR.cs" />
     <Compile Include="Handlers\JSIGraphingBackground.cs" />
     <Compile Include="Handlers\JSIKAC.cs" />
     <Compile Include="Handlers\JSIMechJeb.cs" />
     <Compile Include="Handlers\JSIParachute.cs" />
+    <Compile Include="Handlers\JSIPilotAssistant.cs" />
     <Compile Include="Handlers\JSISASMenu.cs" />
     <Compile Include="Handlers\KACWrapper.cs" />
     <Compile Include="Handlers\MechJebRPM.cs" />

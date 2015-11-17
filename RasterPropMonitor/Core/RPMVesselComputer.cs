@@ -1,5 +1,4 @@
-﻿#define USE_VARIABLECACHE
-//#define SHOW_FIXEDUPDATE_TIMING
+﻿//#define SHOW_FIXEDUPDATE_TIMING
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -126,16 +125,8 @@ namespace JSI
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
-#if USE_VARIABLECACHE
         private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private uint masterSerialNumber = 0u;
-#endif
-
-#if !USE_VARIABLECACHE
-        private Dictionary<string, Func<bool>> pluginBoolVariables = new Dictionary<string, Func<bool>>();
-        private Dictionary<string, Func<double>> pluginDoubleVariables = new Dictionary<string, Func<double>>();
-        private Dictionary<string, Delegate> pluginVariables = new Dictionary<string, Delegate>();
-#endif
 
         // Craft-relative basis vectors
         private Vector3 forward;
@@ -345,6 +336,17 @@ namespace JSI
         #region VesselModule Overrides
         public void Awake()
         {
+            vessel = GetComponent<Vessel>();
+            if (vessel == null || vessel.isEVA || !vessel.isCommandable)
+            {
+                vessel = null;
+                Destroy(this);
+                return;
+            }
+            if (!GameDatabase.Instance.IsReady())
+            {
+                throw new Exception("GameDatabase is not ready?");
+            }
             if (instances == null)
             {
                 JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
@@ -353,18 +355,6 @@ namespace JSI
             if (protractor == null)
             {
                 protractor = new Protractor();
-            }
-            if (!GameDatabase.Instance.IsReady())
-            {
-                throw new Exception("GameDatabase is not ready?");
-            }
-
-            // MOARdV TODO: Only add this instance to the library if there is
-            // crew capacity.  Probes should not apply.  Except, what about docking?
-            vessel = GetComponent<Vessel>();
-            if (vessel == null)
-            {
-                throw new Exception("RPMVesselComputer: GetComponent<Vessel>() returned null");
             }
             if (instances.ContainsKey(vessel.id))
             {
@@ -509,6 +499,8 @@ namespace JSI
                 installedModules.Add(new JSIInternalRPMButtons());
                 installedModules.Add(new JSIFAR());
                 installedModules.Add(new JSIKAC());
+                installedModules.Add(new JSIEngine());
+                installedModules.Add(new JSIPilotAssistant());
             }
 
             if (triggeredEvents == null)
@@ -539,7 +531,7 @@ namespace JSI
 
         public void Start()
         {
-            JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            //JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
 
             if (JUtil.IsActiveVessel(vessel))
@@ -555,7 +547,12 @@ namespace JSI
 
         public void OnDestroy()
         {
-            JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            if (vessel == null)
+            {
+                return;
+            }
+
+            //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
             GameEvents.onStageActivate.Remove(StageActivateCallback);
@@ -572,21 +569,13 @@ namespace JSI
             }
 
             resultCache.Clear();
-#if USE_VARIABLECACHE
             variableCache.Clear();
-#endif
 
             vessel = null;
             navBall = null;
             node = null;
             part = null;
             rpmComp = null;
-
-#if !USE_VARIABLECACHE
-            pluginBoolVariables = null;
-            pluginDoubleVariables = null;
-            pluginVariables = null;
-#endif
 
             target = null;
             targetDockingNode = null;
@@ -602,14 +591,7 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            //evaluateMechJebAvailable = null;
             evaluateAngleOfAttack = null;
-            //evaluateDeltaV = null;
-            //evaluateDeltaVStage = null;
-            //evaluateLandingError = null;
-            //evaluateLandingAltitude = null;
-            //evaluateLandingLatitude = null;
-            //evaluateLandingLongitude = null;
             evaluateSideSlip = null;
             evaluateTerminalVelocity = null;
         }
@@ -663,9 +645,7 @@ namespace JSI
 
                 timeToUpdate = false;
                 resultCache.Clear();
-#if USE_VARIABLECACHE
                 ++masterSerialNumber;
-#endif
 
                 IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
@@ -747,7 +727,6 @@ namespace JSI
                 }
             }
 
-#if USE_VARIABLECACHE
             VariableCache vc = variableCache[input];
             if (vc != null)
             {
@@ -790,7 +769,6 @@ namespace JSI
                 }
             }
 
-#endif
             object returnValue = resultCache[input];
             if (returnValue == null)
             {
@@ -1287,7 +1265,7 @@ namespace JSI
 
             speedVertical = vessel.verticalSpeed;
             speedVerticalRounded = Math.Ceiling(speedVertical * 20.0) / 20.0;
-            if (speedVertical < vessel.srfSpeed)
+            if (Math.Abs(speedVertical) < Math.Abs(vessel.srfSpeed))
             {
                 speedHorizontal = Math.Sqrt(vessel.srfSpeed * vessel.srfSpeed - speedVertical * speedVertical);
             }

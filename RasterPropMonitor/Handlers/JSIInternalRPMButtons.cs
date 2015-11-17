@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace JSI
 {
@@ -152,18 +153,6 @@ namespace JSI
                                 engine.Shutdown();
                             }
                         }
-                        var engineFX = pm as ModuleEnginesFX;
-                        if (engineFX != null && engineFX.EngineIgnited != state)
-                        {
-                            if (state && engineFX.allowRestart)
-                            {
-                                engineFX.Activate();
-                            }
-                            else if (engineFX.allowShutdown)
-                            {
-                                engineFX.Shutdown();
-                            }
-                        }
                     }
                 }
             }
@@ -183,12 +172,6 @@ namespace JSI
                     {
                         var engine = pm as ModuleEngines;
                         if (engine != null && engine.allowShutdown && engine.getIgnitionState)
-                        {
-                            // early out: at least one engine is enabled.
-                            return true;
-                        }
-                        var engineFX = pm as ModuleEnginesFX;
-                        if (engineFX != null && engineFX.allowShutdown && engineFX.getIgnitionState)
                         {
                             // early out: at least one engine is enabled.
                             return true;
@@ -812,9 +795,9 @@ namespace JSI
             try
             {
                 List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
-                for(int i=0; i<radars.Count; ++i)
+                for (int i = 0; i < radars.Count; ++i)
                 {
-                    if(radars[i].radarEnabled)
+                    if (radars[i].radarEnabled)
                     {
                         enabled = true;
                         break;
@@ -828,12 +811,12 @@ namespace JSI
 
         public double GetSASMode()
         {
-            if(vessel == null)
+            if (vessel == null)
             {
                 return 0.0; // StabilityAssist
             }
             double mode;
-            switch(vessel.Autopilot.Mode)
+            switch (vessel.Autopilot.Mode)
             {
                 case VesselAutopilot.AutopilotMode.StabilityAssist:
                     mode = 0.0;
@@ -876,7 +859,7 @@ namespace JSI
         {
             int imode = (int)mode;
             VesselAutopilot.AutopilotMode autopilotMode;
-            switch(imode)
+            switch (imode)
             {
                 case 0:
                     autopilotMode = VesselAutopilot.AutopilotMode.StabilityAssist;
@@ -918,6 +901,77 @@ namespace JSI
                 vessel.Autopilot.SetMode(autopilotMode);
                 ForceUpdateSASModeToggleButtons(autopilotMode);
             }
+        }
+
+        /**
+         * @returns true if all trim settings are within 1% of neutral.
+         */
+        public bool TrimNeutralState()
+        {
+            if (vessel != null && vessel.ctrlState != null)
+            {
+                return Mathf.Abs(vessel.ctrlState.pitchTrim) < 0.01f && Mathf.Abs(vessel.ctrlState.rollTrim) < 0.01f && Mathf.Abs(vessel.ctrlState.yawTrim) < 0.01f;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        /**
+         * Resets all trim parameters to neutral
+         */
+        public void SetAllTrimNeutral(bool state)
+        {
+            FlightInputHandler.state.ResetTrim();
+        }
+
+        /**
+         * Resets pitch trim to neutral
+         */
+        public void SetPitchTrimNeutral(bool state)
+        {
+            FlightInputHandler.state.pitchTrim = 0.0f;
+        }
+
+        /**
+         * Sets pitch trim to the desired percent (-100 to 100)
+         */
+        public void SetPitchTrim(double trimPercent)
+        {
+            FlightInputHandler.state.pitchTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
+        }
+
+        /**
+         * Resets roll trim to neutral
+         */
+        public void SetRollTrimNeutral(bool state)
+        {
+            FlightInputHandler.state.rollTrim = 0.0f;
+        }
+
+        /**
+         * Sets roll trim to the desired percent (-100 to 100)
+         */
+        public void SetRollTrim(double trimPercent)
+        {
+            FlightInputHandler.state.rollTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
+        }
+
+        /**
+         * Resets yaw trim to neutral
+         */
+        public void SetYawTrimNeutral(bool state)
+        {
+            FlightInputHandler.state.yawTrim = 0.0f;
+        }
+
+        /**
+         * Sets yaw trim to the desired percent (-100 to 100)
+         */
+        public void SetYawTrim(double trimPercent)
+        {
+            FlightInputHandler.state.yawTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
         }
 
         /// <summary>

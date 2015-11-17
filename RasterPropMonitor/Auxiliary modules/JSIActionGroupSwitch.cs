@@ -46,6 +46,8 @@ namespace JSI
         [KSPField]
         public string masterVariableRange = string.Empty;
         [KSPField]
+        public bool momentarySwitch = false;
+        [KSPField]
         public bool reverse = false;
         [KSPField]
         public float customSpeed = 1f;
@@ -413,7 +415,14 @@ namespace JSI
                 // set up the toggle switch
                 if (!string.IsNullOrEmpty(switchTransform))
                 {
-                    SmarterButton.CreateButton(internalProp, switchTransform, Click);
+                    if (momentarySwitch)
+                    {
+                        SmarterButton.CreateButton(internalProp, switchTransform, Click, Click);
+                    }
+                    else
+                    {
+                        SmarterButton.CreateButton(internalProp, switchTransform, Click);
+                    }
                 }
 
                 if (isCustomAction)
