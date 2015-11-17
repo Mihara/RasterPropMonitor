@@ -256,6 +256,9 @@ namespace JSI
         private Vector3d CoM;
         private float heatShieldTemperature;
         private float heatShieldFlux;
+        private float hottestPartTemperature;
+        private float hottestPartMaxTemperature;
+        private string hottestPartName;
         private float localGeeASL;
         private float localGeeDirect;
         private bool orbitSensibility;
@@ -1005,6 +1008,10 @@ namespace JSI
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
+            hottestPartTemperature = -1000000.0f;
+            hottestPartMaxTemperature = 1000000.0f;
+            float hottestPart = float.MaxValue;
+            hottestPartName = string.Empty;
             float hottestShield = float.MinValue;
             float totalResourceMass = 0.0f;
 
@@ -1022,6 +1029,21 @@ namespace JSI
                     resources.Add(resource);
                 }
 
+                // Also check thatPart.temperature
+                if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestPart)
+                {
+                    hottestPartTemperature = (float)thatPart.skinTemperature;
+                    hottestPartMaxTemperature = (float)thatPart.skinMaxTemp;
+                    hottestPartName = thatPart.partInfo.title;
+                    hottestPart = hottestPartMaxTemperature - hottestPartTemperature;
+                }
+                if (thatPart.maxTemp - thatPart.temperature < hottestPart)
+                {
+                    hottestPartTemperature = (float)thatPart.temperature;
+                    hottestPartMaxTemperature = (float)thatPart.maxTemp;
+                    hottestPartName = thatPart.partInfo.title;
+                    hottestPart = hottestPartMaxTemperature - hottestPartTemperature;
+                }
                 totalResourceMass += thatPart.GetResourceMass();
 
                 foreach (PartModule pm in thatPart.Modules)
@@ -1758,7 +1780,7 @@ namespace JSI
             return phaseAngleDifference / phaseAngleRate;
         }
 
-        
+
         /// <summary>
         /// Originally from MechJeb
         /// Computes the time required for the given launch location to rotate under the target orbital plane. 

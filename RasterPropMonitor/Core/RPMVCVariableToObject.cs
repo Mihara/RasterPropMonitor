@@ -1638,6 +1638,14 @@ namespace JSI
                     return (string variable) => { return heatShieldTemperature; };
                 case "HEATSHIELDTEMPERATUREFLUX":
                     return (string variable) => { return heatShieldFlux; };
+                case "HOTTESTPARTTEMP":
+                    return (string variable) => { return hottestPartTemperature; };
+                case "HOTTESTPARTMAXTEMP":
+                    return (string variable) => { return hottestPartMaxTemperature; };
+                case "HOTTESTPARTTEMPRATIO":
+                    return (string variable) => { return hottestPartTemperature / hottestPartMaxTemperature; };
+                case "HOTTESTPARTNAME":
+                    return (string variable) => { return hottestPartName; };
                 case "SLOPEANGLE":
                     return (string variable) => { return slopeAngle; };
                 case "SPEEDDISPLAYMODE":
