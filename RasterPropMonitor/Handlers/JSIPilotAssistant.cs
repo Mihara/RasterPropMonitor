@@ -358,6 +358,44 @@ namespace JSI
             return 0.0;
         }
 
+        public void SetVertMode(double dmode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            VertMode vertMode;
+            switch((int)dmode)
+            {
+                case 0:
+                    vertMode = VertMode.Pitch;
+                    break;
+                case 1:
+                    vertMode = VertMode.VSpeed;
+                    break;
+                case 2:
+                    vertMode = VertMode.Altitude;
+                    break;
+                case 3:
+                    vertMode = VertMode.RadarAltitude;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetVert(pilotAssistant, new object[] { true, false, vertMode, 0.0 });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetVertMode: {0}", e);
+            }
+        }
+
         public double GetVertSetting()
         {
             if (!paFound)
@@ -497,6 +535,41 @@ namespace JSI
             return 0.0;
         }
 
+        public void SetHorzMode(double dmode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            HrztMode horzMode;
+            switch ((int)dmode)
+            {
+                case 0:
+                    horzMode = HrztMode.Bank;
+                    break;
+                case 1:
+                    horzMode = HrztMode.Heading;
+                    break;
+                case 2:
+                    horzMode = HrztMode.HeadingNum;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetHorz(pilotAssistant, new object[] { true, false, horzMode, 0.0 });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetHorzMode: {0}", e);
+            }
+        }
+
         public double GetHorzSetting()
         {
             if (!paFound)
@@ -634,6 +707,41 @@ namespace JSI
                 JUtil.LogMessage(this, "GetThrottleMode: {0}", e);
             }
             return 0.0;
+        }
+
+        public void SetThrottleMode(double dmode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            ThrottleMode throttleMode;
+            switch ((int)dmode)
+            {
+                case 0:
+                    throttleMode = ThrottleMode.Direct;
+                    break;
+                case 1:
+                    throttleMode = ThrottleMode.Acceleration;
+                    break;
+                case 2:
+                    throttleMode = ThrottleMode.Speed;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetHorz(pilotAssistant, new object[] { true, false, throttleMode, 0.0 });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetThrottleMode: {0}", e);
+            }
         }
 
         public double GetThrottleSetting()
