@@ -257,8 +257,34 @@ namespace JSI
                     {
                         case "intlight":
                             persistentVarName = internalLightName;
-                            lightObjects = internalModel.FindModelComponents<Light>();
-                            needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
+                            if (!string.IsNullOrEmpty(internalLightName))
+                            {
+                                Light[] availableLights = internalModel.FindModelComponents<Light>();
+                                if (availableLights != null && availableLights.Length > 0)
+                                {
+                                    List<Light> lights = new List<Light>(availableLights);
+                                    for (int i = lights.Count - 1; i >= 0; --i)
+                                    {
+                                        if (lights[i].name != internalLightName)
+                                        {
+                                            lights.RemoveAt(i);
+                                        }
+                                    }
+                                    if (lights.Count > 0)
+                                    {
+                                        lightObjects = lights.ToArray();
+                                        needsElectricChargeValue |= string.IsNullOrEmpty(needsElectricCharge) || needsElectricChargeValue;
+                                    }
+                                    else
+                                    {
+                                        actionName = "dummy";
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                actionName = "dummy";
+                            }
                             break;
                         case "plugin":
                             persistentVarName = string.Empty;
@@ -545,14 +571,9 @@ namespace JSI
 
         private void SetInternalLights(bool value)
         {
-            foreach (Light lightobject in lightObjects)
+            for (int i = 0; i < lightObjects.Length; ++i)
             {
-                // I probably shouldn't filter them every time, but I am getting
-                // serously confused by this hierarchy.
-                if (lightobject.name == internalLightName)
-                {
-                    lightobject.enabled = value;
-                }
+                lightObjects[i].enabled = value;
             }
         }
 
