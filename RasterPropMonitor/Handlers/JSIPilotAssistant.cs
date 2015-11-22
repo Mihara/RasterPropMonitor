@@ -387,8 +387,9 @@ namespace JSI
             try
             {
                 object pilotAssistant = GetPilotAssistant();
+                object vertActive = vertActive_t.GetValue(pilotAssistant);
 
-                SetVert(pilotAssistant, new object[] { true, false, vertMode, 0.0 });
+                SetVert(pilotAssistant, new object[] { vertActive, false, vertMode, 0.0 });
             }
             catch (Exception e)
             {
@@ -561,8 +562,9 @@ namespace JSI
             try
             {
                 object pilotAssistant = GetPilotAssistant();
+                object horzActive = horzActive_t.GetValue(pilotAssistant);
 
-                SetHorz(pilotAssistant, new object[] { true, false, horzMode, 0.0 });
+                SetHorz(pilotAssistant, new object[] { horzActive, false, horzMode, 0.0 });
             }
             catch (Exception e)
             {
@@ -735,8 +737,9 @@ namespace JSI
             try
             {
                 object pilotAssistant = GetPilotAssistant();
+                object throttleActive = throttleActive_t.GetValue(pilotAssistant);
 
-                SetHorz(pilotAssistant, new object[] { true, false, throttleMode, 0.0 });
+                SetHorz(pilotAssistant, new object[] { throttleActive, false, throttleMode, 0.0 });
             }
             catch (Exception e)
             {
