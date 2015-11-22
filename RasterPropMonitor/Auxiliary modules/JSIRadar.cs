@@ -147,7 +147,7 @@ namespace JSI
                 return;
             }
 
-            if (JUtil.IsActiveVessel(vessel))
+            if (!JUtil.IsActiveVessel(vessel))
             {
                 return;
             }
