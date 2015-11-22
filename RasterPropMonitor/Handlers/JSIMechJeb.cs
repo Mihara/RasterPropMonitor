@@ -175,6 +175,7 @@ namespace JSI
         // OrbitalManeuverCalculator.DeltaVAndTimeForInterplanetaryTransferEjection
         private static readonly MethodInfo mjDeltaVAndTimeForInterplanetaryTransferEjection;
         //private static readonly DynamicMethodDelegate deltaVAndTimeForInterplanetaryTransferEjection;
+        private static readonly MethodInfo mjDeltaVToMatchVelocities;
         // OrbitalManeuverCalculator.DeltaVToCircularize
         private static readonly DynamicMethodDelegate deltaVToCircularize;
         // OrbitalManeuverCalculator.DeltaVToChangeApoapsis
@@ -424,7 +425,7 @@ namespace JSI
                 // MOARdV TODO: when the next version of MJ is out, this will be the only way to engage
                 // the AP, so we will want to throw an exception if aapEngaged is null.
                 PropertyInfo aapEngaged = mjMechJebModuleAscentAutopilot_t.GetProperty("Engaged");
-                if(aapEngaged != null)
+                if (aapEngaged != null)
                 {
                     MethodInfo getter = aapEngaged.GetGetMethod();
                     getAscentAutopilotEngaged = DynamicMethodDelegateFactory.CreateFuncBool(getter);
@@ -718,6 +719,11 @@ namespace JSI
                     throw new NotImplementedException("mjDeltaVAndTimeForHohmannTransfer");
                 }
                 //deltaVAndTimeForHohmannTransfer = DynamicMethodDelegateFactory.Create(mjDeltaVAndTimeForHohmannTransfer);
+                mjDeltaVToMatchVelocities = mjOrbitalManeuverCalculator_t.GetMethod("DeltaVToMatchVelocities", BindingFlags.Static | BindingFlags.Public);
+                if (mjDeltaVToMatchVelocities == null)
+                {
+                    throw new NotImplementedException("mjDeltaVToMatchVelocities");
+                }
                 mjDeltaVAndTimeForInterplanetaryTransferEjection = mjOrbitalManeuverCalculator_t.GetMethod("DeltaVAndTimeForInterplanetaryTransferEjection", BindingFlags.Static | BindingFlags.Public);
                 if (mjDeltaVAndTimeForInterplanetaryTransferEjection == null)
                 {
@@ -1687,7 +1693,7 @@ namespace JSI
                     }
 
                     object agPilot = GetComputerModule(activeJeb, "MechJebModuleAscentGuidance");
-                    if(agPilot == null)
+                    if (agPilot == null)
                     {
                         JUtil.LogErrorMessage(this, "Unable to fetch MechJebModuleAscentGuidance");
                         return;
@@ -2207,6 +2213,83 @@ namespace JSI
             else
             {
                 return false;
+            }
+        }
+
+        public void MatchVelocities(bool state)
+        {
+            if (!MatchVelocitiesState())
+            {
+                return;
+            }
+
+            try
+            {
+                object activeJeb = GetMasterMechJeb(vessel);
+                if (activeJeb == null)
+                {
+                    return;
+                }
+
+                object target = mjCoreTarget.GetValue(activeJeb);
+                if (target == null)
+                {
+                    return;
+                }
+
+                Orbit targetOrbit = (Orbit)getTargetOrbit(target);
+                Orbit o = vessel.orbit;
+                Vector3d dV;
+                double nodeUT;// closest approach time
+                JUtil.GetClosestApproach(o, targetOrbit, out nodeUT);
+
+                object[] args = new object[] { o, nodeUT, targetOrbit };
+                dV = (Vector3d)mjDeltaVToMatchVelocities.Invoke(null, args);
+
+                if (vessel.patchedConicSolver != null)
+                {
+                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
+                    {
+                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
+                    }
+                }
+
+                placeManeuverNode(null, new object[] { vessel, o, dV, nodeUT });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "MatchVelocities tripped an exception: {0}", e);
+            }
+        }
+
+        public bool MatchVelocitiesState()
+        {
+            if (!mjFound)
+            {
+                return false;
+            }
+
+            object activeJeb = GetMasterMechJeb(vessel);
+            if (activeJeb == null)
+            {
+                return false;
+            }
+
+            object target = mjCoreTarget.GetValue(activeJeb);
+            if (target == null)
+            {
+                return false;
+            }
+
+            // Most of these conditions are directly from MJ, or derived from
+            // it.
+            if (getNormalTargetExists(target) == false)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
             }
         }
 
