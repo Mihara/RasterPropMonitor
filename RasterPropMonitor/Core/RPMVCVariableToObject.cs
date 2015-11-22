@@ -1499,6 +1499,18 @@ namespace JSI
                             return 0.0;
                         }
                     };
+                case "TARGETPLANELAUNCHTIMESECS":
+                    return (string variable) =>
+                    {
+                        if (targetVessel != null && targetVessel.mainBody == vessel.mainBody && (vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.PRELAUNCH || vessel.situation == Vessel.Situations.SPLASHED))
+                        {
+                            return TimeToPlane(vessel.mainBody, vessel.latitude, vessel.longitude, target.GetOrbit());
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
 
                 // Protractor-type values (phase angle, ejection angle)
                 case "TARGETBODYPHASEANGLE":
@@ -1626,6 +1638,20 @@ namespace JSI
                     return (string variable) => { return heatShieldTemperature; };
                 case "HEATSHIELDTEMPERATUREFLUX":
                     return (string variable) => { return heatShieldFlux; };
+                case "HOTTESTPARTTEMP":
+                    return (string variable) => { return hottestPartTemperature; };
+                case "HOTTESTPARTMAXTEMP":
+                    return (string variable) => { return hottestPartMaxTemperature; };
+                case "HOTTESTPARTTEMPRATIO":
+                    return (string variable) => { return (hottestPartMaxTemperature > 0.0f) ? (hottestPartTemperature / hottestPartMaxTemperature) : 0.0f; };
+                case "HOTTESTPARTNAME":
+                    return (string variable) => { return hottestPartName; };
+                case "HOTTESTENGINETEMP":
+                    return (string variable) => { return hottestEngineTemperature; };
+                case "HOTTESTENGINEMAXTEMP":
+                    return (string variable) => { return hottestEngineMaxTemperature; };
+                case "HOTTESTENGINETEMPRATIO":
+                    return (string variable) => { return (hottestEngineMaxTemperature > 0.0f) ? (hottestEngineTemperature / hottestEngineMaxTemperature) : 0.0f; };
                 case "SLOPEANGLE":
                     return (string variable) => { return slopeAngle; };
                 case "SPEEDDISPLAYMODE":

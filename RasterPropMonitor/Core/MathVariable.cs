@@ -155,15 +155,19 @@ namespace JSI
             }
             else
             {
-                float value = 0.0f;
+                double value = 0.0;
                 if (!sourceVariables[0].Get(out value, comp))
                 {
                     return 0.0f;
                 }
+                if(op == Operator.SUBTRACT)
+                {
+                    JUtil.LogMessage(this, "[0] = {0:F1}", value);
+                }
 
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
-                    float operand;
+                    double operand;
                     if (!sourceVariables[i].Get(out operand, comp))
                     {
                         return 0.0f;
@@ -177,6 +181,7 @@ namespace JSI
                             value += operand;
                             break;
                         case Operator.SUBTRACT:
+                            JUtil.LogMessage(this, "[{1}] = {0:F1}", operand, i);
                             value -= operand;
                             break;
                         case Operator.MULTIPLY:
@@ -186,14 +191,18 @@ namespace JSI
                             value /= operand;
                             break;
                         case Operator.MAX:
-                            value = Mathf.Max(value, operand);
+                            value = Math.Max(value, operand);
                             break;
                         case Operator.MIN:
-                            value = Mathf.Min(value, operand);
+                            value = Math.Min(value, operand);
                             break;
                     }
                 }
 
+                if (op == Operator.SUBTRACT)
+                {
+                    JUtil.LogMessage(this, "--- = {0:F1}", value);
+                }
                 return value;
             }
         }

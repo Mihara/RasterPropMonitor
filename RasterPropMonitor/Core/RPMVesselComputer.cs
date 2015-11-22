@@ -256,6 +256,11 @@ namespace JSI
         private Vector3d CoM;
         private float heatShieldTemperature;
         private float heatShieldFlux;
+        private float hottestPartTemperature;
+        private float hottestPartMaxTemperature;
+        private string hottestPartName;
+        private float hottestEngineTemperature;
+        private float hottestEngineMaxTemperature;
         private float localGeeASL;
         private float localGeeDirect;
         private bool orbitSensibility;
@@ -1005,6 +1010,11 @@ namespace JSI
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
+            hottestPartTemperature = hottestEngineTemperature = 0.0f;
+            hottestPartMaxTemperature = hottestEngineMaxTemperature = 0.0f;
+            hottestPartName = string.Empty;
+            float hottestPart = float.MaxValue;
+            float hottestEngine = float.MaxValue;
             float hottestShield = float.MinValue;
             float totalResourceMass = 0.0f;
 
@@ -1022,6 +1032,20 @@ namespace JSI
                     resources.Add(resource);
                 }
 
+                if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestPart)
+                {
+                    hottestPartTemperature = (float)thatPart.skinTemperature;
+                    hottestPartMaxTemperature = (float)thatPart.skinMaxTemp;
+                    hottestPartName = thatPart.partInfo.title;
+                    hottestPart = hottestPartMaxTemperature - hottestPartTemperature;
+                }
+                if (thatPart.maxTemp - thatPart.temperature < hottestPart)
+                {
+                    hottestPartTemperature = (float)thatPart.temperature;
+                    hottestPartMaxTemperature = (float)thatPart.maxTemp;
+                    hottestPartName = thatPart.partInfo.title;
+                    hottestPart = hottestPartMaxTemperature - hottestPartTemperature;
+                }
                 totalResourceMass += thatPart.GetResourceMass();
 
                 foreach (PartModule pm in thatPart.Modules)
@@ -1058,6 +1082,19 @@ namespace JSI
                         if (maxIsp > 0.0f)
                         {
                             maxIspContribution += maxThrust / maxIsp;
+                        }
+
+                        if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
+                        {
+                            hottestEngineTemperature = (float)thatPart.skinTemperature;
+                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                        }
+                        if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
+                        {
+                            hottestEngineTemperature = (float)thatPart.skinTemperature;
+                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
                         }
                     }
                     else if (pm is ModuleAblator)
@@ -1756,6 +1793,42 @@ namespace JSI
 
 
             return phaseAngleDifference / phaseAngleRate;
+        }
+
+
+        /// <summary>
+        /// Originally from MechJeb
+        /// Computes the time required for the given launch location to rotate under the target orbital plane. 
+        /// If the latitude is too high for the launch location to ever actually rotate under the target plane,
+        /// returns the time of closest approach to the target plane.
+        /// I have a wonderful proof of this formula which this comment is too short to contain.
+        /// </summary>
+        /// <param name="launchBody"></param>
+        /// <param name="launchLatitude"></param>
+        /// <param name="launchLongitude"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        private static double TimeToPlane(CelestialBody launchBody, double launchLatitude, double launchLongitude, Orbit target)
+        {
+            double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity));
+            Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().Reorder(132).normalized).normalized; // I don't understand the sign here, but this seems to work
+            b *= launchBody.Radius * Math.Sin(Math.PI / 180 * launchLatitude) / Math.Tan(Math.PI / 180 * inc);
+            Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity).normalized;
+            double cMagnitudeSquared = Math.Pow(launchBody.Radius * Math.Cos(Math.PI / 180 * launchLatitude), 2) - b.sqrMagnitude;
+            if (cMagnitudeSquared < 0) cMagnitudeSquared = 0;
+            c *= Math.Sqrt(cMagnitudeSquared);
+            Vector3d a1 = b + c;
+            Vector3d a2 = b - c;
+
+            Vector3d longitudeVector = launchBody.GetSurfaceNVector(0, launchLongitude);
+
+            double angle1 = Math.Abs(Vector3d.Angle(longitudeVector, a1));
+            if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a1), launchBody.angularVelocity) < 0) angle1 = 360 - angle1;
+            double angle2 = Math.Abs(Vector3d.Angle(longitudeVector, a2));
+            if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a2), launchBody.angularVelocity) < 0) angle2 = 360 - angle2;
+
+            double angle = Math.Min(angle1, angle2);
+            return (angle / 360) * launchBody.rotationPeriod;
         }
 
         /// <summary>

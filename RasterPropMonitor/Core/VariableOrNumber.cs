@@ -25,7 +25,7 @@ namespace JSI
     public class VariableOrNumber
     {
         private readonly string variableName;
-        private float value;
+        private double value;
         private bool warningMade;
 
         static private Dictionary<string, VariableOrNumber> vars = new Dictionary<string, VariableOrNumber>();
@@ -102,8 +102,35 @@ namespace JSI
         {
             if (!string.IsNullOrEmpty(variableName))
             {
-                value = comp.ProcessVariable(variableName).MassageToFloat();
-                if (float.IsNaN(value) || float.IsInfinity(value))
+                value = comp.ProcessVariable(variableName).MassageToDouble();
+                if (double.IsNaN(value) || double.IsInfinity(value))
+                {
+                    if (!warningMade)
+                    {
+                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
+                        warningMade = true;
+                    }
+                    destination = (float)value;
+                    return false;
+                }
+            }
+
+            destination = (float)value;
+            return true;
+        }
+
+        /// <summary>
+        /// Evaluate the variable, returning it in destination.
+        /// </summary>
+        /// <param name="destination"></param>
+        /// <param name="comp"></param>
+        /// <returns></returns>
+        public bool Get(out double destination, RPMVesselComputer comp)
+        {
+            if (!string.IsNullOrEmpty(variableName))
+            {
+                value = comp.ProcessVariable(variableName).MassageToDouble();
+                if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     if (!warningMade)
                     {
