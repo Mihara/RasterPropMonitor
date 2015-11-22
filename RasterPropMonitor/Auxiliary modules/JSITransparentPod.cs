@@ -313,7 +313,7 @@ namespace JSI
                 }
                 else
                 {
-                    if (thatKerbal.InVessel != FlightGlobals.ActiveVessel)
+                    if (thatKerbal.InVessel.id != FlightGlobals.ActiveVessel.id)
                     {
                         stowaways.Add(thatKerbal);
                     }
@@ -324,7 +324,7 @@ namespace JSI
                 KerbalGUIManager.RemoveActiveCrew(thatKerbal);
             }
             // Only the pods in the active vessel should be doing this since the list refers to them.
-            if (vessel.isActiveVessel)
+            if (FlightGlobals.ActiveVessel.id == vessel.id)
             {
                 // Then, every pod should check the list of seats in itself and see if anyone is missing who should be present.
                 foreach (InternalSeat seat in part.internalModel.seats)
