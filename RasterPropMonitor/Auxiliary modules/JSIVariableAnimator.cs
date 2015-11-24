@@ -32,6 +32,7 @@ namespace JSI
         private int updateCountdown;
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
+        private bool muted = false;
 
         private bool UpdateCheck()
         {
@@ -122,10 +123,22 @@ namespace JSI
 
             if (!JUtil.VesselIsInIVA(vessel))
             {
+                if (!muted)
+                {
+                    for (int unit = 0; unit < variableSets.Count; ++unit)
+                    {
+                        variableSets[unit].MuteSoundWhileOutOfIVA();
+                    }
+                }
+                muted = true;
+            }
+            else if (muted)
+            {
                 for (int unit = 0; unit < variableSets.Count; ++unit)
                 {
-                    variableSets[unit].MuteSoundWhileOutOfIVA();
+                    variableSets[unit].UnmuteSoundWhileInIVA();
                 }
+                muted = false;
             }
 
             if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
@@ -751,6 +764,14 @@ namespace JSI
             if (audioOutput != null && alarmActive)
             {
                 audioOutput.audio.volume = 0;
+            }
+        }
+
+        public void UnmuteSoundWhileInIVA()
+        {
+            if (audioOutput != null && alarmActive)
+            {
+                audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
             }
         }
 
