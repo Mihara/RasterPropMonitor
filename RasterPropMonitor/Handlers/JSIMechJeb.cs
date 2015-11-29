@@ -1189,7 +1189,7 @@ namespace JSI
             {
                 UpdateLandingStats(activeJeb);
 
-                return landingTime - Planetarium.GetUniversalTime();
+                return Math.Max(0.0, landingTime - Planetarium.GetUniversalTime());
             }
             else
             {
