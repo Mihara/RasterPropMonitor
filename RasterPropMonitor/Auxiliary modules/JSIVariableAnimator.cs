@@ -112,6 +112,11 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
+            for (int i=0; i<variableSets.Count; ++i)
+            {
+                variableSets[i].TearDown();
+            }
+            variableSets.Clear();
         }
 
         public void Update()
@@ -166,6 +171,9 @@ namespace JSI
 
     public class VariableAnimationSet
     {
+        // MOARdV TODO: Get rid of the 'reverse' parameter and simply swap the
+        // values in question, so there's no need for repeated 'if reverse'
+        // conditions.
         private readonly VariableOrNumberRange variable;
         private readonly Animation onAnim;
         private readonly Animation offAnim;
@@ -180,7 +188,6 @@ namespace JSI
         private readonly bool alarmSoundLooping;
         private readonly bool alarmMustPlayOnce;
         private readonly Color passiveColor, activeColor;
-        private readonly Renderer colorShiftRenderer;
         private readonly Transform controlledTransform;
         private readonly Vector3 initialPosition, initialScale, vectorStart, vectorEnd;
         private readonly Quaternion initialRotation, rotationStart, rotationEnd;
@@ -355,10 +362,9 @@ namespace JSI
                 }
                 passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
-                Vector4 range = (activeColor - passiveColor);
-                float maxRange = Mathf.Max(Mathf.Abs(range.x), Mathf.Abs(range.y), Mathf.Abs(range.z), Mathf.Abs(range.w));
-                colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
-                colorShiftRenderer.material.SetColor(colorName, reverse ? activeColor : passiveColor);
+                Renderer colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
+                affectedMaterial = colorShiftRenderer.material;
+                affectedMaterial.SetColor(colorName, reverse ? activeColor : passiveColor);
                 mode = Mode.Color;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
@@ -496,6 +502,15 @@ namespace JSI
             }
         }
 
+        // Some things need to be explicitly destroyed due to Unity quirks.
+        internal void TearDown()
+        {
+            if (affectedMaterial != null)
+            {
+                UnityEngine.Object.Destroy(affectedMaterial);
+            }
+        }
+
         private void TurnOn(double universalTime)
         {
             if (!currentState)
@@ -503,7 +518,7 @@ namespace JSI
                 switch (mode)
                 {
                     case Mode.Color:
-                        colorShiftRenderer.material.SetColor(colorName, (reverse ? passiveColor : activeColor));
+                        affectedMaterial.SetColor(colorName, (reverse ? passiveColor : activeColor));
                         break;
                     case Mode.Animation:
                         onAnim[animationName].normalizedTime = reverse ? 0f : 1f;
@@ -564,7 +579,7 @@ namespace JSI
                 switch (mode)
                 {
                     case Mode.Color:
-                        colorShiftRenderer.material.SetColor(colorName, (reverse ? activeColor : passiveColor));
+                        affectedMaterial.SetColor(colorName, (reverse ? activeColor : passiveColor));
                         break;
                     case Mode.Animation:
                         onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
@@ -732,7 +747,7 @@ namespace JSI
                         controlledTransform.localScale = initialScale + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
                         break;
                     case Mode.Color:
-                        colorShiftRenderer.material.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
+                        affectedMaterial.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
                         break;
                     case Mode.TextureShift:
                         foreach (string token in textureLayer.Split(','))
