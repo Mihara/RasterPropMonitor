@@ -62,21 +62,13 @@ namespace JSI
 
         public void StartLoop(double time)
         {
-            bool updateDeltas = false;
-            float invDeltaT = 1.0f;
-            if (time - lastcheck > secondsBetweenSamples)
-            {
-                updateDeltas = true;
-                invDeltaT = (float)(1.0 / (time - lastcheck));
-            }
+            float invDeltaT = (float)(1.0 / (time - lastcheck));
 
             for (int i = 0; i < rs.Length; ++i)
             {
-                if (updateDeltas)
-                {
-                    rs[i].delta = (rs[i].previous - rs[i].current) * invDeltaT;
-                    rs[i].previous = rs[i].current;
-                }
+                rs[i].delta = (rs[i].previous - rs[i].current) * invDeltaT;
+                rs[i].previous = rs[i].current;
+
                 rs[i].current = 0.0f;
                 rs[i].max = 0.0f;
                 rs[i].stage = 0.0f;
@@ -85,10 +77,7 @@ namespace JSI
 
             }
 
-            if (updateDeltas)
-            {
-                lastcheck = time;
-            }
+            lastcheck = time;
         }
 
         public void MarkPropellant(Propellant propel)
