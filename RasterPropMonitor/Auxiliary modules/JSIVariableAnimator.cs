@@ -360,11 +360,19 @@ namespace JSI
                 {
                     colorName = node.GetValue("colorName");
                 }
-                passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-                activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                if (reverse)
+                {
+                    activeColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
+                    passiveColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                }
+                else
+                {
+                    passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
+                    activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                }
                 Renderer colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 affectedMaterial = colorShiftRenderer.material;
-                affectedMaterial.SetColor(colorName, reverse ? activeColor : passiveColor);
+                affectedMaterial.SetColor(colorName, passiveColor);
                 mode = Mode.Color;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
@@ -518,7 +526,7 @@ namespace JSI
                 switch (mode)
                 {
                     case Mode.Color:
-                        affectedMaterial.SetColor(colorName, (reverse ? passiveColor : activeColor));
+                        affectedMaterial.SetColor(colorName, activeColor);
                         break;
                     case Mode.Animation:
                         onAnim[animationName].normalizedTime = reverse ? 0f : 1f;
@@ -579,7 +587,7 @@ namespace JSI
                 switch (mode)
                 {
                     case Mode.Color:
-                        affectedMaterial.SetColor(colorName, (reverse ? activeColor : passiveColor));
+                        affectedMaterial.SetColor(colorName, passiveColor);
                         break;
                     case Mode.Animation:
                         onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
@@ -747,7 +755,7 @@ namespace JSI
                         controlledTransform.localScale = initialScale + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
                         break;
                     case Mode.Color:
-                        affectedMaterial.SetColor(colorName, Color.Lerp(reverse ? activeColor : passiveColor, reverse ? passiveColor : activeColor, scaledValue));
+                        affectedMaterial.SetColor(colorName, Color.Lerp(passiveColor, activeColor, scaledValue));
                         break;
                     case Mode.TextureShift:
                         foreach (string token in textureLayer.Split(','))
