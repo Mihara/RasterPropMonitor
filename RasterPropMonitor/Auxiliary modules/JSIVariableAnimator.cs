@@ -112,7 +112,7 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            for (int i=0; i<variableSets.Count; ++i)
+            for (int i = 0; i < variableSets.Count; ++i)
             {
                 variableSets[i].TearDown();
             }
@@ -171,9 +171,6 @@ namespace JSI
 
     public class VariableAnimationSet
     {
-        // MOARdV TODO: Get rid of the 'reverse' parameter and simply swap the
-        // values in question, so there's no need for repeated 'if reverse'
-        // conditions.
         private readonly VariableOrNumberRange variable;
         private readonly Animation onAnim;
         private readonly Animation offAnim;
@@ -196,7 +193,7 @@ namespace JSI
         private readonly string colorName = "_EmissiveColor";
         private readonly Vector2 textureShiftStart, textureShiftEnd, textureScaleStart, textureScaleEnd;
         private readonly Material affectedMaterial;
-        private readonly string textureLayer;
+        private readonly List<string> textureLayer = new List<string>();
         private readonly Mode mode;
         private readonly float resourceAmount;
         private readonly string resourceName;
@@ -382,13 +379,29 @@ namespace JSI
                 if (node.HasValue("longPath"))
                 {
                     longPath = true;
-                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
-                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+                    if (reverse)
+                    {
+                        vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
+                        vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+                    }
+                    else
+                    {
+                        vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
+                        vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+                    }
                 }
                 else
                 {
-                    rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
-                    rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+                    if (reverse)
+                    {
+                        rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
+                        rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+                    }
+                    else
+                    {
+                        rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
+                        rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+                    }
                 }
                 mode = Mode.Rotation;
             }
@@ -396,32 +409,74 @@ namespace JSI
             {
                 controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
                 initialPosition = controlledTransform.localPosition;
-                vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
-                vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+                if (reverse)
+                {
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+                }
+                else
+                {
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+                }
                 mode = Mode.Translation;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("localScaleStart") && node.HasValue("localScaleEnd"))
             {
                 controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
                 initialScale = controlledTransform.localScale;
-                vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
-                vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+                if (reverse)
+                {
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+                }
+                else
+                {
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+                }
                 mode = Mode.Scale;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd"))
             {
                 affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).renderer.material;
-                textureLayer = node.GetValue("textureLayers");
-                textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
-                textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+                var textureLayers = node.GetValue("textureLayers").Split(',');
+                for (int i = 0; i < textureLayers.Length; ++i)
+                {
+                    textureLayer.Add(textureLayers[i].Trim());
+                }
+
+                if (reverse)
+                {
+                    textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
+                    textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+                }
+                else
+                {
+                    textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
+                    textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+                }
                 mode = Mode.TextureShift;
             }
             else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureScaleStart") && node.HasValue("textureScaleEnd"))
             {
                 affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).renderer.material;
-                textureLayer = node.GetValue("textureLayers");
-                textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
-                textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+                var textureLayers = node.GetValue("textureLayers").Split(',');
+                for (int i = 0; i < textureLayers.Length; ++i)
+                {
+                    textureLayer.Add(textureLayers[i].Trim());
+                }
+
+                if (reverse)
+                {
+                    textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
+                    textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+                }
+                else
+                {
+                    textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
+                    textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+                }
                 mode = Mode.TextureScale;
             }
             else
@@ -539,24 +594,24 @@ namespace JSI
                         }
                         break;
                     case Mode.Rotation:
-                        controlledTransform.localRotation = initialRotation * (reverse ? rotationEnd : rotationStart);
+                        controlledTransform.localRotation = initialRotation * (longPath ? Quaternion.Euler(vectorStart) : rotationStart);
                         break;
                     case Mode.Translation:
-                        controlledTransform.localPosition = initialPosition + (reverse ? vectorEnd : vectorStart);
+                        controlledTransform.localPosition = initialPosition + vectorStart;
                         break;
                     case Mode.Scale:
-                        controlledTransform.localScale = initialScale + (reverse ? vectorEnd : vectorStart);
+                        controlledTransform.localScale = initialScale + vectorStart;
                         break;
                     case Mode.TextureShift:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureOffset(token.Trim(), reverse ? textureShiftEnd : textureShiftStart);
+                            affectedMaterial.SetTextureOffset(textureLayer[i], textureShiftStart);
                         }
                         break;
                     case Mode.TextureScale:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureScale(token.Trim(), reverse ? textureScaleEnd : textureScaleStart);
+                            affectedMaterial.SetTextureScale(textureLayer[i], textureScaleStart);
                         }
                         break;
                 }
@@ -608,24 +663,24 @@ namespace JSI
                         }
                         break;
                     case Mode.Rotation:
-                        controlledTransform.localRotation = initialRotation * (reverse ? rotationStart : rotationEnd);
+                        controlledTransform.localRotation = initialRotation * (longPath ? Quaternion.Euler(vectorEnd) : rotationEnd);
                         break;
                     case Mode.Translation:
-                        controlledTransform.localPosition = initialPosition + (reverse ? vectorStart : vectorEnd);
+                        controlledTransform.localPosition = initialPosition + vectorEnd;
                         break;
                     case Mode.Scale:
-                        controlledTransform.localScale = initialScale + (reverse ? vectorStart : vectorEnd);
+                        controlledTransform.localScale = initialScale + vectorEnd;
                         break;
                     case Mode.TextureShift:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureOffset(token.Trim(), reverse ? textureShiftStart : textureShiftEnd);
+                            affectedMaterial.SetTextureOffset(textureLayer[i], textureShiftEnd);
                         }
                         break;
                     case Mode.TextureScale:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureScale(token.Trim(), reverse ? textureScaleStart : textureScaleEnd);
+                            affectedMaterial.SetTextureScale(textureLayer[i], textureScaleEnd);
                         }
                         break;
                 }
@@ -744,31 +799,31 @@ namespace JSI
                 switch (mode)
                 {
                     case Mode.Rotation:
-                        Quaternion newRotation = longPath ? Quaternion.Euler(Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue)) :
-                                                 Quaternion.Slerp(reverse ? rotationEnd : rotationStart, reverse ? rotationStart : rotationEnd, scaledValue);
+                        Quaternion newRotation = longPath ? Quaternion.Euler(Vector3.Lerp(vectorStart, vectorEnd, scaledValue)) :
+                                                 Quaternion.Slerp(rotationStart, rotationEnd, scaledValue);
                         controlledTransform.localRotation = initialRotation * newRotation;
                         break;
                     case Mode.Translation:
-                        controlledTransform.localPosition = initialPosition + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
+                        controlledTransform.localPosition = initialPosition + Vector3.Lerp(vectorStart, vectorEnd, scaledValue);
                         break;
                     case Mode.Scale:
-                        controlledTransform.localScale = initialScale + Vector3.Lerp(reverse ? vectorEnd : vectorStart, reverse ? vectorStart : vectorEnd, scaledValue);
+                        controlledTransform.localScale = initialScale + Vector3.Lerp(vectorStart, vectorEnd, scaledValue);
                         break;
                     case Mode.Color:
                         affectedMaterial.SetColor(colorName, Color.Lerp(passiveColor, activeColor, scaledValue));
                         break;
                     case Mode.TextureShift:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureOffset(token.Trim(),
-                                Vector2.Lerp(reverse ? textureShiftEnd : textureShiftStart, reverse ? textureShiftStart : textureShiftEnd, scaledValue));
+                            affectedMaterial.SetTextureOffset(textureLayer[i],
+                                Vector2.Lerp(textureShiftStart, textureShiftEnd, scaledValue));
                         }
                         break;
                     case Mode.TextureScale:
-                        foreach (string token in textureLayer.Split(','))
+                        for (int i = 0; i < textureLayer.Count; ++i)
                         {
-                            affectedMaterial.SetTextureScale(token.Trim(),
-                                Vector2.Lerp(reverse ? textureScaleEnd : textureScaleStart, reverse ? textureScaleStart : textureScaleEnd, scaledValue));
+                            affectedMaterial.SetTextureScale(textureLayer[i],
+                                Vector2.Lerp(textureScaleStart, textureScaleEnd, scaledValue));
                         }
                         break;
                     case Mode.LoopingAnimation:
