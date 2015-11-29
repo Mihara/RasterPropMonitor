@@ -185,15 +185,15 @@ namespace JSI
         private readonly bool alarmSoundLooping;
         private readonly bool alarmMustPlayOnce;
         private readonly Color passiveColor, activeColor;
-        private readonly Transform controlledTransform;
+        private Transform controlledTransform;
         private readonly Vector3 initialPosition, initialScale, vectorStart, vectorEnd;
         private readonly Quaternion initialRotation, rotationStart, rotationEnd;
         private readonly bool longPath;
         private readonly double flashingDelay;
         private readonly string colorName = "_EmissiveColor";
         private readonly Vector2 textureShiftStart, textureShiftEnd, textureScaleStart, textureScaleEnd;
-        private readonly Material affectedMaterial;
-        private readonly List<string> textureLayer = new List<string>();
+        private Material affectedMaterial;
+        private List<string> textureLayer = new List<string>();
         private readonly Mode mode;
         private readonly float resourceAmount;
         private readonly string resourceName;
@@ -571,7 +571,11 @@ namespace JSI
             if (affectedMaterial != null)
             {
                 UnityEngine.Object.Destroy(affectedMaterial);
+                affectedMaterial = null;
             }
+            textureLayer = null;
+            controlledTransform = null;
+            part = null;
         }
 
         private void TurnOn(double universalTime)
