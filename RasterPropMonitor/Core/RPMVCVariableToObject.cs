@@ -475,7 +475,6 @@ namespace JSI
                     };
 
                 case "TIMETOIMPACTSECS":
-                    // TODO:
                     return (string variable) => { return TimeToImpact(); };
                 case "SPEEDATIMPACT":
                     return (string variable) => { return SpeedAtImpact(totalCurrentThrust); };
@@ -808,6 +807,25 @@ namespace JSI
                         if (orbitSensibility && vessel.orbit.DescendingNodeEquatorialExists())
                             return vessel.orbit.TimeOfDescendingNodeEquatorial(Planetarium.GetUniversalTime()) - Planetarium.GetUniversalTime();
                         return double.NaN;
+                    };
+                case "TIMETOATMOSPHERESECS":
+                    return (string variable) =>
+                    {
+                        double timeToAtm = 0.0;
+                        if (orbitSensibility && vessel.orbit.referenceBody.atmosphere == true)
+                        {
+                            try
+                            {
+                                double now = Planetarium.GetUniversalTime();
+                                timeToAtm = vessel.orbit.NextTimeOfRadius(now, vessel.orbit.referenceBody.atmosphereDepth + vessel.orbit.referenceBody.Radius) - now;
+                                timeToAtm = Math.Max(timeToAtm, 0.0);
+                            }
+                            catch
+                            {
+                                //...
+                            }
+                        }
+                        return timeToAtm;
                     };
 
                 // SOI changes in orbits.
