@@ -835,7 +835,7 @@ namespace JSI
                         {
                             return vessel.orbit.UTsoi - Planetarium.GetUniversalTime();
                         }
-                        return double.NaN;
+                        return 0.0;
                     };
                 case "ENCOUNTERBODY":
                     return (string variable) =>
