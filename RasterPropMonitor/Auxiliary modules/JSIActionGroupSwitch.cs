@@ -576,6 +576,8 @@ namespace JSI
             actionHandler = null;
             transferGetter = null;
             transferSetter = null;
+            audioOutput = null;
+            loopingOutput = null;
         }
 
         private void SetInternalLights(bool value)
