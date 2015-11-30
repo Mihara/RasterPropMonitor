@@ -632,6 +632,20 @@ namespace JSI
                     return LiftForce();
                 case "LIFTACCEL":
                     return LiftAccel();
+                case "ACCELPROGRADE":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, prograde); };
+                case "ACCELRADIAL":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, radialOut); };
+                case "ACCELNORMAL":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, normalPlus); };
+                case "ACCELSURFPROGRADE":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, vessel.srf_velocity.normalized); };
+                case "ACCELFORWARD":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, forward); };
+                case "ACCELRIGHT":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, right); };
+                case "ACCELTOP":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, top); };
 
                 // Maneuvers
                 case "MNODETIMESECS":
