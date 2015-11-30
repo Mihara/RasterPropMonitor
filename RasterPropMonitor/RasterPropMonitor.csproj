@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Auxiliary modules\JSIEngineMonitor.cs" />
+    <Compile Include="Auxiliary modules\JSINavBall.cs" />
     <Compile Include="Auxiliary modules\JSINumericInput.cs" />
     <Compile Include="Auxiliary modules\JSIRadar.cs" />
     <Compile Include="Core\AeroExtensions.cs" />
