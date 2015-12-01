@@ -136,7 +136,7 @@ namespace JSI
         private int lightCheckCountdown;
         private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
-        private Renderer colorShiftRenderer;
+        private Material colorShiftMaterial;
         private string stateVariable = string.Empty;
         private Action<bool> actionHandler;
         private bool isPluginAction;
@@ -536,10 +536,11 @@ namespace JSI
                 else if (!string.IsNullOrEmpty(coloredObject))
                 {
                     // Set up the color shift.
-                    colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
+                    Renderer colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
                     disabledColorValue = ConfigNode.ParseColor32(disabledColor);
                     enabledColorValue = ConfigNode.ParseColor32(enabledColor);
-                    colorShiftRenderer.material.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
+                    colorShiftMaterial = colorShiftRenderer.material;
+                    colorShiftMaterial.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
                 else
                 {
@@ -567,6 +568,16 @@ namespace JSI
         {
             //JUtil.LogMessage(this, "OnDestroy()");
             rpmComp = null;
+            if (colorShiftMaterial != null)
+            {
+                UnityEngine.Object.Destroy(colorShiftMaterial);
+                colorShiftMaterial = null;
+            }
+            actionHandler = null;
+            transferGetter = null;
+            transferSetter = null;
+            audioOutput = null;
+            loopingOutput = null;
         }
 
         private void SetInternalLights(bool value)
@@ -860,9 +871,9 @@ namespace JSI
                         anim.Play(animationName);
                     }
                 }
-                else if (colorShiftRenderer != null)
+                else if (colorShiftMaterial != null)
                 {
-                    colorShiftRenderer.material.SetColor(colorName, (newState ^ reverse ? enabledColorValue : disabledColorValue));
+                    colorShiftMaterial.SetColor(colorName, (newState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
                 currentState = newState;
             }

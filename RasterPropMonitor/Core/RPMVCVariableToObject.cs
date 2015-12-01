@@ -475,7 +475,6 @@ namespace JSI
                     };
 
                 case "TIMETOIMPACTSECS":
-                    // TODO:
                     return (string variable) => { return TimeToImpact(); };
                 case "SPEEDATIMPACT":
                     return (string variable) => { return SpeedAtImpact(totalCurrentThrust); };
@@ -633,6 +632,20 @@ namespace JSI
                     return LiftForce();
                 case "LIFTACCEL":
                     return LiftAccel();
+                case "ACCELPROGRADE":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, prograde); };
+                case "ACCELRADIAL":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, radialOut); };
+                case "ACCELNORMAL":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, normalPlus); };
+                case "ACCELSURFPROGRADE":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, vessel.srf_velocity.normalized); };
+                case "ACCELFORWARD":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, forward); };
+                case "ACCELRIGHT":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, right); };
+                case "ACCELTOP":
+                    return (string variable) => { return Vector3.Dot(vessel.acceleration, top); };
 
                 // Maneuvers
                 case "MNODETIMESECS":
@@ -809,6 +822,25 @@ namespace JSI
                             return vessel.orbit.TimeOfDescendingNodeEquatorial(Planetarium.GetUniversalTime()) - Planetarium.GetUniversalTime();
                         return double.NaN;
                     };
+                case "TIMETOATMOSPHERESECS":
+                    return (string variable) =>
+                    {
+                        double timeToAtm = 0.0;
+                        if (orbitSensibility && vessel.orbit.referenceBody.atmosphere == true)
+                        {
+                            try
+                            {
+                                double now = Planetarium.GetUniversalTime();
+                                timeToAtm = vessel.orbit.NextTimeOfRadius(now, vessel.orbit.referenceBody.atmosphereDepth + vessel.orbit.referenceBody.Radius) - now;
+                                timeToAtm = Math.Max(timeToAtm, 0.0);
+                            }
+                            catch
+                            {
+                                //...
+                            }
+                        }
+                        return timeToAtm;
+                    };
 
                 // SOI changes in orbits.
                 case "ENCOUNTEREXISTS":
@@ -835,7 +867,7 @@ namespace JSI
                         {
                             return vessel.orbit.UTsoi - Planetarium.GetUniversalTime();
                         }
-                        return double.NaN;
+                        return 0.0;
                     };
                 case "ENCOUNTERBODY":
                     return (string variable) =>

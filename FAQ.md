@@ -2,7 +2,7 @@
 
 ### Can you make RPM work outside the command pod / on pop-up screens?
 
-No.  RasterPropMonitor was designed to provide an interactive IVA experience.  It can not be used to run "monitors" placed outside the craft, and it can not be used to draw on windows/overlays either.  There are no plans to change that.  The license for RPM is very open, so if someone wants to use RPM as a basis to make something similar for outside-of-IVA use, they're more than welcome to try.
+No.  RasterPropMonitor was designed to provide an interactive IVA experience.  It was not designed to run "monitors" placed outside the craft, and it can not be used to draw on windows/overlays either.  There are no plans to change that.  The license for RPM is very open, so if someone wants to use RPM as a basis to make something similar for outside-of-IVA use, they're more than welcome to try.
 
 ### Where is the IVA for X?
 
@@ -14,7 +14,7 @@ I do not actively support CKAN versioning information.  KerbalStuff has an optio
 
 I make efforts to keep the RasterPropMonitor.version file accurate (which affects AVC, and maybe CKAN), but due to the way my release cycles work, there is always a chance that version info on GitHub will be changed before a release takes place.
 
-TL;DR: The current version is always identified on the [forum](http://forum.kerbalspaceprogram.com/threads/117471), [KerbalStuff](https://kerbalstuff.com/mod/734/RasterPropMonitor), and [GitHub](https://github.com/Mihara/RasterPropMonitor/releases) . Any other sources of versioning are secondary, and not authorative.
+TL;DR: The current version is always identified on the [forum](http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/), [KerbalStuff](https://kerbalstuff.com/mod/734/RasterPropMonitor), and [GitHub](https://github.com/Mihara/RasterPropMonitor/releases) . Any other sources of versioning are secondary, and not authorative.
 
 ### Half the buttons don't work!
 
@@ -28,7 +28,7 @@ It's sort of an approximation of how actual MFDs work, though they typically use
 * Make sure that there is only one RasterPropMonitor.dll and that it is located at GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll -- several earlier third-party capsules distributed old versions incorrectly. They *will* fail to work in 0.23.
 * Make sure that you're using the appropriate versions of every other plugin, in particular SCANsat and MechJeb -- failures of loading the interface DLLs for those can cause RasterPropMonitor to stop working, and there's little I can do about this. Blame Squad and be sure to eradicate MechJebRPM.dll if you do not use MechJeb / delete SCANsatRPM.dll if you do not use SCANsat.
 
-If these steps do not solve your problem, please follow the steps in (this post on the forum)[http://forum.kerbalspaceprogram.com/threads/92229] and post the required information on the (RPM forum)[http://forum.kerbalspaceprogram.com/threads/117471] or open an issue on (GitHub)[https://github.com/Mihara/RasterPropMonitor/issues].
+If these steps do not solve your problem, please follow the steps in (this post on the forum)[http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/] and post the required information on the (RPM forum)[http://forum.kerbalspaceprogram.com/threads/117471] or open an issue on (GitHub)[https://github.com/Mihara/RasterPropMonitor/issues].
 
 ### I get lots of exclamation signs and gibberish all over my screens!
 
@@ -42,7 +42,7 @@ I want your KSP_Data/output_log.txt and as precise a description of what you wer
 
 ### How do I get the map to show? It says "No satellite connection"
 
-RasterPropMonitor relies on [SCANsat](http://forum.kerbalspaceprogram.com/threads/55832) for mapping data. These are the precise satellites it means to have a connection to -- install it and launch some, they're quite a lot of fun. It's one of those things that makes probes more than just a practice launch.
+RasterPropMonitor relies on [SCANsat](http://forum.kerbalspaceprogram.com/index.php?/topic/72679-105-scansat-v144-real-scanning-real-science-at-warp-speed-november-14/) for mapping data. These are the precise satellites it means to have a connection to -- install it and launch some, they're quite a lot of fun. It's one of those things that makes probes more than just a practice launch.
 
 ### RasterPropMonitor breaks Kethane map!
 
