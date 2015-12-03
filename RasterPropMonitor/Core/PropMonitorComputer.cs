@@ -223,14 +223,18 @@ namespace JSI
         {
             if (persistentVars.ContainsKey(persistentVarName))
             {
-                persistentVars[persistentVarName] = varvalue;
+                int oldvalue = persistentVars[persistentVarName];
+                if (oldvalue != varvalue)
+                {
+                    persistentVars[persistentVarName] = varvalue;
+                    StoreData();
+                }
             }
             else
             {
                 persistentVars.Add(persistentVarName, varvalue);
+                StoreData();
             }
-
-            StoreData();
         }
 
         internal void SetVar(string persistentVarName, bool varvalue)
