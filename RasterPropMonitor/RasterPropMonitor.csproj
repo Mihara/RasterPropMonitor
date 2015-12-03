@@ -58,6 +58,7 @@
     <Compile Include="Auxiliary modules\JSINavBall.cs" />
     <Compile Include="Auxiliary modules\JSINumericInput.cs" />
     <Compile Include="Auxiliary modules\JSIRadar.cs" />
+    <Compile Include="Auxiliary modules\JSISwitch.cs" />
     <Compile Include="Core\AeroExtensions.cs" />
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MathVariable.cs" />
