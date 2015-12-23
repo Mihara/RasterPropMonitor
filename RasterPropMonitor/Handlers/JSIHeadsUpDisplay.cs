@@ -86,6 +86,11 @@ namespace JSI
         public string verticalBar = string.Empty;
         private List<VerticalBar> verticalBars = new List<VerticalBar>();
 
+        // Horizontal bars
+        [KSPField]
+        public string horizontalBar = string.Empty;
+        private List<HorizontalBar> horizontalBars = new List<HorizontalBar>();
+
         private GameObject cameraBody;
         private Camera hudCamera;
 
@@ -264,6 +269,31 @@ namespace JSI
                     }
                 }
             }
+
+            if (!string.IsNullOrEmpty(horizontalBar))
+            {
+                ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("JSIHUD_HORIZONTAL_BAR");
+                string[] hBars = horizontalBar.Split(';');
+                for (int i = 0; i < hBars.Length; ++i)
+                {
+                    for (int j = 0; j < nodes.Length; ++j)
+                    {
+                        if (nodes[j].HasValue("name") && hBars[i].Trim() == nodes[j].GetValue("name"))
+                        {
+                            try
+                            {
+                                HorizontalBar hb = new HorizontalBar(nodes[j], screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
+                                horizontalBars.Add(hb);
+                            }
+                            catch (Exception e)
+                            {
+                                JUtil.LogErrorMessage(this, "Error parsing JSIHUD_HORIZONTAL_BAR: {0}", e);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -394,6 +424,10 @@ namespace JSI
             {
                 verticalBars[i].Update(comp);
             }
+            for (int i = 0; i < horizontalBars.Count; ++i)
+            {
+                horizontalBars[i].Update(comp);
+            }
 
             GL.Clear(true, true, backgroundColorValue);
 
@@ -444,6 +478,10 @@ namespace JSI
             for (int i = 0; i < verticalBars.Count; ++i)
             {
                 JUtil.ShowHide(false, verticalBars[i].barObject);
+            }
+            for (int i = 0; i < horizontalBars.Count; ++i)
+            {
+                JUtil.ShowHide(false, horizontalBars[i].barObject);
             }
 
             return true;
@@ -503,7 +541,15 @@ namespace JSI
             for (int i = 0; i < verticalBars.Count; ++i)
             {
                 JUtil.DisposeOfGameObjects(new GameObject[] { verticalBars[i].barObject });
+                verticalBars[i] = null;
             }
+            verticalBars.Clear();
+            for (int i = 0; i < horizontalBars.Count; ++i)
+            {
+                JUtil.DisposeOfGameObjects(new GameObject[] { horizontalBars[i].barObject });
+                horizontalBars[i] = null;
+            }
+            horizontalBars.Clear();
         }
     }
 
@@ -639,6 +685,145 @@ namespace JSI
                     new Vector2(1.0f, yOffset - textureSize),
                     new Vector2(0.0f, yOffset + textureSize),
                     new Vector2(1.0f, yOffset + textureSize)
+                };
+
+                JUtil.ShowHide(true, barObject);
+            }
+        }
+    }
+
+    class HorizontalBar
+    {
+        private VariableOrNumber variable;
+        private Vector2 scale;
+        private Vector2 textureLimit;
+        public readonly GameObject barObject;
+        private float textureSize;
+        private bool useLog10;
+
+        private VariableOrNumberRange enablingVariable;
+
+        internal HorizontalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
+        {
+            JUtil.LogMessage(this, "Configuring for {0}", node.GetValue("name"));
+            if (!node.HasValue("variableName"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing variableName");
+            }
+            variable = VariableOrNumber.Instantiate(node.GetValue("variableName"));
+
+            if (!node.HasValue("texture"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing texture");
+            }
+
+            Texture2D tex = GameDatabase.Instance.GetTexture(node.GetValue("texture"), false);
+            if (tex == null)
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " texture " + node.GetValue("texture") + " can't be loaded.");
+            }
+            tex.wrapMode = TextureWrapMode.Clamp;
+
+            if (node.HasValue("useLog10") && bool.TryParse(node.GetValue("useLog10"), out useLog10) == false)
+            {
+                // I think this is redundant
+                useLog10 = false;
+            }
+
+            if (!node.HasValue("scale"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing scale");
+            }
+
+            scale = ConfigNode.ParseVector2(node.GetValue("scale"));
+            if (useLog10)
+            {
+                scale.x = JUtil.PseudoLog10(scale.x);
+                scale.y = JUtil.PseudoLog10(scale.y);
+            }
+
+            if (!node.HasValue("textureSize"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing textureSize");
+            }
+
+            if (!float.TryParse(node.GetValue("textureSize"), out textureSize))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " failed parsing textureSize");
+            }
+
+            textureSize = 0.5f * textureSize / (float)tex.width;
+
+            if (!node.HasValue("textureLimit"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing textureLimit");
+            }
+
+            textureLimit = ConfigNode.ParseVector2(node.GetValue("textureLimit"));
+            textureLimit.x = 1.0f - textureLimit.x / (float)tex.width;
+            textureLimit.y = 1.0f - textureLimit.y / (float)tex.width;
+
+            if (!node.HasValue("position"))
+            {
+                throw new Exception("HorizontalBar " + node.GetValue("name") + " missing position");
+            }
+
+            Vector4 position = ConfigNode.ParseVector4(node.GetValue("position"));
+
+            if (node.HasValue("enablingVariable") && node.HasValue("enablingVariableRange"))
+            {
+                string[] range = node.GetValue("enablingVariableRange").Split(',');
+                if (range.Length != 2)
+                {
+                    throw new Exception("HorizontalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
+                }
+
+                enablingVariable = new VariableOrNumberRange(node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
+            }
+
+            barObject = JUtil.CreateSimplePlane("HorizontalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
+
+            Material barMaterial = new Material(displayShader);
+            barMaterial.color = Color.white;
+            barMaterial.mainTexture = tex;
+
+            // Position in camera space has (0, 0) in the center, so we need to
+            // translate everything appropriately.  Y is odd since the coordinates
+            // supplied are Left-Handed (0Y on top, growing down), not RH.
+            barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.4f);
+            barObject.renderer.material = barMaterial;
+            barObject.transform.parent = cameraBody.transform;
+
+            JUtil.ShowHide(true, barObject);
+        }
+
+        internal void Update(RPMVesselComputer comp)
+        {
+            float value;
+            if (enablingVariable != null)
+            {
+                if (!enablingVariable.IsInRange(comp))
+                {
+                    return;
+                }
+            }
+
+            if (variable.Get(out value, comp))
+            {
+                if (useLog10)
+                {
+                    value = JUtil.PseudoLog10(value);
+                }
+                float xOffset = JUtil.DualLerp(textureLimit, scale, value);
+
+                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+
+                meshFilter.mesh.uv = new[] 
+                {
+                    new Vector2(xOffset - textureSize, 0.0f),
+                    new Vector2(xOffset + textureSize, 0.0f),
+                    new Vector2(xOffset - textureSize, 1.0f),
+                    new Vector2(xOffset + textureSize, 1.0f)
                 };
 
                 JUtil.ShowHide(true, barObject);
