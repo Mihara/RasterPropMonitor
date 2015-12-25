@@ -160,10 +160,6 @@ namespace JSI
                 {
                     return 0.0f;
                 }
-                if(op == Operator.SUBTRACT)
-                {
-                    JUtil.LogMessage(this, "[0] = {0:F1}", value);
-                }
 
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
@@ -181,7 +177,6 @@ namespace JSI
                             value += operand;
                             break;
                         case Operator.SUBTRACT:
-                            JUtil.LogMessage(this, "[{1}] = {0:F1}", operand, i);
                             value -= operand;
                             break;
                         case Operator.MULTIPLY:
@@ -199,10 +194,6 @@ namespace JSI
                     }
                 }
 
-                if (op == Operator.SUBTRACT)
-                {
-                    JUtil.LogMessage(this, "--- = {0:F1}", value);
-                }
                 return value;
             }
         }

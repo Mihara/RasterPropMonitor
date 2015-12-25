@@ -27,7 +27,7 @@ namespace JSI
     {
         private readonly VariableOrNumberRange sourceVariable;
         public readonly string mappedVariable;
-        private readonly Vector2 mappedRange;
+        private readonly VariableOrNumber mappedExtent1, mappedExtent2;
 
         public MappedVariable(ConfigNode node)
         {
@@ -47,15 +47,21 @@ namespace JSI
             sourceVariable = new VariableOrNumberRange(sourceVariableStr, sources[0], sources[1]);
 
             mappedVariable = node.GetValue("mappedVariable");
-            mappedRange = ConfigNode.ParseVector2(node.GetValue("mappedRange"));
+            string[] destinations = node.GetValue("mappedRange").Split(',');
+            if (destinations.Length != 2)
+            {
+                throw new ArgumentException("MappedVariable mappedRange does not have exactly two values");
+            }
+            mappedExtent1 = VariableOrNumber.Instantiate(destinations[0]);
+            mappedExtent2 = VariableOrNumber.Instantiate(destinations[1]);
         }
 
         public object Evaluate(RPMVesselComputer comp)
         {
-            float lerp;
-            if (sourceVariable.InverseLerp(comp, out lerp))
+            float lerp, extent1, extent2;
+            if (sourceVariable.InverseLerp(comp, out lerp) && mappedExtent1.Get(out extent1, comp) && mappedExtent2.Get(out extent2, comp))
             {
-                return Mathf.Lerp(mappedRange.x, mappedRange.y, lerp);
+                return Mathf.Lerp(extent1, extent2, lerp);
             }
             else
             {
