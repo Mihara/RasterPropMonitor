@@ -1092,8 +1092,8 @@ namespace JSI
                         }
                         if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
                         {
-                            hottestEngineTemperature = (float)thatPart.skinTemperature;
-                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                            hottestEngineTemperature = (float)thatPart.temperature;
+                            hottestEngineMaxTemperature = (float)thatPart.maxTemp;
                             hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
                         }
                     }

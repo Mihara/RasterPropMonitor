@@ -409,13 +409,13 @@ namespace JSI
                 case "EASPEED":
                     return (string variable) =>
                     {
-                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel.mainBody, vessel.altitude, false) / 1.225);
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel) / 1.225);
                         return vessel.srfSpeed * Math.Sqrt(densityRatio);
                     };
                 case "IASPEED":
                     return (string variable) =>
                     {
-                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel.mainBody, vessel.altitude, false) / 1.225);
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel) / 1.225);
                         double pressureRatio = AeroExtensions.StagnationPressureCalc(vessel.mainBody, vessel.mach);
                         return vessel.srfSpeed * Math.Sqrt(densityRatio) * pressureRatio;
                     };

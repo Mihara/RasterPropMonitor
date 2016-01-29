@@ -66,27 +66,33 @@ using System;
 
 namespace JSI
 {
-    // Imported from FerramAerospaceResearch FARAeroUtil.cs
+    // Imported from FerramAerospaceResearch FARAeroUtil.cs versions 0.15.3.1 and later
     public static class AeroExtensions
     {
         //Based on ratio of density of water to density of air at SL
-        private const double UNDERWATER_DENSITY_FACTOR_MINUS_ONE = 814.51020408163265306122448979592;
+        //private const double UNDERWATER_DENSITY_FACTOR_MINUS_ONE = 814.51020408163265306122448979592;
 
-        public static double GetCurrentDensity(CelestialBody body, double altitude, bool densitySmoothingAtOcean = true)
+        // Updated method from FAR v0.15.5.4
+        public static double GetCurrentDensity(Vessel v)
         {
-            double pressure, temperature;
-            pressure = FlightGlobals.getStaticPressure(altitude, body);
-            temperature = FlightGlobals.getExternalTemperature(altitude, body);
-
-            double density = FlightGlobals.getAtmDensity(pressure, temperature, body);
-
-            if (altitude < 0 && densitySmoothingAtOcean)
+            double density = 0.0d;
+            int counter = 0;
+            for (int i = 0; i < v.parts.Count; i++)
             {
-                double densityMultFromOcean = Math.Max(-altitude, 1);
-                densityMultFromOcean *= UNDERWATER_DENSITY_FACTOR_MINUS_ONE;
-                densityMultFromOcean++;
-                density *= densityMultFromOcean;
+                if (v.parts[i].physicalSignificance != Part.PhysicalSignificance.NONE)
+                {
+                    density += v.parts[i].dynamicPressurekPa * (1.0 - v.parts[i].submergedPortion);
+                    density += v.parts[i].submergedDynamicPressurekPa * v.parts[i].submergedPortion;
+                    ++counter;
+                }
             }
+
+            if (counter > 0)
+            {
+                density /= (double)counter;
+            }
+            density *= 2000.0;        //need answers in Pa, not kPa 
+            density /= (v.srfSpeed * v.srfSpeed);
 
             return density;
         }
@@ -97,11 +103,11 @@ namespace JSI
 
             double ratio;
             ratio = M * M;
-            ratio *= (gamma - 1);
+            ratio *= (gamma - 1.0);
             ratio *= 0.5;
             ratio++;
 
-            ratio = Math.Pow(ratio, gamma / (gamma - 1));
+            ratio = Math.Pow(ratio, gamma / (gamma - 1.0));
             return ratio;
         }
     }
