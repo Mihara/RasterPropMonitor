@@ -36,6 +36,7 @@ namespace JSI
             DIVIDE,
             MAX,
             MIN,
+			POWER,            
             MAXINDEX,
             MININDEX,
         };
@@ -97,6 +98,11 @@ namespace JSI
                 op = Operator.MIN;
                 indexOperator = false;
             }
+			else if (oper == Operator.POWER.ToString()) 
+            { 
+                op = Operator.POWER; 
+                indexOperator = false; 
+            } 
             else if (oper == Operator.MAXINDEX.ToString())
             {
                 op = Operator.MAXINDEX;
@@ -191,6 +197,9 @@ namespace JSI
                         case Operator.MIN:
                             value = Math.Min(value, operand);
                             break;
+						case Operator.POWER:
+                            value = Math.Pow(value, operand); 
+                            break; 
                     }
                 }
 

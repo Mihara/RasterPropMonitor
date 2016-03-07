@@ -118,6 +118,9 @@ namespace JSI
                     }
                 }
                 vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
+                if (string.IsNullOrEmpty(vesselDescriptionForDisplay)) {
+                    vesselDescriptionForDisplay = " "; // Workaround for issue #466.
+                }
 
                 // Now let's parse our stored strings...
                 if (!string.IsNullOrEmpty(storedStrings))
