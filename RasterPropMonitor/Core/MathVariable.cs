@@ -36,7 +36,9 @@ namespace JSI
             DIVIDE,
             MAX,
             MIN,
-			POWER,            
+            POWER,
+            ANGLEDELTA,
+            ATAN2,
             MAXINDEX,
             MININDEX,
         };
@@ -98,9 +100,19 @@ namespace JSI
                 op = Operator.MIN;
                 indexOperator = false;
             }
-			else if (oper == Operator.POWER.ToString()) 
+	    else if (oper == Operator.POWER.ToString()) 
             { 
                 op = Operator.POWER; 
+                indexOperator = false; 
+            }
+            else if (oper == Operator.ANGLEDELTA.ToString()) 
+            { 
+                op = Operator.ANGLEDELTA; 
+                indexOperator = false; 
+            }
+            else if (oper == Operator.ATAN2.ToString()) 
+            { 
+                op = Operator.ATAN2; 
                 indexOperator = false; 
             } 
             else if (oper == Operator.MAXINDEX.ToString())
@@ -197,9 +209,15 @@ namespace JSI
                         case Operator.MIN:
                             value = Math.Min(value, operand);
                             break;
-						case Operator.POWER:
+			case Operator.POWER:
                             value = Math.Pow(value, operand); 
-                            break; 
+                            break;
+			case Operator.ANGLEDELTA:
+                            value = Math.DeltaAngle(value, operand); 
+                            break;
+			case Operator.ATAN2:
+                            value = Math.Atan2(value, operand); // *Math.Rad2Deg; This would change the output into degrees but it only happens once.
+			    break;		                            
                     }
                 }
 
