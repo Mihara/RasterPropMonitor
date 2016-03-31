@@ -517,6 +517,7 @@ namespace JSI
                 {
                     masterAction = false;
                 }
+                enableVariable = null;
             }
 
             /// <summary>
@@ -587,7 +588,7 @@ namespace JSI
             override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp)
             {
                 currentState = rpmComp.GetBool(perPodPersistenceName, currentState);
-                if(enableVariable != null)
+                if (enableVariable != null)
                 {
                     currentState = currentState & enableVariable.IsInRange(comp);
                 }
