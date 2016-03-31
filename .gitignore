@@ -222,5 +222,4 @@ GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll
 GameData/JSI/RasterPropMonitor/Plugins/MechJebRPM.dll
 dev_README.txt
 *.zip
-GameData/ModuleManager.2.6.13.dll
-GameData/ModuleManager.2.6.17.dll
+GameData/ModuleManager.*.dll
