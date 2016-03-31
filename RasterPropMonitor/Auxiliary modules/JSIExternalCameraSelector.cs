@@ -113,7 +113,7 @@ namespace JSI
 				lightConeRenderer.material = lightConeMaterial;
 				lightConeRenderer.SetWidth(0.054f, endSpan);
 				lightConeRenderer.SetVertexCount(2);
-				lightConeRenderer.castShadows = false;
+				lightConeRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 				lightConeRenderer.receiveShadows = false;
 				lightConeRenderer.SetPosition(0, Vector3.zero);
 				lightConeRenderer.SetPosition(1, Vector3.zero);

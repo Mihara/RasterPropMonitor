@@ -133,7 +133,7 @@ namespace JSI
 
                 overlayMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayOverlay" + hudCamera.GetInstanceID(), screenWidth * 0.5f, drawingLayer);
                 overlayMesh.transform.position = new Vector3(0, 0, 1.0f);
-                overlayMesh.renderer.material = overlayMaterial;
+                overlayMesh.GetComponent<Renderer>().material = overlayMaterial;
                 overlayMesh.transform.parent = cameraBody.transform;
 
                 JUtil.ShowHide(false, overlayMesh);
@@ -160,7 +160,7 @@ namespace JSI
 
                     ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                     ladderMesh.transform.position = new Vector3(0, 0, 1.45f);
-                    ladderMesh.renderer.material = ladderMaterial;
+                    ladderMesh.GetComponent<Renderer>().material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
                     JUtil.ShowHide(false, ladderMesh);
@@ -189,7 +189,7 @@ namespace JSI
 
                         progradeLadderIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadderProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), texCoord, drawingLayer);
                         progradeLadderIcon.transform.position = new Vector3(0.0f, 0.0f, 1.41f);
-                        progradeLadderIcon.renderer.material = progradeIconMaterial;
+                        progradeLadderIcon.GetComponent<Renderer>().material = progradeIconMaterial;
                         progradeLadderIcon.transform.parent = cameraBody.transform;
                     }
                 }
@@ -208,7 +208,7 @@ namespace JSI
 
                     headingMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeading" + hudCamera.GetInstanceID(), new Vector2(headingBarPosition.z * 0.5f, headingBarPosition.w * 0.5f), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                     headingMesh.transform.position = new Vector3(headingBarPosition.x + 0.5f * (headingBarPosition.z - screenWidth), 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.4f);
-                    headingMesh.renderer.material = headingMaterial;
+                    headingMesh.GetComponent<Renderer>().material = headingMaterial;
                     headingMesh.transform.parent = cameraBody.transform;
 
                     JUtil.ShowHide(false, headingMesh);
@@ -239,7 +239,7 @@ namespace JSI
 
                         progradeHeadingIcon = JUtil.CreateSimplePlane("JSIHeadsUpDisplayHeadingProgradeIcon" + hudCamera.GetInstanceID(), new Vector2(iconPixelSize * 0.5f, iconPixelSize * 0.5f), texCoord, drawingLayer);
                         progradeHeadingIcon.transform.position = new Vector3(progradeHeadingIconOrigin, 0.5f * (screenHeight - headingBarPosition.w) - headingBarPosition.y, 1.35f);
-                        progradeHeadingIcon.renderer.material = progradeIconMaterial;
+                        progradeHeadingIcon.GetComponent<Renderer>().material = progradeIconMaterial;
                         progradeHeadingIcon.transform.parent = headingMesh.transform;
                     }
                 }
@@ -652,7 +652,7 @@ namespace JSI
             // translate everything appropriately.  Y is odd since the coordinates
             // supplied are Left-Handed (0Y on top, growing down), not RH.
             barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.4f);
-            barObject.renderer.material = barMaterial;
+            barObject.GetComponent<Renderer>().material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
 
             JUtil.ShowHide(true, barObject);
@@ -791,7 +791,7 @@ namespace JSI
             // translate everything appropriately.  Y is odd since the coordinates
             // supplied are Left-Handed (0Y on top, growing down), not RH.
             barObject.transform.position = new Vector3(position.x + 0.5f * (position.z - screenWidth), 0.5f * (screenHeight - position.w) - position.y, 1.4f);
-            barObject.renderer.material = barMaterial;
+            barObject.GetComponent<Renderer>().material = barMaterial;
             barObject.transform.parent = cameraBody.transform;
 
             JUtil.ShowHide(true, barObject);

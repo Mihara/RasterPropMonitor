@@ -468,7 +468,7 @@ namespace JSI
                 lastUpdate = Planetarium.GetUniversalTime();
 
                 screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
-                screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+                screenMat = internalProp.FindModelTransform(screenTransform).GetComponent<Renderer>().material;
 
                 foreach (string layerID in textureLayerID.Split())
                 {

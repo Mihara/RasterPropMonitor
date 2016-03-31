@@ -38,10 +38,10 @@ namespace JSI
 
                 obj.layer = drawingLayer;
 
-                UnityEngine.Object.Destroy(obj.collider);
+                UnityEngine.Object.Destroy(obj.GetComponent<Collider>());
 
                 obj.transform.position = new Vector3(0, 0, 0.5f);
-                obj.renderer.material = fontMaterial;
+                obj.GetComponent<Renderer>().material = fontMaterial;
                 obj.transform.parent = parentTransform;
             }
 

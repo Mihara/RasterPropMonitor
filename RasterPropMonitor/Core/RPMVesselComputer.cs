@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using UnityEngine;
+using KSP.UI.Screens.Flight;
 
 // MOARdV TODO:
 // Add callbacks for docking, undocking, staging, vessel switching
@@ -339,8 +340,9 @@ namespace JSI
         }
 
         #region VesselModule Overrides
-        public void Awake()
+        public override void OnAwake()
         {
+            base.OnAwake();
             vessel = GetComponent<Vessel>();
             if (vessel == null || vessel.isEVA || !vessel.isCommandable)
             {
@@ -537,7 +539,16 @@ namespace JSI
         public void Start()
         {
             //JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
-            navBall = FlightUIController.fetch.GetComponentInChildren<NavBall>();
+            try
+            {
+                navBall = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.NavBall>();
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "Failed to fetch the NavBall: {0}", e);
+                JUtil.LogMessage(this, "The NavBall is disabled.");
+                navBall = new NavBall();
+            }
 
             if (JUtil.IsActiveVessel(vessel))
             {

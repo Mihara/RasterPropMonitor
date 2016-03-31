@@ -42,7 +42,7 @@ namespace JSI
             audioOutput.audio.maxDistance = 10f;
             audioOutput.audio.minDistance = 8f;
             audioOutput.audio.dopplerLevel = 0f;
-            audioOutput.audio.panLevel = 0f;
+            audioOutput.audio.panStereo = 0f;
             audioOutput.audio.playOnAwake = false;
             audioOutput.audio.priority = 255;
             audioOutput.audio.loop = true;

@@ -18,6 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using KSP.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -280,9 +281,9 @@ namespace JSI
         private void ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode newMode)
         {
             // find the UI object on screen
-            RUIToggleButton[] SASbtns = UnityEngine.Object.FindObjectOfType<VesselAutopilotUI>().modeButtons;
+            UIStateToggleButton[] SASbtns = UnityEngine.Object.FindObjectOfType<VesselAutopilotUI>().modeButtons;
             // set our mode, note it takes the mode as an int, generally top to bottom, left to right, as seen on the screen. Maneuver node being the exception, it is 9
-            SASbtns.ElementAt<RUIToggleButton>((int)newMode).SetTrue(true, true);
+            SASbtns.ElementAt<UIStateToggleButton>((int)newMode).SetState(true);
         }
 
         /// <summary>
@@ -520,7 +521,7 @@ namespace JSI
          */
         public void ButtonSpeedMode(bool ignored)
         {
-            FlightUIController.fetch.cycleSpdModes();
+            FlightGlobals.CycleSpeedModes();
         }
 
         /**
