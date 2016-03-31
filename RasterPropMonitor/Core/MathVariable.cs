@@ -52,17 +52,7 @@ namespace JSI
         {
             name = node.GetValue("name");
 
-            string[] sources = node.GetValues("sourceVariable");
-            for (int i = 0; i < sources.Length; ++i)
-            {
-                VariableOrNumber sv = VariableOrNumber.Instantiate(sources[i]);
-                sourceVariables.Add(sv);
-            }
-
-            if (sourceVariables.Count == 0)
-            {
-                throw new ArgumentException("Did not find any SOURCE_VARIABLE nodes in RPM_CUSTOM_VARIABLE", name);
-            }
+            int maxParameters = int.MaxValue;
 
             string oper = node.GetValue("operator");
             if (oper == Operator.NONE.ToString())
@@ -100,21 +90,23 @@ namespace JSI
                 op = Operator.MIN;
                 indexOperator = false;
             }
-	    else if (oper == Operator.POWER.ToString()) 
-            { 
-                op = Operator.POWER; 
-                indexOperator = false; 
+            else if (oper == Operator.POWER.ToString())
+            {
+                op = Operator.POWER;
+                indexOperator = false;
             }
-            else if (oper == Operator.ANGLEDELTA.ToString()) 
-            { 
-                op = Operator.ANGLEDELTA; 
-                indexOperator = false; 
+            else if (oper == Operator.ANGLEDELTA.ToString())
+            {
+                op = Operator.ANGLEDELTA;
+                indexOperator = false;
+                maxParameters = 2;
             }
-            else if (oper == Operator.ATAN2.ToString()) 
-            { 
-                op = Operator.ATAN2; 
-                indexOperator = false; 
-            } 
+            else if (oper == Operator.ATAN2.ToString())
+            {
+                op = Operator.ATAN2;
+                indexOperator = false;
+                maxParameters = 2;
+            }
             else if (oper == Operator.MAXINDEX.ToString())
             {
                 op = Operator.MAXINDEX;
@@ -128,6 +120,19 @@ namespace JSI
             else
             {
                 throw new ArgumentException("Found an invalid operator type in RPM_CUSTOM_VARIABLE", oper);
+            }
+
+            string[] sources = node.GetValues("sourceVariable");
+            int numIndices = Math.Min(sources.Length, maxParameters);
+            for (int i = 0; i < numIndices; ++i)
+            {
+                VariableOrNumber sv = VariableOrNumber.Instantiate(sources[i]);
+                sourceVariables.Add(sv);
+            }
+
+            if (sourceVariables.Count == 0)
+            {
+                throw new ArgumentException("Did not find any SOURCE_VARIABLE nodes in RPM_CUSTOM_VARIABLE", name);
             }
         }
 
@@ -209,15 +214,15 @@ namespace JSI
                         case Operator.MIN:
                             value = Math.Min(value, operand);
                             break;
-			case Operator.POWER:
-                            value = Math.Pow(value, operand); 
+                        case Operator.POWER:
+                            value = Math.Pow(value, operand);
                             break;
-			case Operator.ANGLEDELTA:
-                            value = Math.DeltaAngle(value, operand); 
+                        case Operator.ANGLEDELTA:
+                            value = Mathf.DeltaAngle((float)value, (float)operand);
                             break;
-			case Operator.ATAN2:
-                            value = Math.Atan2(value, operand); // *Math.Rad2Deg; This would change the output into degrees but it only happens once.
-			    break;		                            
+                        case Operator.ATAN2:
+                            value = Math.Atan2(value, operand) * Mathf.Rad2Deg;
+                            break;
                     }
                 }
 
