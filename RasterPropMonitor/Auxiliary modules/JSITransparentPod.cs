@@ -14,7 +14,7 @@ namespace JSI
         public string transparentTransforms = string.Empty;
 
         [KSPField]
-        public string transparentShaderName = "Transparent/Specular";
+        public string transparentShaderName = "Legacy Shaders/Transparent/Specular";
 
         [KSPField]
         public string opaqueShaderName = string.Empty;
