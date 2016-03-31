@@ -1,5 +1,11 @@
 # Frequently Asked Questions about RasterPropMonitor
 
+### Can you add support for (insert favorite mod's name here)?
+
+Probably not.  Most of the mods that RPM interacts with are mods I (MOARdV) use when playing.  As such, making sure RPM still works when those mods change is not a big deal.  There are a couple of mods that I don't use that are in the list, and keeping RPM playing nice with them is already more effort than I can justify.
+
+RPM provides a mechanism for plugin mod makers to add support to RPM.  It is already in use with Docking Port Alignment, SCANsat, and others.  This would be the best way for RPM to support other mods.
+
 ### Can you make RPM work outside the command pod / on pop-up screens?
 
 No.  RasterPropMonitor was designed to provide an interactive IVA experience.  It was not designed to run "monitors" placed outside the craft, and it can not be used to draw on windows/overlays either.  There are no plans to change that.  The license for RPM is very open, so if someone wants to use RPM as a basis to make something similar for outside-of-IVA use, they're more than welcome to try.
@@ -65,6 +71,8 @@ Not *yet*. While it is in the plans, there is the considerable question of how t
 ### How do I perform mathematical operations within a page? 
 
 You can't. String.Format is a (rather basic by itself) string layout language, but it is not a mathematical expression processor. Tags are a screen layout language, but they are not a mathematical expression processor either.
+
+However, you *can* create custom variables that allow mathematical operations.
 
 While there have been calls for implementing one, that's one of the things I'm very wary of doing at all -- it's not particularly hard to do, but it's also all too easy to produce a [Turing Tarpit](https://en.wikipedia.org/wiki/Turing%20tarpit), unwieldy to use and slowing the whole thing down, I've spent much of my life fighting these things and I don't want to create another one. If it's to be a programming language, I can at least make sure it will be a real one and make it suck in modules that will get locally compiled from a domain-specific [Boo](http://boo.codehaus.org/) variant or something to that effect. It will take a while for me to write that, though, but I'm pretty sure eventually I will.
 
