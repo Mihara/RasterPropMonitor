@@ -424,13 +424,13 @@ namespace JSI
                 case "SELECTEDSPEED":
                     return (string variable) =>
                     {
-                        switch (FlightUIController.speedDisplayMode)
+                        switch (FlightGlobals.speedDisplayMode)
                         {
-                            case FlightUIController.SpeedDisplayModes.Orbit:
+                            case FlightGlobals.SpeedDisplayModes.Orbit:
                                 return vessel.orbit.GetVel().magnitude;
-                            case FlightUIController.SpeedDisplayModes.Surface:
+                            case FlightGlobals.SpeedDisplayModes.Surface:
                                 return vessel.srfSpeed;
-                            case FlightUIController.SpeedDisplayModes.Target:
+                            case FlightGlobals.SpeedDisplayModes.Target:
                                 return velocityRelativeTarget.magnitude;
                         }
                         return double.NaN;
@@ -1689,13 +1689,13 @@ namespace JSI
                 case "SPEEDDISPLAYMODE":
                     return (string variable) =>
                     {
-                        switch (FlightUIController.speedDisplayMode)
+                        switch (FlightGlobals.speedDisplayMode)
                         {
-                            case FlightUIController.SpeedDisplayModes.Orbit:
+                            case FlightGlobals.SpeedDisplayModes.Orbit:
                                 return 1d;
-                            case FlightUIController.SpeedDisplayModes.Surface:
+                            case FlightGlobals.SpeedDisplayModes.Surface:
                                 return 0d;
-                            case FlightUIController.SpeedDisplayModes.Target:
+                            case FlightGlobals.SpeedDisplayModes.Target:
                                 return -1d;
                         }
                         return double.NaN;

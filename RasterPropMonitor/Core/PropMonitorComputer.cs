@@ -281,7 +281,7 @@ namespace JSI
             if (HighLogic.LoadedSceneIsEditor)
             {
                 // well, it looks sometimes it might become null..
-                string s = EditorLogic.fetch.shipDescriptionField != null ? EditorLogic.fetch.shipDescriptionField.Text : string.Empty;
+                string s = EditorLogic.fetch.shipDescriptionField != null ? EditorLogic.fetch.shipDescriptionField.text : string.Empty;
                 if (s != lastVesselDescription)
                 {
                     lastVesselDescription = s;

@@ -1,4 +1,25 @@
-﻿using System;
+﻿/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
+using KSP.UI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -105,9 +126,9 @@ namespace JSI
         {
             vessel.Autopilot.SetMode(modes[arg1]);
             // find the UI object on screen
-            RUIToggleButton[] SASbtns = UnityEngine.Object.FindObjectOfType<VesselAutopilotUI>().modeButtons;
+            UIStateToggleButton[] SASbtns = UnityEngine.Object.FindObjectOfType<VesselAutopilotUI>().modeButtons;
             // set our mode, note it takes the mode as an int, generally top to bottom, left to right, as seen on the screen. Maneuver node being the exception, it is 9
-            SASbtns.ElementAt<RUIToggleButton>((int)modes[arg1]).SetTrue(true, true);
+            SASbtns.ElementAt<UIStateToggleButton>((int)modes[arg1]).SetState(true);
         }
 
         private void SAS_Toggle(int arg1, TextMenu.Item arg2)

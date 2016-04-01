@@ -14,7 +14,7 @@ namespace JSI
         public string transparentTransforms = string.Empty;
 
         [KSPField]
-        public string transparentShaderName = "Transparent/Specular";
+        public string transparentShaderName = "Legacy Shaders/Transparent/Specular";
 
         [KSPField]
         public string opaqueShaderName = string.Empty;
@@ -102,8 +102,8 @@ namespace JSI
                         if (tr != null)
                         {
                             // We both change the shader and backup the original shader so we can undo it later.
-                            Shader backupShader = tr.renderer.material.shader;
-                            tr.renderer.material.shader = transparentShader;
+                            Shader backupShader = tr.GetComponent<Renderer>().material.shader;
+                            tr.GetComponent<Renderer>().material.shader = transparentShader;
                             shadersBackup.Add(tr, backupShader);
                         }
                     }
@@ -200,14 +200,14 @@ namespace JSI
                 {
                     foreach (KeyValuePair<Transform, Shader> backup in shadersBackup)
                     {
-                        backup.Key.renderer.material.shader = transparentShader;
+                        backup.Key.GetComponent<Renderer>().material.shader = transparentShader;
                     }
                 }
                 else
                 {
                     foreach (KeyValuePair<Transform, Shader> backup in shadersBackup)
                     {
-                        backup.Key.renderer.material.shader = hasOpaqueShader ? opaqueShader : backup.Value;
+                        backup.Key.GetComponent<Renderer>().material.shader = hasOpaqueShader ? opaqueShader : backup.Value;
                     }
                 }
             }
@@ -240,7 +240,8 @@ namespace JSI
                 // If the internal model doesn't yet exist, this call will implicitly create it anyway.
                 // It will also initialise it, which in this case implies moving it into the correct location in internal space
                 // and populate it with crew, which is what we want.
-                part.SpawnCrew();
+                part.SpawnIVA(); //?
+                //part.SpawnCrew();
 
                 // Once that happens, the internal will have the correct location for viewing from IVA relative to the
                 // current active vessel. (Yeah, internal space is bizarre like that.) So we make note of it.

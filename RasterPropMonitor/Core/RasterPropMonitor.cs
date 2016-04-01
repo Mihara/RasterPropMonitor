@@ -119,7 +119,7 @@ namespace JSI
                 }
                 else
                 {
-                    font = (Texture2D)thisProp.FindModelTransform(location).renderer.material.mainTexture;
+                    font = (Texture2D)thisProp.FindModelTransform(location).GetComponent<Renderer>().material.mainTexture;
                     JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
                 }
             }
@@ -171,7 +171,7 @@ namespace JSI
                 // Now that is done, proceed to setting up the screen.
 
                 screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
-                screenMat = internalProp.FindModelTransform(screenTransform).renderer.material;
+                screenMat = internalProp.FindModelTransform(screenTransform).GetComponent<Renderer>().material;
                 foreach (string layerID in textureLayerID.Split())
                 {
                     screenMat.SetTexture(layerID.Trim(), screenTexture);

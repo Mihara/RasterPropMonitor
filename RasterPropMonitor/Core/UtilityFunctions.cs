@@ -278,7 +278,7 @@ namespace JSI
 
             obj.layer = drawingLayer;
 
-            UnityEngine.Object.Destroy(obj.collider);
+            UnityEngine.Object.Destroy(obj.GetComponent<Collider>());
 
             return obj;
         }
@@ -397,9 +397,9 @@ namespace JSI
                 if (objects[i] != null)
                 {
                     objects[i].SetActive(status);
-                    if (objects[i].renderer != null)
+                    if (objects[i].GetComponent<Renderer>() != null)
                     {
-                        objects[i].renderer.enabled = status;
+                        objects[i].GetComponent<Renderer>().enabled = status;
                     }
                 }
             }
@@ -565,7 +565,7 @@ namespace JSI
                         UnityEngine.Object.Destroy(meshFilter.mesh);
                         UnityEngine.Object.Destroy(meshFilter);
                     }
-                    UnityEngine.Object.Destroy(objs[i].renderer.material);
+                    UnityEngine.Object.Destroy(objs[i].GetComponent<Renderer>().material);
                     UnityEngine.Object.Destroy(objs[i]);
                 }
             }
@@ -605,7 +605,7 @@ namespace JSI
                 ManeuverGizmo maneuverGizmo = MapView.ManeuverNodePrefab.GetComponent<ManeuverGizmo>();
                 ManeuverGizmoHandle maneuverGizmoHandle = maneuverGizmo.handleNormal;
                 Transform gizmoTransform = maneuverGizmoHandle.flag;
-                Renderer gizmoRenderer = gizmoTransform.renderer;
+                Renderer gizmoRenderer = gizmoTransform.GetComponent<Renderer>();
                 return (Texture2D)gizmoRenderer.sharedMaterial.mainTexture;
             }
 
@@ -822,7 +822,7 @@ namespace JSI
                 audioOutput.audio.maxDistance = 10f;
                 audioOutput.audio.minDistance = 2f;
                 audioOutput.audio.dopplerLevel = 0f;
-                audioOutput.audio.panLevel = 0f;
+                audioOutput.audio.panStereo = 0f;
                 audioOutput.audio.playOnAwake = false;
                 audioOutput.audio.loop = loopState;
                 audioOutput.audio.pitch = 1f;

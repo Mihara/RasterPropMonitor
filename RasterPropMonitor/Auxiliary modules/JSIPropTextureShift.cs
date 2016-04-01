@@ -24,7 +24,7 @@ namespace JSI
                 // MOARdV TODO: Accessing and changing .material causes it to
                 // become a copy, according to Unity.  Must destroy it.  Which
                 // means this method can't self-destruct; it must use OnDestroy.
-                Material shifted = xform.renderer.material;
+                Material shifted = xform.GetComponent<Renderer>().material;
                 foreach (string layer in layerToShift.Split())
                 {
                     shifted.SetTextureOffset(layer.Trim(), shiftval + shifted.GetTextureOffset(layer.Trim()));

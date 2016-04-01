@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
-    <ReleaseVersion>0.24.2</ReleaseVersion>
+    <ReleaseVersion>0.25.0</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
@@ -38,6 +38,12 @@
     </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="KSPAssets">
+      <HintPath>..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\KSPAssets.dll</HintPath>
+    </Reference>
+    <Reference Include="KSPUtil">
+      <HintPath>..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\KSPUtil.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -51,6 +57,9 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
