@@ -356,7 +356,7 @@ namespace JSI
             }
             if (instances == null)
             {
-                JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
+                JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
             }
             if (protractor == null)

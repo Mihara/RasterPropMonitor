@@ -673,6 +673,19 @@ namespace JSI
             return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
         }
 
+        // LogMessage, but unconditional (logs regardless of debugLoggingEnabled state).
+        public static void LogInfo(object caller, string line, params object[] list)
+        {
+            if (caller != null)
+            {
+                Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+            }
+            else
+            {
+                Debug.Log(String.Format("RasterPropMonitor: " + line, list));
+            }
+        }
+
         public static void LogMessage(object caller, string line, params object[] list)
         {
             if (debugLoggingEnabled)
