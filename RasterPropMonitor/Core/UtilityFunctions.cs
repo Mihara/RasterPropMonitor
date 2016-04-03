@@ -405,6 +405,7 @@ namespace JSI
             }
         }
 
+#if ENABLE_TP
         public static bool IsPodTransparent(Part thatPart)
         {
             foreach (PartModule thatModule in thatPart.Modules)
@@ -416,6 +417,7 @@ namespace JSI
             }
             return false;
         }
+#endif
 
         /// <summary>
         /// From MechJeb

@@ -105,7 +105,9 @@ namespace JSI
         private int loopsWithoutInitCounter = 0;
         private bool startupFailed = false;
 
+#if ENABLE_TP
         private bool ourPodIsTransparent = false;
+#endif
 
         private static Texture2D LoadFont(object caller, InternalProp thisProp, string location)
         {
@@ -258,7 +260,9 @@ namespace JSI
                 audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 
                 // One last thing to make sure of: If our pod is transparent, we're always active.
+#if ENABLE_TP
                 ourPodIsTransparent = JUtil.IsPodTransparent(part);
+#endif
 
                 // And if the try block never completed, startupComplete will never be true.
                 startupComplete = true;
@@ -470,7 +474,11 @@ namespace JSI
             // So we switch to oneshot mode.
             //oneshot |= HighLogic.LoadedSceneIsEditor;
 
-            if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
+            if (
+#if ENABLE_TP
+                !ourPodIsTransparent && 
+#endif
+                !JUtil.UserIsInPod(part))
             {
                 return;
             }
