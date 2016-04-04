@@ -18,6 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -1638,9 +1639,9 @@ namespace JSI
 
                 // Staging and other stuff
                 case "STAGE":
-                    return (string variable) => { return Staging.CurrentStage; };
+                    return (string variable) => { return StageManager.CurrentStage; };
                 case "STAGEREADY":
-                    return (string variable) => { return (Staging.separate_ready && InputLockManager.IsUnlocked(ControlTypes.STAGING)).GetHashCode(); };
+                    return (string variable) => { return (StageManager.CanSeparate && InputLockManager.IsUnlocked(ControlTypes.STAGING)).GetHashCode(); };
                 case "SITUATION":
                     return (string variable) => { return SituationString(vessel.situation); };
                 case "RANDOM":

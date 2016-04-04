@@ -18,11 +18,12 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-using System.Reflection;
 using System.Globalization;
+using System.Reflection;
+using UnityEngine;
 
 namespace JSI
 {
@@ -656,7 +657,7 @@ namespace JSI
                 case CustomActions.Stage:
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
                     {
-                        Staging.ActivateNextStage();
+                        StageManager.ActivateNextStage();
                     }
                     break;
                 case CustomActions.Transfer:

@@ -19,6 +19,7 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using KSP.UI;
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -1077,7 +1078,7 @@ namespace JSI
             {
                 // MOARdV: I'm not sure inverseStage is ever > CurrentStage,
                 // but there's no harm in >= vs ==.
-                if (thatPart.inverseStage >= Staging.CurrentStage)
+                if (thatPart.inverseStage >= StageManager.CurrentStage)
                 {
                     foreach (PartModule pm in thatPart.Modules)
                     {
