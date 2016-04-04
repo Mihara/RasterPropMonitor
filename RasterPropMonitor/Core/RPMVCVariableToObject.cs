@@ -1550,26 +1550,26 @@ namespace JSI
                     // so no need to test if the orbit makes sense.
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.PhaseAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.PhaseAngle;
                     };
                 case "TARGETBODYPHASEANGLESECS":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TimeToPhaseAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TimeToPhaseAngle;
                     };
                 case "TARGETBODYEJECTIONANGLE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.EjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.EjectionAngle;
                     };
                 case "TARGETBODYEJECTIONANGLESECS":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TimeToEjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TimeToEjectionAngle;
                     };
                 case "TARGETBODYCLOSESTAPPROACH":
                     return (string variable) =>
@@ -1587,20 +1587,20 @@ namespace JSI
                 case "TARGETBODYMOONEJECTIONANGLE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.MoonEjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.MoonEjectionAngle;
                     };
                 case "TARGETBODYEJECTIONALTITUDE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.EjectionAltitude;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.EjectionAltitude;
                     };
                 case "TARGETBODYDELTAV":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TargetBodyDeltaV;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TargetBodyDeltaV;
                     };
 
                 case "PREDICTEDLANDINGALTITUDE":

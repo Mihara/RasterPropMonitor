@@ -64,8 +64,6 @@ namespace JSI
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
 
-        private static Protractor protractor = null;
-
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
         private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
         private static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
@@ -359,10 +357,7 @@ namespace JSI
                 JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
             }
-            if (protractor == null)
-            {
-                protractor = new Protractor();
-            }
+
             if (instances.ContainsKey(vessel.id))
             {
                 JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
@@ -638,6 +633,8 @@ namespace JSI
                 stopwatch.Reset();
                 stopwatch.Start();
 #endif
+                Protractor.OnFixedUpdate();
+
                 Part newpart = DeduceCurrentPart();
                 if (newpart != part)
                 {
@@ -1873,8 +1870,6 @@ namespace JSI
                 knownLoadedAssemblies = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
-
-                protractor = null;
 
                 IJSIModule.vessel = null;
                 installedModules = null;
