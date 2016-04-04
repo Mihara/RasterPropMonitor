@@ -99,6 +99,29 @@ namespace JSI
                 return;
             }
 
+            // Create the camera transform
+            Transform containingTransform = part.FindModelTransform(cameraContainer);
+            if (containingTransform.childCount > 0)
+            {
+                actualCamera = containingTransform.GetChild(0);
+            }
+            else
+            {
+                actualCamera = new GameObject().transform;
+                actualCamera.parent = containingTransform;
+            }
+            actualCamera.position = containingTransform.position;
+            actualCamera.rotation = containingTransform.rotation;
+
+            if (rotateCamera != Vector3.zero)
+            {
+                actualCamera.transform.Rotate(rotateCamera);
+            }
+            if (translateCamera != Vector3.zero)
+            {
+                actualCamera.transform.localPosition = translateCamera;
+            }
+
             if (state == StartState.Editor)
             {
                 if (part.parent == null)
@@ -120,28 +143,6 @@ namespace JSI
                 }
 
                 CreateLightCone();
-
-                Transform containingTransform = part.FindModelTransform(cameraContainer);
-                if (containingTransform.childCount > 0)
-                {
-                    actualCamera = containingTransform.GetChild(0);
-                }
-                else
-                {
-                    actualCamera = new GameObject().transform;
-                    actualCamera.parent = containingTransform;
-                }
-                actualCamera.position = containingTransform.position;
-                actualCamera.rotation = containingTransform.rotation;
-
-                if (rotateCamera != Vector3.zero)
-                {
-                    actualCamera.transform.Rotate(rotateCamera);
-                }
-                if (translateCamera != Vector3.zero)
-                {
-                    actualCamera.transform.localPosition = translateCamera;
-                }
 
                 part.OnEditorAttach += new Callback(HideLightCone);
                 if (showRay)
