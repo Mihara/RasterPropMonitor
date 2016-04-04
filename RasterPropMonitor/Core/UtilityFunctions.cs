@@ -588,12 +588,7 @@ namespace JSI
 
         public static Material DrawLineMaterial()
         {
-            var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
-                               "SubShader { Pass {" +
-                               "   BindChannels { Bind \"Color\",color }" +
-                               "   Blend SrcAlpha OneMinusSrcAlpha" +
-                               "   ZWrite Off Cull Off Fog { Mode Off }" +
-                               "} } }");
+            var lineMaterial = new Material(LoadInternalShader("RPM-FontShader"));
             lineMaterial.hideFlags = HideFlags.HideAndDontSave;
             lineMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
             return lineMaterial;
