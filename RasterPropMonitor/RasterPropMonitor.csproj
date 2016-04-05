@@ -36,7 +36,8 @@
         <Command type="BeforeBuild" command="..\bin\Release\BumpBuildNumber.exe" workingdir="${SolutionDir}" />
       </CustomCommands>
     </CustomCommands>
-    <DefineConstants>ENABLE_TP</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="KSPAssets">
