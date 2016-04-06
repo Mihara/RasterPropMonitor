@@ -558,7 +558,7 @@ namespace JSI
                             float depth;
                             try
                             {
-                                depth = FlightUIController.fetch.atmos.Value.Clamp(0.0f, 1.0f);
+                                depth = linearAtmosGauge.gauge.Value.Clamp(0.0f, 1.0f);
                             }
                             catch
                             {

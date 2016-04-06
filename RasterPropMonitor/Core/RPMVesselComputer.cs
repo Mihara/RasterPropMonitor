@@ -42,9 +42,6 @@ using KSP.UI.Screens.Flight;
 // ? GameEvents.onCrewTransferred
 // ? GameEvents.onKerbalAdded
 // ? GameEvents.onKerbalRemoved
-//
-// Things to look at ?
-// FlightUIController.(LinearGauge)atmos
 namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
@@ -103,6 +100,7 @@ namespace JSI
          */
         private Vessel vessel;
         private NavBall navBall;
+        private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
         private Part part;
         internal Part ReferencePart
@@ -525,7 +523,7 @@ namespace JSI
                     }
                     catch (Exception e)
                     {
-                        JUtil.LogMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                        JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
                     }
                 }
             }
@@ -541,8 +539,17 @@ namespace JSI
             catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "Failed to fetch the NavBall: {0}", e);
-                JUtil.LogMessage(this, "The NavBall is disabled.");
                 navBall = new NavBall();
+            }
+
+            try
+            {
+                linearAtmosGauge = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.LinearAtmosphereGauge>();
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "Failed to fetch the LinearAtmosphereGauge: {0}", e);
+                linearAtmosGauge = new LinearAtmosphereGauge();
             }
 
             if (JUtil.IsActiveVessel(vessel))
@@ -655,7 +662,6 @@ namespace JSI
 #if SHOW_FIXEDUPDATE_TIMING
                 long newPart = stopwatch.ElapsedMilliseconds;
 #endif
-
                 timeToUpdate = false;
                 resultCache.Clear();
                 ++masterSerialNumber;
@@ -664,6 +670,8 @@ namespace JSI
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
+
+                //DebugFunction();
 
                 FetchPerPartData();
 #if SHOW_FIXEDUPDATE_TIMING
@@ -690,6 +698,29 @@ namespace JSI
                 JUtil.LogMessage(this, "FixedUpdate net ms: deduceNewPart = {0}, invalidate = {1}, FetchPerPart = {2}, FetchAlt = {3}, FetchVessel = {4}, FetchTarget = {5}",
                     newPart, invalidate, perpart, altitudes, vesseldata, targetdata);
 #endif
+            }
+        }
+
+        private void DebugFunction()
+        {
+            for(int pi=0; pi<vessel.Parts.Count; ++pi)
+            {
+                for(int mi=0; mi<vessel.Parts[pi].Modules.Count; ++mi)
+                {
+                    if(vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
+                    {
+                        try
+                        {
+                        ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
+                        JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
+                        JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
+                        }
+                        catch(Exception e)
+                        {
+                            JUtil.LogMessage(this, "Trapped an exception tyring to read ModuleScienceExperiment: {0}", e);
+                        }
+                    }
+                }
             }
         }
         #endregion
