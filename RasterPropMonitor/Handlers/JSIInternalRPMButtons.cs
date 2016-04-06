@@ -257,9 +257,16 @@ namespace JSI
                 FlightInputHandler.fetch.precisionMode = state;
 
                 // Update the UI.
-                foreach (UnityEngine.Renderer renderer in FlightInputHandler.fetch.inputGaugeRenderers)
+                // MOARdV: In 1.1, this only affects the normal flight display,
+                // not the docking mode display.
+                var gauges = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.LinearControlGauges>();
+                if (gauges != null)
                 {
-                    renderer.material.color = (state) ? XKCDColors.BrightCyan : XKCDColors.Orange;
+                    //JUtil.LogMessage(this, "{0} input gauge images", gauges.inputGaugeImages.Count);
+                    for (int i = 0; i < gauges.inputGaugeImages.Count; ++i)
+                    {
+                        gauges.inputGaugeImages[i].color = (state) ? XKCDColors.BrightCyan : XKCDColors.Orange;
+                    }
                 }
             }
         }
