@@ -501,6 +501,7 @@ namespace JSI
                 installedModules.Add(new JSIKAC());
                 installedModules.Add(new JSIEngine());
                 installedModules.Add(new JSIPilotAssistant());
+                installedModules.Add(new JSIChatterer());
             }
 
             if (triggeredEvents == null)
