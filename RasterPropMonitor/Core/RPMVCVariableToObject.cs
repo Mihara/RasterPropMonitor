@@ -711,6 +711,86 @@ namespace JSI
                         return 0.0;
                     };
 
+                case "MNODEPERIAPSIS":
+                    return (string variable) =>
+                        {
+                            if (node != null && node.nextPatch != null)
+                            {
+                                return node.nextPatch.PeA;
+                            }
+                            return double.NaN;
+                        };
+                case "MNODEAPOAPSIS":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.ApA;
+                        }
+                        return double.NaN;
+                    };
+                case "MNODEINCLINATION":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.inclination;
+                        }
+                        return double.NaN;
+                    };
+                case "MNODEECCENTRICITY":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.eccentricity;
+                        }
+                        return double.NaN;
+                    };
+
+                case "MNODETARGETCLOSESTAPPROACHTIME":
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            double approachTime, approachDistance;
+                            approachDistance = JUtil.GetClosestApproach(node.nextPatch, target, out approachTime);
+                            return approachTime - Planetarium.GetUniversalTime();
+                        }
+                    };
+                case "MNODETARGETCLOSESTAPPROACHDISTANCE":
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            double approachTime;
+                            return JUtil.GetClosestApproach(node.nextPatch, target, out approachTime);
+                        }
+                    };
+                case "MNODERELATIVEINCLINATION":
+                    // MechJeb's targetables don't have orbits.
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            return targetOrbit.referenceBody != node.nextPatch.referenceBody ?
+                                -1d :
+                                Math.Abs(Vector3d.Angle(node.nextPatch.SwappedOrbitNormal(), targetOrbit.SwappedOrbitNormal()));
+                        }
+                    };
+
                 // Orbital parameters
                 case "ORBITBODY":
                     return (string variable) => { return vessel.orbit.referenceBody.name; };
