@@ -679,6 +679,37 @@ namespace JSI
                 case "MNODEEXISTS":
                     return (string variable) => { return node == null ? -1d : 1d; };
 
+                case "MNODEDVPROGRADE":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            return Vector3d.Dot(burnVector, vessel.orbit.Prograde(node.UT));
+                        }
+                        return 0.0;
+                    };
+                case "MNODEDVNORMAL":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            // NormalPlus seems to be backwards...
+                            return -Vector3d.Dot(burnVector, vessel.orbit.NormalPlus(node.UT));
+                        }
+                        return 0.0;
+                    };
+                case "MNODEDVRADIAL":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            return Vector3d.Dot(burnVector, vessel.orbit.RadialPlus(node.UT));
+                        }
+                        return 0.0;
+                    };
 
                 // Orbital parameters
                 case "ORBITBODY":
