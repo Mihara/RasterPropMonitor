@@ -14,7 +14,7 @@ Shader "RPM/DisplayShader"
 		
 		Lighting Off 
 		Blend One OneMinusSrcAlpha 
-		Cull Back 
+		Cull Off 
 		Fog { Mode Off } 
 		ZWrite Off 
 		ZTest Always 
