@@ -35,8 +35,6 @@ namespace JSI
         private List<DataSet> dataSets = new List<DataSet>();
         private bool startupComplete = false;
         private Material lineMaterial = JUtil.DrawLineMaterial();
-        private Material graphMaterial;
-
 
         public bool RenderBackground(RenderTexture screen, float cameraAspect)
         {
@@ -138,7 +136,6 @@ namespace JSI
                     }
                 }
 
-                graphMaterial = new Material(Shader.Find("KSP/Alpha/Unlit Transparent"));
                 startupComplete = true;
             }
 
@@ -160,7 +157,7 @@ namespace JSI
         //--- Static data
         private readonly Vector2 position;
         private readonly Vector2 size;
-        private readonly Color32 color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+        private readonly Color color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         private readonly int lineWidth = 0;
 
         private readonly Vector2 fillTopLeftCorner;
@@ -169,8 +166,8 @@ namespace JSI
         //--- Graphing data
         private readonly GraphType graphType;
         private readonly string variableName;
-        private readonly Color32 passiveColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-        private readonly Color32 activeColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+        private readonly Color passiveColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
+        private readonly Color activeColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         private readonly VariableOrNumber[] scale = new VariableOrNumber[2];
         private readonly Vector2 threshold;
         private double lastStateChange = 0.0;
@@ -371,8 +368,8 @@ namespace JSI
 
         private void DrawBorder(RenderTexture screen)
         {
-            GL.Color(color);
             GL.Begin(GL.LINES);
+            GL.Color(color);
             for (int i = 0; i < lineWidth; ++i)
             {
                 float offset = (float)i;
@@ -397,8 +394,8 @@ namespace JSI
 
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
             GL.Begin(GL.QUADS);
+            GL.Color(fillColor);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x * (1.0f - fillRatio), fillTopLeftCorner.y, 0.0f);
@@ -428,13 +425,12 @@ namespace JSI
         {
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
-
             if (fillRatio < 0.5f || fillRatio > 0.5f)
             {
                 // MOARdV: It doesn't look like back face culling is enabled,
                 // so I don't need to have separate cases for < 0.5 and > 0.5
                 GL.Begin(GL.QUADS);
+                GL.Color(fillColor);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y, 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x * fillRatio, fillTopLeftCorner.y + fillSize.y, 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y + fillSize.y, 0.0f);
@@ -444,6 +440,7 @@ namespace JSI
             else
             {
                 GL.Begin(GL.LINES);
+                GL.Color(fillColor);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y, 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x * 0.5f, fillTopLeftCorner.y + fillSize.y, 0.0f);
                 GL.End();
@@ -455,8 +452,8 @@ namespace JSI
         {
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
             GL.Begin(GL.QUADS);
+            GL.Color(fillColor);
             GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
@@ -473,8 +470,8 @@ namespace JSI
 
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
             GL.Begin(GL.QUADS);
+            GL.Color(fillColor);
             GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillRatio * fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillRatio * fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y, 0.0f);
@@ -486,13 +483,12 @@ namespace JSI
         {
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
-
             if (fillRatio < 0.5f || fillRatio > 0.5f)
             {
                 // MOARdV: It doesn't look like back face culling is enabled,
                 // so I don't need to have separate cases for < 0.5 and > 0.5
                 GL.Begin(GL.QUADS);
+                GL.Color(fillColor);
                 GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
@@ -502,6 +498,7 @@ namespace JSI
             else
             {
                 GL.Begin(GL.LINES);
+                GL.Color(fillColor);
                 GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
                 GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * 0.5f, 0.0f);
                 GL.End();
@@ -518,8 +515,8 @@ namespace JSI
 
             Color fillColor = Color.Lerp(passiveColor, activeColor, fillRatio);
 
-            GL.Color(fillColor);
             GL.Begin(GL.QUADS);
+            GL.Color(fillColor);
             GL.Vertex3(fillTopLeftCorner.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y, 0.0f);
             GL.Vertex3(fillTopLeftCorner.x + fillSize.x, fillTopLeftCorner.y + fillSize.y * (1.0f - fillRatio), 0.0f);
