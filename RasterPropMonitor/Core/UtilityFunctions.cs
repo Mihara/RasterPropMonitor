@@ -555,6 +555,18 @@ namespace JSI
             return null;
         }
 
+        public static void RemoveAllNodes(PatchedConicSolver solver)
+        {
+            // patchedConicSolver can be null in early career mode.
+            if (solver != null)
+            {
+                while (solver.maneuverNodes.Count > 0)
+                {
+                    solver.maneuverNodes.Last().RemoveSelf();
+                }
+            }
+        }
+
         internal static void DisposeOfGameObjects(GameObject[] objs)
         {
             for (int i = 0; i < objs.Length; ++i)

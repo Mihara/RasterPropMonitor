@@ -80,14 +80,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonClearNodes(bool state)
         {
-            // patchedConicSolver can be null in early career mode.
-            if (vessel.patchedConicSolver != null)
-            {
-                while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                {
-                    vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                }
-            }
+            JUtil.RemoveAllNodes(vessel.patchedConicSolver);
         }
 
         /// <summary>
