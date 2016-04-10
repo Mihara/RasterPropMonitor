@@ -625,8 +625,7 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel))
+            if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
                 UpdateVariables();
             }

@@ -615,11 +615,41 @@ namespace JSI
             ScreenMessages.PostScreenMessage(string.Format("{0}: INITIALIZATION ERROR, CHECK CONFIGURATION.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
         }
 
+        public static bool RasterPropMonitorShouldUpdate(Vessel thatVessel)
+        {
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                if (IsActiveVessel(thatVessel))
+                {
+                    return (IsInIVA() || StockOverlayCamIsOn());
+                }
+                else
+                {
+                    // TODO: Under what circumstances would I set this to true?
+                    // Since the computer module is a VesselModule, it's a per-
+                    // craft module, so I think it's safe to update other pods
+                    // while StockOverlayCamIsOn is true.
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public static bool VesselIsInIVA(Vessel thatVessel)
         {
             // Inactive IVAs are renderer.enabled = false, this can and should be used...
             // ... but now it can't because we're doing transparent pods, so we need a more complicated way to find which pod the player is in.
             return HighLogic.LoadedSceneIsFlight && IsActiveVessel(thatVessel) && IsInIVA();
+        }
+
+        public static bool StockOverlayCamIsOn()
+        {
+            Camera stockOverlayCamera = JUtil.GetCameraByName("InternalSpaceOverlay Host");
+
+            return (stockOverlayCamera != null);
         }
 
         public static bool UserIsInPod(Part thisPart)
