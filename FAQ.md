@@ -16,15 +16,15 @@ RasterPropMonitor is intended to be a toolkit for IVA makers.  It includes updat
 
 ### CKAN/AVC says (something about versions)
 
-I do not actively support CKAN versioning information.  KerbalStuff has an option to automatically update CKAN when I post a new version, but that is the limit of my involvement with CKAN.
+I do not actively support CKAN versioning information.  KerbalStuff had an option to automatically update CKAN when I post a new version, but that is the limit of my involvement with CKAN.
 
 I make efforts to keep the RasterPropMonitor.version file accurate (which affects AVC, and maybe CKAN), but due to the way my release cycles work, there is always a chance that version info on GitHub will be changed before a release takes place.
 
-TL;DR: The current version is always identified on the [forum](http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/), [KerbalStuff](https://kerbalstuff.com/mod/734/RasterPropMonitor), and [GitHub](https://github.com/Mihara/RasterPropMonitor/releases) . Any other sources of versioning are secondary, and not authorative.
+TL;DR: The current version is always identified on the [forum](http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/), [KerbalStuff](https://kerbalstuff.com/mod/734/RasterPropMonitor), and [GitHub](https://github.com/Mihara/RasterPropMonitor/releases) . Any other sources of versioning are secondary, and they are not authorative.
 
-### Half the buttons don't work!
+### Half the MFD buttons don't work!
 
-Certain buttons are reserved for future expansion, which happens pretty rapidly -- there's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
+Certain buttons may be reserved for future expansion. There's nothing assigned to them. It may also be that you're expecting the "up" and "down" buttons to switch pages. They don't actually work this way -- in the example package, every page corresponds to a single button, and cursor buttons only work on cursors and other similarly-behaving entities, which only certain pages actually have.
 
 It's sort of an approximation of how actual MFDs work, though they typically use interfaces even less similar to what you might expect. Since version 0.13, you can switch pages in much more creative ways, but the default package does not make use of them.
 
@@ -38,7 +38,7 @@ If these steps do not solve your problem, please follow the steps in (this post 
 
 ### I get lots of exclamation signs and gibberish all over my screens!
 
-Update Active Texture Management to latest version and remember, for the future, that not all textures can be safely resized -- with any capsule that uses RasterPropMonitor, the problem may recur if you don't manage your Active Texture Management settings intelligently. "Aggressive" settings are called that for a reason.
+Update Active Texture Management to the latest version and remember, for the future, that not all textures can be safely resized -- with any capsule that uses RasterPropMonitor, the problem may recur if you don't manage your Active Texture Management settings intelligently. "Aggressive" settings are called that for a reason.
 
 ### RasterPropMonitor is very heavy on the framerate.
 
@@ -62,7 +62,7 @@ Basically, they're points in which you want to burn to change your orbit inclina
 
 ### Can your monitors show X?
 
-RasterPropMonitor is more of an IVA makers toolkit than a standalone product, I spend most of my time programming new things for the monitors to show, but barely have the energy left to arrange it for actual presentation. My own implementation is a few generations behind. Check the [list of variables](https://github.com/Mihara/RasterPropMonitor/wiki/Defined-variables) and the documentation on [page file syntax](https://github.com/Mihara/RasterPropMonitor/wiki/Writing-page-definition-files), it's quite possible what you want is already there, just isn't presented to the user in my own implementation yet. Customize your monitors and share the results -- if you make nice pages, I'll be happy to include them in the distribution.
+RasterPropMonitor is more of an IVA maker's toolkit than a standalone product. I spend most of my time programming new things for the monitors to show, but barely have the energy left to arrange it for actual presentation. My own implementation is a few generations behind. Check the [list of variables](https://github.com/Mihara/RasterPropMonitor/wiki/Defined-variables) and the documentation on [page file syntax](https://github.com/Mihara/RasterPropMonitor/wiki/Writing-page-definition-files), it's quite possible what you want is already there, just isn't presented to the user in my own implementation yet. Customize your monitors and share the results -- if you make nice pages, I'll be happy to include them in the distribution.
 
 ### Can I make a maneuver node while in IVA?
 

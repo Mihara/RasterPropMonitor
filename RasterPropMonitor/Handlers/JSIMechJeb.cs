@@ -1446,13 +1446,7 @@ namespace JSI
 
                 dV = (Vector3d)deltaVToCircularize(null, new object[] { vessel.orbit, UT });
 
-                if (vessel.patchedConicSolver != null)
-                {
-                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                    {
-                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                    }
-                }
+                JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
                 placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
             }
@@ -1468,13 +1462,7 @@ namespace JSI
 
                 dV = (Vector3d)deltaVToChangeApoapsis(null, new object[] { vessel.orbit, UT, vessel.orbit.referenceBody.Radius + altitude });
 
-                if (vessel.patchedConicSolver != null)
-                {
-                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                    {
-                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                    }
-                }
+                JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
                 placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
             }
@@ -1490,13 +1478,7 @@ namespace JSI
 
                 dV = (Vector3d)deltaVToChangePeriapsis(null, new object[] { vessel.orbit, UT, vessel.orbit.referenceBody.Radius + altitude });
 
-                if (vessel.patchedConicSolver != null)
-                {
-                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                    {
-                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                    }
-                }
+                JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
                 placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
             }
@@ -1508,13 +1490,7 @@ namespace JSI
 
             dV = (Vector3d)deltaVToCircularize(null, new object[] { vessel.orbit, UT });
 
-            if (vessel.patchedConicSolver != null)
-            {
-                while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                {
-                    vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                }
-            }
+            JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
             placeManeuverNode(null, new object[] { vessel, vessel.orbit, dV, UT });
         }
@@ -1804,13 +1780,7 @@ namespace JSI
                 nodeUT = (double)args[4];
             }
 
-            if (vessel.patchedConicSolver != null)
-            {
-                while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                {
-                    vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                }
-            }
+            JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
             placeManeuverNode(null, new object[] { vessel, o, dV, nodeUT });
         }
@@ -2246,13 +2216,7 @@ namespace JSI
                 object[] args = new object[] { o, nodeUT, targetOrbit };
                 dV = (Vector3d)mjDeltaVToMatchVelocities.Invoke(null, args);
 
-                if (vessel.patchedConicSolver != null)
-                {
-                    while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                    {
-                        vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                    }
-                }
+                JUtil.RemoveAllNodes(vessel.patchedConicSolver);
 
                 placeManeuverNode(null, new object[] { vessel, o, dV, nodeUT });
             }

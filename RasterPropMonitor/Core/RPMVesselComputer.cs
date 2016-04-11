@@ -42,9 +42,6 @@ using KSP.UI.Screens.Flight;
 // ? GameEvents.onCrewTransferred
 // ? GameEvents.onKerbalAdded
 // ? GameEvents.onKerbalRemoved
-//
-// Things to look at ?
-// FlightUIController.(LinearGauge)atmos
 namespace JSI
 {
     public partial class RPMVesselComputer : VesselModule
@@ -63,8 +60,6 @@ namespace JSI
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
         private static List<IJSIModule> installedModules;
-
-        private static Protractor protractor = null;
 
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
         private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
@@ -105,6 +100,7 @@ namespace JSI
          */
         private Vessel vessel;
         private NavBall navBall;
+        private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
         private Part part;
         internal Part ReferencePart
@@ -123,6 +119,7 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
+        private int debug_varsProcessed = 0;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -356,13 +353,10 @@ namespace JSI
             }
             if (instances == null)
             {
-                JUtil.LogMessage(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
+                JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
             }
-            if (protractor == null)
-            {
-                protractor = new Protractor();
-            }
+
             if (instances.ContainsKey(vessel.id))
             {
                 JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
@@ -508,6 +502,7 @@ namespace JSI
                 installedModules.Add(new JSIKAC());
                 installedModules.Add(new JSIEngine());
                 installedModules.Add(new JSIPilotAssistant());
+                installedModules.Add(new JSIChatterer());
             }
 
             if (triggeredEvents == null)
@@ -530,7 +525,7 @@ namespace JSI
                     }
                     catch (Exception e)
                     {
-                        JUtil.LogMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                        JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
                     }
                 }
             }
@@ -546,8 +541,17 @@ namespace JSI
             catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "Failed to fetch the NavBall: {0}", e);
-                JUtil.LogMessage(this, "The NavBall is disabled.");
                 navBall = new NavBall();
+            }
+
+            try
+            {
+                linearAtmosGauge = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.LinearAtmosphereGauge>();
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "Failed to fetch the LinearAtmosphereGauge: {0}", e);
+                linearAtmosGauge = new LinearAtmosphereGauge();
             }
 
             if (JUtil.IsActiveVessel(vessel))
@@ -622,9 +626,10 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            // MOARdV TODO: FixedUpdate only if in IVA?  What about transparent pods?
-            if (JUtil.VesselIsInIVA(vessel))
+            if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
+                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since update ---", vessel.id, debug_varsProcessed);
+                debug_varsProcessed = 0;
                 UpdateVariables();
             }
         }
@@ -638,6 +643,8 @@ namespace JSI
                 stopwatch.Reset();
                 stopwatch.Start();
 #endif
+                Protractor.OnFixedUpdate();
+
                 Part newpart = DeduceCurrentPart();
                 if (newpart != part)
                 {
@@ -658,7 +665,6 @@ namespace JSI
 #if SHOW_FIXEDUPDATE_TIMING
                 long newPart = stopwatch.ElapsedMilliseconds;
 #endif
-
                 timeToUpdate = false;
                 resultCache.Clear();
                 ++masterSerialNumber;
@@ -667,6 +673,8 @@ namespace JSI
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
+
+                //DebugFunction();
 
                 FetchPerPartData();
 #if SHOW_FIXEDUPDATE_TIMING
@@ -693,6 +701,29 @@ namespace JSI
                 JUtil.LogMessage(this, "FixedUpdate net ms: deduceNewPart = {0}, invalidate = {1}, FetchPerPart = {2}, FetchAlt = {3}, FetchVessel = {4}, FetchTarget = {5}",
                     newPart, invalidate, perpart, altitudes, vesseldata, targetdata);
 #endif
+            }
+        }
+
+        private void DebugFunction()
+        {
+            for(int pi=0; pi<vessel.Parts.Count; ++pi)
+            {
+                for(int mi=0; mi<vessel.Parts[pi].Modules.Count; ++mi)
+                {
+                    if(vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
+                    {
+                        try
+                        {
+                        ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
+                        JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
+                        JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
+                        }
+                        catch(Exception e)
+                        {
+                            JUtil.LogMessage(this, "Trapped an exception tyring to read ModuleScienceExperiment: {0}", e);
+                        }
+                    }
+                }
             }
         }
         #endregion
@@ -742,6 +773,8 @@ namespace JSI
                     rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
             }
+
+            ++debug_varsProcessed;
 
             VariableCache vc = variableCache[input];
             if (vc != null)
@@ -1873,8 +1906,6 @@ namespace JSI
                 knownLoadedAssemblies = null;
                 systemNamedResources = null;
                 triggeredEvents = null;
-
-                protractor = null;
 
                 IJSIModule.vessel = null;
                 installedModules = null;
