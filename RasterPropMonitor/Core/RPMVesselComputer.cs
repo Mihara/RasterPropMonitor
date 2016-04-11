@@ -119,6 +119,7 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
+        private int debug_varsProcessed = 0;
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -627,6 +628,8 @@ namespace JSI
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
+                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since update ---", vessel.id, debug_varsProcessed);
+                debug_varsProcessed = 0;
                 UpdateVariables();
             }
         }
@@ -770,6 +773,8 @@ namespace JSI
                     rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
             }
+
+            ++debug_varsProcessed;
 
             VariableCache vc = variableCache[input];
             if (vc != null)
