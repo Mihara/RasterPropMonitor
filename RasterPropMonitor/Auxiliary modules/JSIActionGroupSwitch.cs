@@ -490,7 +490,7 @@ namespace JSI
                     }
                 }
 
-                if (rpmComp != null && !rpmComp.HasVar(persistentVarName))
+                if (rpmComp != null && !string.IsNullOrEmpty(persistentVarName) && !rpmComp.HasVar(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
@@ -554,6 +554,8 @@ namespace JSI
                 {
                     loopingOutput = JUtil.SetupIVASound(internalProp, loopingSound, loopingSoundVolume, true);
                 }
+
+                JUtil.LogMessage(this, "Configuration complete in prop {0} ({1}).", internalProp.propID, internalProp.propName);
 
                 startupComplete = true;
             }

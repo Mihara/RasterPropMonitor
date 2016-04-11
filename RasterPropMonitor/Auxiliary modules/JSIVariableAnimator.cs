@@ -91,7 +91,7 @@ namespace JSI
                     }
                 }
 
-                JUtil.LogMessage(this, "Configuration complete in prop {1}, supporting {0} variable indicators.", variableSets.Count, internalProp.propID);
+                JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} variable indicators.", variableSets.Count, internalProp.propID, internalProp.propName);
 
                 foreach (VariableAnimationSet thatSet in variableSets)
                 {
