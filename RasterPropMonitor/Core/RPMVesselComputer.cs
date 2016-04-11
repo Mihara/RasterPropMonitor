@@ -113,7 +113,6 @@ namespace JSI
             }
         }
         private ExternalVariableHandlers plugins = null;
-        private RasterPropMonitorComputer rpmComp;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -712,7 +711,6 @@ namespace JSI
             navBall = null;
             node = null;
             part = null;
-            rpmComp = null;
 
             target = null;
             targetDockingNode = null;
@@ -775,8 +773,6 @@ namespace JSI
                     {
                         plugins = new ExternalVariableHandlers(part);
                     }
-                    // Refresh some per-part values .. ?
-                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
 
 #if SHOW_FIXEDUPDATE_TIMING
@@ -873,7 +869,7 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input)
         {
-            if (rpmComp == null)
+            if (plugins == null)
             {
                 if (part == null)
                 {
@@ -886,8 +882,6 @@ namespace JSI
                     {
                         plugins = new ExternalVariableHandlers(part);
                     }
-
-                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
             }
 

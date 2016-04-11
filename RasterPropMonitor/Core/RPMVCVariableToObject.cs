@@ -276,14 +276,21 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (rpmComp != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
                         return (string variable) =>
                         {
                             string[] toks = variable.Split('_');
                             int storedNumber;
                             int.TryParse(toks[1], out storedNumber);
-                            return rpmComp.GetStoredString(storedNumber);
+                            if (storedNumber < storedStrings.Count)
+                            {
+                                return storedStrings[storedNumber];
+                            }
+                            else
+                            {
+                                return "";
+                            }
                         };
                     }
                     else
@@ -292,9 +299,9 @@ namespace JSI
                         {
                             string[] toks = variable.Split('_');
                             int stringNumber;
-                            if (rpmComp != null && int.TryParse(toks[1], out stringNumber) && stringNumber >= 0)
+                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < storedStrings.Count)
                             {
-                                return rpmComp.GetStoredString(stringNumber);
+                                return storedStrings[stringNumber];
                             }
                             else
                             {

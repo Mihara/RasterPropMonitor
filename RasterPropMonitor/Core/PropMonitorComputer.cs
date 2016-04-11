@@ -33,7 +33,6 @@ namespace JSI
         // The OTHER public configuration variable.
         [KSPField]
         public string storedStrings = string.Empty;
-        private string[] storedStringsArray;
 
         [KSPField]
         public string triggeredEvents = string.Empty;
@@ -120,7 +119,8 @@ namespace JSI
                 // Now let's parse our stored strings...
                 if (!string.IsNullOrEmpty(storedStrings))
                 {
-                    storedStringsArray = storedStrings.Split('|');
+                    var storedStringsArray = storedStrings.Split('|');
+                    comp.SetStoredStrings(storedStringsArray);
                 }
 
                 // TODO: If there are triggered events, register for an undock
@@ -134,18 +134,6 @@ namespace JSI
                         comp.AddTriggeredEvent(varstring[i].Trim());
                     }
                 }
-            }
-        }
-
-        internal string GetStoredString(int index)
-        {
-            if (storedStringsArray != null && index <= storedStringsArray.Length)
-            {
-                return storedStringsArray[index];
-            }
-            else
-            {
-                return "";
             }
         }
 
