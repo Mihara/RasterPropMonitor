@@ -99,7 +99,7 @@ namespace JSI
         [KSPField]
         public string cameraInfoVarName = string.Empty;
 
-        private RasterPropMonitorComputer rpmComp;
+        //private RasterPropMonitorComputer rpmComp;
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
         private float zoomDirection;
@@ -402,10 +402,10 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
-                if (rpmComp != null)
-                {
-                    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
-                }
+                //if (rpmComp != null)
+                //{
+                //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                //}
                 return;
             }
 
@@ -423,10 +423,10 @@ namespace JSI
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
             }
 
-            if (rpmComp != null)
-            {
-                rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
-            }
+            //if (rpmComp != null)
+            //{
+            //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+            //}
         }
 
         private void SelectPreviousCamera()
@@ -446,10 +446,10 @@ namespace JSI
 
             if (!skipMissingCameras)
             {
-                if (rpmComp != null)
-                {
-                    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
-                }
+                //if (rpmComp != null)
+                //{
+                //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                //}
                 return;
             }
 
@@ -466,10 +466,10 @@ namespace JSI
 
                 gotCamera = cameraObject.PointCamera(cameras[currentCamera].cameraTransform, cameras[currentCamera].currentFoV);
             }
-            if (rpmComp != null)
-            {
-                rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
-            }
+            //if (rpmComp != null)
+            //{
+            //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+            //}
         }
 
         // Analysis disable once UnusedParameter
@@ -538,23 +538,16 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(cameraInfoVarName))
             {
-                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
-                if (rpmComp.HasPropVar(cameraInfoVarName + "_ID", internalProp.propID))
-                {
-                    currentCamera = rpmComp.GetPropVar(cameraInfoVarName + "_ID", internalProp.propID) - 1;
-                }
-                else
-                {
-                    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
-                }
+                //rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
+                //if (rpmComp.HasPropVar(cameraInfoVarName + "_ID", internalProp.propID))
+                //{
+                //    currentCamera = rpmComp.GetPropVar(cameraInfoVarName + "_ID", internalProp.propID) - 1;
+                //}
+                //else
+                //{
+                //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
+                //}
             }
-        }
-
-        public void OnDestroy()
-        {
-            // MOARdV TODO: Destroy all teh things!
-            //JUtil.LogMessage(this, "OnDestroy()");
-            rpmComp = null;
         }
     }
 

@@ -35,11 +35,6 @@ namespace JSI
         public string storedStrings = string.Empty;
         private string[] storedStringsArray;
 
-        // Persistence for internal modules.
-        [KSPField(isPersistant = true)]
-        public string data = "";
-        private Dictionary<string, int> persistentVars = new Dictionary<string, int>();
-
         [KSPField]
         public string triggeredEvents = string.Empty;
 
@@ -128,8 +123,6 @@ namespace JSI
                     storedStringsArray = storedStrings.Split('|');
                 }
 
-                ParseData();
-
                 // TODO: If there are triggered events, register for an undock
                 // callback so we can void and rebuild the callbacks after undocking.
                 // Although it didn't work when I tried it...
@@ -144,125 +137,6 @@ namespace JSI
             }
         }
 
-        #region Persistence
-        // MOARdV TODO: Convert persistence values to floats to support new input options
-        private void ParseData()
-        {
-            persistentVars.Clear();
-            if (!string.IsNullOrEmpty(data))
-            {
-                string[] varstring = data.Split('|');
-                for (int i = 0; i < varstring.Length; ++i)
-                {
-                    string[] tokens = varstring[i].Split('$');
-                    int value;
-                    if (tokens.Length == 2 && int.TryParse(tokens[1], out value))
-                    {
-                        persistentVars.Add(tokens[0], value);
-                    }
-                }
-
-                JUtil.LogMessage(this, "Parsed persistence string 'data' into {0} entries", persistentVars.Count);
-            }
-        }
-
-        private void StoreData()
-        {
-            var tokens = new List<string>();
-            foreach (KeyValuePair<string, int> item in persistentVars)
-            {
-                tokens.Add(item.Key + "$" + item.Value);
-            }
-
-            data = string.Join("|", tokens.ToArray());
-        }
-
-        internal bool GetBool(string persistentVarName, bool defaultValue)
-        {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                int value = GetVar(persistentVarName);
-                return (value > 0);
-            }
-            else
-            {
-                return defaultValue;
-            }
-        }
-
-        internal int GetVar(string persistentVarName, int defaultValue)
-        {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                return persistentVars[persistentVarName];
-            }
-            else
-            {
-                return defaultValue;
-            }
-        }
-
-        internal int GetVar(string persistentVarName)
-        {
-            try
-            {
-                return persistentVars[persistentVarName];
-            }
-            catch
-            {
-                JUtil.LogErrorMessage(this, "Someone called GetVar({0}) without making sure the value existed", persistentVarName);
-            }
-
-            return int.MinValue;
-        }
-
-        internal bool HasVar(string persistentVarName)
-        {
-
-            return persistentVars.ContainsKey(persistentVarName);
-        }
-
-        internal void SetVar(string persistentVarName, int varvalue)
-        {
-            if (persistentVars.ContainsKey(persistentVarName))
-            {
-                int oldvalue = persistentVars[persistentVarName];
-                if (oldvalue != varvalue)
-                {
-                    persistentVars[persistentVarName] = varvalue;
-                    StoreData();
-                }
-            }
-            else
-            {
-                persistentVars.Add(persistentVarName, varvalue);
-                StoreData();
-            }
-        }
-
-        internal void SetVar(string persistentVarName, bool varvalue)
-        {
-            SetVar(persistentVarName, varvalue ? 1 : 0);
-        }
-
-        internal int GetPropVar(string persistentVarName, int propID)
-        {
-            string propVar = "%PROP%" + propID + persistentVarName;
-            return GetVar(propVar);
-        }
-
-        internal bool HasPropVar(string persistentVarName, int propID)
-        {
-            string propVar = "%PROP%" + propID + persistentVarName;
-            return HasVar(propVar);
-        }
-
-        internal void SetPropVar(string persistentVarName, int propID, int varvalue)
-        {
-            string propVar = "%PROP%" + propID + persistentVarName;
-            SetVar(propVar, varvalue);
-        }
-
         internal string GetStoredString(int index)
         {
             if (storedStringsArray != null && index <= storedStringsArray.Length)
@@ -274,7 +148,6 @@ namespace JSI
                 return "";
             }
         }
-        #endregion
 
         public void Update()
         {
@@ -291,5 +164,4 @@ namespace JSI
             }
         }
     }
-
 }

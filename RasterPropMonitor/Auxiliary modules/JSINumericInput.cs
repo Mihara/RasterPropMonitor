@@ -45,7 +45,6 @@ namespace JSI
         [KSPField]
         public bool loopInput = false;
 
-        private RasterPropMonitorComputer rpmComp;
         private List<NumericInput> numericInputs = new List<NumericInput>();
 
         private VariableOrNumber minRange;
@@ -96,12 +95,11 @@ namespace JSI
                     loopInput = false;
                 }
 
-                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
-                if (!rpmComp.HasVar(perPodPersistenceName))
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                if (!comp.HasPersistentVariable(perPodPersistenceName))
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
                     float value;
                     if (von.Get(out value, comp))
@@ -111,8 +109,7 @@ namespace JSI
                             float remainder = value % stepSize;
                             value -= remainder;
                         }
-                        //JUtil.LogMessage(this, " ... Initialized to {0}", (int)value);
-                        rpmComp.SetVar(perPodPersistenceName, (int)value);
+                        comp.SetPersistentVariable(perPodPersistenceName, value);
                     }
                     else
                     {
@@ -160,7 +157,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            rpmComp = null;
             numericInputs = null;
         }
 
@@ -180,8 +176,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
-                    // MOARdV TODO: persistent floats
-                    float val = (float)rpmComp.GetVar(perPodPersistenceName);
+                    float val = comp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
                     val += change + remainder;
 
                     if (minRange != null)
@@ -236,7 +231,7 @@ namespace JSI
                         val -= remainder;
                     }
 
-                    rpmComp.SetVar(perPodPersistenceName, (int)val);
+                    comp.SetPersistentVariable(perPodPersistenceName, val);
                 }
                 else
                 {

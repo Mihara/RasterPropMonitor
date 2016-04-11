@@ -92,7 +92,6 @@ namespace JSI
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
-        private RasterPropMonitorComputer rpmComp;
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
@@ -147,8 +146,6 @@ namespace JSI
                 // Install the calculator module.
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
-
-                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -237,7 +234,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = rpmComp.GetVar(persistentVarName, pages.Count);
+                int activePageID = comp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -296,7 +293,6 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
-            rpmComp = null;
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -354,10 +350,11 @@ namespace JSI
             triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
             if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker))
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                rpmComp.SetVar(persistentVarName, activePage.pageNumber);
+                comp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);

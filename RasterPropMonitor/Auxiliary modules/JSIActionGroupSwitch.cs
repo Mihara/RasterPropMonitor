@@ -135,7 +135,6 @@ namespace JSI
         private FXGroup audioOutput;
         private FXGroup loopingOutput;
         private int lightCheckCountdown;
-        private RasterPropMonitorComputer rpmComp;
         private bool startupComplete;
         private Material colorShiftMaterial;
         private string stateVariable = string.Empty;
@@ -421,8 +420,6 @@ namespace JSI
                 if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
                     !string.IsNullOrEmpty(transferGetter) || transferSetter != null)
                 {
-                    rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
-
                     comp.UpdateDataRefreshRate(refreshRate);
 
                     if (!string.IsNullOrEmpty(masterVariableName))
@@ -458,7 +455,7 @@ namespace JSI
                     {
                         try
                         {
-                            currentState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
+                            currentState = (comp.ProcessVariable(stateVariable).MassageToInt()) > 0;
                         }
                         catch
                         {
@@ -467,17 +464,17 @@ namespace JSI
                     }
                     else
                     {
-                        if (rpmComp != null && !string.IsNullOrEmpty(persistentVarName))
+                        if (!string.IsNullOrEmpty(persistentVarName))
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = rpmComp.GetVar(persistentVarName, 0);
+                                int activeSwitch = comp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
 
                                 currentState = customGroupState = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupState = rpmComp.GetBool(persistentVarName, initialState);
+                                currentState = customGroupState = comp.GetPersistentVariable(persistentVarName, initialState);
                             }
 
                             if (customAction == CustomActions.IntLight)
@@ -490,18 +487,18 @@ namespace JSI
                     }
                 }
 
-                if (rpmComp != null && !string.IsNullOrEmpty(persistentVarName) && !rpmComp.HasVar(persistentVarName))
+                if (!string.IsNullOrEmpty(persistentVarName) && !comp.HasPersistentVariable(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
+                            comp.SetPersistentVariable(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     else
                     {
-                        rpmComp.SetVar(persistentVarName, currentState);
+                        comp.SetPersistentVariable(persistentVarName, currentState);
                     }
                 }
 
@@ -570,7 +567,6 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
-            rpmComp = null;
             if (colorShiftMaterial != null)
             {
                 UnityEngine.Object.Destroy(colorShiftMaterial);
@@ -596,13 +592,13 @@ namespace JSI
             bool switchEnabled = true;
             if (!forcedShutdown)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
-                    switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
+                    switchEnabled = comp.GetPersistentVariable(perPodMasterSwitchName, false);
                 }
                 if (masterVariable != null)
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     switchEnabled = masterVariable.IsInRange(comp);
                 }
             }
@@ -616,6 +612,7 @@ namespace JSI
 
             if (isCustomAction)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (switchGroupIdentifier >= 0)
                 {
                     if (!forcedShutdown && !customGroupState)
@@ -623,15 +620,14 @@ namespace JSI
                         customGroupState = true;
                         if (!string.IsNullOrEmpty(persistentVarName))
                         {
-                            rpmComp.SetVar(persistentVarName, switchGroupIdentifier);
+                            comp.SetPersistentVariable(persistentVarName, switchGroupIdentifier);
                         }
                     }
                     // else: can't turn off a radio group switch.
                 }
                 else if (customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
+                    int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
                     customGroupState = (ivalue < 1) && !forcedShutdown;
                 }
                 else
@@ -639,7 +635,7 @@ namespace JSI
                     customGroupState = !customGroupState;
                     if (!string.IsNullOrEmpty(persistentVarName))
                     {
-                        rpmComp.SetVar(persistentVarName, customGroupState);
+                        comp.SetPersistentVariable(persistentVarName, customGroupState);
                     }
                 }
             }
@@ -663,11 +659,11 @@ namespace JSI
                     }
                     break;
                 case CustomActions.Transfer:
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     if (!string.IsNullOrEmpty(stateVariable))
                     {
                         // stateVariable can disable the button functionality.
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        int ivalue = comp.ProcessVariable(stateVariable, -1).MassageToInt();
+                        int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
@@ -675,13 +671,12 @@ namespace JSI
                     }
                     if (!string.IsNullOrEmpty(transferGetter))
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                        float value = comp.ProcessVariable(transferGetter, internalProp.propID).MassageToFloat();
-                        rpmComp.SetVar(transferPersistentName, (int)value);
+                        float value = comp.ProcessVariable(transferGetter).MassageToFloat();
+                        comp.SetPersistentVariable(transferPersistentName, value);
                     }
-                    else if (rpmComp.HasVar(transferPersistentName))
+                    else if (comp.HasPersistentVariable(transferPersistentName))
                     {
-                        transferSetter((double)rpmComp.GetVar(transferPersistentName));
+                        transferSetter(comp.HasPersistentVariable(transferPersistentName).MassageToDouble());
                     }
                     break;
             }
@@ -728,12 +723,12 @@ namespace JSI
             // So there's no check for internal cameras.
 
             bool newState;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             if (isPluginAction && !string.IsNullOrEmpty(stateVariable))
             {
                 try
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    newState = (comp.ProcessVariable(stateVariable, -1).MassageToInt()) > 0;
+                    newState = (comp.ProcessVariable(stateVariable).MassageToInt()) > 0;
                 }
                 catch
                 {
@@ -746,14 +741,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
+                        int activeGroupId = comp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupState = newState;
                     }
                     else
                     {
                         // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
-                        newState = rpmComp.GetBool(persistentVarName, false);
+                        newState = comp.GetPersistentVariable(persistentVarName, false);
                     }
                 }
                 else
@@ -763,13 +758,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = rpmComp.GetVar(persistentVarName, 0);
+                            int activeGroupId = comp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupState = newState;
                         }
                         else
                         {
-                            newState = rpmComp.GetBool(persistentVarName, customGroupState);
+                            newState = comp.GetPersistentVariable(persistentVarName, customGroupState);
                         }
                     }
                     else
@@ -789,7 +784,6 @@ namespace JSI
                 lightCheckCountdown--;
                 if (lightCheckCountdown <= 0)
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     lightCheckCountdown = refreshRate;
                     forcedShutdown |= currentState && comp.ProcessVariable(resourceName).MassageToFloat() < 0.01f;
                 }
@@ -797,7 +791,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(perPodMasterSwitchName))
             {
-                bool switchEnabled = rpmComp.GetBool(perPodMasterSwitchName, false);
+                bool switchEnabled = comp.GetPersistentVariable(perPodMasterSwitchName, false);
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off
@@ -808,7 +802,6 @@ namespace JSI
 
             if (masterVariable != null)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (!masterVariable.IsInRange(comp))
                 {
                     newState = false;

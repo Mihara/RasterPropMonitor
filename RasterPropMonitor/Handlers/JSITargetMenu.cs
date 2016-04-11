@@ -118,7 +118,6 @@ namespace JSI
         private int partCount;
         private SortMode sortMode;
         private bool pageActiveState;
-        private RasterPropMonitorComputer rpmComp;
         private string persistentVarName;
 
         // DPAI linkage
@@ -641,9 +640,9 @@ namespace JSI
                 unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
 
             persistentVarName = "targetfilter" + internalProp.propID;
-            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             // 7 is the bitmask for ship-station-probe;
-            VesselFilterFromBitmask(rpmComp.GetVar(persistentVarName, defaultFilter));
+            VesselFilterFromBitmask(comp.GetPersistentVariable(persistentVarName, defaultFilter).MassageToInt());
 
             nameColorTag = JUtil.ColorToColorTag(nameColorValue);
             distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
@@ -698,11 +697,6 @@ namespace JSI
             }
 
             activeMenu = topMenu;
-        }
-
-        public void OnDestroy()
-        {
-            rpmComp = null;
         }
 
         private static int VesselFilterToBitmask(Dictionary<VesselType, bool> filterList)
@@ -1010,8 +1004,9 @@ namespace JSI
         // Filters Menu
         private void ToggleFilter(int index, TextMenu.Item ti)
         {
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             vesselFilter[vesselFilter.ElementAt(index).Key] = !vesselFilter[vesselFilter.ElementAt(index).Key];
-            rpmComp.SetVar(persistentVarName, VesselFilterToBitmask(vesselFilter));
+            comp.SetPersistentVariable(persistentVarName, VesselFilterToBitmask(vesselFilter));
             ti.isSelected = !ti.isSelected;
             ti.labelText = vesselFilter.ElementAt(index).Key.ToString().PadRight(9) + (ti.isSelected ? "- On" : "- Off");
         }
