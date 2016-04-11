@@ -82,9 +82,11 @@ namespace JSI
             {
                 string[] tokens = input.Split('_');
 
-                if (tokens.Length == 2 && tokens[0] == "ISLOADED")
+                if (tokens.Length >= 2 && tokens[0] == "ISLOADED")
                 {
-                    if (knownLoadedAssemblies.Contains(tokens[1]))
+                    string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
+
+                    if (knownLoadedAssemblies.Contains(assemblyname))
                     {
                         return (string variable) => { return 1.0f; };
                     }
