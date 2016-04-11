@@ -28,7 +28,7 @@ namespace JSI
     {
         // The only public configuration variable.
         [KSPField]
-        public bool debugLogging = true;
+        public bool debugLogging = false;
 
         // The OTHER public configuration variable.
         [KSPField]
@@ -91,7 +91,11 @@ namespace JSI
         public void Start()
         {
             JUtil.LogMessage(this, "Setting RasterPropMonitor debugging to {0}", debugLogging);
-            JUtil.debugLoggingEnabled = debugLogging;
+            if (debugLogging)
+            {
+                // Allow opt-in; do not allow it to be shut off if someone wanted it on.
+                JUtil.debugLoggingEnabled = debugLogging;
+            }
 
             if (!HighLogic.LoadedSceneIsEditor)
             {

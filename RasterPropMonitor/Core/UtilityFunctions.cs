@@ -231,7 +231,7 @@ namespace JSI
         public static readonly string[] VariableListSeparator = { "$&$" };
         public static readonly string[] VariableSeparator = { };
         public static readonly string[] LineSeparator = { Environment.NewLine };
-        public static bool debugLoggingEnabled = true;
+        public static bool debugLoggingEnabled = false;
         private static readonly int ClosestApproachRefinementInterval = 16;
         public static bool cameraMaskShowsIVA = false;
         private static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
