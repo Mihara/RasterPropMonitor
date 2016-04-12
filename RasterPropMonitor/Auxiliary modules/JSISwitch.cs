@@ -25,6 +25,7 @@ using System.Globalization;
 using System.Text;
 using UnityEngine;
 
+#if ENABLE_JSISWITCH
 namespace JSI
 {
     /// <summary>
@@ -770,3 +771,4 @@ namespace JSI
         }
     }
 }
+#endif
