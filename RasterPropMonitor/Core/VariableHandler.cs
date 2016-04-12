@@ -51,8 +51,9 @@ namespace JSI
 
             private struct VariableRecord
             {
-                public double defaultValue;
-                public string defaultString;
+                //public double defaultValue;
+                //public string defaultString;
+                public object defaultValue;
                 public bool cacheable;
                 public bool fallback;
             };
@@ -80,8 +81,9 @@ namespace JSI
                         {
                             return false;
                         }
-                        result = string.IsNullOrEmpty(handledVariables[variable].defaultString) ?
-                                 (object)handledVariables[variable].defaultValue : handledVariables[variable].defaultString;
+                        result = handledVariables[variable].defaultValue;
+                        //result = string.IsNullOrEmpty(handledVariables[variable].defaultString) ?
+                        //         (object)handledVariables[variable].defaultValue : handledVariables[variable].defaultString;
                     }
                     return true;
                 }
@@ -110,7 +112,8 @@ namespace JSI
                             }
                             else
                             {
-                                record.defaultString = tokens[1];
+                                record.defaultValue = tokens[1];
+                                //record.defaultString = tokens[1];
                             }
                         }
                     }
