@@ -676,7 +676,7 @@ namespace JSI
                     }
                     else if (comp.HasPersistentVariable(transferPersistentName))
                     {
-                        transferSetter(comp.HasPersistentVariable(transferPersistentName).MassageToDouble());
+                        transferSetter(comp.GetPersistentVariable(transferPersistentName, 0.0).MassageToDouble());
                     }
                     break;
             }
