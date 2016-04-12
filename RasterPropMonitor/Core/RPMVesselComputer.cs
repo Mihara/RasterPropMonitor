@@ -99,6 +99,14 @@ namespace JSI
          * This region contains variables that apply per-instance (per vessel).
          */
         private Vessel vessel;
+        internal Vessel getVessel() { return vessel; }
+        internal Guid id
+        {
+            get
+            {
+                return (vessel == null) ? Guid.Empty : vessel.id;
+            }
+        }
         private NavBall navBall;
         private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
