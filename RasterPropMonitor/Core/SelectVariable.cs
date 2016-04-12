@@ -79,9 +79,7 @@ namespace JSI
                 }
             }
 
-            float evaluant = 0.0f;
-            result[i].Get(out evaluant, comp);
-            return evaluant;
+            return result[i].Evaluate(comp);
         }
 
         private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)
