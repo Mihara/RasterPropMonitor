@@ -140,7 +140,7 @@ namespace JSI
 
         public override void OnUpdate()
         {
-            if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
+            if (!JUtil.RasterPropMonitorShouldUpdate(vessel) || !UpdateCheck())
             {
                 return;
             }

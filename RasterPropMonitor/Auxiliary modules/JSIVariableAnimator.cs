@@ -146,7 +146,7 @@ namespace JSI
                 muted = false;
             }
 
-            if ((!alwaysActive && !JUtil.VesselIsInIVA(vessel)) || !UpdateCheck())
+            if ((!alwaysActive && !JUtil.RasterPropMonitorShouldUpdate(vessel)) || !UpdateCheck())
             {
                 return;
             }
