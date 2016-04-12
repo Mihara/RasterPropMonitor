@@ -114,7 +114,10 @@ namespace JSI
             Dummy,
             Plugin,
             Stage,
-            Transfer
+            Transfer,
+            TransferToPersistent,
+            TransferFromPersistent,
+            TransferFromVariable
         };
         private bool customGroupState = false;
         internal static readonly Dictionary<string, CustomActions> customGroupList = new Dictionary<string, CustomActions> {
@@ -138,6 +141,7 @@ namespace JSI
         private bool startupComplete;
         private Material colorShiftMaterial;
         private string stateVariable = string.Empty;
+        private bool stateVariableValid = false;
         private Action<bool> actionHandler;
         private bool isPluginAction;
 
@@ -311,10 +315,12 @@ namespace JSI
                                                 {
                                                     string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
                                                     stateVariable = "PLUGIN_" + state;
+                                                    stateVariableValid = true;
                                                 }
                                                 else if (pluginConfig.HasValue("stateVariable"))
                                                 {
                                                     stateVariable = pluginConfig.GetValue("stateVariable").Trim();
+                                                    stateVariableValid = true;
                                                 }
                                                 isPluginAction = true;
                                                 break;
@@ -339,17 +345,18 @@ namespace JSI
                                 {
                                     foreach (ConfigNode pluginConfig in node.GetNodes("MODULE")[moduleID].GetNodes("TRANSFERACTION"))
                                     {
-                                        if ((pluginConfig.HasValue("name") || pluginConfig.HasValue("getVariable")) && pluginConfig.HasValue("perPodPersistenceName"))
+                                        if (pluginConfig.HasValue("name") || pluginConfig.HasValue("getVariable"))
                                         {
-                                            transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                             if (pluginConfig.HasValue("stateMethod"))
                                             {
                                                 string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
                                                 stateVariable = "PLUGIN_" + state;
+                                                stateVariableValid = true;
                                             }
                                             else if (pluginConfig.HasValue("stateVariable"))
                                             {
                                                 stateVariable = pluginConfig.GetValue("stateVariable").Trim();
+                                                stateVariableValid = true;
                                             }
                                             if (pluginConfig.HasValue("setMethod"))
                                             {
@@ -360,31 +367,64 @@ namespace JSI
                                                 {
                                                     JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
                                                 }
+                                                else if(pluginConfig.HasValue("perPodPersistenceName"))
+                                                {
+                                                    transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
+                                                    actionName = "transferFromPersistent";
+                                                    customAction = CustomActions.TransferFromPersistent;
+                                                }
+                                                else if(pluginConfig.HasValue("getVariable"))
+                                                {
+                                                    transferGetter = pluginConfig.GetValue("getVariable").Trim();
+                                                    actionName = "transferFromVariable";
+                                                    customAction = CustomActions.TransferFromVariable;
+                                                }
                                                 else
                                                 {
+                                                    JUtil.LogErrorMessage(this, "Unable to configure transfer setter method in {0} - no perPodPersistenceName or getVariable", internalProp.name);
+                                                    transferSetter = null;
                                                     //JUtil.LogMessage(this, "Got setter {0}", action);
-                                                    break;
                                                 }
                                             }
                                             else if (pluginConfig.HasValue("getMethod"))
                                             {
-                                                string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("getMethod").Trim();
-                                                var getter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
-
-                                                if (getter == null)
+                                                if (pluginConfig.HasValue("perPodPersistenceName"))
                                                 {
-                                                    JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
+                                                    string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("getMethod").Trim();
+                                                    var getter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
+
+                                                    if (getter == null)
+                                                    {
+                                                        JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0} in {1}", pluginConfig.GetValue("name"), internalProp.name);
+                                                    }
+                                                    else
+                                                    {
+                                                        transferGetter = "PLUGIN_" + action;
+                                                        transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
+                                                        actionName = "transferToPersistent";
+                                                        customAction = CustomActions.TransferToPersistent;
+                                                        //JUtil.LogMessage(this, "Got getter {0}", action);
+                                                        break;
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    transferGetter = "PLUGIN_" + action;
-                                                    //JUtil.LogMessage(this, "Got getter {0}", action);
-                                                    break;
+                                                    JUtil.LogErrorMessage(this, "Transfer handler in {0} configured with 'getVariable', but no 'perPodPeristenceName'", internalProp.name);
                                                 }
                                             }
                                             else if (pluginConfig.HasValue("getVariable"))
                                             {
-                                                transferGetter = pluginConfig.GetValue("getVariable").Trim();
+                                                if (pluginConfig.HasValue("perPodPersistenceName"))                                       
+                                                {
+                                                    transferGetter = pluginConfig.GetValue("getVariable").Trim();
+                                                    transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
+                                                    actionName = "transferToPersistent";
+                                                    customAction = CustomActions.TransferToPersistent;
+                                                }
+                                                else
+                                                {
+                                                    JUtil.LogErrorMessage(this, "Transfer handler in {0} configured with 'getVariable', but no 'perPodPeristenceName'", internalProp.name);
+                                                }
                                             }
                                         }
                                     }
@@ -394,6 +434,7 @@ namespace JSI
                             {
                                 actionName = "dummy";
                                 stateVariable = string.Empty;
+                                stateVariableValid = false;
                                 JUtil.LogMessage(this, "Transfer handlers did not start, reverting to dummy mode.");
                             }
                             break;
@@ -451,7 +492,7 @@ namespace JSI
 
                 if (isCustomAction)
                 {
-                    if (isPluginAction && !string.IsNullOrEmpty(stateVariable))
+                    if (isPluginAction && stateVariableValid)
                     {
                         try
                         {
@@ -589,10 +630,10 @@ namespace JSI
 
         public void Click()
         {
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             bool switchEnabled = true;
             if (!forcedShutdown)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (!string.IsNullOrEmpty(perPodMasterSwitchName))
                 {
                     switchEnabled = comp.GetPersistentVariable(perPodMasterSwitchName, false);
@@ -612,7 +653,6 @@ namespace JSI
 
             if (isCustomAction)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (switchGroupIdentifier >= 0)
                 {
                     if (!forcedShutdown && !customGroupState)
@@ -625,7 +665,7 @@ namespace JSI
                     }
                     // else: can't turn off a radio group switch.
                 }
-                else if (customAction == CustomActions.Plugin && !string.IsNullOrEmpty(stateVariable))
+                else if (customAction == CustomActions.Plugin && stateVariableValid)
                 {
                     int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
                     customGroupState = (ivalue < 1) && !forcedShutdown;
@@ -643,6 +683,7 @@ namespace JSI
             {
                 vessel.ActionGroups.ToggleGroup(kspAction);
             }
+
             // Now we do extra things that with regular actions can't happen.
             switch (customAction)
             {
@@ -658,9 +699,50 @@ namespace JSI
                         StageManager.ActivateNextStage();
                     }
                     break;
+                case CustomActions.TransferToPersistent:
+                    if (stateVariableValid)
+                    {
+                        // stateVariable can disable the button functionality.
+                        int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
+                        if (ivalue < 1)
+                        {
+                            return; // early - button disabled
+                        }
+                    }
+                    float getValue = comp.ProcessVariable(transferGetter).MassageToFloat();
+                    comp.SetPersistentVariable(transferPersistentName, getValue);
+                    break;
+                case CustomActions.TransferFromPersistent:
+                    if (stateVariableValid)
+                    {
+                        // stateVariable can disable the button functionality.
+                        int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
+                        if (ivalue < 1)
+                        {
+                            return; // early - button disabled
+                        }
+                    }
+                    if (comp.HasPersistentVariable(transferPersistentName))
+                    {
+                        transferSetter(comp.GetPersistentVariable(transferPersistentName, 0.0).MassageToDouble());
+                    }
+                    break;
+                case CustomActions.TransferFromVariable:
+                    if (stateVariableValid)
+                    {
+                        // stateVariable can disable the button functionality.
+                        int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
+                        if (ivalue < 1)
+                        {
+                            return; // early - button disabled
+                        }
+                    }
+                    double xferValue = comp.ProcessVariable(transferGetter).MassageToDouble();
+                    transferSetter(xferValue);
+                    break;
                 case CustomActions.Transfer:
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    if (!string.IsNullOrEmpty(stateVariable))
+                    JUtil.LogInfo(this, "The deprecated CustomActions.Transfer path was executed");
+                    if (stateVariableValid)
                     {
                         // stateVariable can disable the button functionality.
                         int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
@@ -724,7 +806,7 @@ namespace JSI
 
             bool newState;
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            if (isPluginAction && !string.IsNullOrEmpty(stateVariable))
+            if (isPluginAction && stateVariableValid)
             {
                 try
                 {
