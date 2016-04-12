@@ -39,8 +39,10 @@ namespace JSI
         public string actionName = "lights";
         [KSPField]
         public string perPodPersistenceName = string.Empty;
+        private bool perPodPersistenceValid = false;
         [KSPField]
         public string perPodMasterSwitchName = string.Empty;
+        private bool perPodMasterSwitchValid = false;
         [KSPField]
         public string masterVariableName = string.Empty;
         private VariableOrNumberRange masterVariable = null;
@@ -134,6 +136,7 @@ namespace JSI
         private bool currentState;
         private bool isCustomAction;
         private string persistentVarName;
+        private bool persistentVarValid = false;
         private Light[] lightObjects;
         private FXGroup audioOutput;
         private FXGroup loopingOutput;
@@ -451,14 +454,18 @@ namespace JSI
                         // If there's no persistence name, there's no valid group id for this switch
                         switchGroupIdentifier = -1;
                     }
+
+                    persistentVarValid = !string.IsNullOrEmpty(persistentVarName);
                 }
+
+                perPodPersistenceValid = !string.IsNullOrEmpty(perPodPersistenceName);
 
                 if (customGroupList.ContainsKey(actionName))
                 {
                     customAction = customGroupList[actionName];
                 }
 
-                if (needsElectricChargeValue || !string.IsNullOrEmpty(persistentVarName) || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
+                if (needsElectricChargeValue || persistentVarValid || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
                     !string.IsNullOrEmpty(transferGetter) || transferSetter != null)
                 {
                     comp.UpdateDataRefreshRate(refreshRate);
@@ -505,7 +512,7 @@ namespace JSI
                     }
                     else
                     {
-                        if (!string.IsNullOrEmpty(persistentVarName))
+                        if (persistentVarValid)
                         {
                             if (switchGroupIdentifier >= 0)
                             {
@@ -528,7 +535,7 @@ namespace JSI
                     }
                 }
 
-                if (!string.IsNullOrEmpty(persistentVarName) && !comp.HasPersistentVariable(persistentVarName))
+                if (persistentVarValid && !comp.HasPersistentVariable(persistentVarName))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
@@ -593,6 +600,8 @@ namespace JSI
                     loopingOutput = JUtil.SetupIVASound(internalProp, loopingSound, loopingSoundVolume, true);
                 }
 
+                perPodMasterSwitchValid = !string.IsNullOrEmpty(perPodMasterSwitchName);
+
                 JUtil.LogMessage(this, "Configuration complete in prop {0} ({1}).", internalProp.propID, internalProp.propName);
 
                 startupComplete = true;
@@ -634,7 +643,7 @@ namespace JSI
             bool switchEnabled = true;
             if (!forcedShutdown)
             {
-                if (!string.IsNullOrEmpty(perPodMasterSwitchName))
+                if (perPodMasterSwitchValid)
                 {
                     switchEnabled = comp.GetPersistentVariable(perPodMasterSwitchName, false);
                 }
@@ -658,7 +667,7 @@ namespace JSI
                     if (!forcedShutdown && !customGroupState)
                     {
                         customGroupState = true;
-                        if (!string.IsNullOrEmpty(persistentVarName))
+                        if (persistentVarValid)
                         {
                             comp.SetPersistentVariable(persistentVarName, switchGroupIdentifier);
                         }
@@ -673,7 +682,7 @@ namespace JSI
                 else
                 {
                     customGroupState = !customGroupState;
-                    if (!string.IsNullOrEmpty(persistentVarName))
+                    if (persistentVarValid)
                     {
                         comp.SetPersistentVariable(persistentVarName, customGroupState);
                     }
@@ -742,7 +751,7 @@ namespace JSI
                     break;
                 case CustomActions.Transfer:
                     JUtil.LogInfo(this, "The deprecated CustomActions.Transfer path was executed");
-                    if (stateVariableValid)
+                    /*if (stateVariableValid)
                     {
                         // stateVariable can disable the button functionality.
                         int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
@@ -759,7 +768,7 @@ namespace JSI
                     else if (comp.HasPersistentVariable(transferPersistentName))
                     {
                         transferSetter(comp.GetPersistentVariable(transferPersistentName, 0.0).MassageToDouble());
-                    }
+                    }*/
                     break;
             }
         }
@@ -819,7 +828,7 @@ namespace JSI
             }
             else if (isCustomAction)
             {
-                if (string.IsNullOrEmpty(switchTransform) && !string.IsNullOrEmpty(perPodPersistenceName))
+                if (string.IsNullOrEmpty(switchTransform) && perPodPersistenceValid)
                 {
                     if (switchGroupIdentifier >= 0)
                     {
@@ -836,7 +845,7 @@ namespace JSI
                 else
                 {
                     // Otherwise it's a master module. But it still might have to follow the clicks on other copies of the same prop...
-                    if (!string.IsNullOrEmpty(perPodPersistenceName))
+                    if (perPodPersistenceValid)
                     {
                         if (switchGroupIdentifier >= 0)
                         {
@@ -871,7 +880,7 @@ namespace JSI
                 }
             }
 
-            if (!string.IsNullOrEmpty(perPodMasterSwitchName))
+            if (perPodMasterSwitchValid)
             {
                 bool switchEnabled = comp.GetPersistentVariable(perPodMasterSwitchName, false);
                 if (!switchEnabled)
