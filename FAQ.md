@@ -1,5 +1,9 @@
 # Frequently Asked Questions about RasterPropMonitor
 
+### It doesn't work
+
+For mod support problems, I strongly recommend you look at the [KSP forum post](http://forum.kerbalspaceprogram.com/index.php?/topic/83212-how-to-get-support-read-first/) on getting support for mods.
+
 ### Can you add support for (insert favorite mod's name here)?
 
 Probably not.  Most of the mods that RPM interacts with are mods I (MOARdV) use when playing.  As such, making sure RPM still works when those mods change is not a big deal.  There are a couple of mods that I don't use that are in the list, and keeping RPM playing nice with them is already more effort than I can justify.
