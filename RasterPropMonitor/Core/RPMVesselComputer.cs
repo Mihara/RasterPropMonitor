@@ -99,6 +99,14 @@ namespace JSI
          * This region contains variables that apply per-instance (per vessel).
          */
         private Vessel vessel;
+        internal Vessel getVessel() { return vessel; }
+        internal Guid id
+        {
+            get
+            {
+                return (vessel == null) ? Guid.Empty : vessel.id;
+            }
+        }
         private NavBall navBall;
         private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
@@ -113,7 +121,6 @@ namespace JSI
             }
         }
         private ExternalVariableHandlers plugins = null;
-        private RasterPropMonitorComputer rpmComp;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -313,6 +320,13 @@ namespace JSI
 #endif
         #endregion
 
+        /// <summary>
+        /// Fetch the RPMVesselComputer corresponding to the vessel.  Throws an
+        /// exception if the instances dictionary is null or if the vessel
+        /// does not have an RPMVesselComputer.
+        /// </summary>
+        /// <param name="v">The Vessel we want</param>
+        /// <returns></returns>
         public static RPMVesselComputer Instance(Vessel v)
         {
             if (instances == null)
@@ -337,6 +351,116 @@ namespace JSI
         }
 
         #region VesselModule Overrides
+        /// <summary>
+        /// Load and parse persistent variables
+        /// </summary>
+        /// <param name="node"></param>
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+
+            if (vessel != null)
+            {
+                JUtil.LogMessage(this, "OnLoad for vessel {0}", vessel.id);
+                ConfigNode pers = new ConfigNode();
+                if (node.TryGetNode("RPM_PERSISTENT_VARS", ref pers))
+                {
+                    persistentVars.Clear();
+
+                    JUtil.LogMessage(this, "Found RPM_PERSISTENT_VARS");
+                    for (int i = 0; i < pers.CountValues; ++i)
+                    {
+                        ConfigNode.Value val = pers.values[i];
+
+                        string[] value = val.value.Split(',');
+                        if (value.Length > 2) // urk.... commas in the stored string
+                        {
+                            string s = value[1].Trim();
+                            for (int j = 2; j < value.Length; ++j)
+                            {
+                                s = s + ',' + value[i].Trim();
+                            }
+                            value[1] = s;
+                        }
+
+                        switch (value[0].Trim())
+                        {
+                            case "System.Boolean":
+                                bool vb = false;
+                                if (Boolean.TryParse(value[1].Trim(), out vb))
+                                {
+                                    persistentVars[val.name.Trim()] = vb;
+                                }
+                                else
+                                {
+                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as a boolean", val.name);
+                                }
+                                break;
+                            case "System.Int32":
+                                int vi = 0;
+                                if (Int32.TryParse(value[1].Trim(), out vi))
+                                {
+                                    persistentVars[val.name.Trim()] = vi;
+                                }
+                                else
+                                {
+                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as an int", val.name);
+                                }
+                                break;
+                            case "System.Single":
+                                float vf = 0.0f;
+                                if (Single.TryParse(value[1].Trim(), out vf))
+                                {
+                                    persistentVars[val.name.Trim()] = vf;
+                                }
+                                else
+                                {
+                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as a float", val.name);
+                                }
+                                break;
+                            default:
+                                JUtil.LogErrorMessage(this, "Found unknown persistent type {0}", value[0]);
+                                break;
+                        }
+                    }
+                }
+                else
+                {
+                    JUtil.LogMessage(this, "-- no persistence data");
+                }
+            }
+            else
+            {
+                JUtil.LogErrorMessage(this, "OnLoad was called while vessel is still null");
+            }
+        }
+
+        /// <summary>
+        /// Save our persistent variables
+        /// </summary>
+        /// <param name="node"></param>
+        public override void OnSave(ConfigNode node)
+        {
+            base.OnSave(node);
+
+            if (vessel != null)
+            {
+                JUtil.LogMessage(this, "OnSave for vessel {0}", vessel.id);
+                if (persistentVars.Count > 0)
+                {
+                    ConfigNode pers = new ConfigNode("RPM_PERSISTENT_VARS");
+                    foreach (var val in persistentVars)
+                    {
+                        string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
+                        pers.AddValue(val.Key, value);
+                        //JUtil.LogMessage(this, "Adding {0} = {1}", val.Key, value);
+                    }
+
+                    node.AddNode(pers);
+                }
+            }
+        }
+
         public override void OnAwake()
         {
             base.OnAwake();
@@ -595,7 +719,6 @@ namespace JSI
             navBall = null;
             node = null;
             part = null;
-            rpmComp = null;
 
             target = null;
             targetDockingNode = null;
@@ -628,7 +751,7 @@ namespace JSI
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
-                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since update ---", vessel.id, debug_varsProcessed);
+                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since last FixedUpdate ---", vessel.id, debug_varsProcessed);
                 debug_varsProcessed = 0;
                 UpdateVariables();
             }
@@ -658,8 +781,6 @@ namespace JSI
                     {
                         plugins = new ExternalVariableHandlers(part);
                     }
-                    // Refresh some per-part values .. ?
-                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
 
 #if SHOW_FIXEDUPDATE_TIMING
@@ -706,19 +827,19 @@ namespace JSI
 
         private void DebugFunction()
         {
-            for(int pi=0; pi<vessel.Parts.Count; ++pi)
+            for (int pi = 0; pi < vessel.Parts.Count; ++pi)
             {
-                for(int mi=0; mi<vessel.Parts[pi].Modules.Count; ++mi)
+                for (int mi = 0; mi < vessel.Parts[pi].Modules.Count; ++mi)
                 {
-                    if(vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
+                    if (vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
                     {
                         try
                         {
-                        ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
-                        JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
-                        JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
+                            ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
+                            JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
+                            JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             JUtil.LogMessage(this, "Trapped an exception tyring to read ModuleScienceExperiment: {0}", e);
                         }
@@ -754,9 +875,9 @@ namespace JSI
         /// <param name="input"></param>
         /// <param name="propId"></param>
         /// <returns></returns>
-        public object ProcessVariable(string input, int propId = -1)
+        public object ProcessVariable(string input)
         {
-            if (rpmComp == null)
+            if (plugins == null)
             {
                 if (part == null)
                 {
@@ -769,8 +890,6 @@ namespace JSI
                     {
                         plugins = new ExternalVariableHandlers(part);
                     }
-
-                    rpmComp = RasterPropMonitorComputer.Instantiate(part);
                 }
             }
 
@@ -798,7 +917,7 @@ namespace JSI
             else
             {
                 bool cacheable;
-                VariableEvaluator evaluator = GetEvaluator(input, propId, out cacheable);
+                VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
                 if (evaluator != null)
                 {
                     vc = new VariableCache(cacheable, evaluator);
@@ -821,12 +940,13 @@ namespace JSI
             object returnValue = resultCache[input];
             if (returnValue == null)
             {
-                bool cacheable;
+                bool cacheable = true;
                 try
                 {
                     if (plugins == null || !plugins.ProcessVariable(input, out returnValue, out cacheable))
                     {
-                        returnValue = VariableToObject(input, propId, out cacheable);
+                        cacheable = false;
+                        returnValue = input;
                     }
                 }
                 catch (Exception e)

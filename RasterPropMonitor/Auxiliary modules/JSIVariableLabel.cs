@@ -59,7 +59,7 @@ namespace JSI
             {
                 return;
             }
-            if (!JUtil.VesselIsInIVA(vessel) || !UpdateCheck())
+            if (!JUtil.RasterPropMonitorShouldUpdate(vessel) || !UpdateCheck())
             {
                 return;
             }

@@ -56,7 +56,6 @@ namespace JSI
         private Texture digitTex;
         private Texture characterTex;
         private Texture overlayTex;
-        private RasterPropMonitorComputer rpmComp;
         private double lastUpdate;
         private RenderTexture screenTexture;
         private Material screenMat;
@@ -85,7 +84,7 @@ namespace JSI
             float value;
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
-                bool state = rpmComp.GetBool(perPodPersistenceName, false);
+                bool state = comp.GetPersistentVariable(perPodPersistenceName, false);
                 value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
             }
             else
@@ -386,7 +385,6 @@ namespace JSI
                 screenTexture.Release();
                 screenTexture = null;
             }
-            rpmComp = null;
         }
 
         public void Start()
@@ -460,8 +458,6 @@ namespace JSI
                 Shader unlit = Shader.Find("KSP/Alpha/Unlit Transparent");
                 //Shader unlit = Shader.Find("Hidden/Internal-GUITexture");
                 digitMaterial = new Material(unlit);
-
-                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                 backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 

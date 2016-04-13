@@ -36,45 +36,7 @@ namespace JSI
 
         //--- The guts of the variable processor
         #region VariableToObject
-        /// <summary>
-        /// The core of the variable processor.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="propId"></param>
-        /// <param name="cacheable"></param>
-        /// <returns></returns>
-        private object VariableToObject(string input, int propId, out bool cacheable)
-        {
-            // Some variables may not cacheable, because they're meant to be different every time like RANDOM,
-            // or immediate. they will set this flag to false.
-            cacheable = true;
-
-            // It's slightly more optimal if we take care of that before the main switch body.
-            if (input.IndexOf("_", StringComparison.Ordinal) > -1)
-            {
-                string[] tokens = input.Split('_');
-
-                if (tokens.Length > 1 && tokens[0] == "PROP")
-                {
-                    string substr = input.Substring("PROP".Length + 1);
-
-                    if (rpmComp != null && rpmComp.HasPropVar(substr, propId))
-                    {
-                        // Can't cache - multiple props could call in here.
-                        cacheable = false;
-                        return (float)rpmComp.GetPropVar(substr, propId);
-                    }
-                    else
-                    {
-                        return input;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        VariableEvaluator GetEvaluator(string input, int propId, out bool cacheable)
+        VariableEvaluator GetEvaluator(string input, out bool cacheable)
         {
             cacheable = true;
 
@@ -213,11 +175,11 @@ namespace JSI
                     InternalProp propToUse = null;
                     if (part != null)
                     {
-                        if (propId >= 0 && propId < part.internalModel.props.Count)
-                        {
-                            propToUse = part.internalModel.props[propId];
-                        }
-                        else
+                        //if (propId >= 0 && propId < part.internalModel.props.Count)
+                        //{
+                        //    propToUse = part.internalModel.props[propId];
+                        //}
+                        //else
                         {
                             foreach (InternalProp thisProp in part.internalModel.props)
                             {
@@ -264,24 +226,23 @@ namespace JSI
                 if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
-                    if (rpmComp != null && rpmComp.HasVar(substr))
+                    if (HasPersistentVariable(substr))
                     {
                         return (string variable) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            return (float)rpmComp.GetVar(substring);
+                            return GetPersistentVariable(substring, 0.0f).MassageToFloat();
                         };
                     }
                     else
                     {
-                        // rpmComp wasn't initialized for some reason, or the
-                        // variable wasn't found yet.
+                        // Variable wasn't found yet.
                         return (string variable) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            if (rpmComp != null && rpmComp.HasVar(substring))
+                            if (HasPersistentVariable(substring))
                             {
-                                return (float)rpmComp.GetVar(substring);
+                                return GetPersistentVariable(substring, 0.0f).MassageToFloat();
                             }
                             else
                             {
@@ -315,14 +276,21 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (rpmComp != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
                         return (string variable) =>
                         {
                             string[] toks = variable.Split('_');
                             int storedNumber;
                             int.TryParse(toks[1], out storedNumber);
-                            return rpmComp.GetStoredString(storedNumber);
+                            if (storedNumber < storedStrings.Count)
+                            {
+                                return storedStrings[storedNumber];
+                            }
+                            else
+                            {
+                                return "";
+                            }
                         };
                     }
                     else
@@ -331,9 +299,9 @@ namespace JSI
                         {
                             string[] toks = variable.Split('_');
                             int stringNumber;
-                            if (rpmComp != null && int.TryParse(toks[1], out stringNumber) && stringNumber >= 0)
+                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < storedStrings.Count)
                             {
-                                return rpmComp.GetStoredString(stringNumber);
+                                return storedStrings[stringNumber];
                             }
                             else
                             {

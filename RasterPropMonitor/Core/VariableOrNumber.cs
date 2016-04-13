@@ -25,8 +25,17 @@ namespace JSI
     public class VariableOrNumber
     {
         private readonly string variableName;
-        private double value;
+        private double numericValue;
+        private readonly string stringValue;
         private bool warningMade;
+        private readonly VoNType type = VoNType.Invalid;
+        enum VoNType
+        {
+            Invalid,
+            ConstantNumeric,
+            ConstantString,
+            VariableValue,
+        }
 
         static private Dictionary<string, VariableOrNumber> vars = new Dictionary<string, VariableOrNumber>();
 
@@ -84,11 +93,38 @@ namespace JSI
             float realValue;
             if (float.TryParse(input, out realValue))
             {
-                value = realValue;
+                numericValue = realValue;
+                type = VoNType.ConstantNumeric;
+            }
+            else if(input[0] == '$')
+            {
+                stringValue = input.Substring(1);
+                type = VoNType.ConstantString;
             }
             else
             {
                 variableName = input.Trim();
+                type = VoNType.VariableValue;
+            }
+        }
+
+        public object Evaluate(RPMVesselComputer comp)
+        {
+            if(type == VoNType.ConstantNumeric)
+            {
+                return numericValue;
+            }
+            else if(type ==VoNType.ConstantString)
+            {
+                return stringValue;
+            }
+            else if(type == VoNType.VariableValue)
+            {
+                return comp.ProcessVariable(variableName);
+            }
+            else
+            {
+                return null;
             }
         }
 
@@ -100,22 +136,27 @@ namespace JSI
         /// <returns></returns>
         public bool Get(out float destination, RPMVesselComputer comp)
         {
-            if (!string.IsNullOrEmpty(variableName))
+            if (type == VoNType.ConstantString)
             {
-                value = comp.ProcessVariable(variableName).MassageToDouble();
-                if (double.IsNaN(value) || double.IsInfinity(value))
+                destination = 0.0f;
+                return false;
+            }
+            else if (type == VoNType.VariableValue)
+            {
+                numericValue = comp.ProcessVariable(variableName).MassageToDouble();
+                if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
                 {
                     if (!warningMade)
                     {
                         JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
                         warningMade = true;
                     }
-                    destination = (float)value;
+                    destination = (float)numericValue;
                     return false;
                 }
             }
 
-            destination = (float)value;
+            destination = (float)numericValue;
             return true;
         }
 
@@ -127,22 +168,27 @@ namespace JSI
         /// <returns></returns>
         public bool Get(out double destination, RPMVesselComputer comp)
         {
-            if (!string.IsNullOrEmpty(variableName))
+            if (type == VoNType.ConstantString)
             {
-                value = comp.ProcessVariable(variableName).MassageToDouble();
-                if (double.IsNaN(value) || double.IsInfinity(value))
+                destination = 0.0;
+                return false;
+            }
+            else if (type == VoNType.VariableValue)
+            {
+                numericValue = comp.ProcessVariable(variableName).MassageToDouble();
+                if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
                 {
                     if (!warningMade)
                     {
                         JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
                         warningMade = true;
                     }
-                    destination = value;
+                    destination = numericValue;
                     return false;
                 }
             }
 
-            destination = value;
+            destination = numericValue;
             return true;
         }
     }

@@ -44,7 +44,7 @@ namespace JSI
                         var variables = new object[vars.Length];
                         for (int i = 0; i < vars.Length; i++)
                         {
-                            variables[i] = comp.ProcessVariable(vars[i], propID);
+                            variables[i] = comp.ProcessVariable(vars[i]);
                         }
                         string output = string.Format(fp, tokens[0], variables);
                         return output.TrimEnd();
