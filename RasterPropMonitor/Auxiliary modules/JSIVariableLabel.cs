@@ -65,7 +65,7 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp, internalProp.propID);
+            textObj.text.Text = StringProcessor.ProcessString(sourceString, comp);
             oneshotComplete = true;
         }
     }

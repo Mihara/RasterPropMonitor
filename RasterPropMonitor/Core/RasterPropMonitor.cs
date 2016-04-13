@@ -432,7 +432,7 @@ namespace JSI
             string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
             for (int i = 0; i < linesArray.Length; i++)
             {
-                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp, internalProp.propID));
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
             }
             textRefreshRequired = false;
             screenBuffer = bf.ToString();

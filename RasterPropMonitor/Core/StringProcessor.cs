@@ -26,7 +26,7 @@ namespace JSI
     {
         private static readonly SIFormatProvider fp = new SIFormatProvider();
 
-        public static string ProcessString(string input, RPMVesselComputer comp, int propID = -1)
+        public static string ProcessString(string input, RPMVesselComputer comp)
         {
             try
             {
