@@ -105,6 +105,8 @@ namespace JSI
         public void OnDestroy()
         {
             //JUtil.LogMessage(this, "OnDestroy()");
+            Destroy(textObj);
+            textObj = null;
         }
 
         private void OnCallback(RPMVesselComputer comp, float value)
