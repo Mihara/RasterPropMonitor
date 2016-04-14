@@ -117,6 +117,14 @@ namespace JSIAdvTransparentPods
                             tr.GetComponent<Renderer>().material.shader = transparentShader;
                             shadersBackup.Add(tr, backupShader);
                         }
+                        Transform itr = part.internalModel.FindModelTransform(transformName.Trim());
+                        if (itr != null)
+                        {
+                            // We both change the shader and backup the original shader so we can undo it later.
+                            Shader backupShader = itr.GetComponent<Renderer>().material.shader;
+                            itr.GetComponent<Renderer>().material.shader = transparentShader;
+                            shadersBackup.Add(itr, backupShader);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -413,10 +421,6 @@ namespace JSIAdvTransparentPods
             }
 
             //Now FlightScene Processing
-            //If we are in IVA mode or If the camera is not in flight mode or PArt is not part of ActiveVessel and user has set LoadedInactive to true we go no further.
-            if (JSIAdvTPodsUtil.IsInIVA() || CameraManager.Instance.currentCameraMode != CameraManager.CameraMode.Flight || 
-                (vessel.id != FlightGlobals.ActiveVessel.id && LoadGlobals.settings.LoadedInactive))
-                return;
 
             // If the root part changed, or the IVA is mysteriously missing, we reset it and take note of where it ended up.
             if (vessel.rootPart != knownRootPart || lastActiveVessel != FlightGlobals.ActiveVessel || part.internalModel == null)
@@ -424,13 +428,30 @@ namespace JSIAdvTransparentPods
                 ResetIVA();
             }
 
+            // If transparentPodSetting = OFF or AUTO and not the focused active part we treat the part like a non-transparent part.
+            // and we turn off the shaders (if set) and the internal to the filter list and exit OnUpdate. 
+            if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
+            {
+                SetShaders(false);
+                //part.internalModel.SetVisible(false);
+                if (!JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Contains(part))
+                    JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Add(part);
+                setVisible = false;
+                return;
+            }
+            
+            //If we are in IVA mode or If the camera is not in flight mode or PArt is not part of ActiveVessel and user has set LoadedInactive to true we go no further.
+            if (JSIAdvTPodsUtil.IsInIVA() || CameraManager.Instance.currentCameraMode != CameraManager.CameraMode.Flight || 
+                (vessel.id != FlightGlobals.ActiveVessel.id && LoadGlobals.settings.LoadedInactive))
+                return;
+            
             // So we do have an internal model, right?
             if (part.internalModel != null)
             {
                 // If the current part is not part of the active vessel, we calculate the distance from the part to the flight camera.
                 // If this distance is > distanceToCameraThreshold metres we turn off transparency for the part.
                 // Uses Maths calcs intead of built in Unity functions as this is up to 5 times faster.
-                if (!vessel.isActiveVessel && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Flight)
+                if (!vessel.isActiveVessel && LoadGlobals.settings.LoadedInactive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Flight)
                 {
                     Vector3 heading;
                     Transform thisPart = part.transform;
@@ -452,50 +473,36 @@ namespace JSIAdvTransparentPods
                     }
                 }
 
-                
-
-                // If transparentPodSetting = OFF or AUTO and not the focused active part we treat the part like a non-transparent part.
-                // and we turn off the shaders (if set) and the internal to the filter list and exit OnUpdate. 
-                if (transparentPodSetting == "OFF" || (transparentPodSetting == "AUTO" && !mouseOver))
-                {
-                    SetShaders(false);
-                    //part.internalModel.SetVisible(false);
-                    if (!JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Contains(part))
-                        JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Add(part);
-                    setVisible = false;
-                    return;
-                }
-
+                //If not the active vessel IVAs are turned on via the settings then we:
                 //Check for obstructions between this IVA and the Camera that may be on lower layers and turn off the IVA if there is one.
-                //Not a perfect solution..... and bad performance-wise. So only do every 10 frames.
-                //frameCounter++;
-                //if (frameCounter%10 == 0)
-                //{
-                if (JSIAdvTransparentPods.Instance != null && setVisible)
+                //Not a perfect solution..... and bad performance-wise. 
+                if (LoadGlobals.settings.LoadedInactive)
                 {
-                    if (JSIAdvTransparentPods.Instance.IVAcameraTransform != null)
+                    if (JSIAdvTransparentPods.Instance != null && setVisible)
                     {
-                        Transform IVAtoWorld = new GameObject().transform;
-                        IVAtoWorld.position =
-                            InternalSpace.InternalToWorld(part.internalModel.transform.position);
-                        IVAtoWorld.rotation = InternalSpace.InternalToWorld(part.internalModel.transform.rotation);
-                        Transform IVACameratoWorld = new GameObject().transform;
-                        IVACameratoWorld.position =
-                               InternalSpace.InternalToWorld(JSIAdvTransparentPods.Instance.IVAcameraTransform.position);
-                        IVAtoWorld.rotation = InternalSpace.InternalToWorld(JSIAdvTransparentPods.Instance.IVAcameraTransform.rotation);
-                        if (JSIAdvTPodsUtil.IsIVAObstructed(IVAtoWorld, IVACameratoWorld))
+                        if (JSIAdvTransparentPods.Instance.IVAcameraTransform != null)
                         {
-                            if (!JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Contains(part))
-                                JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Add(part);
+                            Transform IVAtoWorld = new GameObject().transform;
+                            IVAtoWorld.position =
+                                InternalSpace.InternalToWorld(part.internalModel.transform.position);
+                            IVAtoWorld.rotation = InternalSpace.InternalToWorld(part.internalModel.transform.rotation);
+                            Transform IVACameratoWorld = new GameObject().transform;
+                            IVACameratoWorld.position =
+                                   InternalSpace.InternalToWorld(JSIAdvTransparentPods.Instance.IVAcameraTransform.position);
+                            IVAtoWorld.rotation = InternalSpace.InternalToWorld(JSIAdvTransparentPods.Instance.IVAcameraTransform.rotation);
+                            if (JSIAdvTPodsUtil.IsIVAObstructed(IVAtoWorld, IVACameratoWorld))
+                            {
+                                if (!JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Contains(part))
+                                    JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Add(part);
+                            }
+                            IVAtoWorld.gameObject.DestroyGameObject();
+                            IVACameratoWorld.gameObject.DestroyGameObject();
                         }
-                        IVAtoWorld.gameObject.DestroyGameObject();
-                        IVACameratoWorld.gameObject.DestroyGameObject();
                     }
                 }
-                //}
-
+                
                 // Make the internal model visible...
-                // And for a good measure we make sure the shader change has been applied.      new Quaternion(0, 0.7f, -0.7f, 0); 
+                // And for a good measure we make sure the shader change has been applied.
                 SetShaders(true);
                 if (JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Contains(part))
                     JSIAdvTransparentPods.Instance.PartstoFilterfromIVADict.Remove(part);
@@ -507,8 +514,6 @@ namespace JSIAdvTransparentPods
                 JSIAdvTPodsUtil.Log("Where is my Internal model for : {0}" , part.craftID);
             }
         }
-
-        
 
         public void VoodooRotate()
         {
