@@ -18,13 +18,14 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
-//using System.Linq;
 using System.Globalization;
 using System.Text;
 using UnityEngine;
 
+#if ENABLE_JSISWITCH
 namespace JSI
 {
     /// <summary>
@@ -118,8 +119,6 @@ namespace JSI
         private bool forcedShutdown = false;
         private List<IJSIAction> action = new List<IJSIAction>();
         private int masterActionIndex = -1;
-
-        private RasterPropMonitorComputer rpmComp;
 
         /// <summary>
         /// Configure the switch.
@@ -237,8 +236,6 @@ namespace JSI
                 }
             }
 
-            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
-
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             comp.UpdateDataRefreshRate(refreshRate);
 
@@ -316,12 +313,12 @@ namespace JSI
         /// </summary>
         public void Click()
         {
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             bool switchEnabled = true;
             if (!forcedShutdown)
             {
                 if (masterVariable != null)
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     switchEnabled = masterVariable.IsInRange(comp);
                 }
             }
@@ -335,7 +332,7 @@ namespace JSI
 
             for (int i = 0; i < action.Count; ++i)
             {
-                action[i].Click(vessel, null, rpmComp);
+                action[i].Click(vessel, null, comp);
             }
         }
 
@@ -380,7 +377,7 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            bool newState = action[masterActionIndex].CurrentState(vessel, comp, rpmComp);
+            bool newState = action[masterActionIndex].CurrentState(vessel, comp);
 
             if (masterVariable != null)
             {
@@ -396,9 +393,9 @@ namespace JSI
                 {
                     for (int i = 0; i < action.Count; ++i)
                     {
-                        if (action[i].CurrentState(vessel, comp, rpmComp))
+                        if (action[i].CurrentState(vessel, comp))
                         {
-                            action[i].Click(false, vessel, rpmComp);
+                            action[i].Click(false, vessel, comp);
                         }
                     }
                 }
@@ -477,6 +474,7 @@ namespace JSI
             }
 
             string name = node.GetValue("name");
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
             if (JSIActionGroupSwitch.groupList.ContainsKey(name))
             {
@@ -484,11 +482,11 @@ namespace JSI
             }
             else if (name == "intlight")
             {
-                return new JSIIntLight(node, rpmComp, internalModel);
+                return new JSIIntLight(node, comp, internalModel);
             }
             else if (name == "dummy")
             {
-                return new JSIDummy(node, rpmComp);
+                return new JSIDummy(node, comp);
             }
             else if (name == "plugin")
             {
@@ -525,16 +523,15 @@ namespace JSI
             /// </summary>
             /// <param name="newState">State that switch is transitioning to.</param>
             /// <param name="vessel">active vessel</param>
-            /// <param name="rpmComp">active vessel's rpmComp</param>
-            abstract internal void Click(bool newState, Vessel vessel, RasterPropMonitorComputer rpmComp);
+            /// <param name="comp">active vessel's vessel computer</param>
+            abstract internal void Click(bool newState, Vessel vessel, RPMVesselComputer comp);
             /// <summary>
             /// What is the current state of the switch?
             /// </summary>
             /// <param name="vessel">activeVessel</param>
             /// <param name="comp">comp</param>
-            /// <param name="rpmComp">rpmComp</param>
             /// <returns>Current state</returns>
-            abstract internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp);
+            abstract internal bool CurrentState(Vessel vessel, RPMVesselComputer comp);
             /// <summary>
             /// We're done with the switch.  Release resources.
             /// </summary>
@@ -549,7 +546,7 @@ namespace JSI
             private readonly string perPodPersistenceName;
             private bool currentState;
 
-            internal JSIDummy(ConfigNode node, RasterPropMonitorComputer rpmComp)
+            internal JSIDummy(ConfigNode node, RPMVesselComputer comp)
                 : base(node)
             {
                 if (!node.HasValue("perPodPersistenceName"))
@@ -575,19 +572,19 @@ namespace JSI
                     currentState = false;
                 }
 
-                currentState = rpmComp.GetBool(perPodPersistenceName, currentState);
-                rpmComp.SetVar(perPodPersistenceName, currentState);
+                currentState = comp.GetPersistentVariable(perPodPersistenceName, currentState);
+                comp.SetPersistentVariable(perPodPersistenceName, currentState);
             }
 
-            override internal void Click(bool newState, Vessel vessel, RasterPropMonitorComputer rpmComp)
+            override internal void Click(bool newState, Vessel vessel, RPMVesselComputer comp)
             {
                 currentState = !currentState;
-                rpmComp.SetVar(perPodPersistenceName, currentState);
+                comp.SetPersistentVariable(perPodPersistenceName, currentState);
             }
 
-            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp)
+            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp)
             {
-                currentState = rpmComp.GetBool(perPodPersistenceName, currentState);
+                currentState = comp.GetPersistentVariable(perPodPersistenceName, currentState);
                 if (enableVariable != null)
                 {
                     currentState = currentState & enableVariable.IsInRange(comp);
@@ -614,14 +611,14 @@ namespace JSI
                 kspAction = JSIActionGroupSwitch.groupList[name];
             }
 
-            override internal void Click(bool newState, Vessel vessel, RasterPropMonitorComputer rpmComp)
+            override internal void Click(bool newState, Vessel vessel, RPMVesselComputer comp)
             {
                 if (kspAction == KSPActionGroup.Stage)
                 {
                     if (InputLockManager.IsUnlocked(ControlTypes.STAGING))
                     {
                         vessel.ActionGroups.ToggleGroup(kspAction);
-                        Staging.ActivateNextStage();
+                        StageManager.ActivateNextStage();
                     }
                 }
                 else
@@ -630,7 +627,7 @@ namespace JSI
                 }
             }
 
-            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp)
+            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp)
             {
                 return vessel.ActionGroups[kspAction];
             }
@@ -651,7 +648,7 @@ namespace JSI
             private readonly bool needsElectricCharge;
             private bool currentState;
 
-            internal JSIIntLight(ConfigNode node, RasterPropMonitorComputer rpmComp, InternalModel internalModel)
+            internal JSIIntLight(ConfigNode node, RPMVesselComputer comp, InternalModel internalModel)
                 : base(node)
             {
                 if (!node.HasValue("internalLightName"))
@@ -706,25 +703,25 @@ namespace JSI
                     bool.TryParse(node.GetValue("initialState"), out initialState);
                 }
 
-                rpmComp.GetBool(persistentVarName, initialState);
+                comp.GetPersistentVariable(persistentVarName, initialState);
                 currentState = initialState;
-                rpmComp.SetVar(persistentVarName, currentState);
+                comp.SetPersistentVariable(persistentVarName, currentState);
 
                 SetInternalLights(currentState);
             }
 
-            override internal void Click(bool newState, Vessel vessel, RasterPropMonitorComputer rpmComp)
+            override internal void Click(bool newState, Vessel vessel, RPMVesselComputer comp)
             {
                 currentState = !currentState;
 
-                rpmComp.SetVar(persistentVarName, currentState);
+                comp.SetPersistentVariable(persistentVarName, currentState);
 
                 SetInternalLights(currentState);
             }
 
-            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp)
+            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp)
             {
-                currentState = rpmComp.GetBool(persistentVarName, currentState);
+                currentState = comp.GetPersistentVariable(persistentVarName, currentState);
                 return currentState;
             }
 
@@ -758,11 +755,11 @@ namespace JSI
 
             }
 
-            override internal void Click(bool newState, Vessel vessel, RasterPropMonitorComputer rpmComp)
+            override internal void Click(bool newState, Vessel vessel, RPMVesselComputer comp)
             {
             }
 
-            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp, RasterPropMonitorComputer rpmComp)
+            override internal bool CurrentState(Vessel vessel, RPMVesselComputer comp)
             {
                 return false;
             }
@@ -774,3 +771,4 @@ namespace JSI
         }
     }
 }
+#endif

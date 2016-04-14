@@ -36,6 +36,8 @@
         <Command type="BeforeBuild" command="..\bin\Release\BumpBuildNumber.exe" workingdir="${SolutionDir}" />
       </CustomCommands>
     </CustomCommands>
+    <DefineConstants>
+    </DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="KSPAssets">
@@ -72,6 +74,7 @@
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\MathVariable.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
+    <Compile Include="Core\RPMVCPersistence.cs" />
     <Compile Include="Core\RPMVCTriggeredEvent.cs" />
     <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
@@ -80,6 +83,7 @@
     <Compile Include="Core\SelectVariable.cs" />
     <Compile Include="Core\TextRenderer.cs" />
     <Compile Include="Handlers\IJSIModule.cs" />
+    <Compile Include="Handlers\JSIChatterer.cs" />
     <Compile Include="Handlers\JSIEngine.cs" />
     <Compile Include="Handlers\JSIFAR.cs" />
     <Compile Include="Handlers\JSIGraphingBackground.cs" />

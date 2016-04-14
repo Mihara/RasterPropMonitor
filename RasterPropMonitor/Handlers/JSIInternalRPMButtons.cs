@@ -19,6 +19,7 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using KSP.UI;
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -79,14 +80,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonClearNodes(bool state)
         {
-            // patchedConicSolver can be null in early career mode.
-            if (vessel.patchedConicSolver != null)
-            {
-                while (vessel.patchedConicSolver.maneuverNodes.Count > 0)
-                {
-                    vessel.patchedConicSolver.RemoveManeuverNode(vessel.patchedConicSolver.maneuverNodes.Last());
-                }
-            }
+            JUtil.RemoveAllNodes(vessel.patchedConicSolver);
         }
 
         /// <summary>
@@ -256,9 +250,16 @@ namespace JSI
                 FlightInputHandler.fetch.precisionMode = state;
 
                 // Update the UI.
-                foreach (UnityEngine.Renderer renderer in FlightInputHandler.fetch.inputGaugeRenderers)
+                // MOARdV: In 1.1, this only affects the normal flight display,
+                // not the docking mode display.
+                var gauges = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.LinearControlGauges>();
+                if (gauges != null)
                 {
-                    renderer.material.color = (state) ? XKCDColors.BrightCyan : XKCDColors.Orange;
+                    //JUtil.LogMessage(this, "{0} input gauge images", gauges.inputGaugeImages.Count);
+                    for (int i = 0; i < gauges.inputGaugeImages.Count; ++i)
+                    {
+                        gauges.inputGaugeImages[i].color = (state) ? XKCDColors.BrightCyan : XKCDColors.Orange;
+                    }
                 }
             }
         }
@@ -708,7 +709,7 @@ namespace JSI
             if (node != null)
             {
                 // Urk.  No enums or numerics to test state...
-                return (node.state == "Docked (docker)") || (node.state == "Docked (dockee)");
+                return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
             }
             else
             {
@@ -1077,7 +1078,7 @@ namespace JSI
             {
                 // MOARdV: I'm not sure inverseStage is ever > CurrentStage,
                 // but there's no harm in >= vs ==.
-                if (thatPart.inverseStage >= Staging.CurrentStage)
+                if (thatPart.inverseStage >= StageManager.CurrentStage)
                 {
                     foreach (PartModule pm in thatPart.Modules)
                     {

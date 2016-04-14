@@ -231,7 +231,7 @@ namespace JSI
         public static readonly string[] VariableListSeparator = { "$&$" };
         public static readonly string[] VariableSeparator = { };
         public static readonly string[] LineSeparator = { Environment.NewLine };
-        public static bool debugLoggingEnabled = true;
+        public static bool debugLoggingEnabled = false;
         private static readonly int ClosestApproachRefinementInterval = 16;
         public static bool cameraMaskShowsIVA = false;
         private static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
@@ -405,6 +405,7 @@ namespace JSI
             }
         }
 
+#if ENABLE_TP
         public static bool IsPodTransparent(Part thatPart)
         {
             foreach (PartModule thatModule in thatPart.Modules)
@@ -416,6 +417,7 @@ namespace JSI
             }
             return false;
         }
+#endif
 
         /// <summary>
         /// From MechJeb
@@ -553,6 +555,18 @@ namespace JSI
             return null;
         }
 
+        public static void RemoveAllNodes(PatchedConicSolver solver)
+        {
+            // patchedConicSolver can be null in early career mode.
+            if (solver != null)
+            {
+                while (solver.maneuverNodes.Count > 0)
+                {
+                    solver.maneuverNodes.Last().RemoveSelf();
+                }
+            }
+        }
+
         internal static void DisposeOfGameObjects(GameObject[] objs)
         {
             for (int i = 0; i < objs.Length; ++i)
@@ -586,12 +600,7 @@ namespace JSI
 
         public static Material DrawLineMaterial()
         {
-            var lineMaterial = new Material("Shader \"Lines/Colored Blended\" {" +
-                               "SubShader { Pass {" +
-                               "   BindChannels { Bind \"Color\",color }" +
-                               "   Blend SrcAlpha OneMinusSrcAlpha" +
-                               "   ZWrite Off Cull Off Fog { Mode Off }" +
-                               "} } }");
+            var lineMaterial = new Material(LoadInternalShader("RPM-FontShader"));
             lineMaterial.hideFlags = HideFlags.HideAndDontSave;
             lineMaterial.shader.hideFlags = HideFlags.HideAndDontSave;
             return lineMaterial;
@@ -618,11 +627,41 @@ namespace JSI
             ScreenMessages.PostScreenMessage(string.Format("{0}: INITIALIZATION ERROR, CHECK CONFIGURATION.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
         }
 
+        public static bool RasterPropMonitorShouldUpdate(Vessel thatVessel)
+        {
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                if (IsActiveVessel(thatVessel))
+                {
+                    return (IsInIVA() || StockOverlayCamIsOn());
+                }
+                else
+                {
+                    // TODO: Under what circumstances would I set this to true?
+                    // Since the computer module is a VesselModule, it's a per-
+                    // craft module, so I think it's safe to update other pods
+                    // while StockOverlayCamIsOn is true.
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public static bool VesselIsInIVA(Vessel thatVessel)
         {
             // Inactive IVAs are renderer.enabled = false, this can and should be used...
             // ... but now it can't because we're doing transparent pods, so we need a more complicated way to find which pod the player is in.
             return HighLogic.LoadedSceneIsFlight && IsActiveVessel(thatVessel) && IsInIVA();
+        }
+
+        public static bool StockOverlayCamIsOn()
+        {
+            Camera stockOverlayCamera = JUtil.GetCameraByName("InternalSpaceOverlay Host");
+
+            return (stockOverlayCamera != null);
         }
 
         public static bool UserIsInPod(Part thisPart)
@@ -669,6 +708,19 @@ namespace JSI
         public static bool IsInIVA()
         {
             return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
+        }
+
+        // LogMessage, but unconditional (logs regardless of debugLoggingEnabled state).
+        public static void LogInfo(object caller, string line, params object[] list)
+        {
+            if (caller != null)
+            {
+                Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+            }
+            else
+            {
+                Debug.Log(String.Format("RasterPropMonitor: " + line, list));
+            }
         }
 
         public static void LogMessage(object caller, string line, params object[] list)

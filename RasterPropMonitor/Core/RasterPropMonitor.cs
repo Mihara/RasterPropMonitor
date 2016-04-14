@@ -92,7 +92,6 @@ namespace JSI
         private bool textRefreshRequired;
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
-        private RasterPropMonitorComputer rpmComp;
         private string persistentVarName;
         private string screenBuffer;
         private FXGroup audioOutput;
@@ -105,7 +104,9 @@ namespace JSI
         private int loopsWithoutInitCounter = 0;
         private bool startupFailed = false;
 
+#if ENABLE_TP
         private bool ourPodIsTransparent = false;
+#endif
 
         private static Texture2D LoadFont(object caller, InternalProp thisProp, string location)
         {
@@ -145,8 +146,6 @@ namespace JSI
                 // Install the calculator module.
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
-
-                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -235,7 +234,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = rpmComp.GetVar(persistentVarName, pages.Count);
+                int activePageID = comp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -258,7 +257,9 @@ namespace JSI
                 audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 
                 // One last thing to make sure of: If our pod is transparent, we're always active.
+#if ENABLE_TP
                 ourPodIsTransparent = JUtil.IsPodTransparent(part);
+#endif
 
                 // And if the try block never completed, startupComplete will never be true.
                 startupComplete = true;
@@ -292,7 +293,6 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
-            rpmComp = null;
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -350,10 +350,11 @@ namespace JSI
             triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
             if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker))
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                rpmComp.SetVar(persistentVarName, activePage.pageNumber);
+                comp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
@@ -470,7 +471,11 @@ namespace JSI
             // So we switch to oneshot mode.
             //oneshot |= HighLogic.LoadedSceneIsEditor;
 
-            if (!ourPodIsTransparent && !JUtil.UserIsInPod(part))
+            if (
+#if ENABLE_TP
+                !ourPodIsTransparent && 
+#endif
+                !JUtil.UserIsInPod(part))
             {
                 return;
             }

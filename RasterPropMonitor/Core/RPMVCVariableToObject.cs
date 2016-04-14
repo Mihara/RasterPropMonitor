@@ -18,6 +18,7 @@
  * You should have received a copy of the GNU General Public License
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
+using KSP.UI.Screens;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -35,45 +36,7 @@ namespace JSI
 
         //--- The guts of the variable processor
         #region VariableToObject
-        /// <summary>
-        /// The core of the variable processor.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <param name="propId"></param>
-        /// <param name="cacheable"></param>
-        /// <returns></returns>
-        private object VariableToObject(string input, int propId, out bool cacheable)
-        {
-            // Some variables may not cacheable, because they're meant to be different every time like RANDOM,
-            // or immediate. they will set this flag to false.
-            cacheable = true;
-
-            // It's slightly more optimal if we take care of that before the main switch body.
-            if (input.IndexOf("_", StringComparison.Ordinal) > -1)
-            {
-                string[] tokens = input.Split('_');
-
-                if (tokens.Length > 1 && tokens[0] == "PROP")
-                {
-                    string substr = input.Substring("PROP".Length + 1);
-
-                    if (rpmComp != null && rpmComp.HasPropVar(substr, propId))
-                    {
-                        // Can't cache - multiple props could call in here.
-                        cacheable = false;
-                        return (float)rpmComp.GetPropVar(substr, propId);
-                    }
-                    else
-                    {
-                        return input;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        VariableEvaluator GetEvaluator(string input, int propId, out bool cacheable)
+        VariableEvaluator GetEvaluator(string input, out bool cacheable)
         {
             cacheable = true;
 
@@ -81,9 +44,11 @@ namespace JSI
             {
                 string[] tokens = input.Split('_');
 
-                if (tokens.Length == 2 && tokens[0] == "ISLOADED")
+                if (tokens.Length >= 2 && tokens[0] == "ISLOADED")
                 {
-                    if (knownLoadedAssemblies.Contains(tokens[1]))
+                    string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
+
+                    if (knownLoadedAssemblies.Contains(assemblyname))
                     {
                         return (string variable) => { return 1.0f; };
                     }
@@ -210,11 +175,11 @@ namespace JSI
                     InternalProp propToUse = null;
                     if (part != null)
                     {
-                        if (propId >= 0 && propId < part.internalModel.props.Count)
-                        {
-                            propToUse = part.internalModel.props[propId];
-                        }
-                        else
+                        //if (propId >= 0 && propId < part.internalModel.props.Count)
+                        //{
+                        //    propToUse = part.internalModel.props[propId];
+                        //}
+                        //else
                         {
                             foreach (InternalProp thisProp in part.internalModel.props)
                             {
@@ -261,24 +226,23 @@ namespace JSI
                 if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
-                    if (rpmComp != null && rpmComp.HasVar(substr))
+                    if (HasPersistentVariable(substr))
                     {
                         return (string variable) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            return (float)rpmComp.GetVar(substring);
+                            return GetPersistentVariable(substring, 0.0f).MassageToFloat();
                         };
                     }
                     else
                     {
-                        // rpmComp wasn't initialized for some reason, or the
-                        // variable wasn't found yet.
+                        // Variable wasn't found yet.
                         return (string variable) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            if (rpmComp != null && rpmComp.HasVar(substring))
+                            if (HasPersistentVariable(substring))
                             {
-                                return (float)rpmComp.GetVar(substring);
+                                return GetPersistentVariable(substring, 0.0f).MassageToFloat();
                             }
                             else
                             {
@@ -312,14 +276,21 @@ namespace JSI
                 if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
                 {
                     int storedStringNumber;
-                    if (rpmComp != null && int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
                     {
                         return (string variable) =>
                         {
                             string[] toks = variable.Split('_');
                             int storedNumber;
                             int.TryParse(toks[1], out storedNumber);
-                            return rpmComp.GetStoredString(storedNumber);
+                            if (storedNumber < storedStrings.Count)
+                            {
+                                return storedStrings[storedNumber];
+                            }
+                            else
+                            {
+                                return "";
+                            }
                         };
                     }
                     else
@@ -328,9 +299,9 @@ namespace JSI
                         {
                             string[] toks = variable.Split('_');
                             int stringNumber;
-                            if (rpmComp != null && int.TryParse(toks[1], out stringNumber) && stringNumber >= 0)
+                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < storedStrings.Count)
                             {
-                                return rpmComp.GetStoredString(stringNumber);
+                                return storedStrings[stringNumber];
                             }
                             else
                             {
@@ -557,7 +528,7 @@ namespace JSI
                             float depth;
                             try
                             {
-                                depth = FlightUIController.fetch.atmos.Value.Clamp(0.0f, 1.0f);
+                                depth = linearAtmosGauge.gauge.Value.Clamp(0.0f, 1.0f);
                             }
                             catch
                             {
@@ -678,6 +649,117 @@ namespace JSI
                 case "MNODEEXISTS":
                     return (string variable) => { return node == null ? -1d : 1d; };
 
+                case "MNODEDVPROGRADE":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            return Vector3d.Dot(burnVector, vessel.orbit.Prograde(node.UT));
+                        }
+                        return 0.0;
+                    };
+                case "MNODEDVNORMAL":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            // NormalPlus seems to be backwards...
+                            return -Vector3d.Dot(burnVector, vessel.orbit.NormalPlus(node.UT));
+                        }
+                        return 0.0;
+                    };
+                case "MNODEDVRADIAL":
+                    return (string variable) =>
+                    {
+                        if (node != null)
+                        {
+                            Vector3d burnVector = node.GetBurnVector(vessel.orbit);
+                            return Vector3d.Dot(burnVector, vessel.orbit.RadialPlus(node.UT));
+                        }
+                        return 0.0;
+                    };
+
+                case "MNODEPERIAPSIS":
+                    return (string variable) =>
+                        {
+                            if (node != null && node.nextPatch != null)
+                            {
+                                return node.nextPatch.PeA;
+                            }
+                            return double.NaN;
+                        };
+                case "MNODEAPOAPSIS":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.ApA;
+                        }
+                        return double.NaN;
+                    };
+                case "MNODEINCLINATION":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.inclination;
+                        }
+                        return double.NaN;
+                    };
+                case "MNODEECCENTRICITY":
+                    return (string variable) =>
+                    {
+                        if (node != null && node.nextPatch != null)
+                        {
+                            return node.nextPatch.eccentricity;
+                        }
+                        return double.NaN;
+                    };
+
+                case "MNODETARGETCLOSESTAPPROACHTIME":
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            double approachTime, approachDistance;
+                            approachDistance = JUtil.GetClosestApproach(node.nextPatch, target, out approachTime);
+                            return approachTime - Planetarium.GetUniversalTime();
+                        }
+                    };
+                case "MNODETARGETCLOSESTAPPROACHDISTANCE":
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            double approachTime;
+                            return JUtil.GetClosestApproach(node.nextPatch, target, out approachTime);
+                        }
+                    };
+                case "MNODERELATIVEINCLINATION":
+                    // MechJeb's targetables don't have orbits.
+                    return (string variable) =>
+                    {
+                        if (target == null || targetOrbit == null || node == null || node.nextPatch == null)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            return targetOrbit.referenceBody != node.nextPatch.referenceBody ?
+                                -1d :
+                                Math.Abs(Vector3d.Angle(node.nextPatch.SwappedOrbitNormal(), targetOrbit.SwappedOrbitNormal()));
+                        }
+                    };
 
                 // Orbital parameters
                 case "ORBITBODY":
@@ -1550,26 +1632,26 @@ namespace JSI
                     // so no need to test if the orbit makes sense.
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.PhaseAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.PhaseAngle;
                     };
                 case "TARGETBODYPHASEANGLESECS":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TimeToPhaseAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TimeToPhaseAngle;
                     };
                 case "TARGETBODYEJECTIONANGLE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.EjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.EjectionAngle;
                     };
                 case "TARGETBODYEJECTIONANGLESECS":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TimeToEjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TimeToEjectionAngle;
                     };
                 case "TARGETBODYCLOSESTAPPROACH":
                     return (string variable) =>
@@ -1587,20 +1669,20 @@ namespace JSI
                 case "TARGETBODYMOONEJECTIONANGLE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.MoonEjectionAngle;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.MoonEjectionAngle;
                     };
                 case "TARGETBODYEJECTIONALTITUDE":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.EjectionAltitude;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.EjectionAltitude;
                     };
                 case "TARGETBODYDELTAV":
                     return (string variable) =>
                     {
-                        protractor.Update(vessel, altitudeASL, targetOrbit);
-                        return protractor.TargetBodyDeltaV;
+                        Protractor.Update(vessel, altitudeASL, targetOrbit);
+                        return Protractor.TargetBodyDeltaV;
                     };
 
                 case "PREDICTEDLANDINGALTITUDE":
@@ -1638,9 +1720,9 @@ namespace JSI
 
                 // Staging and other stuff
                 case "STAGE":
-                    return (string variable) => { return Staging.CurrentStage; };
+                    return (string variable) => { return StageManager.CurrentStage; };
                 case "STAGEREADY":
-                    return (string variable) => { return (Staging.separate_ready && InputLockManager.IsUnlocked(ControlTypes.STAGING)).GetHashCode(); };
+                    return (string variable) => { return (StageManager.CanSeparate && InputLockManager.IsUnlocked(ControlTypes.STAGING)).GetHashCode(); };
                 case "SITUATION":
                     return (string variable) => { return SituationString(vessel.situation); };
                 case "RANDOM":

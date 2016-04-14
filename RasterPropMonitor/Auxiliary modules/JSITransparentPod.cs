@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-
+#if ENABLE_TP
 namespace JSI
 {
     // So this is my attempt at reconstructing sfr's transparent internals plugin from first principles.
@@ -577,3 +577,4 @@ namespace JSI
         }
     }
 }
+#endif

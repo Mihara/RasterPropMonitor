@@ -44,7 +44,7 @@ namespace JSI
                     pageHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
                 }
 
-                return pageHandlerMethod != null ? pageHandlerMethod(screenWidth, screenHeight) : string.IsNullOrEmpty(text) ? string.Empty : text;
+                return pageHandlerMethod != null ? pageHandlerMethod(screenWidth, screenHeight) : text;
             }
         }
 
@@ -296,6 +296,10 @@ namespace JSI
                 {
                     text = JUtil.LoadPageDefinition(node.GetValue("text"));
                     isMutable |= text.IndexOf("$&$", StringComparison.Ordinal) != -1;
+                }
+                else
+                {
+                    text = string.Empty;
                 }
             }
 
