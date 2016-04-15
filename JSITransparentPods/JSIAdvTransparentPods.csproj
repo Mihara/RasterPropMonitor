@@ -66,29 +66,7 @@
     <Content Include="LocalDev\pdb2mdb_exe.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>set /p KSP_DIR=&lt;"$(ProjectDir)LocalDev\ksp_dir.txt"
-
-set /p MONO_EXE_DIR=&lt;"$(ProjectDir)LocalDev\mono_exe.txt"
-
-set /p PDB2MDB_EXE_DIR=&lt;"$(ProjectDir)LocalDev\pdb2mdb_exe.txt"
-
-set /p ZA_DIR=&lt;"$(ProjectDir)LocalDev\7za_dir.txt"
-
-xcopy "$(TargetPath)" "$(SolutionDir)GameData\JSI\$(ProjectName)\Plugins\" /Y
-xcopy "$(TargetDir)$(ProjectName).pdb" "$(SolutionDir)GameData\JSI\$(ProjectName)\Plugins\" /Y
-
-cd "$(TargetDir)"
-"%25MONO_EXE_DIR%25" "%25PDB2MDB_EXE_DIR%25" "$(TargetFileName)"
-xcopy "$(TargetDir)$(ProjectName).dll.mdb" "$(SolutionDir)GameData\JSI\$(ProjectName)\Plugins\" /Y
-
-where /q %25ZA_DIR%25:7za.exe
-if %25ERRORLEVEL%25 == 1 (  echo Cannot find 7-zip to package build) else (  echo Packaging build  ) 
-
-if exist "$(SolutionDir)$(ProjectName).zip" del "$(SolutionDir)$(ProjectName).zip"   
-%25ZA_DIR%257za.exe a -tzip "$(SolutionDir)$(ProjectName).zip" "$(SolutionDir)GameData" 
-%25ZA_DIR%257za.exe d -r "$(SolutionDir)$(ProjectName).zip" "*.ddsified" "*.pdb" "*.mdb" "*.xcf" "*.blend" "thumbs.db"
-xcopy /E /Y "$(SolutionDir)GameData" "%25KSP_DIR%25\GameData"</PostBuildEvent>
+  <PropertyGroup>    
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
