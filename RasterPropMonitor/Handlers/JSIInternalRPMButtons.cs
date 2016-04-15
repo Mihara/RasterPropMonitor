@@ -709,7 +709,7 @@ namespace JSI
             if (node != null)
             {
                 // Urk.  No enums or numerics to test state...
-                return (node.state == "Docked (docker)") || (node.state == "Docked (dockee)");
+                return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
             }
             else
             {
