@@ -1,4 +1,6 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
+//#define SHOW_VARIABLE_QUERY_COUNTER
+#define SHOW_VARIABLE_CALLCOUNT
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -126,7 +128,16 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
+#if SHOW_VARIABLE_QUERY_COUNTER
         private int debug_varsProcessed = 0;
+        private long debug_totalVars = 0;
+#endif
+#if SHOW_VARIABLE_QUERY_COUNTER || SHOW_VARIABLE_CALLCOUNT
+        private int debug_fixedUpdates = 0;
+#endif
+#if SHOW_VARIABLE_CALLCOUNT
+        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
+#endif
 
         // Processing cache!
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -288,6 +299,9 @@ namespace JSI
         private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
+        private Dictionary<string, List<Action<RPMVesselComputer, float>>> onChangeCallbacks = new Dictionary<string, List<Action<RPMVesselComputer, float>>>();
+        private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
+
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom, terrainDelta;
         // radarAltitudeRate as computed using a simple exponential smoothing.
@@ -348,6 +362,39 @@ namespace JSI
             }
 
             return instances[v.id];
+        }
+
+        public void RegisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
+        {
+            //JUtil.LogMessage(this, "RegisterCallback for {0}", variableName);
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                onChangeCallbacks[variableName].Add(cb);
+            }
+            else
+            {
+                var callbackList = new List<Action<RPMVesselComputer, float>>();
+                callbackList.Add(cb);
+                onChangeCallbacks[variableName] = callbackList;
+                onChangeValue[variableName] = float.MaxValue;
+            }
+        }
+
+        public void UnregisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
+        {
+            //JUtil.LogMessage(this, "UnegisterCallback for {0}", variableName);
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                try
+                {
+                    onChangeCallbacks[variableName].Remove(cb);
+                    //JUtil.LogMessage(this, "...success");
+                }
+                catch
+                {
+
+                }
+            }
         }
 
         #region VesselModule Overrides
@@ -696,6 +743,24 @@ namespace JSI
                 return;
             }
 
+#if SHOW_VARIABLE_QUERY_COUNTER
+            debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
+            JUtil.LogMessage(this, "{0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
+                debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates));
+#endif
+#if SHOW_VARIABLE_CALLCOUNT
+            List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
+            l.AddRange(debug_callCount);
+            l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
+                {
+                    return a.Value - b.Value;
+                });
+            for (int i = 0; i < l.Count; ++i)
+            {
+                JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
+            }
+#endif
+
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
@@ -751,9 +816,41 @@ namespace JSI
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
-                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since last FixedUpdate ---", vessel.id, debug_varsProcessed);
-                debug_varsProcessed = 0;
                 UpdateVariables();
+
+#if SHOW_VARIABLE_QUERY_COUNTER
+                int debug_callbacksProcessed = 0;
+                int debug_callbackQueriesMade = 0;
+#endif
+                foreach (var cbVal in onChangeCallbacks)
+                {
+                    float previousValue = onChangeValue[cbVal.Key];
+                    float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
+                    if (!Mathf.Approximately(newVal, previousValue))
+                    {
+                        for (int i = 0; i < cbVal.Value.Count; ++i)
+                        {
+#if SHOW_VARIABLE_QUERY_COUNTER
+                            ++debug_callbacksProcessed;
+#endif
+                            cbVal.Value[i](this, newVal);
+                        }
+
+                        onChangeValue[cbVal.Key] = newVal;
+                    }
+#if SHOW_VARIABLE_QUERY_COUNTER
+                    ++debug_callbackQueriesMade;
+#endif
+                }
+
+#if SHOW_VARIABLE_QUERY_COUNTER || SHOW_VARIABLE_CALLCOUNT
+                ++debug_fixedUpdates;
+#endif
+#if SHOW_VARIABLE_QUERY_COUNTER
+                debug_totalVars += debug_varsProcessed;
+                JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
+                debug_varsProcessed = 0;
+#endif
             }
         }
 
@@ -893,8 +990,12 @@ namespace JSI
                 }
             }
 
+#if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
-
+#endif
+#if SHOW_VARIABLE_CALLCOUNT
+            debug_callCount[input] = debug_callCount[input] + 1;
+#endif
             VariableCache vc = variableCache[input];
             if (vc != null)
             {

@@ -146,7 +146,7 @@ namespace JSI
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, internalProp.propID);
+            textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
         }
 
         public void Click()
@@ -166,7 +166,7 @@ namespace JSI
             if (labelsEx[activeLabel].hasText && labelsEx[activeLabel].oneShot)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp, internalProp.propID);
+                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].labelText, comp);
             }
 
             // Force an update.
