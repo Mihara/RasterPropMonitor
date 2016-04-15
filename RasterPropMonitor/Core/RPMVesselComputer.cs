@@ -1,6 +1,5 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
 //#define SHOW_VARIABLE_QUERY_COUNTER
-#define SHOW_VARIABLE_CALLCOUNT
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -131,12 +130,6 @@ namespace JSI
 #if SHOW_VARIABLE_QUERY_COUNTER
         private int debug_varsProcessed = 0;
         private long debug_totalVars = 0;
-#endif
-#if SHOW_VARIABLE_QUERY_COUNTER || SHOW_VARIABLE_CALLCOUNT
-        private int debug_fixedUpdates = 0;
-#endif
-#if SHOW_VARIABLE_CALLCOUNT
-        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
 #endif
 
         // Processing cache!
@@ -329,6 +322,9 @@ namespace JSI
         private Quaternion targetOrientation;
 
         // Diagnostics
+        private bool debug_showVariableCallCount = false;
+        private int debug_fixedUpdates = 0;
+        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
 #if SHOW_FIXEDUPDATE_TIMING
         private Stopwatch stopwatch = new Stopwatch();
 #endif
@@ -414,7 +410,6 @@ namespace JSI
                 {
                     persistentVars.Clear();
 
-                    JUtil.LogMessage(this, "Found RPM_PERSISTENT_VARS");
                     for (int i = 0; i < pers.CountValues; ++i)
                     {
                         ConfigNode.Value val = pers.values[i];
@@ -471,10 +466,6 @@ namespace JSI
                         }
                     }
                 }
-                else
-                {
-                    JUtil.LogMessage(this, "-- no persistence data");
-                }
             }
             else
             {
@@ -522,10 +513,33 @@ namespace JSI
             {
                 throw new Exception("GameDatabase is not ready?");
             }
+
+            var rpmSettings = GameDatabase.Instance.GetConfigNodes("RasterPropMonitorSettings");
+            if (rpmSettings.Length > 0)
+            {
+                // Really, there should be only one
+                bool enableLogging = false;
+                if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
+                {
+                    JUtil.debugLoggingEnabled = enableLogging;
+                    JUtil.LogMessage(this, "Set debugLoggingEnabled to {0}", enableLogging);
+                }
+
+                if (rpmSettings[0].TryGetValue("ShowCallCount", ref debug_showVariableCallCount))
+                {
+                    // call count doesn't write anything if enableLogging is false
+                    debug_showVariableCallCount = debug_showVariableCallCount && enableLogging;
+                }
+            }
+
             if (instances == null)
             {
                 JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
+                if (rpmSettings.Length > 1)
+                {
+                    JUtil.LogInfo(this, "Multiple RasterPropMonitorSettings configs were found in this installation.  Please make sure you have installed this mod correctly.");
+                }
             }
 
             if (instances.ContainsKey(vessel.id))
@@ -748,18 +762,19 @@ namespace JSI
             JUtil.LogMessage(this, "{0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
                 debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates));
 #endif
-#if SHOW_VARIABLE_CALLCOUNT
-            List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
-            l.AddRange(debug_callCount);
-            l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
-                {
-                    return a.Value - b.Value;
-                });
-            for (int i = 0; i < l.Count; ++i)
+            if (debug_showVariableCallCount)
             {
-                JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
+                List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
+                l.AddRange(debug_callCount);
+                l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
+                    {
+                        return a.Value - b.Value;
+                    });
+                for (int i = 0; i < l.Count; ++i)
+                {
+                    JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
+                }
             }
-#endif
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
@@ -843,9 +858,8 @@ namespace JSI
 #endif
                 }
 
-#if SHOW_VARIABLE_QUERY_COUNTER || SHOW_VARIABLE_CALLCOUNT
                 ++debug_fixedUpdates;
-#endif
+
 #if SHOW_VARIABLE_QUERY_COUNTER
                 debug_totalVars += debug_varsProcessed;
                 JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
@@ -993,9 +1007,11 @@ namespace JSI
 #if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
 #endif
-#if SHOW_VARIABLE_CALLCOUNT
-            debug_callCount[input] = debug_callCount[input] + 1;
-#endif
+            if (debug_showVariableCallCount)
+            {
+                debug_callCount[input] = debug_callCount[input] + 1;
+            }
+
             VariableCache vc = variableCache[input];
             if (vc != null)
             {
