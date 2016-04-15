@@ -22,9 +22,64 @@ using System;
 
 namespace JSI
 {
+    public class StringProcessorFormatter
+    {
+        // The formatString or plain text (if usesComp is false).
+        public readonly string formatString;
+        // An array of source variable names
+        public readonly string[] sourceVariables;
+        // An array holding evaluants
+        public readonly object[] sourceValues;
+
+        // Indicates that the SPF uses RPMVesselComputer to process variables
+        public readonly bool usesComp;
+
+        public StringProcessorFormatter(string input)
+        {
+            if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0)
+            {
+                string[] tokens = input.Split(JUtil.VariableListSeparator, StringSplitOptions.RemoveEmptyEntries);
+                if (tokens.Length != 2)
+                {
+                    throw new ArgumentException(string.Format("Invalid format string: {0}", input));
+                }
+                else
+                {
+                    sourceVariables = tokens[1].Split(JUtil.VariableSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    sourceValues = new object[sourceVariables.Length];
+                    formatString = tokens[0].TrimEnd();
+
+                    usesComp = true;
+                }
+            }
+            else
+            {
+                formatString = input.TrimEnd();
+                usesComp = false;
+            }
+        }
+    }
+
     public static class StringProcessor
     {
         private static readonly SIFormatProvider fp = new SIFormatProvider();
+
+        public static string ProcessString(StringProcessorFormatter formatter, RPMVesselComputer comp)
+        {
+            if (formatter.usesComp)
+            {
+                for (int i = 0; i < formatter.sourceVariables.Length; ++i)
+                {
+                    formatter.sourceValues[i] = comp.ProcessVariable(formatter.sourceVariables[i]);
+                }
+
+                return string.Format(formatter.formatString, formatter.sourceValues);
+            }
+            else
+            {
+                return formatter.formatString;
+            }
+        }
 
         public static string ProcessString(string input, RPMVesselComputer comp)
         {
@@ -50,12 +105,14 @@ namespace JSI
                         return output.TrimEnd();
                     }
                 }
+
             }
             catch (Exception e)
             {
-                JUtil.LogMessage(comp, "Bad format on string {0}", input);
+                JUtil.LogErrorMessage(comp, "Bad format on string {0}", input);
                 throw e;
             }
+
             return input.TrimEnd();
         }
     }

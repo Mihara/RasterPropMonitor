@@ -26,7 +26,7 @@ namespace JSI
     public class JSIVariableLabel : InternalModule
     {
         [KSPField]
-        public string labelText = "<=0=>$&$ALTITUDE";
+        public string labelText = "uninitialized";
         [KSPField]
         public string transformName;
         [KSPField]
@@ -51,11 +51,11 @@ namespace JSI
         private InternalText textObj;
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
+        private StringProcessorFormatter spf;
 
         // Annoying as it is, that is the only font actually available to InternalComponents for some bizarre reason,
         // even though I'm pretty sure there are quite a few other fonts in there.
         private const string fontName = "Arial";
-        private string sourceString;
 
         public void Start()
         {
@@ -65,13 +65,15 @@ namespace JSI
             textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
             // Force oneshot if there's no variables:
             oneshot |= !labelText.Contains("$&$");
-            sourceString = labelText.UnMangleConfigText();
-            
+            string sourceString = labelText.UnMangleConfigText();
+
             // Alow a " character to escape leading whitespace
             if (sourceString[0] == '"')
             {
                 sourceString = sourceString.Substring(1);
             }
+            spf = new StringProcessorFormatter(sourceString);
+
             if (!oneshot)
             {
                 comp.UpdateDataRefreshRate(refreshRate);
@@ -164,7 +166,7 @@ namespace JSI
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(sourceString, comp);
+                textObj.text.Text = StringProcessor.ProcessString(spf, comp);
                 oneshotComplete = true;
             }
         }
