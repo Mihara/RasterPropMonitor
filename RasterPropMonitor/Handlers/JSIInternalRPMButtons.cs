@@ -700,21 +700,29 @@ namespace JSI
         /// <returns></returns>
         public bool DockDocked()
         {
-            if (vessel == null)
+            try
             {
-                return false;
-            }
+                if (vessel == null)
+                {
+                    return false;
+                }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
+                ModuleDockingNode node = InferDockingNode(vessel);
+                if (node != null)
+                {
+                    // Urk.  No enums or numerics to test state...
+                    return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+            catch (Exception e)
             {
-                return false;
+                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
             }
+            return false;
         }
 
         /// <summary>
@@ -723,21 +731,29 @@ namespace JSI
         /// <returns></returns>
         public bool DockReady()
         {
-            if (vessel == null)
+            try
             {
-                return false;
-            }
+                if (vessel == null)
+                {
+                    return false;
+                }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (node.state == "Ready");
+                ModuleDockingNode node = InferDockingNode(vessel);
+                if (node != null)
+                {
+                    // Urk.  No enums or numerics to test state...
+                    return (node.state == "Ready");
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+            catch (Exception e)
             {
-                return false;
+                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
             }
+            return false;
         }
 
         /// <summary>
