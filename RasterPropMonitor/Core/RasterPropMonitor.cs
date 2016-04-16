@@ -93,7 +93,6 @@ namespace JSI
         private readonly List<MonitorPage> pages = new List<MonitorPage>();
         private MonitorPage activePage;
         private string persistentVarName;
-        private string screenBuffer;
         private FXGroup audioOutput;
         private float electricChargeReserve;
         public Texture2D noSignalTexture;
@@ -416,7 +415,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(activePage.Text))
             {
-                textRenderer.Render(screenTexture, screenBuffer, activePage);
+                textRenderer.Render(screenTexture, activePage);
             }
 
             activePage.RenderOverlay(screenTexture);
@@ -428,17 +427,7 @@ namespace JSI
         private void FillScreenBuffer()
         {
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            StringBuilder bf = new StringBuilder();
-            string[] linesArray = activePage.Text.Split(JUtil.LineSeparator, StringSplitOptions.None);
-            for (int i = 0; i < linesArray.Length; i++)
-            {
-                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
-            }
-            textRefreshRequired = false;
-            screenBuffer = bf.ToString();
-
-            // This is where we request electric charge reserve. And if we don't have any, well... :)
-            CheckForElectricCharge();
+            activePage.UpdateText(comp);
         }
 
         private void CheckForElectricCharge()
@@ -467,15 +456,7 @@ namespace JSI
                 return;
             }
 
-            // If we were spawned while in editor, we need to blank the screen out and halt.
-            // So we switch to oneshot mode.
-            //oneshot |= HighLogic.LoadedSceneIsEditor;
-
-            if (
-#if ENABLE_TP
-                !ourPodIsTransparent && 
-#endif
-                !JUtil.UserIsInPod(part))
+            if (!JUtil.RasterPropMonitorShouldUpdate(vessel) && !JUtil.UserIsInPod(part))
             {
                 return;
             }
@@ -511,11 +492,12 @@ namespace JSI
                     FillScreenBuffer();
                     RenderScreen();
                     firstRenderComplete = true;
+                    textRefreshRequired = false;
                 }
                 else
                 {
                     CheckForElectricCharge();
-                    if (needsElectricCharge && electricChargeReserve < 0.01f)
+                    if (!needsElectricCharge || electricChargeReserve > 0.01f)
                     {
                         RenderScreen();
                     }
@@ -526,8 +508,15 @@ namespace JSI
                 if (textRefreshRequired)
                 {
                     FillScreenBuffer();
+                    textRefreshRequired = false;
+
+                    // This is where we request electric charge reserve. And if we don't have any, well... :)
+                    CheckForElectricCharge();
                 }
-                RenderScreen();
+                if (!needsElectricCharge || electricChargeReserve > 0.01f)
+                {
+                    RenderScreen();
+                }
                 firstRenderComplete = true;
             }
 

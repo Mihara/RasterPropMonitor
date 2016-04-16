@@ -19,10 +19,11 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
-using System.Reflection;
-using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Text;
+using UnityEngine;
 
 namespace JSI
 {
@@ -33,18 +34,13 @@ namespace JSI
         public readonly string name = string.Empty;
         public readonly bool unlocker;
         private readonly string text;
+        private string processedText = string.Empty;
 
         public string Text
         {
             get
             {
-                // If there's a handler references method, it gets called before each text call.
-                if (pageHandlerS.getHandlerReferences != null)
-                {
-                    pageHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
-                }
-
-                return pageHandlerMethod != null ? pageHandlerMethod(screenWidth, screenHeight) : text;
+                return processedText;
             }
         }
 
@@ -109,6 +105,26 @@ namespace JSI
             public Action<int> buttonClick;
             public Action<int> buttonRelease;
             public Action<MonoBehaviour, MonoBehaviour> getHandlerReferences;
+        }
+
+        public void UpdateText(RPMVesselComputer comp)
+        {
+            string stext;
+            // If there's a handler references method, it gets called before each text call.
+            if (pageHandlerS.getHandlerReferences != null)
+            {
+                pageHandlerS.getHandlerReferences(pageHandlerModule, backgroundHandlerModule);
+            }
+
+            stext = (pageHandlerMethod != null) ? pageHandlerMethod(screenWidth, screenHeight) : text;
+
+            StringBuilder bf = new StringBuilder();
+            string[] linesArray = stext.Split(JUtil.LineSeparator, StringSplitOptions.None);
+            for (int i = 0; i < linesArray.Length; i++)
+            {
+                bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
+            }
+            processedText = bf.ToString();
         }
 
         public bool SwitchingPermitted(string destination)
