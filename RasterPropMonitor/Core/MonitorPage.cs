@@ -34,6 +34,7 @@ namespace JSI
         public readonly string name = string.Empty;
         public readonly bool unlocker;
         private readonly string text;
+        private string[] linesArray;
         private string processedText = string.Empty;
 
         public string Text
@@ -123,7 +124,7 @@ namespace JSI
                 {
                     // There are processed variables in here?
                     StringBuilder bf = new StringBuilder();
-                    string[] linesArray = processedText.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                    linesArray = processedText.Split(JUtil.LineSeparator, StringSplitOptions.None);
                     for (int i = 0; i < linesArray.Length; i++)
                     {
                         bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
@@ -135,7 +136,10 @@ namespace JSI
             {
                 if (isMutable)
                 {
-                    string[] linesArray = text.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                    if (linesArray == null)
+                    {
+                        linesArray = text.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                    }
 
                     StringBuilder bf = new StringBuilder();
                     for (int i = 0; i < linesArray.Length; i++)
