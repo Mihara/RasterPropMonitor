@@ -127,16 +127,16 @@ namespace JSI
         /// <param name="state">"true" for on, "false" for off</param>
         public void ButtonEnableEngines(bool state)
         {
-            foreach (Part thatPart in vessel.parts)
+            for (int i = 0; i < vessel.parts.Count; ++i)
             {
                 // We accept "state == false" to allow engines that are
                 // activated outside of the current staging to be shut off by
                 // this function.
-                if (thatPart.inverseStage == Staging.CurrentStage || !state)
+                if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
                 {
-                    foreach (PartModule pm in thatPart.Modules)
+                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
                     {
-                        var engine = pm as ModuleEngines;
+                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
                         if (engine != null && engine.EngineIgnited != state)
                         {
                             if (state && engine.allowRestart)
@@ -161,11 +161,11 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (Part thatPart in vessel.parts)
+                for (int i = 0; i < vessel.parts.Count; ++i)
                 {
-                    foreach (PartModule pm in thatPart.Modules)
+                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
                     {
-                        var engine = pm as ModuleEngines;
+                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
                         if (engine != null && engine.allowShutdown && engine.getIgnitionState)
                         {
                             // early out: at least one engine is enabled.
@@ -1046,27 +1046,27 @@ namespace JSI
         /// <returns></returns>
         private static System.Collections.Generic.IEnumerable<PartModule> ElectricGenerators(Vessel vessel)
         {
-            foreach (Part part in vessel.Parts)
+            for (int partID = 0; partID < vessel.Parts.Count; ++partID)
             {
-                foreach (PartModule pm in part.Modules)
+                for (int moduleID = 0; moduleID < vessel.Parts[partID].Modules.Count; ++moduleID)
                 {
-                    if (pm is ModuleGenerator)
+                    if (vessel.Parts[partID].Modules[moduleID] is ModuleGenerator)
                     {
-                        ModuleGenerator gen = pm as ModuleGenerator;
+                        ModuleGenerator gen = vessel.Parts[partID].Modules[moduleID] as ModuleGenerator;
                         if (gen.isAlwaysActive == false)
                         {
                             for (int i = 0; i < gen.outputList.Count; ++i)
                             {
                                 if (gen.outputList[i].name == "ElectricCharge")
                                 {
-                                    yield return pm;
+                                    yield return vessel.Parts[partID].Modules[moduleID];
                                 }
                             }
                         }
                     }
-                    else if (pm is ModuleResourceConverter)
+                    else if (vessel.Parts[partID].Modules[moduleID] is ModuleResourceConverter)
                     {
-                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
+                        ModuleResourceConverter gen = vessel.Parts[partID].Modules[moduleID] as ModuleResourceConverter;
                         if (gen.AlwaysActive == false)
                         {
                             ConversionRecipe recipe = gen.Recipe;
@@ -1074,7 +1074,7 @@ namespace JSI
                             {
                                 if (recipe.Outputs[i].ResourceName == "ElectricCharge")
                                 {
-                                    yield return pm;
+                                    yield return vessel.Parts[partID].Modules[moduleID];
                                 }
                             }
                         }
