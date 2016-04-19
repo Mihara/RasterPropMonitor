@@ -131,7 +131,7 @@ namespace JSI
             {
                 dpaiModuleDockingNodeNamed = AssemblyLoader.loadedAssemblies.SelectMany(
                     a => a.assembly.GetExportedTypes())
-                    .SingleOrDefault(t => t.FullName == "DockingPortAlignment.ModuleDockingNodeNamed");
+                    .SingleOrDefault(t => t.FullName == "NavyFish.ModuleDockingNodeNamed");
 
                 dpaiPortName = dpaiModuleDockingNodeNamed.GetField("portName", BindingFlags.Instance | BindingFlags.Public);
             }
