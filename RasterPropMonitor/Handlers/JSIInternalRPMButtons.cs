@@ -1011,13 +1011,21 @@ namespace JSI
                 launchId = compPart.launchID;
             }
 
+            ModuleDockingNode node = null;
             Part referencePart = vessel.GetReferenceTransformPart();
-            ModuleDockingNode node = referencePart.FindModuleImplementing<ModuleDockingNode>();
-            if (node != null)
+            if (referencePart != null)
             {
-                //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
-                // The current reference part is a docking node.
-                return node;
+                node = referencePart.FindModuleImplementing<ModuleDockingNode>();
+                if (node != null)
+                {
+                    //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
+                    // The current reference part is a docking node.
+                    return node;
+                }
+            }
+            else
+            {
+                JUtil.LogErrorMessage(vessel, "referencePart is null?");
             }
 
             for (int i = 0; i < vessel.parts.Count; ++i)
