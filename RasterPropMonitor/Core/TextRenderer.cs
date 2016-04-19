@@ -241,6 +241,7 @@ namespace JSI
             Script scriptType = Script.Normal;
             Width fontWidth = Width.Normal;
             FontRenderer fr = fontRenderer[pageFont];
+            bool anyWarnings = false;
 
             float xCursor = screenXMin * fontLetterWidth;
             for (int charIndex = 0; charIndex < textToRender.Length; charIndex++)
@@ -368,7 +369,10 @@ namespace JSI
                         yPos < screenPixelHeight &&
                         yPos > -fontLetterHeight)
                     {
-                        DrawChar(fr, escapedBracket ? '[' : textToRender[charIndex], xPos, yPos, fontColor, scriptType, fontWidth);
+                        if(!DrawChar(fr, escapedBracket ? '[' : textToRender[charIndex], xPos, yPos, fontColor, scriptType, fontWidth))
+                        {
+                            anyWarnings = true;
+                        }
                     }
                     switch (fontWidth)
                     {
@@ -385,12 +389,17 @@ namespace JSI
                     }
                 }
             }
+
+            if (anyWarnings)
+            {
+                JUtil.LogMessage(this, "String missing characters: {0}",textToRender);
+            }
         }
 
         /**
          * Record the vertex, uv, and color information for a single character.
          */
-        private void DrawChar(FontRenderer fr, char letter, float xPos, float yPos, Color letterColor, Script scriptType, Width fontWidth)
+        private bool DrawChar(FontRenderer fr, char letter, float xPos, float yPos, Color letterColor, Script scriptType, Width fontWidth)
         {
             if (fontCharacters.ContainsKey(letter))
             {
@@ -415,7 +424,10 @@ namespace JSI
                 JUtil.LogMessage(this, "Warning: Attempted to print a character \"{0}\" (u{1}) not present in the font.", letter.ToString(), letter);
 
                 characterWarnings.Add(letter);
+                return false;
             }
+
+            return true;
         }
 
         /**
