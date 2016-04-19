@@ -67,7 +67,11 @@ namespace JSI
                     return;
                 }
 
-                PropertyInfo rcAnyDeployed = rcModuleRealChute.GetProperty("anyDeployed", BindingFlags.Instance | BindingFlags.Public);
+                PropertyInfo rcAnyDeployed = rcModuleRealChute.GetProperty("AnyDeployed", BindingFlags.Instance | BindingFlags.Public);
+                if (rcAnyDeployed == null)
+                {
+                    JUtil.LogMessage(null, "rcAnyDeployed is null");
+                }
                 MethodInfo rcGetAnyDeployed = rcAnyDeployed.GetGetMethod();
                 getAnyDeployed = DynamicMethodDelegateFactory.CreateFuncBool(rcGetAnyDeployed);
                 if (getAnyDeployed == null)

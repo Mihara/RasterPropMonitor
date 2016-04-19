@@ -34,6 +34,7 @@ namespace JSI
         // Indicates that the SPF uses RPMVesselComputer to process variables
         public readonly bool usesComp;
 
+        // TODO: Add support for multi-line processed support.
         public StringProcessorFormatter(string input)
         {
             if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0)
