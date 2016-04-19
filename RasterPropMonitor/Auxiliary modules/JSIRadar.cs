@@ -231,7 +231,11 @@ namespace JSI
 
                         if (closestNode != null)
                         {
-                            JUtil.LogMessage(this, "Refining target to {1} at {0:0.000} km.", Mathf.Sqrt(closestDistance) * 0.001f, closestNode.vessel.vesselName);
+                            // This seems to be triggering continuously for
+                            // ranges > 0.2km.  How do I determine
+                            // programmatically that I can target a docking
+                            // port?
+                            //JUtil.LogMessage(this, "Refining target to {1} at {0:0.000} km.", Mathf.Sqrt(closestDistance) * 0.001f, closestNode.vessel.vesselName);
                             FlightGlobals.fetch.SetVesselTarget(closestNode);
                         }
                     }
