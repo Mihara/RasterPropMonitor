@@ -60,7 +60,6 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
-        private static List<IJSIModule> installedModules;
 
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
         private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
@@ -79,7 +78,7 @@ namespace JSI
             BaseAction.GetGroupIndex(KSPActionGroup.Custom08),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom09)
         };
-        private readonly string[] actionGroupMemo = {
+        private static readonly string[] actionGroupMemo = {
             "AG0",
             "AG1",
             "AG2",
@@ -133,6 +132,7 @@ namespace JSI
 #endif
 
         // Processing cache!
+        private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private uint masterSerialNumber = 0u;
@@ -331,6 +331,27 @@ namespace JSI
         #endregion
 
         /// <summary>
+        /// Attempt to get a vessel computer from the instances dictionary.
+        /// For this case, do not fail if it is not found.
+        /// </summary>
+        /// <param name="v">Vessel for which we want an instance</param>
+        /// <param name="comp">[out] The RPMVesselComputer, untouched if this method returns false.</param>
+        /// <returns>true if the vessel has a computer, false otherwise</returns>
+        public static bool TryGetInstance(Vessel v, ref RPMVesselComputer comp)
+        {
+            if (instances != null)
+            {
+                if (instances.ContainsKey(v.id))
+                {
+                    comp = instances[v.id];
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Fetch the RPMVesselComputer corresponding to the vessel.  Throws an
         /// exception if the instances dictionary is null or if the vessel
         /// does not have an RPMVesselComputer.
@@ -351,6 +372,11 @@ namespace JSI
                 RPMVesselComputer comp = v.GetComponent<RPMVesselComputer>();
                 if (comp == null)
                 {
+                    foreach (var val in instances.Keys)
+                    {
+                        JUtil.LogMessage(null, "Known Vessel {0}", val);
+                    }
+
                     throw new Exception("RPMVesselComputer.Instance called with an unrecognized vessel, and I can't find one on the vessel.");
                 }
 
@@ -554,8 +580,8 @@ namespace JSI
 
             GameEvents.onGameSceneLoadRequested.Add(LoadSceneCallback);
             GameEvents.onVesselChange.Add(VesselChangeCallback);
-            GameEvents.onStageActivate.Add(StageActivateCallback);
-            GameEvents.onUndock.Add(UndockCallback);
+            //GameEvents.onStageActivate.Add(StageActivateCallback);
+            //GameEvents.onUndock.Add(UndockCallback);
             GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
 
             if (knownLoadedAssemblies == null)
@@ -676,18 +702,18 @@ namespace JSI
                 }
             }
 
-            if (installedModules == null)
+            installedModules.Add(new JSIParachute());
+            installedModules.Add(new JSIMechJeb());
+            installedModules.Add(new JSIInternalRPMButtons());
+            installedModules.Add(new JSIFAR());
+            installedModules.Add(new JSIKAC());
+            installedModules.Add(new JSIEngine());
+            installedModules.Add(new JSIPilotAssistant());
+            installedModules.Add(new JSIChatterer());
+            // Quick-and-dirty initialization.
+            for (int i = 0; i < installedModules.Count; ++i)
             {
-                installedModules = new List<IJSIModule>();
-
-                installedModules.Add(new JSIParachute());
-                installedModules.Add(new JSIMechJeb());
-                installedModules.Add(new JSIInternalRPMButtons());
-                installedModules.Add(new JSIFAR());
-                installedModules.Add(new JSIKAC());
-                installedModules.Add(new JSIEngine());
-                installedModules.Add(new JSIPilotAssistant());
-                installedModules.Add(new JSIChatterer());
+                installedModules[i].vessel = vessel;
             }
 
             if (triggeredEvents == null)
@@ -741,8 +767,6 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel))
             {
-                IJSIModule.vessel = vessel;
-
                 FetchPerPartData();
                 FetchAltitudes();
                 FetchVesselData();
@@ -779,8 +803,8 @@ namespace JSI
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
             GameEvents.onVesselChange.Remove(VesselChangeCallback);
-            GameEvents.onStageActivate.Remove(StageActivateCallback);
-            GameEvents.onUndock.Remove(UndockCallback);
+            //GameEvents.onStageActivate.Remove(StageActivateCallback);
+            //GameEvents.onUndock.Remove(UndockCallback);
             GameEvents.onVesselWasModified.Remove(VesselModifiedCallback);
 
             if (!instances.ContainsKey(vessel.id))
@@ -790,6 +814,7 @@ namespace JSI
             else
             {
                 instances.Remove(vessel.id);
+                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
             resultCache.Clear();
@@ -901,7 +926,6 @@ namespace JSI
                 resultCache.Clear();
                 ++masterSerialNumber;
 
-                IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
@@ -2144,58 +2168,65 @@ namespace JSI
                 systemNamedResources = null;
                 triggeredEvents = null;
 
-                IJSIModule.vessel = null;
-                installedModules = null;
-
                 VariableOrNumber.Clear();
             }
         }
 
-        private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
-        {
-            if (action.from.vessel == vessel || action.to.vessel == vessel)
-            {
-                //JUtil.LogMessage(this, "onPartCouple(), I am {0} ({1} and {2} are docking)", vessel.vesselName, action.from.vessel.vesselName, action.to.vessel.vesselName);
-                timeToUpdate = true;
-            }
-        }
+        //private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
+        //{
+        //    if (action.from.vessel == vessel || action.to.vessel == vessel)
+        //    {
+        //        JUtil.LogMessage(this, "onPartCouple(), I am {0} (from {1} to {2})", vessel.id, action.from.vessel.id, action.to.vessel.id);
+        //        timeToUpdate = true;
+        //    }
+        //}
 
-        private void StageActivateCallback(int stage)
-        {
-            if (JUtil.IsActiveVessel(vessel))
-            {
-                //JUtil.LogMessage(this, "onStageActivate({0}), active vessel is {1}", stage, vessel.vesselName);
-                timeToUpdate = true;
-            }
-        }
+        //private void StageActivateCallback(int stage)
+        //{
+        //    if (JUtil.IsActiveVessel(vessel))
+        //    {
+        //        //JUtil.LogMessage(this, "onStageActivate({0}), active vessel is {1}", stage, vessel.vesselName);
+        //        timeToUpdate = true;
+        //    }
+        //}
 
-        private void UndockCallback(EventReport report)
-        {
-            if (JUtil.IsActiveVessel(vessel))
-            {
-                //JUtil.LogMessage(this, "onUndock({1}), I am {0}", vessel.vesselName, report.eventType);
-                timeToUpdate = true;
-            }
-        }
+        //private void UndockCallback(EventReport report)
+        //{
+        //    if (JUtil.IsActiveVessel(vessel))
+        //    {
+        //        JUtil.LogMessage(this, "onUndock({1}), I am {0}, origin part's vessel {2}", vessel.id, report.eventType, report.origin.vessel.id);
+        //        timeToUpdate = true;
+        //    }
+        //}
 
         private void VesselChangeCallback(Vessel v)
         {
             if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.vesselName, vessel.vesselName);
+                //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.id, vessel.id);
                 timeToUpdate = true;
                 resultCache.Clear();
-                IJSIModule.vessel = vessel;
             }
+            //else
+            //{
+            //    JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am not becoming active", v.id, vessel.id);
+            //}
         }
 
         private void VesselModifiedCallback(Vessel v)
         {
-            if (v.id == vessel.id && JUtil.IsActiveVessel(vessel))
+            if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselModified({0}), I am {1}, so I am modified", v.vesselName, vessel.vesselName);
-                timeToUpdate = true;
+                //JUtil.LogMessage(this, "onVesselModified({0}): I am modified", v.id);
+                if (JUtil.IsActiveVessel(vessel))
+                {
+                    timeToUpdate = true;
+                }
             }
+            //else
+            //{
+            //    JUtil.LogMessage(this, "onVesselModified({0}): I am {1}, so I am not modified", v.id, vessel.id);
+            //}
         }
         #endregion
 
