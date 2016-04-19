@@ -97,12 +97,19 @@ namespace JSI
             }
             variableSets.Clear();
 
-            RPMVesselComputer comp = null;
-            // It appears that the vessel computer is sometimes unloaded
-            // before this triggers when a craft is destroyed.
-            if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+            try
             {
-                comp.UnregisterCallback(variableName, del);
+                RPMVesselComputer comp = null;
+                // It appears that the vessel computer is sometimes unloaded
+                // before this triggers when a craft is destroyed.
+                if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                {
+                    comp.UnregisterCallback(variableName, del);
+                }
+            }
+            catch
+            {
+                //JUtil.LogMessage(this, "Trapped exception unregistering JSICallback (you can ignore this)");
             }
         }
 

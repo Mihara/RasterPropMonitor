@@ -108,10 +108,17 @@ namespace JSI
         {
             if (del != null)
             {
-                RPMVesselComputer comp = null;
-                if(RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                try
                 {
-                    comp.UnregisterCallback(variableName, del);
+                    RPMVesselComputer comp = null;
+                    if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                    {
+                        comp.UnregisterCallback(variableName, del);
+                    }
+                }
+                catch
+                {
+                    //JUtil.LogMessage(this, "Trapped exception unregistering JSIVariableLabel (you can ignore this)");
                 }
             }
             //JUtil.LogMessage(this, "OnDestroy()");
