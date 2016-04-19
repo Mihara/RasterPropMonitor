@@ -27,7 +27,7 @@ namespace JSI
     {
         private readonly ResourceData[] rs;
         private double lastcheck;
-        private const double secondsBetweenSamples = 0.5d;
+        //private const double secondsBetweenSamples = 0.5d;
 
         private class ResourceComparer : IComparer<ResourceData>
         {

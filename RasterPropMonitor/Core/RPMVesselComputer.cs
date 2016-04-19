@@ -2154,15 +2154,15 @@ namespace JSI
             }
         }
 
-        //private void SameVesselDock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
-        //{
-        //    JUtil.LogMessage(this, "SameVesselDock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
-        //}
+        private void SameVesselDock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        {
+            JUtil.LogMessage(this, "SameVesselDock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+        }
 
-        //private void SameVesselUndock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
-        //{
-        //    JUtil.LogMessage(this, "SameVesselUndock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
-        //}
+        private void SameVesselUndock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        {
+            JUtil.LogMessage(this, "SameVesselUndock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+        }
 
         //private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
         //{
