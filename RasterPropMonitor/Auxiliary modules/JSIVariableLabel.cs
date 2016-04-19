@@ -106,6 +106,14 @@ namespace JSI
 
         public void OnDestroy()
         {
+            if (del != null)
+            {
+                RPMVesselComputer comp = null;
+                if(RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                {
+                    comp.UnregisterCallback(variableName, del);
+                }
+            }
             //JUtil.LogMessage(this, "OnDestroy()");
             Destroy(textObj);
             textObj = null;
@@ -114,21 +122,11 @@ namespace JSI
         private void OnCallback(RPMVesselComputer comp, float value)
         {
             // Sanity checks:
-            if (vessel == null)
+            if (vessel == null || vessel.id != comp.id)
             {
                 // We're not attached to a ship?
                 comp.UnregisterCallback(variableName, del);
                 return;
-            }
-
-            if (vessel.id != comp.id)
-            {
-                // We're attached to a different ship now - must have docked / undocked / staged / ?
-                comp.UnregisterCallback(variableName, del);
-
-                comp = RPMVesselComputer.Instance(vessel);
-                comp.RegisterCallback(variableName, del);
-                value = comp.ProcessVariable(variableName).MassageToFloat();
             }
 
             if (value < 0.0f)

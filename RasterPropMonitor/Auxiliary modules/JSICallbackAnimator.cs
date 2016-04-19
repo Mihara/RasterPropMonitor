@@ -96,33 +96,24 @@ namespace JSI
                 variableSets[i].TearDown();
             }
             variableSets.Clear();
-            // It appears that the vessel computer is already unloaded before this triggers
-            //RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            //comp.UnregisterCallback(variableName, del);
+
+            RPMVesselComputer comp = null;
+            // It appears that the vessel computer is sometimes unloaded
+            // before this triggers when a craft is destroyed.
+            if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+            {
+                comp.UnregisterCallback(variableName, del);
+            }
         }
 
         void OnCallback(RPMVesselComputer comp, float value)
         {
             // Sanity checks:
-            if (vessel == null)
+            if (vessel == null || vessel.id != comp.id)
             {
-                // We're not attached to a ship?
+                // Stop getting callbacks if for some reason a different
+                // computer is talking to us.
                 comp.UnregisterCallback(variableName, del);
-                return;
-            }
-            else if (vessel.id != comp.id)
-            {
-                // We're attached to a different ship now - must have docked / undocked / staged / ?
-                comp.UnregisterCallback(variableName, del);
-
-                comp = RPMVesselComputer.Instance(vessel);
-                comp.RegisterCallback(variableName, del);
-                value = comp.ProcessVariable(variableName).MassageToFloat();
-
-                for (int i = 0; i < variableSets.Count; ++i)
-                {
-                    variableSets[i].Update(comp, value);
-                }
             }
             else
             {
