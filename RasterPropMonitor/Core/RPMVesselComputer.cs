@@ -29,15 +29,10 @@ using KSP.UI.Screens.Flight;
 
 // MOARdV TODO:
 // Add callbacks for docking, undocking, staging, vessel switching
-// ? GameEvents.onJointBreak
 // + GameEvents.onUndock
 // ? GameEvents.onSameVesselDock
 // ? GameEvents.onSameVesselUndock
-// + GameEvents.onPartCouple
-// + GameEvents.onStageActivate
 // ? GameEvents.onStageSeparation
-// + GameEvents.onVesselChange
-// ? GameEvents.OnVesselModified
 //
 // ? GameEvents.onCrewOnEva
 // ? GameEvents.onCrewTransferred
@@ -339,12 +334,12 @@ namespace JSI
         /// <returns>true if the vessel has a computer, false otherwise</returns>
         public static bool TryGetInstance(Vessel v, ref RPMVesselComputer comp)
         {
-            if (instances != null)
+            if (instances != null && v != null)
             {
                 if (instances.ContainsKey(v.id))
                 {
                     comp = instances[v.id];
-                    return true;
+                    return (comp != null);
                 }
             }
 
@@ -583,6 +578,8 @@ namespace JSI
             //GameEvents.onStageActivate.Add(StageActivateCallback);
             //GameEvents.onUndock.Add(UndockCallback);
             GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
+            //GameEvents.onSameVesselDock.Add(SameVesselDock);
+            //GameEvents.onSameVesselUndock.Add(SameVesselUndock);
 
             if (knownLoadedAssemblies == null)
             {
@@ -806,6 +803,8 @@ namespace JSI
             //GameEvents.onStageActivate.Remove(StageActivateCallback);
             //GameEvents.onUndock.Remove(UndockCallback);
             GameEvents.onVesselWasModified.Remove(VesselModifiedCallback);
+            //GameEvents.onSameVesselDock.Remove(SameVesselDock);
+            //GameEvents.onSameVesselUndock.Remove(SameVesselUndock);
 
             if (!instances.ContainsKey(vessel.id))
             {
@@ -962,25 +961,8 @@ namespace JSI
 
         private void DebugFunction()
         {
-            for (int pi = 0; pi < vessel.Parts.Count; ++pi)
-            {
-                for (int mi = 0; mi < vessel.Parts[pi].Modules.Count; ++mi)
-                {
-                    if (vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
-                    {
-                        try
-                        {
-                            ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
-                            JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
-                            JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
-                        }
-                        catch (Exception e)
-                        {
-                            JUtil.LogMessage(this, "Trapped an exception tyring to read ModuleScienceExperiment: {0}", e);
-                        }
-                    }
-                }
-            }
+            JUtil.LogMessage(this, "TimeWarp.CurrentRate = {0}, TimeWarp.WarpMode = {1}, TimeWarp.deltaTime = {2:0.000}",
+                TimeWarp.CurrentRate, TimeWarp.WarpMode, TimeWarp.deltaTime);
         }
         #endregion
 
@@ -2171,6 +2153,16 @@ namespace JSI
                 VariableOrNumber.Clear();
             }
         }
+
+        //private void SameVesselDock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        //{
+        //    JUtil.LogMessage(this, "SameVesselDock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+        //}
+
+        //private void SameVesselUndock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        //{
+        //    JUtil.LogMessage(this, "SameVesselUndock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+        //}
 
         //private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
         //{
