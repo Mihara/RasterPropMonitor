@@ -1851,6 +1851,15 @@ namespace JSI
                 case "MECHJEBAVAILABLE":
                     return MechJebAvailable();
 
+                case "TIMEWARPPHYSICS":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f && TimeWarp.WarpMode == TimeWarp.Modes.LOW).GetHashCode(); };
+                case "TIMEWARPNONPHYSICS":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f && TimeWarp.WarpMode == TimeWarp.Modes.HIGH).GetHashCode(); };
+                case "TIMEWARPACTIVE":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f).GetHashCode(); };
+                case "TIMEWARPCURRENT":
+                    return (string variable) => { return TimeWarp.CurrentRate; };
+
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":
                     // Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
