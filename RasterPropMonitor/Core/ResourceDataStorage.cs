@@ -27,7 +27,10 @@ namespace JSI
     {
         private readonly ResourceData[] rs;
         private double lastcheck;
-        //private const double secondsBetweenSamples = 0.5d;
+        private readonly Dictionary<string, ResourceData> nameResources = new Dictionary<string, ResourceData>();
+        private readonly Dictionary<string, ResourceData> sysrResources = new Dictionary<string, ResourceData>();
+        private readonly string[] sortedResourceNames;
+        private int numValidResourceNames = 0;
 
         private class ResourceComparer : IComparer<ResourceData>
         {
@@ -46,13 +49,18 @@ namespace JSI
             }
 
             rs = new ResourceData[resourceCount];
+            sortedResourceNames = new string[resourceCount];
             int index = 0;
             foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions)
             {
+                string nameSysr = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
+
                 rs[index] = new ResourceData();
                 rs[index].name = thatResource.name;
-                rs[index].nameSysr = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
                 rs[index].density = thatResource.density;
+
+                nameResources.Add(thatResource.name, rs[index]);
+                sysrResources.Add(nameSysr, rs[index]);
                 ++index;
             }
 
@@ -60,25 +68,52 @@ namespace JSI
             Array.Sort(rs, new ResourceComparer());
         }
 
-        public void StartLoop(double time)
+        public void StartLoop()
         {
-            float invDeltaT = (float)(1.0 / (time - lastcheck));
-
             for (int i = 0; i < rs.Length; ++i)
             {
-                rs[i].delta = (rs[i].previous - rs[i].current) * invDeltaT;
-                rs[i].previous = rs[i].current;
-
                 rs[i].current = 0.0f;
                 rs[i].max = 0.0f;
                 rs[i].stage = 0.0f;
                 rs[i].stagemax = 0.0f;
                 rs[i].ispropellant = false;
-
             }
-
-            lastcheck = time;
         }
+
+        public void EndLoop(double time)
+        {
+            float invDeltaT = (float)(1.0 / (time - lastcheck));
+            for (int i = 0; i < rs.Length; ++i)
+            {
+                rs[i].delta = (rs[i].previous - rs[i].current) * invDeltaT;
+                rs[i].previous = rs[i].current;
+            }
+            lastcheck = time;
+
+            numValidResourceNames = 0;
+            for (int i = 0; i < rs.Length; ++i)
+            {
+                if (rs[i].max > 0.0)
+                {
+                    sortedResourceNames[numValidResourceNames] = rs[i].name;
+                    ++numValidResourceNames;
+                }
+            }
+        }
+
+        public string GetActiveResourceByIndex(int index)
+        {
+            return (index < numValidResourceNames) ? sortedResourceNames[index] : string.Empty;
+        }
+        //public void DumpData()
+        //{
+        //    JUtil.LogMessage(this, "Resource data update:");
+        //    for (int i = 0; i < rs.Length; ++i)
+        //    {
+        //        JUtil.LogMessage(this, "{0}: C {1:0.0} / {2:0.0}; T {3:0.0} / {4:0.0}; R {5:0.00}",
+        //            rs[i].name, rs[i].stage, rs[i].current, rs[i].stagemax, rs[i].max, rs[i].delta);
+        //    }
+        //}
 
         public void MarkPropellant(Propellant propel)
         {
@@ -86,7 +121,7 @@ namespace JSI
             {
                 try
                 {
-                    ResourceData r = Array.Find(rs, t => t.name == resource.info.name);
+                    ResourceData r = nameResources[resource.info.name];
                     r.ispropellant = true;
                 }
                 catch (Exception e)
@@ -96,30 +131,30 @@ namespace JSI
             }
         }
 
-        public void GetActiveResourceNames(ref string[] result)
+        public void GetAvailableResourceNames(ref string[] result)
         {
-            int currentIndex = 0;
-            int currentLength = (result == null) ? 0 : result.Length;
+            int requiredLength = 0;
             for (int i = 0; i < rs.Length; ++i)
             {
                 if (rs[i].max > 0.0)
                 {
-                    if (currentIndex == currentLength)
-                    {
-                        ++currentLength;
-                        Array.Resize(ref result, currentLength);
-                    }
-                    if (result[currentIndex] != rs[i].name)
-                    {
-                        result[currentIndex] = rs[i].name;
-                    }
-                    ++currentIndex;
+                    requiredLength++;
                 }
             }
 
-            if (currentIndex > 0 && result.Length > currentIndex)
+            if (result == null || result.Length != requiredLength)
             {
-                Array.Resize(ref result, currentIndex);
+                Array.Resize(ref result, requiredLength);
+            }
+
+            int currentIndex = 0;
+            for (int i = 0; i < rs.Length; ++i)
+            {
+                if (rs[i].max > 0.0)
+                {
+                    result[currentIndex] = rs[i].name;
+                    ++currentIndex;
+                }
             }
         }
 
@@ -158,7 +193,6 @@ namespace JSI
                 {
                     if (resourceQuery.EndsWith(keywords[i], StringComparison.Ordinal))
                     {
-                        //JUtil.LogMessage(this, "matched {0} to {1}", resourceQuery, keywords[i]);
                         break;
                     }
                 }
@@ -181,10 +215,8 @@ namespace JSI
                     stage = true;
                     resourceName = resourceName.Substring(0, resourceName.Length - "STAGE".Length);
                 }
-                //JUtil.LogMessage(this, "I think I should chop {0} down to {1}, with valueType {2} and stage {3}",
-                //    resourceQuery, resourceName, valueType, stage);
 
-                ResourceData resource = Array.Find(rs, t => t.nameSysr == resourceName);
+                ResourceData resource = sysrResources[resourceName];
                 object v = null;
                 switch (valueType)
                 {
@@ -249,7 +281,7 @@ namespace JSI
 
             try
             {
-                ResourceData resource = Array.Find(rs, t => t.name == resourceName);
+                ResourceData resource = nameResources[resourceName];
 
                 switch (valueType)
                 {
@@ -299,7 +331,7 @@ namespace JSI
         {
             try
             {
-                ResourceData res = Array.Find(rs, t => t.name == resource.info.name);
+                ResourceData res = nameResources[resource.info.name];
                 res.current += (float)resource.amount;
                 res.max += (float)resource.maxAmount;
             }
@@ -313,7 +345,7 @@ namespace JSI
         {
             try
             {
-                ResourceData res = Array.Find(rs, t => t.name == resource.info.name);
+                ResourceData res = nameResources[resource.info.name];
                 res.stage = (float)resource.amount;
                 res.stagemax = (float)resource.maxAmount;
             }
@@ -326,13 +358,14 @@ namespace JSI
         private class ResourceData
         {
             public string name;
-            public string nameSysr;
 
             public float current;
             public float max;
             public float previous;
+
             public float stage;
             public float stagemax;
+
             public float density;
             public float delta;
 

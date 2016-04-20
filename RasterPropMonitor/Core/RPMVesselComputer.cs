@@ -269,7 +269,6 @@ namespace JSI
         private float localGeeDirect;
         private bool orbitSensibility;
         private ResourceDataStorage resources = new ResourceDataStorage();
-        private string[] resourcesAlphabetic = null;
         private float slopeAngle;
         private double speedHorizontal;
         private double speedVertical;
@@ -831,7 +830,6 @@ namespace JSI
             targetBody = null;
 
             resources = null;
-            resourcesAlphabetic = null;
 
             vesselCrew.Clear();
             vesselCrewMedical.Clear();
@@ -1310,7 +1308,7 @@ namespace JSI
 
             anyEnginesOverheating = anyEnginesFlameout = false;
 
-            resources.StartLoop(Planetarium.GetUniversalTime());
+            resources.StartLoop();
 
             foreach (Part thatPart in vessel.parts)
             {
@@ -1335,85 +1333,83 @@ namespace JSI
                 }
                 totalResourceMass += thatPart.GetResourceMass();
 
-                foreach (PartModule pm in thatPart.Modules)
+                for (int moduleIdx = 0; moduleIdx < thatPart.Modules.Count; ++moduleIdx)
                 {
-                    if (!pm.isEnabled)
+                    if (thatPart.Modules[moduleIdx].isEnabled)
                     {
-                        continue;
+                        if (thatPart.Modules[moduleIdx] is ModuleEngines || thatPart.Modules[moduleIdx] is ModuleEnginesFX)
+                        {
+                            var thatEngineModule = thatPart.Modules[moduleIdx] as ModuleEngines;
+                            anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
+                            anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
+
+                            totalCurrentThrust += GetCurrentThrust(thatEngineModule);
+                            float maxThrust = GetMaximumThrust(thatEngineModule);
+                            totalRawMaximumThrust += maxThrust;
+                            maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
+                            totalLimitedMaximumThrust += maxThrust;
+                            float realIsp = GetRealIsp(thatEngineModule);
+                            if (realIsp > 0.0f)
+                            {
+                                averageIspContribution += maxThrust / realIsp;
+                            }
+
+                            foreach (Propellant thatResource in thatEngineModule.propellants)
+                            {
+                                resources.MarkPropellant(thatResource);
+                            }
+
+                            float minIsp, maxIsp;
+                            thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
+                            if (maxIsp > 0.0f)
+                            {
+                                maxIspContribution += maxThrust / maxIsp;
+                            }
+
+                            if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
+                            {
+                                hottestEngineTemperature = (float)thatPart.skinTemperature;
+                                hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                            }
+                            if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
+                            {
+                                hottestEngineTemperature = (float)thatPart.temperature;
+                                hottestEngineMaxTemperature = (float)thatPart.maxTemp;
+                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                            }
+                        }
+                        else if (thatPart.Modules[moduleIdx] is ModuleAblator)
+                        {
+                            var thatAblator = thatPart.Modules[moduleIdx] as ModuleAblator;
+
+                            // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
+                            // Although it seems odd that the skin temp quickly cools off after re-entry, while the
+                            // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
+                            // of 950K, while the interior eventually reached 345K after the ablator had cooled below
+                            // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
+                            // interior still held 323K.
+                            if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
+                            {
+                                hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
+                                heatShieldTemperature = (float)(thatPart.skinTemperature);
+                                heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
+                            }
+                        }
+                        //else if (pm is ModuleScienceExperiment)
+                        //{
+                        //    var thatExperiment = pm as ModuleScienceExperiment;
+                        //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
+                        //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
+                        //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
+                        //}
+                        //else if (pm is ModuleScienceContainer)
+                        //{
+                        //    var thatContainer = pm as ModuleScienceContainer;
+                        //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
+                        //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
+                        //}
                     }
-
-                    if (pm is ModuleEngines || pm is ModuleEnginesFX)
-                    {
-                        var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
-                        anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
-
-                        totalCurrentThrust += GetCurrentThrust(thatEngineModule);
-                        float maxThrust = GetMaximumThrust(thatEngineModule);
-                        totalRawMaximumThrust += maxThrust;
-                        maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
-                        totalLimitedMaximumThrust += maxThrust;
-                        float realIsp = GetRealIsp(thatEngineModule);
-                        if (realIsp > 0.0f)
-                        {
-                            averageIspContribution += maxThrust / realIsp;
-                        }
-
-                        foreach (Propellant thatResource in thatEngineModule.propellants)
-                        {
-                            resources.MarkPropellant(thatResource);
-                        }
-
-                        float minIsp, maxIsp;
-                        thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
-                        if (maxIsp > 0.0f)
-                        {
-                            maxIspContribution += maxThrust / maxIsp;
-                        }
-
-                        if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
-                        {
-                            hottestEngineTemperature = (float)thatPart.skinTemperature;
-                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
-                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                        }
-                        if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
-                        {
-                            hottestEngineTemperature = (float)thatPart.temperature;
-                            hottestEngineMaxTemperature = (float)thatPart.maxTemp;
-                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                        }
-                    }
-                    else if (pm is ModuleAblator)
-                    {
-                        var thatAblator = pm as ModuleAblator;
-
-                        // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
-                        // Although it seems odd that the skin temp quickly cools off after re-entry, while the
-                        // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
-                        // of 950K, while the interior eventually reached 345K after the ablator had cooled below
-                        // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
-                        // interior still held 323K.
-                        if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
-                        {
-                            hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
-                            heatShieldTemperature = (float)(thatPart.skinTemperature);
-                            heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
-                        }
-                    }
-                    //else if (pm is ModuleScienceExperiment)
-                    //{
-                    //    var thatExperiment = pm as ModuleScienceExperiment;
-                    //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
-                    //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
-                    //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
-                    //}
-                    //else if (pm is ModuleScienceContainer)
-                    //{
-                    //    var thatContainer = pm as ModuleScienceContainer;
-                    //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
-                    //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
-                    //}
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -1450,13 +1446,14 @@ namespace JSI
                 actualMaxIsp = 0.0f;
             }
 
-            resources.GetActiveResourceNames(ref resourcesAlphabetic);
-
             // We can use the stock routines to get at the per-stage resources.
-            foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources())
+            var activeResources = vessel.GetActiveResources();
+            for (int i = 0; i < activeResources.Count; ++i)
             {
-                resources.SetActive(thatResource);
+                resources.SetActive(activeResources[i]);
             }
+
+            resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
             // I seriously hope you don't have crew jumping in and out more than once per second.
