@@ -246,6 +246,105 @@ namespace JSI
             float xCursor = screenXMin * fontLetterWidth;
             for (int charIndex = 0; charIndex < textToRender.Length; charIndex++)
             {
+                bool escapedBracket = false;
+                // We will continue parsing bracket pairs until we're out of bracket pairs,
+                // since all of them -- except the escaped bracket tag --
+                // consume characters and change state without actually generating any output.
+                while (charIndex < textToRender.Length && textToRender[charIndex] == '[')
+                {
+                    // If there's no closing bracket, we stop parsing and go on to printing.
+                    int nextBracket = textToRender.IndexOf(']', charIndex) - charIndex;
+                    if (nextBracket < 1)
+                        break;
+                    // Much easier to parse it this way, although I suppose more expensive.
+                    string tagText = textToRender.Substring(charIndex + 1, nextBracket - 1);
+                    if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#')
+                    {
+                        // Valid color tags are [#rrggbbaa] or [#rrggbb].
+                        fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText.Length > 2 && tagText[0] == '@')
+                    {
+                        // Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
+                        // the next symbol is @ and there are at least three, one designating the axis.
+                        float coord;
+                        if (float.TryParse(tagText.Substring(2), out coord))
+                        {
+                            switch (tagText[1])
+                            {
+                                case 'X':
+                                case 'x':
+                                    xOffset = coord;
+                                    break;
+                                case 'Y':
+                                case 'y':
+                                    yOffset = coord;
+                                    break;
+                            }
+                            // We only consume the symbols if they did parse correctly.
+                            charIndex += nextBracket + 1;
+                        }
+                        else //If it didn't parse, skip over it.
+                            break;
+                    }
+                    else if (tagText == "sup")
+                    {
+                        // Superscript!
+                        scriptType = Script.Superscript;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "sub")
+                    {
+                        // Subscript!
+                        scriptType = Script.Subscript;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "/sup" || tagText == "/sub")
+                    {
+                        // And back...
+                        scriptType = Script.Normal;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "hw")
+                    {
+                        fontWidth = Width.Half;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "dw")
+                    {
+                        fontWidth = Width.Double;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "/hw" || tagText == "/dw")
+                    {
+                        // And back...
+                        fontWidth = Width.Normal;
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText.StartsWith("font", StringComparison.Ordinal))
+                    {
+                        int newFontID;
+                        if (int.TryParse(tagText.Substring(4), out newFontID) && newFontID >= 0 && newFontID < fontRenderer.Count)
+                        {
+                            //fontTextureIndex = (int)newFontID;
+                            fr = fontRenderer[newFontID];
+                        }
+                        charIndex += nextBracket + 1;
+                    }
+                    else if (tagText == "[")
+                    {
+                        // We got a "[[]" which means an escaped opening bracket.
+                        escapedBracket = true;
+                        charIndex += nextBracket;
+                        break;
+                    }
+                    else // Else we didn't recognise anything so it's not a tag.
+                    {
+                        break;
+                    }
+                }
+
                 if (string.Compare(textToRender, charIndex, Environment.NewLine, 0, Environment.NewLine.Length) == 0)
                 {
                     // New line: Advance yCursor, reset xCursor and the various state values.
@@ -262,105 +361,6 @@ namespace JSI
                 }
                 else
                 {
-                    bool escapedBracket = false;
-                    // We will continue parsing bracket pairs until we're out of bracket pairs,
-                    // since all of them -- except the escaped bracket tag --
-                    // consume characters and change state without actually generating any output.
-                    while (charIndex < textToRender.Length && textToRender[charIndex] == '[')
-                    {
-                        // If there's no closing bracket, we stop parsing and go on to printing.
-                        int nextBracket = textToRender.IndexOf(']', charIndex) - charIndex;
-                        if (nextBracket < 1)
-                            break;
-                        // Much easier to parse it this way, although I suppose more expensive.
-                        string tagText = textToRender.Substring(charIndex + 1, nextBracket - 1);
-                        if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#')
-                        {
-                            // Valid color tags are [#rrggbbaa] or [#rrggbb].
-                            fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText.Length > 2 && tagText[0] == '@')
-                        {
-                            // Valid nudge tags are [@x<number>] or [@y<number>] so the conditions for them is that
-                            // the next symbol is @ and there are at least three, one designating the axis.
-                            float coord;
-                            if (float.TryParse(tagText.Substring(2), out coord))
-                            {
-                                switch (tagText[1])
-                                {
-                                    case 'X':
-                                    case 'x':
-                                        xOffset = coord;
-                                        break;
-                                    case 'Y':
-                                    case 'y':
-                                        yOffset = coord;
-                                        break;
-                                }
-                                // We only consume the symbols if they did parse correctly.
-                                charIndex += nextBracket + 1;
-                            }
-                            else //If it didn't parse, skip over it.
-                                break;
-                        }
-                        else if (tagText == "sup")
-                        {
-                            // Superscript!
-                            scriptType = Script.Superscript;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "sub")
-                        {
-                            // Subscript!
-                            scriptType = Script.Subscript;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "/sup" || tagText == "/sub")
-                        {
-                            // And back...
-                            scriptType = Script.Normal;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "hw")
-                        {
-                            fontWidth = Width.Half;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "dw")
-                        {
-                            fontWidth = Width.Double;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "/hw" || tagText == "/dw")
-                        {
-                            // And back...
-                            fontWidth = Width.Normal;
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText.StartsWith("font", StringComparison.Ordinal))
-                        {
-                            int newFontID;
-                            if (int.TryParse(tagText.Substring(4), out newFontID) && newFontID >= 0 && newFontID < fontRenderer.Count)
-                            {
-                                //fontTextureIndex = (int)newFontID;
-                                fr = fontRenderer[newFontID];
-                            }
-                            charIndex += nextBracket + 1;
-                        }
-                        else if (tagText == "[")
-                        {
-                            // We got a "[[]" which means an escaped opening bracket.
-                            escapedBracket = true;
-                            charIndex += nextBracket;
-                            break;
-                        }
-                        else // Else we didn't recognise anything so it's not a tag.
-                        {
-                            break;
-                        }
-                    }
-
                     float xPos = xCursor + xOffset;
                     float yPos = yCursor + yOffset;
                     if (charIndex < textToRender.Length &&
@@ -369,7 +369,7 @@ namespace JSI
                         yPos < screenPixelHeight &&
                         yPos > -fontLetterHeight)
                     {
-                        if(!DrawChar(fr, escapedBracket ? '[' : textToRender[charIndex], xPos, yPos, fontColor, scriptType, fontWidth))
+                        if (!DrawChar(fr, escapedBracket ? '[' : textToRender[charIndex], xPos, yPos, fontColor, scriptType, fontWidth))
                         {
                             anyWarnings = true;
                         }
@@ -392,7 +392,7 @@ namespace JSI
 
             if (anyWarnings)
             {
-                JUtil.LogMessage(this, "String missing characters: {0}",textToRender);
+                JUtil.LogMessage(this, "String missing characters: {0}", textToRender);
             }
         }
 
