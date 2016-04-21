@@ -12,12 +12,14 @@ Extract the contents of the GameData folder in the RPM zip file into the GameDat
 GameData |
          + JSI |
                + Agencies
-               + Agencies
                + JSIAdvTransparentPods
+               + RasterPropMonitor
                + RPMPodPatches
 ```
 
 If you do not see GameData/JSI, you have installed this mod incorrectly, and it shall misbehave (missing props, other things not working right).
+
+If you used CKAN to install this mod, check the file structure.  CKAN has installed this mod incorrectly in the past.  If it is installed incorrectly, remove this mod and install it manually.
 
 If the plugin was listed as a dependency by some other mod author, and you do not want to use modified stock interiors, the JSI/RPMPodPatches directory may be safely deleted. Every capsule being modified has its own pair of patch config files -- you can safely delete only those you don't want.
 
