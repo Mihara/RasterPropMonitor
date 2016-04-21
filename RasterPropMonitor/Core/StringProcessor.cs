@@ -69,17 +69,22 @@ namespace JSI
         {
             if (formatter.usesComp)
             {
-                for (int i = 0; i < formatter.sourceVariables.Length; ++i)
+                try
                 {
-                    formatter.sourceValues[i] = comp.ProcessVariable(formatter.sourceVariables[i]);
-                }
+                    for (int i = 0; i < formatter.sourceVariables.Length; ++i)
+                    {
+                        formatter.sourceValues[i] = comp.ProcessVariable(formatter.sourceVariables[i]);
+                    }
 
-                return string.Format(formatter.formatString, formatter.sourceValues);
+                    return string.Format(formatter.formatString, formatter.sourceValues);
+                }
+                catch(Exception e)
+                {
+                    JUtil.LogErrorMessage(formatter, "Exception trapped in ProcessString for {1}: {0}", e, formatter.formatString);
+                }
             }
-            else
-            {
-                return formatter.formatString;
-            }
+
+            return formatter.formatString;
         }
 
         public static string ProcessString(string input, RPMVesselComputer comp)
@@ -110,8 +115,7 @@ namespace JSI
             }
             catch (Exception e)
             {
-                JUtil.LogErrorMessage(comp, "Bad format on string {0}", input);
-                throw e;
+                JUtil.LogErrorMessage(comp, "Bad format on string {0}: {1}", input, e);
             }
 
             return input.TrimEnd();
