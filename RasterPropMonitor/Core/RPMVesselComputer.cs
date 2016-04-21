@@ -315,6 +315,8 @@ namespace JSI
         private float approachSpeed;
         private Quaternion targetOrientation;
 
+        private bool pendingUndocking = false; // Used for a hack-ish way of updating RPMVC after an undock
+
         // Diagnostics
         private bool debug_showVariableCallCount = false;
         private int debug_fixedUpdates = 0;
@@ -380,6 +382,12 @@ namespace JSI
             return instances[v.id];
         }
 
+        /// <summary>
+        /// Register a callback to receive notifications when a variable has changed.
+        /// Used to prevent polling of low-frequency, high-utilization variables.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
         public void RegisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
         {
             //JUtil.LogMessage(this, "RegisterCallback for {0}", variableName);
@@ -396,6 +404,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Unregister a callback for receiving variable update notifications.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
         public void UnregisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
         {
             //JUtil.LogMessage(this, "UnegisterCallback for {0}", variableName);
@@ -411,6 +424,25 @@ namespace JSI
 
                 }
             }
+        }
+
+        /// <summary>
+        /// Merge the persistent variable dictionaries of two RPMVesselComputers.
+        /// This allows persistents from two vessels to be shared on docking.
+        /// </summary>
+        /// <param name="otherComp"></param>
+        private void MergePersistents(RPMVesselComputer otherComp)
+        {
+            foreach (var key in otherComp.persistentVars)
+            {
+                if (!persistentVars.ContainsKey(key.Key))
+                {
+                    persistentVars.Add(key.Key, key.Value);
+                }
+            }
+
+            // Copy the dictionary
+            otherComp.persistentVars = new Dictionary<string, object>(persistentVars);
         }
 
         #region VesselModule Overrides
@@ -572,13 +604,11 @@ namespace JSI
                 JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
 
-            GameEvents.onGameSceneLoadRequested.Add(LoadSceneCallback);
-            GameEvents.onVesselChange.Add(VesselChangeCallback);
-            //GameEvents.onStageActivate.Add(StageActivateCallback);
-            //GameEvents.onUndock.Add(UndockCallback);
-            GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
-            //GameEvents.onSameVesselDock.Add(SameVesselDock);
-            //GameEvents.onSameVesselUndock.Add(SameVesselUndock);
+            GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
+            GameEvents.onVesselChange.Add(onVesselChange);
+            GameEvents.onVesselWasModified.Add(onVesselWasModified);
+            GameEvents.onPartCouple.Add(onPartCouple);
+            GameEvents.onPartUndock.Add(onPartUndock);
 
             if (knownLoadedAssemblies == null)
             {
@@ -797,13 +827,11 @@ namespace JSI
             }
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
-            GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
-            GameEvents.onVesselChange.Remove(VesselChangeCallback);
-            //GameEvents.onStageActivate.Remove(StageActivateCallback);
-            //GameEvents.onUndock.Remove(UndockCallback);
-            GameEvents.onVesselWasModified.Remove(VesselModifiedCallback);
-            //GameEvents.onSameVesselDock.Remove(SameVesselDock);
-            //GameEvents.onSameVesselUndock.Remove(SameVesselUndock);
+            GameEvents.onGameSceneLoadRequested.Remove(onGameSceneLoadRequested);
+            GameEvents.onVesselChange.Remove(onVesselChange);
+            GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+            GameEvents.onPartCouple.Remove(onPartCouple);
+            GameEvents.onPartUndock.Remove(onPartUndock);
 
             if (!instances.ContainsKey(vessel.id))
             {
@@ -2135,7 +2163,7 @@ namespace JSI
 
         //--- Callbacks for registered GameEvent
         #region GameEvent Callbacks
-        private void LoadSceneCallback(GameScenes data)
+        private void onGameSceneLoadRequested(GameScenes data)
         {
             //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
@@ -2151,71 +2179,73 @@ namespace JSI
             }
         }
 
-        private void SameVesselDock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
         {
-            JUtil.LogMessage(this, "SameVesselDock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+            if (action.from.vessel.id == vessel.id)
+            {
+                RPMVesselComputer otherComp = null;
+                if (TryGetInstance(action.to.vessel, ref otherComp))
+                {
+                    //JUtil.LogMessage(this, "onPartCouple(): Merging RPMVesselComputers");
+                    MergePersistents(otherComp);
+                }
+                timeToUpdate = true;
+            }
         }
 
-        private void SameVesselUndock(GameEvents.FromToAction<ModuleDockingNode, ModuleDockingNode> action)
+        private void onPartUndock(Part p)
         {
-            JUtil.LogMessage(this, "SameVesselUndock(from {0} to {1}) - I am {2}", action.from.vessel.id, action.to.vessel.id, vessel.id);
+            if (p.vessel.id == vessel.id)
+            {
+                //JUtil.LogMessage(this, "onPartUndock(): {0} expects to undock", vessel.id);
+                pendingUndocking = true;
+            }
         }
 
-        //private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
-        //{
-        //    if (action.from.vessel == vessel || action.to.vessel == vessel)
-        //    {
-        //        JUtil.LogMessage(this, "onPartCouple(), I am {0} (from {1} to {2})", vessel.id, action.from.vessel.id, action.to.vessel.id);
-        //        timeToUpdate = true;
-        //    }
-        //}
-
-        //private void StageActivateCallback(int stage)
-        //{
-        //    if (JUtil.IsActiveVessel(vessel))
-        //    {
-        //        //JUtil.LogMessage(this, "onStageActivate({0}), active vessel is {1}", stage, vessel.vesselName);
-        //        timeToUpdate = true;
-        //    }
-        //}
-
-        //private void UndockCallback(EventReport report)
-        //{
-        //    if (JUtil.IsActiveVessel(vessel))
-        //    {
-        //        JUtil.LogMessage(this, "onUndock({1}), I am {0}, origin part's vessel {2}", vessel.id, report.eventType, report.origin.vessel.id);
-        //        timeToUpdate = true;
-        //    }
-        //}
-
-        private void VesselChangeCallback(Vessel v)
+        private void onVesselChange(Vessel v)
         {
             if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.id, vessel.id);
                 timeToUpdate = true;
                 resultCache.Clear();
             }
-            //else
-            //{
-            //    JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am not becoming active", v.id, vessel.id);
-            //}
         }
 
-        private void VesselModifiedCallback(Vessel v)
+        private void onVesselWasModified(Vessel v)
         {
             if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselModified({0}): I am modified", v.id);
+                //JUtil.LogMessage(this, "VesselModifiedCallback(): for me {0}", v.id);
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
                 }
             }
-            //else
-            //{
-            //    JUtil.LogMessage(this, "onVesselModified({0}): I am {1}, so I am not modified", v.id, vessel.id);
-            //}
+            else
+            {
+                RPMVesselComputer otherComp = null;
+                if (TryGetInstance(v, ref otherComp))
+                {
+                    // I assume that when these callbacks trigger right after
+                    // undocking, I'll see at least one callback with one of
+                    // the RPMVC indicating 'pendingUndocking'.
+                    if (pendingUndocking || otherComp.pendingUndocking)
+                    {
+                        pendingUndocking = false;
+                        otherComp.pendingUndocking = false;
+                        //JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
+                        MergePersistents(otherComp);
+                    }
+                    //else
+                    //{
+                    //    JUtil.LogMessage(this, "VesselModifiedCallback(): for {0} - but {1} not pendingUndocking", v.id, vessel.id);
+                    //}
+                }
+                //else
+                //{
+                //    JUtil.LogMessage(this, "VesselModifiedCallback(): Failed to get {0}'s computer, can't share data", v.id);
+                //}
+            }
         }
         #endregion
 
