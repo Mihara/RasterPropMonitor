@@ -186,6 +186,7 @@ namespace JSI
 
         public object ListElement(string resourceQuery)
         {
+            object v = 0.0;
             try
             {
                 int i = 0;
@@ -217,7 +218,6 @@ namespace JSI
                 }
 
                 ResourceData resource = sysrResources[resourceName];
-                object v = null;
                 switch (valueType)
                 {
                     case "":
@@ -266,13 +266,12 @@ namespace JSI
                         break;
                 }
 
-                return v;
             }
             catch (Exception e)
             {
-                JUtil.LogErrorMessage(this, "ListElement({1}) threw exception {0}", e, resourceQuery);
+                JUtil.LogErrorMessage(this, "ListElement({1}) threw trapped exception {0}", e, resourceQuery);
             }
-            return null;
+            return v;
         }
 
         public object ListElement(string resourceName, string valueType, bool stage)
