@@ -514,6 +514,7 @@ namespace JSI
         {
             if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
                 return null;
+            /*
             // InternalCamera instance does not contain a reference to the kerbal it's looking from.
             // So we have to search through all of them...
             Kerbal thatKerbal = null;
@@ -528,6 +529,8 @@ namespace JSI
                     }
                 }
             }
+             */
+            Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
             return thatKerbal;
         }
 
