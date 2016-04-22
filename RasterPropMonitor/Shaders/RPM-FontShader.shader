@@ -1,30 +1,30 @@
 ﻿
-Shader "RPM/DisplayShader" 
+Shader "RPM/DisplayShader"
 {
-	Properties 
-	{ 
+	Properties
+	{
 		_MainTex ("Texture", 2D) = "white" {}
-	} 
+	}
 
 	SubShader {
 
 		Tags { "RenderType"="Overlay" "Queue" = "Transparent" }
-		
+
 		// Premultiplied Alpha shader for rendering text on displays.
-		
-		Lighting Off 
-		Blend One OneMinusSrcAlpha 
-		Cull Off 
-		Fog { Mode Off } 
-		ZWrite Off 
-		ZTest Always 
-		
-		Pass {	
+
+		Lighting Off
+		Blend One OneMinusSrcAlpha
+		Cull Off
+		Fog { Mode Off }
+		ZWrite Off
+		ZTest Always
+
+		Pass {
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma target 3.0
-			#pragma only_renderers d3d9 d3d11 opengl d3d11_9x
+			#pragma glsl
 
 			#include "UnityCG.cginc"
 
@@ -45,7 +45,7 @@ Shader "RPM/DisplayShader"
 			sampler2D _MainTex;
 
 			uniform float4 _MainTex_ST;
-			
+
 			v2f vert (appdata_t v)
 			{
 				v2f dataOut;
@@ -74,9 +74,9 @@ Shader "RPM/DisplayShader"
 				diffuse.rgb = (diffuse.rgb * dataIn.color.rgb) * diffuse.a;
 				return diffuse;
 			}
-			ENDCG 
+			ENDCG
 		}
-	} 	
- 
-	Fallback off 
+	}
+
+	Fallback off
 }
