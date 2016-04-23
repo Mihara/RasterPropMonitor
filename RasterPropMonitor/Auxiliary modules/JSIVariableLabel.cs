@@ -59,48 +59,59 @@ namespace JSI
 
         public void Start()
         {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-
-            Transform textObjTransform = internalProp.FindModelTransform(transformName);
-            textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
-            // Force oneshot if there's no variables:
-            oneshot |= !labelText.Contains("$&$");
-            string sourceString = labelText.UnMangleConfigText();
-
-            // Alow a " character to escape leading whitespace
-            if (sourceString[0] == '"')
+            try
             {
-                sourceString = sourceString.Substring(1);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
+                Transform textObjTransform = internalProp.FindModelTransform(transformName);
+                textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
+                // Force oneshot if there's no variables:
+                oneshot |= !labelText.Contains("$&$");
+                string sourceString = labelText.UnMangleConfigText();
+
+                if (!string.IsNullOrEmpty(sourceString) && sourceString.Length > 1)
+                {
+                    // Alow a " character to escape leading whitespace
+                    if (sourceString[0] == '"')
+                    {
+                        sourceString = sourceString.Substring(1);
+                    }
+                }
+                spf = new StringProcessorFormatter(sourceString);
+
+                if (!oneshot)
+                {
+                    comp.UpdateDataRefreshRate(refreshRate);
+                }
+
+                if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
+                {
+                    positiveColorValue = ConfigNode.ParseColor32(positiveColor);
+                    negativeColorValue = ConfigNode.ParseColor32(negativeColor);
+                    zeroColorValue = ConfigNode.ParseColor32(zeroColor);
+                    del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
+                    comp.RegisterCallback(variableName, del);
+
+                    // Initialize the text color.
+                    float value = comp.ProcessVariable(variableName).MassageToFloat();
+                    if (value < 0.0f)
+                    {
+                        textObj.text.Color = negativeColorValue;
+                    }
+                    else if (value > 0.0f)
+                    {
+                        textObj.text.Color = positiveColorValue;
+                    }
+                    else
+                    {
+                        textObj.text.Color = zeroColorValue;
+                    }
+                }
             }
-            spf = new StringProcessorFormatter(sourceString);
-
-            if (!oneshot)
+            catch(Exception e)
             {
-                comp.UpdateDataRefreshRate(refreshRate);
-            }
-
-            if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
-            {
-                positiveColorValue = ConfigNode.ParseColor32(positiveColor);
-                negativeColorValue = ConfigNode.ParseColor32(negativeColor);
-                zeroColorValue = ConfigNode.ParseColor32(zeroColor);
-                del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
-                comp.RegisterCallback(variableName, del);
-
-                // Initialize the text color.
-                float value = comp.ProcessVariable(variableName).MassageToFloat();
-                if (value < 0.0f)
-                {
-                    textObj.text.Color = negativeColorValue;
-                }
-                else if (value > 0.0f)
-                {
-                    textObj.text.Color = positiveColorValue;
-                }
-                else
-                {
-                    textObj.text.Color = zeroColorValue;
-                }
+                JUtil.LogErrorMessage(this, "Start failed with exception {0}", e);
+                spf = new StringProcessorFormatter(string.Empty);
             }
         }
 
