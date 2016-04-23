@@ -37,7 +37,12 @@ namespace JSI
         // TODO: Add support for multi-line processed support.
         public StringProcessorFormatter(string input)
         {
-            if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0)
+            if(string.IsNullOrEmpty(input))
+            {
+                formatString = "";
+                usesComp = false;
+            }
+            else if (input.IndexOf(JUtil.VariableListSeparator[0], StringComparison.Ordinal) >= 0)
             {
                 string[] tokens = input.Split(JUtil.VariableListSeparator, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length != 2)
