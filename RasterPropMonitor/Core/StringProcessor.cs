@@ -76,7 +76,7 @@ namespace JSI
                         formatter.sourceValues[i] = comp.ProcessVariable(formatter.sourceVariables[i]);
                     }
 
-                    return string.Format(formatter.formatString, formatter.sourceValues);
+                    return string.Format(fp, formatter.formatString, formatter.sourceValues);
                 }
                 catch(Exception e)
                 {
