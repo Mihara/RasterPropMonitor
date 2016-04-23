@@ -232,7 +232,7 @@ Global
 		$36.inheritsSet = Mono
 		$36.inheritsScope = text/plain
 		$36.scope = text/plain
-		version = 0.25.0
+		version = 0.25.1
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
