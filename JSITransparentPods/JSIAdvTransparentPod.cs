@@ -90,7 +90,7 @@ namespace JSIAdvTransparentPods
 
         public override void OnStart(StartState state)
         {
-            JSIAdvTPodsUtil.Log_Debug("OnStart {0} in state {1}" , part.craftID , state);
+            JSIAdvTPodsUtil.Log_Debug("OnStart {0} {1} in state {2}" , part.craftID , part.name, state);
             if (state == StartState.Editor && disableLoadingInEditor)
             {
                 // Early out for people who want to disable transparency in
@@ -103,8 +103,18 @@ namespace JSIAdvTransparentPods
             // Apply shaders to transforms on startup.
             if (!string.IsNullOrEmpty(transparentTransforms))
             {
-                transparentShader = Shader.Find(transparentShaderName);
-
+                try
+                {
+                    transparentShader = Shader.Find(transparentShaderName);
+                }
+                catch (Exception ex)
+                {
+                    JSIAdvTPodsUtil.Log("Get transparentShader {0} failed. Error: {1}", transparentShaderName, ex);
+                }
+                if (transparentShader == null)
+                {
+                    JSIAdvTPodsUtil.Log("transparentShader {0} not found.", transparentShaderName);
+                }
                 foreach (string transformName in transparentTransforms.Split('|'))
                 {
                     try
@@ -136,7 +146,14 @@ namespace JSIAdvTransparentPods
             if (!string.IsNullOrEmpty(opaqueShaderName))
             {
                 opaqueShader = Shader.Find(opaqueShaderName);
-                hasOpaqueShader = true;
+                if (transparentShader == null)
+                {
+                    JSIAdvTPodsUtil.Log("opaqueShader {0} not found.", opaqueShaderName);
+                }
+                else
+                {
+                    hasOpaqueShader = true;
+                }
             }
 
             // In Editor, the camera we want to change is called "Main Camera". In flight, the camera to change is
@@ -158,6 +175,7 @@ namespace JSIAdvTransparentPods
                 }
                 catch (Exception e)
                 {
+                    JSIAdvTPodsUtil.Log("failed to create internal model in Onstart");
                     Debug.LogException(e, this);
                 }
             }
@@ -193,14 +211,7 @@ namespace JSIAdvTransparentPods
                     part.internalModel.transform.localRotation = MagicalVoodooRotation;
                     //Find all Renderer's with DepthMask shader assigned to them and make them inactive as they cause Z-Fighting in the Editor and are
                     //not needed in the editor - OLD Method.
-                    foreach (Renderer renderer in part.internalModel.GetComponentsInChildren<Renderer>(true))
-                    { 
-                        if (renderer.material.shader == DepthMaskShader)
-                        {
-                            renderer.enabled = false;
-                            renderer.gameObject.layer = 29;
-                        }
-                    }
+                    EditorSetDepthMaskOff();
                 }
                 else
                 {
@@ -236,7 +247,29 @@ namespace JSIAdvTransparentPods
                 }
             }
         }
-        
+
+        private void EditorSetDepthMaskOff()
+        {
+            //For some reason we need to keep turning off the Renderers with the DepthMask Shader.. 
+            if (part.internalModel != null)
+            {
+                MeshRenderer[] meshRenderers = base.GetComponentsInChildren<MeshRenderer>();
+                for (int i = 0; i < meshRenderers.Length; i++)
+                {
+                    MeshRenderer meshRenderer = meshRenderers[i];
+                    if (meshRenderer.material.shader == DepthMaskShader)
+                        meshRenderer.enabled = false;
+                }
+                SkinnedMeshRenderer[] skinnedMeshRenderers = base.GetComponentsInChildren<SkinnedMeshRenderer>();
+                for (int j = 0; j < skinnedMeshRenderers.Length; j++)
+                {
+                    SkinnedMeshRenderer skinnedMeshRenderer = skinnedMeshRenderers[j];
+                    if (skinnedMeshRenderer.material.shader == DepthMaskShader)
+                        skinnedMeshRenderer.enabled = false;
+                }
+            }
+        }
+
         public void LateUpdate()
         {
             if (Time.timeSinceLevelLoad < 2f) return;
@@ -263,19 +296,7 @@ namespace JSIAdvTransparentPods
                         part.internalModel.SetVisible(true);
                     setVisible = true;
                 }
-                //For some reason we need to keep turning off the Renderers with the DepthMask Shader.. Because setting the 
-                //activated.
-                if (part.internalModel != null)
-                {
-                    foreach (Renderer renderer in part.internalModel.GetComponentsInChildren<Renderer>(true))
-                    {
-                        if (renderer.material.shader == DepthMaskShader)
-                        {
-                            renderer.enabled = false;
-                            renderer.gameObject.layer = 29;
-                        }
-                    }
-                }
+                EditorSetDepthMaskOff();
             }
 
             //In flight logic.
@@ -284,7 +305,7 @@ namespace JSIAdvTransparentPods
             // We turn it off rather than registering it for the PreCull list because if Stock Overlay is on the JSI camera is not active.
             if (HighLogic.LoadedSceneIsFlight && CameraManager.Instance != null && InternalSpace.Instance != null)
             {
-                if (!vessel.isActiveVessel && (JSIAdvTransparentPods.Instance.StockOverlayCamIsOn || LoadGlobals.settings.LoadedInactive))
+                if (!vessel.isActiveVessel && (JSIAdvTransparentPods.Instance.StockOverlayCamIsOn || !LoadGlobals.settings.LoadedInactive))
                 {
                     if (part.internalModel != null)
                         part.internalModel.SetVisible(false);
@@ -314,38 +335,46 @@ namespace JSIAdvTransparentPods
         
         private void ResetIVA()
         {
-            if (HighLogic.LoadedSceneIsFlight)
+            try
             {
-                JSIAdvTPodsUtil.Log_Debug("Need to reset IVA in part {0}", part.craftID);
-
-                // Now the cruical bit.
-                // If the root part changed, we actually need to recreate the IVA forcibly even if it still exists.
-                if (vessel.rootPart != knownRootPart)
+                if (HighLogic.LoadedSceneIsFlight)
                 {
-                    // In this case we also need to kick the user out of IVA if they're currently in our pod,
-                    // otherwise lots of things screw up in a bizarre fashion.
-                    if (JSIAdvTPodsUtil.UserIsInPod(part))
-                    {
-                        JSIAdvTPodsUtil.Log_Debug("The user is in pod {0} and I need to kick them out.", part.partName);
-                        CameraManager.Instance.SetCameraFlight();
-                    }
-                    // This call not just reinitialises the IVA, but also destroys the existing one, if any,
-                    // and reloads all the props and modules.
-                    JSIAdvTPodsUtil.Log_Debug("Need to actually respawn the IVA model in part {0}", part.partName);
-                    //part.CreateInternalModel(); - SpawIVA does this already on the next line.
-                }
-                // But otherwise the existing one will serve.
+                    JSIAdvTPodsUtil.Log_Debug("Need to reset IVA in part {0}({1})", part.name, part.craftID);
 
-                // If the internal model doesn't yet exist, this call will implicitly create it anyway.
-                // It will also initialise it, which in this case implies moving it into the correct location in internal space
-                // and populate it with crew, which is what we want.
-                part.SpawnIVA();
-                part.internalModel.SetVisible(true);
-                setVisible = true;
-                // And then we remember the root part and the active vessel these coordinates refer to.
-                knownRootPart = vessel.rootPart;
-                lastActiveVessel = FlightGlobals.ActiveVessel;
+                    // Now the cruical bit.
+                    // If the root part changed, we actually need to recreate the IVA forcibly even if it still exists.
+                    if (vessel.rootPart != knownRootPart)
+                    {
+                        // In this case we also need to kick the user out of IVA if they're currently in our pod,
+                        // otherwise lots of things screw up in a bizarre fashion.
+                        if (JSIAdvTPodsUtil.UserIsInPod(part))
+                        {
+                            JSIAdvTPodsUtil.Log_Debug("The user is in pod {0} and I need to kick them out.", part.partName);
+                            CameraManager.Instance.SetCameraFlight();
+                        }
+                        // This call not just reinitialises the IVA, but also destroys the existing one, if any,
+                        // and reloads all the props and modules.
+                        JSIAdvTPodsUtil.Log_Debug("Need to actually respawn the IVA model in part {0}", part.partName);
+                        //part.CreateInternalModel(); - SpawIVA does this already on the next line.
+                    }
+                    // But otherwise the existing one will serve.
+
+                    // If the internal model doesn't yet exist, this call will implicitly create it anyway.
+                    // It will also initialise it, which in this case implies moving it into the correct location in internal space
+                    // and populate it with crew, which is what we want.
+                    part.SpawnIVA();
+                    part.internalModel.SetVisible(true);
+                    setVisible = true;
+                    // And then we remember the root part and the active vessel these coordinates refer to.
+                    knownRootPart = vessel.rootPart;
+                    lastActiveVessel = FlightGlobals.ActiveVessel;
+                }
             }
+            catch (Exception ex)
+            {
+                JSIAdvTPodsUtil.Log_Debug("Reset IVA failed: {0}", ex); 
+            }
+            
         }
 
         public void CheckStowaways()
@@ -353,11 +382,11 @@ namespace JSIAdvTransparentPods
             // Now we need to make sure that the list of portraits in the GUI conforms to what actually is in the active vessel.
             // This is important because IVA/EVA buttons clicked on kerbals that are not in the active vessel cause problems
             // that I can't readily debug, and it shouldn't happen anyway.
-
-            // Only the pods that are not the active vessel should be doing this. So if this part/vessel is not part of the active vessel then:-
-            //Search the seats and where there is a kerbalRef try to Unregister them from the PortraitGallery.
+            
             if (part.internalModel != null)
             {
+                // Only the pods that are not the active vessel should be doing this. So if this part/vessel is not part of the active vessel then:-
+                //Search the seats and where there is a kerbalRef try to Unregister them from the PortraitGallery.
                 if (FlightGlobals.ActiveVessel.id != vessel.id)
                 {
                     foreach (InternalSeat seat in part.internalModel.seats)
@@ -366,40 +395,16 @@ namespace JSIAdvTransparentPods
                         {
                             try
                             {
-                                seat.kerbalRef.SetVisibleInPortrait(false);
-                                KerbalPortraitGallery.Instance.UnregisterActiveCrew(seat.kerbalRef);
+                                Portraits.DestroyPortrait(seat.kerbalRef);
                             }
                             catch (Exception)
                             {
                                 JSIAdvTPodsUtil.Log_Debug("Unregister Portrait on inactive part failed {0}", seat.kerbalRef.crewMemberName);
                             }
-
                         }
                     }
-                }
-                else
-                {
-                    foreach (InternalSeat seat in part.internalModel.seats)
-                    {
-                        if (seat.kerbalRef != null)
-                        {
-                            try
-                            {
-                                seat.kerbalRef.SetVisibleInPortrait(true);
-                                //KerbalPortraitGallery.Instance.UnregisterActiveCrew(seat.kerbalRef);
-                                //KerbalPortraitGallery.Instance.RegisterActiveCrew(seat.kerbalRef);
-                            }
-                            catch (Exception)
-                            {
-                                JSIAdvTPodsUtil.Log_Debug("Register Portrait on inactive part failed {0}", seat.kerbalRef.crewMemberName);
-                            }
-
-                        }
-                    }
-
                 }
             }
-            
         }
 
         public override void OnUpdate()

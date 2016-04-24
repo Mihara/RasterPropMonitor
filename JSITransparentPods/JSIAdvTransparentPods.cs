@@ -72,7 +72,7 @@ namespace JSIAdvTransparentPods
                 JSIAdvTPodsUtil.Log_Debug("From: {0} ({1})" , oldvessel.vesselName , oldvessel.id);
             if (newvessel != null)
                 JSIAdvTPodsUtil.Log_Debug("To: {0} ({1}) " , newvessel.vesselName , newvessel.id);
-            CheckStowaways();  
+            //CheckStowaways();  
         }
         
         public void Update()
@@ -217,39 +217,10 @@ namespace JSIAdvTransparentPods
             }
         }
 
-        //This will Unregister all crew on all active/loaded vessels. As there is no PUBLIC access anymore to the portraits list.
-        //Kludgy, slow, horrendous. But no other choice. This is only done ONVesselChange and OnVesselSwitch.
+        //This will Re-Register all crew on the Active vessel. As there is no PUBLIC access anymore to the portraits list.
+        //It is called when Gaemevents Onvesselchange and Onvesselswitch occur.
         public void CheckStowaways()
         {
-            /*
-            List <ProtoCrewMember> vslcrew = new List<ProtoCrewMember>();
-            //First we do all loaded vessels that are NOT active vessel.
-            foreach (
-                    Vessel fgVessel in
-                        FlightGlobals.Vessels.Where(p => p.loaded && p.isActiveVessel == false))
-                {
-                    try
-                    {
-                        vslcrew.AddRange(fgVessel.GetVesselCrew());
-                    }
-                    catch (Exception)
-                    {
-                        JSIAdvTPodsUtil.Log_Debug("Failed to build VesselCrew list in CheckStowaways");
-                    }
-                    
-                }
-            foreach (ProtoCrewMember crewmbr in vslcrew)
-            {
-                try
-                {
-                    crewmbr.KerbalRef.SetVisibleInPortrait(false);
-                    KerbalPortraitGallery.Instance.UnregisterActiveCrew(crewmbr.KerbalRef);
-                }
-                catch (Exception)
-                {
-                    JSIAdvTPodsUtil.Log_Debug("Failed to UnregisterActiveCrew from PortraitGallery : {0}" , crewmbr.name);
-                }
-            }*/
             //Now we do the Activevessel - but we also REGISTER the activevessel crew back to the PortraitGallery.
             if (FlightGlobals.ActiveVessel != null)
             {
@@ -257,9 +228,16 @@ namespace JSIAdvTransparentPods
                 {
                     try
                     {
-                        crewmbr.KerbalRef.SetVisibleInPortrait(true);
-                        KerbalPortraitGallery.Instance.UnregisterActiveCrew(crewmbr.KerbalRef);
-                        KerbalPortraitGallery.Instance.RegisterActiveCrew(crewmbr.KerbalRef);
+                        //DeepFreeze compatibility. We DON'T re-register them if they are DEAD and UNKNOWN status.
+                        if (crewmbr.rosterStatus != ProtoCrewMember.RosterStatus.Dead &&
+                            crewmbr.type != ProtoCrewMember.KerbalType.Unowned)
+                        {
+                            crewmbr.KerbalRef.SetVisibleInPortrait(true);
+                            if (Portraits.PortraitList.FirstOrDefault(a => a.crewMember == crewmbr.KerbalRef) == null)
+                            {
+                                KerbalPortraitGallery.Instance.RegisterActiveCrew(crewmbr.KerbalRef);
+                            }
+                        }
                     }
                     catch (Exception)
                     {
