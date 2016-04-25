@@ -58,6 +58,10 @@ namespace JSI
         private static readonly DynamicFuncDouble GetCurrentThrottle;
         private static readonly DynamicMethodDelegate SetThrottle;
 
+        // Speed reference
+        private static readonly FieldInfo speedRef_t;
+        private static readonly DynamicMethodDelegate SetSpeedRef;
+
         static JSIPilotAssistant()
         {
             try
@@ -166,6 +170,22 @@ namespace JSI
                     throw new NotImplementedException("setThrottle_t");
                 }
                 SetThrottle = DynamicMethodDelegateFactory.Create(setThrottle_t);
+
+                speedRef_t = paPilotAssistant_t.GetField("speedRef", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (speedRef_t == null)
+                {
+                    throw new NotImplementedException("PA speedRef_t");
+                }
+                else
+                {
+                    JUtil.LogErrorMessage(null, "Pilot Assistant speedRef is visible (this is not an error)");
+                }
+                MethodInfo changeSpeedRef_t = paPilotAssistant_t.GetMethod("ChangeSpeedRef", BindingFlags.Instance | BindingFlags.Public);
+                if (changeSpeedRef_t == null)
+                {
+                    throw new NotImplementedException("PA changeSpeedRef_t");
+                }
+                SetSpeedRef = DynamicMethodDelegateFactory.Create(changeSpeedRef_t);
             }
             catch (Exception e)
             {
@@ -206,6 +226,14 @@ namespace JSI
             Direct = 0,
             Acceleration = 1,
             Speed = 2
+        }
+
+        private enum SpeedRef
+        {
+            True,
+            Indicated,
+            Equivalent,
+            Mach
         }
 
         private object GetPilotAssistant()
@@ -765,5 +793,67 @@ namespace JSI
             }
             return 0.0;
         }
+
+        //--- Throttle control modes -----------------------------------------
+        public void ChangeSpeedRef(double mode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            SpeedRef speedRef;
+            switch ((int)mode)
+            {
+                case 0:
+                    speedRef = SpeedRef.True;
+                    break;
+                case 1:
+                    speedRef = SpeedRef.Indicated;
+                    break;
+                case 2:
+                    speedRef = SpeedRef.Equivalent;
+                    break;
+                case 3:
+                    speedRef = SpeedRef.Mach;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetSpeedRef(pilotAssistant, new object[] { speedRef });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "ChangeSpeedRef: {0}", e);
+            }
+        }
+
+        public double GetSpeedRef()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object speedRef = speedRef_t.GetValue(pilotAssistant);
+
+                int sr = (int)speedRef;
+                return (double)sr;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetSpeedRef: {0}", e);
+            }
+            return 0.0;
+        }
+
     }
 }
