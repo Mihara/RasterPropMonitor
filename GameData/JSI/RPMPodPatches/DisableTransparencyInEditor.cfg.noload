@@ -1,7 +1,0 @@
-@PART[*]:HAS[@MODULE[JSITransparentPod]],REQUIRES[RasterPropMonitor]
-{
-   @MODULE[JSITransparentPod]
-   {
-      %disableLoadingInEditor = true
-   }
-}
