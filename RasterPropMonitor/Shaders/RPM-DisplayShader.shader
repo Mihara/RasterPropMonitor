@@ -1,32 +1,32 @@
 ﻿
-Shader "RPM/DisplayShader" 
+Shader "RPM/DisplayShader"
 {
-	Properties 
-	{ 
+	Properties
+	{
 		_MainTex ("Texture", 2D) = "white" {}
 		_Opacity("_Opacity", Range(0,1) ) = 1
 		_Color ("_Color", Color) = (1,1,1,1)
-	} 
+	}
 
 	SubShader {
 
-		Tags { "RenderType"="Overlay" "Queue" = "Transparent" } 
+		Tags { "RenderType"="Overlay" "Queue" = "Transparent" }
 
 		// Premultiplied Alpha shader for rendering/coloring textures.
-		
-		Lighting Off 
-		Blend One OneMinusSrcAlpha 
-		Cull Back 
-		Fog { Mode Off } 
-		ZWrite Off 
-		ZTest Always 
-		
-		Pass {	
+
+		Lighting Off
+		Blend One OneMinusSrcAlpha
+		Cull Back
+		Fog { Mode Off }
+		ZWrite Off
+		ZTest Always
+
+		Pass {
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma target 3.0
-			#pragma only_renderers d3d9 d3d11 opengl d3d11_9x
+			#pragma glsl
 
 			#include "UnityCG.cginc"
 
@@ -45,7 +45,7 @@ Shader "RPM/DisplayShader"
 			uniform float4 _MainTex_ST;
 			uniform float4 _Color;
 			uniform float _Opacity;
-			
+
 			v2f vert (appdata_t v)
 			{
 				v2f o;
@@ -61,9 +61,9 @@ Shader "RPM/DisplayShader"
 				diffuse.rgb = (diffuse.rgb * _Color.rgb) * diffuse.a;
 				return diffuse;
 			}
-			ENDCG 
+			ENDCG
 		}
-	} 	
-	
-	Fallback off 
+	}
+
+	Fallback off
 }

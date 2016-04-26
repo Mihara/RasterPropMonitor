@@ -30,7 +30,7 @@ namespace JSI
     /// </summary>
     public class IJSIModule : Object
     {
-        internal static Vessel vessel;
+        internal Vessel vessel;
 
         public delegate object DynamicMethodDelegate(object instance, object[] args);
 

@@ -127,16 +127,16 @@ namespace JSI
         /// <param name="state">"true" for on, "false" for off</param>
         public void ButtonEnableEngines(bool state)
         {
-            foreach (Part thatPart in vessel.parts)
+            for (int i = 0; i < vessel.parts.Count; ++i)
             {
                 // We accept "state == false" to allow engines that are
                 // activated outside of the current staging to be shut off by
                 // this function.
-                if (thatPart.inverseStage == Staging.CurrentStage || !state)
+                if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
                 {
-                    foreach (PartModule pm in thatPart.Modules)
+                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
                     {
-                        var engine = pm as ModuleEngines;
+                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
                         if (engine != null && engine.EngineIgnited != state)
                         {
                             if (state && engine.allowRestart)
@@ -161,11 +161,11 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (Part thatPart in vessel.parts)
+                for (int i = 0; i < vessel.parts.Count; ++i)
                 {
-                    foreach (PartModule pm in thatPart.Modules)
+                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
                     {
-                        var engine = pm as ModuleEngines;
+                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
                         if (engine != null && engine.allowShutdown && engine.getIgnitionState)
                         {
                             // early out: at least one engine is enabled.
@@ -700,21 +700,29 @@ namespace JSI
         /// <returns></returns>
         public bool DockDocked()
         {
-            if (vessel == null)
+            try
             {
-                return false;
-            }
+                if (vessel == null)
+                {
+                    return false;
+                }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
+                ModuleDockingNode node = InferDockingNode(vessel);
+                if (node != null)
+                {
+                    // Urk.  No enums or numerics to test state...
+                    return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+            catch (Exception e)
             {
-                return false;
+                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
             }
+            return false;
         }
 
         /// <summary>
@@ -723,21 +731,29 @@ namespace JSI
         /// <returns></returns>
         public bool DockReady()
         {
-            if (vessel == null)
+            try
             {
-                return false;
-            }
+                if (vessel == null)
+                {
+                    return false;
+                }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (node.state == "Ready");
+                ModuleDockingNode node = InferDockingNode(vessel);
+                if (node != null)
+                {
+                    // Urk.  No enums or numerics to test state...
+                    return (node.state == "Ready");
+                }
+                else
+                {
+                    return false;
+                }
             }
-            else
+            catch (Exception e)
             {
-                return false;
+                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
             }
+            return false;
         }
 
         /// <summary>
@@ -995,13 +1011,21 @@ namespace JSI
                 launchId = compPart.launchID;
             }
 
+            ModuleDockingNode node = null;
             Part referencePart = vessel.GetReferenceTransformPart();
-            ModuleDockingNode node = referencePart.FindModuleImplementing<ModuleDockingNode>();
-            if (node != null)
+            if (referencePart != null)
             {
-                //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
-                // The current reference part is a docking node.
-                return node;
+                node = referencePart.FindModuleImplementing<ModuleDockingNode>();
+                if (node != null)
+                {
+                    //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
+                    // The current reference part is a docking node.
+                    return node;
+                }
+            }
+            else
+            {
+                JUtil.LogErrorMessage(vessel, "referencePart is null?");
             }
 
             for (int i = 0; i < vessel.parts.Count; ++i)
@@ -1030,27 +1054,27 @@ namespace JSI
         /// <returns></returns>
         private static System.Collections.Generic.IEnumerable<PartModule> ElectricGenerators(Vessel vessel)
         {
-            foreach (Part part in vessel.Parts)
+            for (int partID = 0; partID < vessel.Parts.Count; ++partID)
             {
-                foreach (PartModule pm in part.Modules)
+                for (int moduleID = 0; moduleID < vessel.Parts[partID].Modules.Count; ++moduleID)
                 {
-                    if (pm is ModuleGenerator)
+                    if (vessel.Parts[partID].Modules[moduleID] is ModuleGenerator)
                     {
-                        ModuleGenerator gen = pm as ModuleGenerator;
+                        ModuleGenerator gen = vessel.Parts[partID].Modules[moduleID] as ModuleGenerator;
                         if (gen.isAlwaysActive == false)
                         {
                             for (int i = 0; i < gen.outputList.Count; ++i)
                             {
                                 if (gen.outputList[i].name == "ElectricCharge")
                                 {
-                                    yield return pm;
+                                    yield return vessel.Parts[partID].Modules[moduleID];
                                 }
                             }
                         }
                     }
-                    else if (pm is ModuleResourceConverter)
+                    else if (vessel.Parts[partID].Modules[moduleID] is ModuleResourceConverter)
                     {
-                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
+                        ModuleResourceConverter gen = vessel.Parts[partID].Modules[moduleID] as ModuleResourceConverter;
                         if (gen.AlwaysActive == false)
                         {
                             ConversionRecipe recipe = gen.Recipe;
@@ -1058,7 +1082,7 @@ namespace JSI
                             {
                                 if (recipe.Outputs[i].ResourceName == "ElectricCharge")
                                 {
-                                    yield return pm;
+                                    yield return vessel.Parts[partID].Modules[moduleID];
                                 }
                             }
                         }

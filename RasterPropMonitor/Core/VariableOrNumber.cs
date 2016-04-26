@@ -232,7 +232,6 @@ namespace JSI
         /// variable is in range.
         /// </summary>
         /// <param name="comp"></param>
-        /// <param name="persistence"></param>
         /// <returns></returns>
         public bool IsInRange(RPMVesselComputer comp)
         {
@@ -240,6 +239,31 @@ namespace JSI
             float low, high;
 
             if(!(sourceValue.Get(out value, comp) && lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
+            {
+                return false;
+            }
+            else if (high < low)
+            {
+                return (value >= high && value <= low);
+            }
+            else
+            {
+                return (value >= low && value <= high);
+            }
+        }
+
+        /// <summary>
+        /// Provides a simple boolean true/false for whether the named
+        /// variable is in range.
+        /// </summary>
+        /// <param name="comp"></param>
+        /// <param name="value">The value to test (provided externally)</param>
+        /// <returns></returns>
+        public bool IsInRange(RPMVesselComputer comp, float value)
+        {
+            float low, high;
+
+            if (!(lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
             {
                 return false;
             }

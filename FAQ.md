@@ -1,8 +1,10 @@
 # Frequently Asked Questions about RasterPropMonitor
 
-### It doesn't work
+### It doesn't work!
 
-For mod support problems, I strongly recommend you look at the [KSP forum post](http://forum.kerbalspaceprogram.com/index.php?/topic/83212-how-to-get-support-read-first/) on getting support for mods.
+Did you install using CKAN?  It has incorrectly installed this mod in the past.  Uninstall RasterPropMonitor through CKAN and install this mod manually.
+
+If that doesn't work, I strongly recommend you look at the [KSP forum post](http://forum.kerbalspaceprogram.com/index.php?/topic/83212-how-to-get-support-read-first/) on getting support for mods.
 
 ### Can you add support for (insert favorite mod's name here)?
 

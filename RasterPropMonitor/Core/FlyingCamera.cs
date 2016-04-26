@@ -211,6 +211,17 @@ namespace JSI
                 cameraObject[index].enabled = false;
                 cameraObject[index].targetTexture = screenTexture;
                 cameraObject[index].aspect = cameraAspect;
+
+                // Minor hack to bring the near clip plane for the "up close"
+                // cameras drastically closer to where the cameras notionally
+                // are.  Experimentally, these two cameras have N/F of 0.4 / 300.0,
+                // or 750:1 Far/Near ratio.  Changing this to 8192:1 brings the
+                // near plane to 37cm or so, which hopefully is close enough to
+                // see nearby details without creating z-fighting artifacts.
+                if(index == 5 || index == 6)
+                {
+                    cameraObject[index].nearClipPlane = cameraObject[index].farClipPlane / 8192.0f;
+                }
             }
         }
 

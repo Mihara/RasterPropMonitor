@@ -28,12 +28,9 @@ namespace JSI
     {
         // The only public configuration variable.
         [KSPField]
-        public bool debugLogging = false;
-
-        // The OTHER public configuration variable.
-        [KSPField]
         public string storedStrings = string.Empty;
 
+        // The OTHER public configuration variable.
         [KSPField]
         public string triggeredEvents = string.Empty;
 
@@ -87,16 +84,8 @@ namespace JSI
             return JUtil.WordWrap(vesselDescriptionForDisplay.UnMangleConfigText(), screenWidth);
         }
 
-
         public void Start()
         {
-            JUtil.LogMessage(this, "Setting RasterPropMonitor debugging to {0}", debugLogging);
-            if (debugLogging)
-            {
-                // Allow opt-in; do not allow it to be shut off if someone wanted it on.
-                JUtil.debugLoggingEnabled = debugLogging;
-            }
-
             if (!HighLogic.LoadedSceneIsEditor)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
@@ -116,7 +105,8 @@ namespace JSI
                     }
                 }
                 vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
-                if (string.IsNullOrEmpty(vesselDescriptionForDisplay)) {
+                if (string.IsNullOrEmpty(vesselDescriptionForDisplay))
+                {
                     vesselDescriptionForDisplay = " "; // Workaround for issue #466.
                 }
 

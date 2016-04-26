@@ -1,34 +1,34 @@
 ﻿
-Shader "RPM/CroppedDisplayShader" 
+Shader "RPM/CroppedDisplayShader"
 {
-	Properties 
-	{ 
+	Properties
+	{
 		_MainTex ("Texture", 2D) = "white" {}
 		_Opacity("_Opacity", Range(0,1) ) = 1
 		_Color ("_Color", Color) = (1,1,1,1)
 		_CropBound ("_CropBound", Vector) = (-1,-1,1,1)
-	} 
+	}
 
 	SubShader {
 
-		Tags { "RenderType"="Overlay" "Queue" = "Transparent" } 
+		Tags { "RenderType"="Overlay" "Queue" = "Transparent" }
 
 		// Premultiplied Alpha shader for rendering/coloring textures.
 		// Includes cropping values in normalized device coordinates
-		
-		Lighting Off 
-		Blend One OneMinusSrcAlpha 
-		Cull Back 
-		Fog { Mode Off } 
-		ZWrite Off 
-		ZTest Always 
-		
-		Pass {	
+
+		Lighting Off
+		Blend One OneMinusSrcAlpha
+		Cull Back
+		Fog { Mode Off }
+		ZWrite Off
+		ZTest Always
+
+		Pass {
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma target 3.0
-			#pragma only_renderers d3d9 d3d11 opengl d3d11_9x
+			#pragma glsl
 
 			#include "UnityCG.cginc"
 
@@ -52,7 +52,7 @@ Shader "RPM/CroppedDisplayShader"
 			uniform float4 _CropBound;
 			// Overall opacity scalar
 			uniform float _Opacity;
-			
+
 			v2f vert (appdata_t v)
 			{
 				v2f o;
@@ -77,9 +77,9 @@ Shader "RPM/CroppedDisplayShader"
 					return diffuse;
 				}
 			}
-			ENDCG 
+			ENDCG
 		}
-	} 	
-	
-	Fallback off 
+	}
+
+	Fallback off
 }

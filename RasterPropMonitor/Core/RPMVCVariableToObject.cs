@@ -78,19 +78,20 @@ namespace JSI
                     {
                         string[] toks = variable.Split('_');
                         ushort resourceID = Convert.ToUInt16(toks[1]);
+                        string resourceName = resources.GetActiveResourceByIndex(resourceID);
                         if (toks[2] == "NAME")
                         {
-                            return resourceID >= resourcesAlphabetic.Length ? string.Empty : resourcesAlphabetic[resourceID];
+                            return resourceName;
                         }
-                        if (resourceID >= resourcesAlphabetic.Length)
+                        if (string.IsNullOrEmpty(resourceName))
                         {
                             return 0d;
                         }
                         else
                         {
                             return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
-                                resources.ListElement(resourcesAlphabetic[resourceID], toks[2].Substring("STAGE".Length), true) :
-                                resources.ListElement(resourcesAlphabetic[resourceID], toks[2], false);
+                                resources.ListElement(resourceName, toks[2].Substring("STAGE".Length), true) :
+                                resources.ListElement(resourceName, toks[2], false);
                         }
                     };
                 }
@@ -1850,6 +1851,15 @@ namespace JSI
 
                 case "MECHJEBAVAILABLE":
                     return MechJebAvailable();
+
+                case "TIMEWARPPHYSICS":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f && TimeWarp.WarpMode == TimeWarp.Modes.LOW).GetHashCode(); };
+                case "TIMEWARPNONPHYSICS":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f && TimeWarp.WarpMode == TimeWarp.Modes.HIGH).GetHashCode(); };
+                case "TIMEWARPACTIVE":
+                    return (string variable) => { return (TimeWarp.CurrentRate > 1.0f).GetHashCode(); };
+                case "TIMEWARPCURRENT":
+                    return (string variable) => { return TimeWarp.CurrentRate; };
 
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":

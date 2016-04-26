@@ -1,4 +1,5 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
+//#define SHOW_VARIABLE_QUERY_COUNTER
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -28,15 +29,10 @@ using KSP.UI.Screens.Flight;
 
 // MOARdV TODO:
 // Add callbacks for docking, undocking, staging, vessel switching
-// ? GameEvents.onJointBreak
 // + GameEvents.onUndock
 // ? GameEvents.onSameVesselDock
 // ? GameEvents.onSameVesselUndock
-// + GameEvents.onPartCouple
-// + GameEvents.onStageActivate
 // ? GameEvents.onStageSeparation
-// + GameEvents.onVesselChange
-// ? GameEvents.OnVesselModified
 //
 // ? GameEvents.onCrewOnEva
 // ? GameEvents.onCrewTransferred
@@ -59,7 +55,6 @@ namespace JSI
         private static List<string> knownLoadedAssemblies;
         private static SortedDictionary<string, string> systemNamedResources;
         private static List<TriggeredEventTemplate> triggeredEvents;
-        private static List<IJSIModule> installedModules;
 
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
         private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
@@ -78,7 +73,7 @@ namespace JSI
             BaseAction.GetGroupIndex(KSPActionGroup.Custom08),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom09)
         };
-        private readonly string[] actionGroupMemo = {
+        private static readonly string[] actionGroupMemo = {
             "AG0",
             "AG1",
             "AG2",
@@ -126,9 +121,13 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
+#if SHOW_VARIABLE_QUERY_COUNTER
         private int debug_varsProcessed = 0;
+        private long debug_totalVars = 0;
+#endif
 
         // Processing cache!
+        private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private uint masterSerialNumber = 0u;
@@ -270,7 +269,6 @@ namespace JSI
         private float localGeeDirect;
         private bool orbitSensibility;
         private ResourceDataStorage resources = new ResourceDataStorage();
-        private string[] resourcesAlphabetic = null;
         private float slopeAngle;
         private double speedHorizontal;
         private double speedVertical;
@@ -287,6 +285,9 @@ namespace JSI
         private List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
         private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
+
+        private Dictionary<string, List<Action<RPMVesselComputer, float>>> onChangeCallbacks = new Dictionary<string, List<Action<RPMVesselComputer, float>>>();
+        private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
 
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom, terrainDelta;
@@ -314,11 +315,37 @@ namespace JSI
         private float approachSpeed;
         private Quaternion targetOrientation;
 
+        private bool pendingUndocking = false; // Used for a hack-ish way of updating RPMVC after an undock
+
         // Diagnostics
+        private bool debug_showVariableCallCount = false;
+        private int debug_fixedUpdates = 0;
+        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
 #if SHOW_FIXEDUPDATE_TIMING
         private Stopwatch stopwatch = new Stopwatch();
 #endif
         #endregion
+
+        /// <summary>
+        /// Attempt to get a vessel computer from the instances dictionary.
+        /// For this case, do not fail if it is not found.
+        /// </summary>
+        /// <param name="v">Vessel for which we want an instance</param>
+        /// <param name="comp">[out] The RPMVesselComputer, untouched if this method returns false.</param>
+        /// <returns>true if the vessel has a computer, false otherwise</returns>
+        public static bool TryGetInstance(Vessel v, ref RPMVesselComputer comp)
+        {
+            if (instances != null && v != null)
+            {
+                if (instances.ContainsKey(v.id))
+                {
+                    comp = instances[v.id];
+                    return (comp != null);
+                }
+            }
+
+            return false;
+        }
 
         /// <summary>
         /// Fetch the RPMVesselComputer corresponding to the vessel.  Throws an
@@ -341,6 +368,11 @@ namespace JSI
                 RPMVesselComputer comp = v.GetComponent<RPMVesselComputer>();
                 if (comp == null)
                 {
+                    foreach (var val in instances.Keys)
+                    {
+                        JUtil.LogMessage(null, "Known Vessel {0}", val);
+                    }
+
                     throw new Exception("RPMVesselComputer.Instance called with an unrecognized vessel, and I can't find one on the vessel.");
                 }
 
@@ -348,6 +380,69 @@ namespace JSI
             }
 
             return instances[v.id];
+        }
+
+        /// <summary>
+        /// Register a callback to receive notifications when a variable has changed.
+        /// Used to prevent polling of low-frequency, high-utilization variables.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void RegisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
+        {
+            //JUtil.LogMessage(this, "RegisterCallback for {0}", variableName);
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                onChangeCallbacks[variableName].Add(cb);
+            }
+            else
+            {
+                var callbackList = new List<Action<RPMVesselComputer, float>>();
+                callbackList.Add(cb);
+                onChangeCallbacks[variableName] = callbackList;
+                onChangeValue[variableName] = float.MaxValue;
+            }
+        }
+
+        /// <summary>
+        /// Unregister a callback for receiving variable update notifications.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void UnregisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
+        {
+            //JUtil.LogMessage(this, "UnegisterCallback for {0}", variableName);
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                try
+                {
+                    onChangeCallbacks[variableName].Remove(cb);
+                    //JUtil.LogMessage(this, "...success");
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Merge the persistent variable dictionaries of two RPMVesselComputers.
+        /// This allows persistents from two vessels to be shared on docking.
+        /// </summary>
+        /// <param name="otherComp"></param>
+        private void MergePersistents(RPMVesselComputer otherComp)
+        {
+            foreach (var key in otherComp.persistentVars)
+            {
+                if (!persistentVars.ContainsKey(key.Key))
+                {
+                    persistentVars.Add(key.Key, key.Value);
+                }
+            }
+
+            // Copy the dictionary
+            otherComp.persistentVars = new Dictionary<string, object>(persistentVars);
         }
 
         #region VesselModule Overrides
@@ -367,7 +462,6 @@ namespace JSI
                 {
                     persistentVars.Clear();
 
-                    JUtil.LogMessage(this, "Found RPM_PERSISTENT_VARS");
                     for (int i = 0; i < pers.CountValues; ++i)
                     {
                         ConfigNode.Value val = pers.values[i];
@@ -424,10 +518,6 @@ namespace JSI
                         }
                     }
                 }
-                else
-                {
-                    JUtil.LogMessage(this, "-- no persistence data");
-                }
             }
             else
             {
@@ -475,10 +565,33 @@ namespace JSI
             {
                 throw new Exception("GameDatabase is not ready?");
             }
+
+            var rpmSettings = GameDatabase.Instance.GetConfigNodes("RasterPropMonitorSettings");
+            if (rpmSettings.Length > 0)
+            {
+                // Really, there should be only one
+                bool enableLogging = false;
+                if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
+                {
+                    JUtil.debugLoggingEnabled = enableLogging;
+                    JUtil.LogMessage(this, "Set debugLoggingEnabled to {0}", enableLogging);
+                }
+
+                if (rpmSettings[0].TryGetValue("ShowCallCount", ref debug_showVariableCallCount))
+                {
+                    // call count doesn't write anything if enableLogging is false
+                    debug_showVariableCallCount = debug_showVariableCallCount && enableLogging;
+                }
+            }
+
             if (instances == null)
             {
                 JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
+                if (rpmSettings.Length > 1)
+                {
+                    JUtil.LogInfo(this, "Multiple RasterPropMonitorSettings configs were found in this installation.  Please make sure you have installed this mod correctly.");
+                }
             }
 
             if (instances.ContainsKey(vessel.id))
@@ -491,11 +604,11 @@ namespace JSI
                 JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
 
-            GameEvents.onGameSceneLoadRequested.Add(LoadSceneCallback);
-            GameEvents.onVesselChange.Add(VesselChangeCallback);
-            GameEvents.onStageActivate.Add(StageActivateCallback);
-            GameEvents.onUndock.Add(UndockCallback);
-            GameEvents.onVesselWasModified.Add(VesselModifiedCallback);
+            GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
+            GameEvents.onVesselChange.Add(onVesselChange);
+            GameEvents.onVesselWasModified.Add(onVesselWasModified);
+            GameEvents.onPartCouple.Add(onPartCouple);
+            GameEvents.onPartUndock.Add(onPartUndock);
 
             if (knownLoadedAssemblies == null)
             {
@@ -615,18 +728,18 @@ namespace JSI
                 }
             }
 
-            if (installedModules == null)
+            installedModules.Add(new JSIParachute());
+            installedModules.Add(new JSIMechJeb());
+            installedModules.Add(new JSIInternalRPMButtons());
+            installedModules.Add(new JSIFAR());
+            installedModules.Add(new JSIKAC());
+            installedModules.Add(new JSIEngine());
+            installedModules.Add(new JSIPilotAssistant());
+            installedModules.Add(new JSIChatterer());
+            // Quick-and-dirty initialization.
+            for (int i = 0; i < installedModules.Count; ++i)
             {
-                installedModules = new List<IJSIModule>();
-
-                installedModules.Add(new JSIParachute());
-                installedModules.Add(new JSIMechJeb());
-                installedModules.Add(new JSIInternalRPMButtons());
-                installedModules.Add(new JSIFAR());
-                installedModules.Add(new JSIKAC());
-                installedModules.Add(new JSIEngine());
-                installedModules.Add(new JSIPilotAssistant());
-                installedModules.Add(new JSIChatterer());
+                installedModules[i].vessel = vessel;
             }
 
             if (triggeredEvents == null)
@@ -680,8 +793,6 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel))
             {
-                IJSIModule.vessel = vessel;
-
                 FetchPerPartData();
                 FetchAltitudes();
                 FetchVesselData();
@@ -696,12 +807,31 @@ namespace JSI
                 return;
             }
 
+#if SHOW_VARIABLE_QUERY_COUNTER
+            debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
+            JUtil.LogMessage(this, "{0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
+                debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates));
+#endif
+            if (debug_showVariableCallCount)
+            {
+                List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
+                l.AddRange(debug_callCount);
+                l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
+                    {
+                        return a.Value - b.Value;
+                    });
+                for (int i = 0; i < l.Count; ++i)
+                {
+                    JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
+                }
+            }
+
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
-            GameEvents.onGameSceneLoadRequested.Remove(LoadSceneCallback);
-            GameEvents.onVesselChange.Remove(VesselChangeCallback);
-            GameEvents.onStageActivate.Remove(StageActivateCallback);
-            GameEvents.onUndock.Remove(UndockCallback);
-            GameEvents.onVesselWasModified.Remove(VesselModifiedCallback);
+            GameEvents.onGameSceneLoadRequested.Remove(onGameSceneLoadRequested);
+            GameEvents.onVesselChange.Remove(onVesselChange);
+            GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+            GameEvents.onPartCouple.Remove(onPartCouple);
+            GameEvents.onPartUndock.Remove(onPartUndock);
 
             if (!instances.ContainsKey(vessel.id))
             {
@@ -710,6 +840,7 @@ namespace JSI
             else
             {
                 instances.Remove(vessel.id);
+                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
             resultCache.Clear();
@@ -727,7 +858,6 @@ namespace JSI
             targetBody = null;
 
             resources = null;
-            resourcesAlphabetic = null;
 
             vesselCrew.Clear();
             vesselCrewMedical.Clear();
@@ -751,9 +881,40 @@ namespace JSI
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
-                //JUtil.LogMessage(this, "--- FixedUpdate({0}): {1} vars processed since last FixedUpdate ---", vessel.id, debug_varsProcessed);
-                debug_varsProcessed = 0;
                 UpdateVariables();
+
+#if SHOW_VARIABLE_QUERY_COUNTER
+                int debug_callbacksProcessed = 0;
+                int debug_callbackQueriesMade = 0;
+#endif
+                foreach (var cbVal in onChangeCallbacks)
+                {
+                    float previousValue = onChangeValue[cbVal.Key];
+                    float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
+                    if (!Mathf.Approximately(newVal, previousValue))
+                    {
+                        for (int i = 0; i < cbVal.Value.Count; ++i)
+                        {
+#if SHOW_VARIABLE_QUERY_COUNTER
+                            ++debug_callbacksProcessed;
+#endif
+                            cbVal.Value[i](this, newVal);
+                        }
+
+                        onChangeValue[cbVal.Key] = newVal;
+                    }
+#if SHOW_VARIABLE_QUERY_COUNTER
+                    ++debug_callbackQueriesMade;
+#endif
+                }
+
+                ++debug_fixedUpdates;
+
+#if SHOW_VARIABLE_QUERY_COUNTER
+                debug_totalVars += debug_varsProcessed;
+                JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
+                debug_varsProcessed = 0;
+#endif
             }
         }
 
@@ -790,7 +951,6 @@ namespace JSI
                 resultCache.Clear();
                 ++masterSerialNumber;
 
-                IJSIModule.vessel = vessel;
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
@@ -827,25 +987,8 @@ namespace JSI
 
         private void DebugFunction()
         {
-            for (int pi = 0; pi < vessel.Parts.Count; ++pi)
-            {
-                for (int mi = 0; mi < vessel.Parts[pi].Modules.Count; ++mi)
-                {
-                    if (vessel.Parts[pi].Modules[mi] is ModuleScienceExperiment)
-                    {
-                        try
-                        {
-                            ModuleScienceExperiment mse = vessel.Parts[pi].Modules[mi] as ModuleScienceExperiment;
-                            JUtil.LogMessage(this, "ModuleScienceExperiment: id: {0}, action name: {1}", mse.experimentID, mse.experimentActionName);
-                            JUtil.LogMessage(this, "dataIsCollectable: {0}, experiment deployed: {1}, resettable: {2}", mse.dataIsCollectable, mse.Deployed, mse.resettable);
-                        }
-                        catch (Exception e)
-                        {
-                            JUtil.LogMessage(this, "Trapped an exception tyring to read ModuleScienceExperiment: {0}", e);
-                        }
-                    }
-                }
-            }
+            JUtil.LogMessage(this, "TimeWarp.CurrentRate = {0}, TimeWarp.WarpMode = {1}, TimeWarp.deltaTime = {2:0.000}",
+                TimeWarp.CurrentRate, TimeWarp.WarpMode, TimeWarp.deltaTime);
         }
         #endregion
 
@@ -893,7 +1036,13 @@ namespace JSI
                 }
             }
 
+#if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
+#endif
+            if (debug_showVariableCallCount)
+            {
+                debug_callCount[input] = debug_callCount[input] + 1;
+            }
 
             VariableCache vc = variableCache[input];
             if (vc != null)
@@ -1187,7 +1336,7 @@ namespace JSI
 
             anyEnginesOverheating = anyEnginesFlameout = false;
 
-            resources.StartLoop(Planetarium.GetUniversalTime());
+            resources.StartLoop();
 
             foreach (Part thatPart in vessel.parts)
             {
@@ -1212,85 +1361,83 @@ namespace JSI
                 }
                 totalResourceMass += thatPart.GetResourceMass();
 
-                foreach (PartModule pm in thatPart.Modules)
+                for (int moduleIdx = 0; moduleIdx < thatPart.Modules.Count; ++moduleIdx)
                 {
-                    if (!pm.isEnabled)
+                    if (thatPart.Modules[moduleIdx].isEnabled)
                     {
-                        continue;
+                        if (thatPart.Modules[moduleIdx] is ModuleEngines || thatPart.Modules[moduleIdx] is ModuleEnginesFX)
+                        {
+                            var thatEngineModule = thatPart.Modules[moduleIdx] as ModuleEngines;
+                            anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
+                            anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
+
+                            totalCurrentThrust += GetCurrentThrust(thatEngineModule);
+                            float maxThrust = GetMaximumThrust(thatEngineModule);
+                            totalRawMaximumThrust += maxThrust;
+                            maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
+                            totalLimitedMaximumThrust += maxThrust;
+                            float realIsp = GetRealIsp(thatEngineModule);
+                            if (realIsp > 0.0f)
+                            {
+                                averageIspContribution += maxThrust / realIsp;
+                            }
+
+                            foreach (Propellant thatResource in thatEngineModule.propellants)
+                            {
+                                resources.MarkPropellant(thatResource);
+                            }
+
+                            float minIsp, maxIsp;
+                            thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
+                            if (maxIsp > 0.0f)
+                            {
+                                maxIspContribution += maxThrust / maxIsp;
+                            }
+
+                            if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
+                            {
+                                hottestEngineTemperature = (float)thatPart.skinTemperature;
+                                hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
+                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                            }
+                            if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
+                            {
+                                hottestEngineTemperature = (float)thatPart.temperature;
+                                hottestEngineMaxTemperature = (float)thatPart.maxTemp;
+                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
+                            }
+                        }
+                        else if (thatPart.Modules[moduleIdx] is ModuleAblator)
+                        {
+                            var thatAblator = thatPart.Modules[moduleIdx] as ModuleAblator;
+
+                            // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
+                            // Although it seems odd that the skin temp quickly cools off after re-entry, while the
+                            // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
+                            // of 950K, while the interior eventually reached 345K after the ablator had cooled below
+                            // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
+                            // interior still held 323K.
+                            if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
+                            {
+                                hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
+                                heatShieldTemperature = (float)(thatPart.skinTemperature);
+                                heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
+                            }
+                        }
+                        //else if (pm is ModuleScienceExperiment)
+                        //{
+                        //    var thatExperiment = pm as ModuleScienceExperiment;
+                        //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
+                        //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
+                        //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
+                        //}
+                        //else if (pm is ModuleScienceContainer)
+                        //{
+                        //    var thatContainer = pm as ModuleScienceContainer;
+                        //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
+                        //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
+                        //}
                     }
-
-                    if (pm is ModuleEngines || pm is ModuleEnginesFX)
-                    {
-                        var thatEngineModule = pm as ModuleEngines;
-                        anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
-                        anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
-
-                        totalCurrentThrust += GetCurrentThrust(thatEngineModule);
-                        float maxThrust = GetMaximumThrust(thatEngineModule);
-                        totalRawMaximumThrust += maxThrust;
-                        maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
-                        totalLimitedMaximumThrust += maxThrust;
-                        float realIsp = GetRealIsp(thatEngineModule);
-                        if (realIsp > 0.0f)
-                        {
-                            averageIspContribution += maxThrust / realIsp;
-                        }
-
-                        foreach (Propellant thatResource in thatEngineModule.propellants)
-                        {
-                            resources.MarkPropellant(thatResource);
-                        }
-
-                        float minIsp, maxIsp;
-                        thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
-                        if (maxIsp > 0.0f)
-                        {
-                            maxIspContribution += maxThrust / maxIsp;
-                        }
-
-                        if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
-                        {
-                            hottestEngineTemperature = (float)thatPart.skinTemperature;
-                            hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
-                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                        }
-                        if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
-                        {
-                            hottestEngineTemperature = (float)thatPart.temperature;
-                            hottestEngineMaxTemperature = (float)thatPart.maxTemp;
-                            hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                        }
-                    }
-                    else if (pm is ModuleAblator)
-                    {
-                        var thatAblator = pm as ModuleAblator;
-
-                        // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
-                        // Although it seems odd that the skin temp quickly cools off after re-entry, while the
-                        // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
-                        // of 950K, while the interior eventually reached 345K after the ablator had cooled below
-                        // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
-                        // interior still held 323K.
-                        if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
-                        {
-                            hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
-                            heatShieldTemperature = (float)(thatPart.skinTemperature);
-                            heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
-                        }
-                    }
-                    //else if (pm is ModuleScienceExperiment)
-                    //{
-                    //    var thatExperiment = pm as ModuleScienceExperiment;
-                    //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
-                    //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
-                    //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
-                    //}
-                    //else if (pm is ModuleScienceContainer)
-                    //{
-                    //    var thatContainer = pm as ModuleScienceContainer;
-                    //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
-                    //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
-                    //}
                 }
 
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
@@ -1327,13 +1474,14 @@ namespace JSI
                 actualMaxIsp = 0.0f;
             }
 
-            resources.GetActiveResourceNames(ref resourcesAlphabetic);
-
             // We can use the stock routines to get at the per-stage resources.
-            foreach (Vessel.ActiveResource thatResource in vessel.GetActiveResources())
+            var activeResources = vessel.GetActiveResources();
+            for (int i = 0; i < activeResources.Count; ++i)
             {
-                resources.SetActive(thatResource);
+                resources.SetActive(activeResources[i]);
             }
+
+            resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
             // I seriously hope you don't have crew jumping in and out more than once per second.
@@ -2015,7 +2163,7 @@ namespace JSI
 
         //--- Callbacks for registered GameEvent
         #region GameEvent Callbacks
-        private void LoadSceneCallback(GameScenes data)
+        private void onGameSceneLoadRequested(GameScenes data)
         {
             //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
@@ -2027,57 +2175,76 @@ namespace JSI
                 systemNamedResources = null;
                 triggeredEvents = null;
 
-                IJSIModule.vessel = null;
-                installedModules = null;
-
                 VariableOrNumber.Clear();
             }
         }
 
-        private void PartCoupleCallback(GameEvents.FromToAction<Part, Part> action)
+        private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
         {
-            if (action.from.vessel == vessel || action.to.vessel == vessel)
+            if (action.from.vessel.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onPartCouple(), I am {0} ({1} and {2} are docking)", vessel.vesselName, action.from.vessel.vesselName, action.to.vessel.vesselName);
+                RPMVesselComputer otherComp = null;
+                if (TryGetInstance(action.to.vessel, ref otherComp))
+                {
+                    //JUtil.LogMessage(this, "onPartCouple(): Merging RPMVesselComputers");
+                    MergePersistents(otherComp);
+                }
                 timeToUpdate = true;
             }
         }
 
-        private void StageActivateCallback(int stage)
+        private void onPartUndock(Part p)
         {
-            if (JUtil.IsActiveVessel(vessel))
+            if (p.vessel.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onStageActivate({0}), active vessel is {1}", stage, vessel.vesselName);
-                timeToUpdate = true;
+                //JUtil.LogMessage(this, "onPartUndock(): {0} expects to undock", vessel.id);
+                pendingUndocking = true;
             }
         }
 
-        private void UndockCallback(EventReport report)
-        {
-            if (JUtil.IsActiveVessel(vessel))
-            {
-                //JUtil.LogMessage(this, "onUndock({1}), I am {0}", vessel.vesselName, report.eventType);
-                timeToUpdate = true;
-            }
-        }
-
-        private void VesselChangeCallback(Vessel v)
+        private void onVesselChange(Vessel v)
         {
             if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselChange({0}), I am {1}, so I am becoming active", v.vesselName, vessel.vesselName);
                 timeToUpdate = true;
                 resultCache.Clear();
-                IJSIModule.vessel = vessel;
             }
         }
 
-        private void VesselModifiedCallback(Vessel v)
+        private void onVesselWasModified(Vessel v)
         {
-            if (v.id == vessel.id && JUtil.IsActiveVessel(vessel))
+            if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onVesselModified({0}), I am {1}, so I am modified", v.vesselName, vessel.vesselName);
-                timeToUpdate = true;
+                //JUtil.LogMessage(this, "VesselModifiedCallback(): for me {0}", v.id);
+                if (JUtil.IsActiveVessel(vessel))
+                {
+                    timeToUpdate = true;
+                }
+            }
+            else
+            {
+                RPMVesselComputer otherComp = null;
+                if (TryGetInstance(v, ref otherComp))
+                {
+                    // I assume that when these callbacks trigger right after
+                    // undocking, I'll see at least one callback with one of
+                    // the RPMVC indicating 'pendingUndocking'.
+                    if (pendingUndocking || otherComp.pendingUndocking)
+                    {
+                        pendingUndocking = false;
+                        otherComp.pendingUndocking = false;
+                        //JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
+                        MergePersistents(otherComp);
+                    }
+                    //else
+                    //{
+                    //    JUtil.LogMessage(this, "VesselModifiedCallback(): for {0} - but {1} not pendingUndocking", v.id, vessel.id);
+                    //}
+                }
+                //else
+                //{
+                //    JUtil.LogMessage(this, "VesselModifiedCallback(): Failed to get {0}'s computer, can't share data", v.id);
+                //}
             }
         }
         #endregion
