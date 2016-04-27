@@ -67,6 +67,10 @@ namespace JSI
         public void PageActive(bool active, int pageNumber)
         {
             pageActiveState = active;
+            if (active)
+            {
+                updateCountdown = 0;
+            }
         }
         // Analysis restore UnusedParameter
         private bool UpdateCheck()
@@ -102,7 +106,6 @@ namespace JSI
             }
             else
             {
-
                 activePage = 0;
                 for (activePage = 0; activePage < range.Count; ++activePage)
                 {

@@ -58,6 +58,14 @@ namespace JSI
         private static readonly DynamicFuncDouble GetCurrentThrottle;
         private static readonly DynamicMethodDelegate SetThrottle;
 
+        // Speed reference
+        private static readonly FieldInfo speedRef_t;
+        private static readonly DynamicMethodDelegate SetSpeedRef;
+
+        // Pause
+        private static readonly FieldInfo pauseState_t;
+        private static readonly DynamicAction TogglePause;
+
         static JSIPilotAssistant()
         {
             try
@@ -166,6 +174,30 @@ namespace JSI
                     throw new NotImplementedException("setThrottle_t");
                 }
                 SetThrottle = DynamicMethodDelegateFactory.Create(setThrottle_t);
+
+                speedRef_t = paPilotAssistant_t.GetField("speedRef", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (speedRef_t == null)
+                {
+                    throw new NotImplementedException("PA speedRef_t");
+                }
+                MethodInfo changeSpeedRef_t = paPilotAssistant_t.GetMethod("ChangeSpeedRef", BindingFlags.Instance | BindingFlags.Public);
+                if (changeSpeedRef_t == null)
+                {
+                    throw new NotImplementedException("PA changeSpeedRef_t");
+                }
+                SetSpeedRef = DynamicMethodDelegateFactory.Create(changeSpeedRef_t);
+
+                pauseState_t = paPilotAssistant_t.GetField("bPause", BindingFlags.Instance | BindingFlags.Public);
+                if (pauseState_t == null)
+                {
+                    throw new NotImplementedException("PA pauseState_t");
+                }
+                MethodInfo TogglePause_t = paPilotAssistant_t.GetMethod("TogglePauseCtrlState", BindingFlags.Instance | BindingFlags.Public);
+                if (TogglePause_t == null)
+                {
+                    throw new NotImplementedException("PA TogglePause_t");
+                }
+                TogglePause = DynamicMethodDelegateFactory.CreateAction(TogglePause_t);
             }
             catch (Exception e)
             {
@@ -206,6 +238,14 @@ namespace JSI
             Direct = 0,
             Acceleration = 1,
             Speed = 2
+        }
+
+        private enum SpeedRef
+        {
+            True,
+            Indicated,
+            Equivalent,
+            Mach
         }
 
         private object GetPilotAssistant()
@@ -764,6 +804,113 @@ namespace JSI
                 JUtil.LogMessage(this, "GetThrottleSetting: {0}", e);
             }
             return 0.0;
+        }
+
+        //--- Throttle control modes -----------------------------------------
+        public void ChangeSpeedRef(double mode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            SpeedRef speedRef;
+            switch ((int)mode)
+            {
+                case 0:
+                    speedRef = SpeedRef.True;
+                    break;
+                case 1:
+                    speedRef = SpeedRef.Indicated;
+                    break;
+                case 2:
+                    speedRef = SpeedRef.Equivalent;
+                    break;
+                case 3:
+                    speedRef = SpeedRef.Mach;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetSpeedRef(pilotAssistant, new object[] { speedRef });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "ChangeSpeedRef: {0}", e);
+            }
+        }
+
+        public double GetSpeedRef()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object speedRef = speedRef_t.GetValue(pilotAssistant);
+
+                int sr = (int)speedRef;
+                return (double)sr;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetSpeedRef: {0}", e);
+            }
+            return 0.0;
+        }
+
+        public void SetPauseState(bool newstate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+                object pauseState = pauseState_t.GetValue(pilotAssistant);
+
+                bool currentState = (bool)pauseState;
+
+                if (newstate != currentState)
+                {
+                    TogglePause(pilotAssistant);
+                }
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetPauseState: {0}", e);
+            }
+        }
+
+        public bool GetPauseState()
+        {
+            if(!paFound)
+            {
+                return false;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object pauseState = pauseState_t.GetValue(pilotAssistant);
+
+                return (bool)pauseState;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetPauseState: {0}", e);
+            }
+            return false;
         }
     }
 }
