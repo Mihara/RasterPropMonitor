@@ -62,6 +62,10 @@ namespace JSI
         private static readonly FieldInfo speedRef_t;
         private static readonly DynamicMethodDelegate SetSpeedRef;
 
+        // Pause
+        private static readonly FieldInfo pauseState_t;
+        private static readonly DynamicAction TogglePause;
+
         static JSIPilotAssistant()
         {
             try
@@ -176,16 +180,24 @@ namespace JSI
                 {
                     throw new NotImplementedException("PA speedRef_t");
                 }
-                else
-                {
-                    JUtil.LogErrorMessage(null, "Pilot Assistant speedRef is visible (this is not an error)");
-                }
                 MethodInfo changeSpeedRef_t = paPilotAssistant_t.GetMethod("ChangeSpeedRef", BindingFlags.Instance | BindingFlags.Public);
                 if (changeSpeedRef_t == null)
                 {
                     throw new NotImplementedException("PA changeSpeedRef_t");
                 }
                 SetSpeedRef = DynamicMethodDelegateFactory.Create(changeSpeedRef_t);
+
+                pauseState_t = paPilotAssistant_t.GetField("bPause", BindingFlags.Instance | BindingFlags.Public);
+                if (pauseState_t == null)
+                {
+                    throw new NotImplementedException("PA pauseState_t");
+                }
+                MethodInfo TogglePause_t = paPilotAssistant_t.GetMethod("TogglePauseCtrlState", BindingFlags.Instance | BindingFlags.Public);
+                if (TogglePause_t == null)
+                {
+                    throw new NotImplementedException("PA TogglePause_t");
+                }
+                TogglePause = DynamicMethodDelegateFactory.CreateAction(TogglePause_t);
             }
             catch (Exception e)
             {
@@ -855,5 +867,50 @@ namespace JSI
             return 0.0;
         }
 
+        public void SetPauseState(bool newstate)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+                object pauseState = pauseState_t.GetValue(pilotAssistant);
+
+                bool currentState = (bool)pauseState;
+
+                if (newstate != currentState)
+                {
+                    TogglePause(pilotAssistant);
+                }
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "SetPauseState: {0}", e);
+            }
+        }
+
+        public bool GetPauseState()
+        {
+            if(!paFound)
+            {
+                return false;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object pauseState = pauseState_t.GetValue(pilotAssistant);
+
+                return (bool)pauseState;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetPauseState: {0}", e);
+            }
+            return false;
+        }
     }
 }
