@@ -6,6 +6,12 @@ Did you install using CKAN?  It has incorrectly installed this mod in the past. 
 
 If that doesn't work, I strongly recommend you look at the [KSP forum post](http://forum.kerbalspaceprogram.com/index.php?/topic/83212-how-to-get-support-read-first/) on getting support for mods.
 
+### What happened to the transparent pods?
+
+With the release of KSP 1.1, the original JSITransparentPod module is obsolete, since the stock method has better performance.
+To enhance the stock behavior, the new JSIAdvTransparentPod module exists in its own stand-alone plugin, which can be found
+at https://github.com/JPLRepo/JSIAdvTransparentPods
+
 ### Can you add support for (insert favorite mod's name here)?
 
 Probably not.  Most of the mods that RPM interacts with are mods I (MOARdV) use when playing.  As such, making sure RPM still works when those mods change is not a big deal.  There are a couple of mods that I don't use that are in the list, and keeping RPM playing nice with them is already more effort than I can justify.
