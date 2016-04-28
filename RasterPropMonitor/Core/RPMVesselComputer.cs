@@ -733,7 +733,9 @@ namespace JSI
             installedModules.Add(new JSIInternalRPMButtons());
             installedModules.Add(new JSIFAR());
             installedModules.Add(new JSIKAC());
+#if ENABLE_ENGINE_MONITOR
             installedModules.Add(new JSIEngine());
+#endif
             installedModules.Add(new JSIPilotAssistant());
             installedModules.Add(new JSIChatterer());
             // Quick-and-dirty initialization.

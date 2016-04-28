@@ -22,7 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+#if ENABLE_ENGINE_MONITOR
 namespace JSI
 {
     public class JSIEngine:IJSIModule
@@ -41,6 +41,7 @@ namespace JSI
                 if(!mon.GetRunningPrimary())
                 {
                     runningPrimary = false;
+                    break;
                 }
             }
 
@@ -70,3 +71,4 @@ namespace JSI
         }
     }
 }
+#endif
