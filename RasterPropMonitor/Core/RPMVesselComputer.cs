@@ -1486,24 +1486,6 @@ namespace JSI
                 resources.SetActive(activeResources[i]);
             }
             */
-            /*
-            try
-            {
-                //var ro = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.ResourceOverlay>();
-                var ro = KSP.UI.Screens.ResourceDisplay.Instance;
-                var resitems = ro.resourceItems;
-                for (int i = 0; i < resitems.Count; ++i)
-                {
-                    JUtil.LogMessage(this, "Resource {0}: vrCurrent {1}, delta {2}, vrPrevious {3}, previousAmt {4}",
-                        resitems[i].nameText.text, resitems[i].vesselResourceCurrent, resitems[i].delta, resitems[i].vesselResourcePrevious, resitems[i].previousAmount);
-                }
-                // Notes:
-                // ResourceDisplay exists.
-                // .delta is consumption per second (at least, I assume that's the units - it's what is displayed).
-                // .vesselResourceCurrent == .previousAmount == total resource
-            }
-            catch { JUtil.LogMessage(this, "Nope.  No ResourceOverlay"); }
-            */
             resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
