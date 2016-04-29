@@ -2,8 +2,6 @@
 
 This is a showcase mod for RasterPropMonitor which adds a useful information display to certain stock and mod capsules. This is also the canonical source of RasterPropMonitor.dll plugin and associated files.
 
-Also included in this mod is JSIAdvTransparentPods, which expands on stock see-through pods by adding showing the IVA of loaded craft other than the active vessel.
-
 #INSTALLATION INSTRUCTIONS:
 
 Extract the contents of the GameData folder in the RPM zip file into the GameData folder of your KSP install.  You should see the following folder structure:
@@ -12,7 +10,6 @@ Extract the contents of the GameData folder in the RPM zip file into the GameDat
 GameData |
          + JSI |
                + Agencies
-               + JSIAdvTransparentPods
                + RasterPropMonitor
                + RPMPodPatches
 ```
@@ -24,7 +21,9 @@ If you used CKAN to install this mod, check the file structure.  CKAN has instal
 If the plugin was listed as a dependency by some other mod author, and you do not want to use modified stock interiors, the JSI/RPMPodPatches directory may be safely deleted. Every capsule being modified has its own pair of patch config files -- you can safely delete only those you don't want.
 
 ##UPGRADING FROM OLDER VERSIONS:
-v0.25.0 contains significant changes.  You most likely want to delete any existing installation.
+v0.25.0 contains significant changes.  You should delete any existing installation.
+
+JSIAdvTransparentPods is now a separate mod maintained by JPLRepo.  It can be found on GitHub at https://github.com/JPLRepo/JSIAdvTransparentPods .
 
 # LINKS
 

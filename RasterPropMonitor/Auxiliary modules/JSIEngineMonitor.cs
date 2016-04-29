@@ -20,7 +20,7 @@
  ****************************************************************************/
 using System;
 using System.Collections.Generic;
-
+#if ENABLE_ENGINE_MONITOR
 namespace JSI
 {
     /// <summary>
@@ -164,3 +164,4 @@ namespace JSI
         }
     }
 }
+#endif

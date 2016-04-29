@@ -62,6 +62,10 @@ namespace JSI
         private static readonly FieldInfo speedRef_t;
         private static readonly DynamicMethodDelegate SetSpeedRef;
 
+        // Speed units
+        private static readonly FieldInfo speedUnits_t;
+        private static readonly DynamicMethodDelegate SetSpeedUnits;
+
         // Pause
         private static readonly FieldInfo pauseState_t;
         private static readonly DynamicAction TogglePause;
@@ -187,6 +191,18 @@ namespace JSI
                 }
                 SetSpeedRef = DynamicMethodDelegateFactory.Create(changeSpeedRef_t);
 
+                speedUnits_t = paPilotAssistant_t.GetField("units", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (speedUnits_t == null)
+                {
+                    throw new NotImplementedException("PA speedUnits_t");
+                }
+                MethodInfo changeSpeedUnits_t = paPilotAssistant_t.GetMethod("ChangeSpeedUnit", BindingFlags.Instance | BindingFlags.Public);
+                if (changeSpeedUnits_t == null)
+                {
+                    throw new NotImplementedException("PA changeSpeedUnits_t");
+                }
+                SetSpeedUnits = DynamicMethodDelegateFactory.Create(changeSpeedUnits_t);
+
                 pauseState_t = paPilotAssistant_t.GetField("bPause", BindingFlags.Instance | BindingFlags.Public);
                 if (pauseState_t == null)
                 {
@@ -246,6 +262,15 @@ namespace JSI
             Indicated,
             Equivalent,
             Mach
+        }
+
+        public enum SpeedUnits
+        {
+            mSec,
+            kmph,
+            mph,
+            knots,
+            mach
         }
 
         private object GetPilotAssistant()
@@ -866,6 +891,70 @@ namespace JSI
             }
             return 0.0;
         }
+
+        public void ChangeSpeedUnits(double mode)
+        {
+            if (!paFound)
+            {
+                return;
+            }
+
+            SpeedUnits speedUnits;
+            switch ((int)mode)
+            {
+                case 0:
+                    speedUnits = SpeedUnits.mSec;
+                    break;
+                case 1:
+                    speedUnits = SpeedUnits.kmph;
+                    break;
+                case 2:
+                    speedUnits = SpeedUnits.mph;
+                    break;
+                case 3:
+                    speedUnits = SpeedUnits.knots;
+                    break;
+                case 4:
+                    speedUnits = SpeedUnits.mach;
+                    break;
+                default:
+                    return;
+            }
+
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                SetSpeedUnits(pilotAssistant, new object[] { speedUnits });
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "ChangeSpeedUnits: {0}", e);
+            }
+        }
+
+        public double GetSpeedUnits()
+        {
+            if (!paFound)
+            {
+                return 0.0;
+            }
+            try
+            {
+                object pilotAssistant = GetPilotAssistant();
+
+                object speedUnits = speedUnits_t.GetValue(pilotAssistant);
+
+                int su = (int)speedUnits;
+                return (double)su;
+            }
+            catch (Exception e)
+            {
+                JUtil.LogMessage(this, "GetSpeedUnits: {0}", e);
+            }
+            return 0.0;
+        }
+
 
         public void SetPauseState(bool newstate)
         {
