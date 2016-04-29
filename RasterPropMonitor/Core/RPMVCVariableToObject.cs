@@ -2128,8 +2128,19 @@ namespace JSI
                         return -1d;
                     };
                 case "ORBITBODYSURFACETEMP":
-                    return (string s) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel; };
+                    return (string s) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel + KelvinToCelsius; };
                 case "TARGETBODYSURFACETEMP":
+                    return (string s) =>
+                    {
+                        if (targetBody != null)
+                        {
+                            return targetBody.atmosphereTemperatureSeaLevel + KelvinToCelsius;
+                        }
+                        return -1d;
+                    };
+                case "ORBITBODYSURFACETEMPKELVIN":
+                    return (string s) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel; };
+                case "TARGETBODYSURFACETEMPKELVIN":
                     return (string s) =>
                     {
                         if (targetBody != null)
