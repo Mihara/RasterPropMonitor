@@ -1478,14 +1478,17 @@ namespace JSI
 
             // We can use the stock routines to get at the per-stage resources.
             // Except KSP 1.1.1 broke GetActiveResources() and GetActiveResource(resource).
-            // Like exception-throwing broke.
-            /*
-            var activeResources = vessel.GetActiveResources();
-            for (int i = 0; i < activeResources.Count; ++i)
+            // Like exception-throwing broke.  It was fixed in 1.1.2, but I
+            // already put together a work-around.
+            try
             {
-                resources.SetActive(activeResources[i]);
-            }
-            */
+                var activeResources = vessel.GetActiveResources();
+                for (int i = 0; i < activeResources.Count; ++i)
+                {
+                    resources.SetActive(activeResources[i]);
+                }
+            } catch {}
+
             resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
