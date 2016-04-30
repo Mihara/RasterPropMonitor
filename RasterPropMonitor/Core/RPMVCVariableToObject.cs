@@ -1289,6 +1289,22 @@ namespace JSI
                             return 1d;
                         return 0d;
                     };
+                case "TARGETISPOSITION":
+                    return (string variable) =>
+                        {
+                            if (target == null)
+                            {
+                                return -1d;
+                            }
+                            else if(target is PositionTarget)
+                            {
+                                return 1d;
+                            }
+                            else
+                            {
+                                return 0d;
+                            }
+                        };
                 case "TARGETSITUATION":
                     return (string variable) =>
                     {
