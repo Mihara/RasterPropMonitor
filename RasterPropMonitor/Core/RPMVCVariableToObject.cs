@@ -1289,6 +1289,22 @@ namespace JSI
                             return 1d;
                         return 0d;
                     };
+                case "TARGETISPOSITION":
+                    return (string variable) =>
+                        {
+                            if (target == null)
+                            {
+                                return -1d;
+                            }
+                            else if(target is PositionTarget)
+                            {
+                                return 1d;
+                            }
+                            else
+                            {
+                                return 0d;
+                            }
+                        };
                 case "TARGETSITUATION":
                     return (string variable) =>
                     {
@@ -1737,6 +1753,10 @@ namespace JSI
                     return (string variable) => { return (part != null) ? (part.skinTemperature + KelvinToCelsius) : 0.0; };
                 case "PODSKINTEMPERATUREKELVIN":
                     return (string variable) => { return (part != null) ? (part.skinTemperature) : 0.0; };
+                case "PODMAXSKINTEMPERATURE":
+                    return (string variable) => { return (part != null) ? (part.skinMaxTemp + KelvinToCelsius) : 0.0; };
+                case "PODMAXSKINTEMPERATUREKELVIN":
+                    return (string variable) => { return (part != null) ? (part.skinMaxTemp) : 0.0; };
                 case "PODMAXTEMPERATURE":
                     return (string variable) => { return (part != null) ? (part.maxTemp + KelvinToCelsius) : 0.0; };
                 case "PODMAXTEMPERATUREKELVIN":
@@ -1747,6 +1767,10 @@ namespace JSI
                     return (string variable) => { return vessel.externalTemperature + KelvinToCelsius; };
                 case "EXTERNALTEMPERATUREKELVIN":
                     return (string variable) => { return vessel.externalTemperature; };
+                case "AMBIENTTEMPERATURE":
+                    return (string variable) => { return vessel.atmosphericTemperature + KelvinToCelsius; };
+                case "AMBIENTTEMPERATUREKELVIN":
+                    return (string variable) => { return vessel.atmosphericTemperature; };
                 case "HEATSHIELDTEMPERATURE":
                     return (string variable) => { return (double)heatShieldTemperature + KelvinToCelsius; };
                 case "HEATSHIELDTEMPERATUREKELVIN":
@@ -2116,6 +2140,28 @@ namespace JSI
                         if (targetBody != null)
                         {
                             return 2 * Math.PI * Math.Pow(targetBody.gravParameter / Math.Pow(2 * Math.PI / targetBody.rotationPeriod, 2), 1 / 3d);
+                        }
+                        return -1d;
+                    };
+                case "ORBITBODYSURFACETEMP":
+                    return (string s) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel + KelvinToCelsius; };
+                case "TARGETBODYSURFACETEMP":
+                    return (string s) =>
+                    {
+                        if (targetBody != null)
+                        {
+                            return targetBody.atmosphereTemperatureSeaLevel + KelvinToCelsius;
+                        }
+                        return -1d;
+                    };
+                case "ORBITBODYSURFACETEMPKELVIN":
+                    return (string s) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel; };
+                case "TARGETBODYSURFACETEMPKELVIN":
+                    return (string s) =>
+                    {
+                        if (targetBody != null)
+                        {
+                            return targetBody.atmosphereTemperatureSeaLevel;
                         }
                         return -1d;
                     };

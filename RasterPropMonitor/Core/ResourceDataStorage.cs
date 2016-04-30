@@ -32,12 +32,20 @@ namespace JSI
         private readonly string[] sortedResourceNames;
         private int numValidResourceNames = 0;
 
+        // A dictionary mapping resourceIDs to dictionaries that map 
+        private readonly Dictionary<int, List<PartResource>> activeResources = new Dictionary<int, List<PartResource>>();
+
         private class ResourceComparer : IComparer<ResourceData>
         {
             public int Compare(ResourceData a, ResourceData b)
             {
                 return string.Compare(a.name, b.name);
             }
+        }
+
+        private static bool IsFreeFlow(ResourceFlowMode flowMode)
+        {
+            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.ALL_VESSEL_BALANCE || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
         }
 
         public ResourceDataStorage()
@@ -58,6 +66,9 @@ namespace JSI
                 rs[index] = new ResourceData();
                 rs[index].name = thatResource.name;
                 rs[index].density = thatResource.density;
+                rs[index].resourceId = thatResource.id;
+
+                activeResources.Add(thatResource.id, new List<PartResource>());
 
                 nameResources.Add(thatResource.name, rs[index]);
                 sysrResources.Add(nameSysr, rs[index]);
@@ -77,6 +88,8 @@ namespace JSI
                 rs[i].stage = 0.0f;
                 rs[i].stagemax = 0.0f;
                 rs[i].ispropellant = false;
+
+                activeResources[rs[i].resourceId].Clear();
             }
         }
 
@@ -98,6 +111,24 @@ namespace JSI
                     sortedResourceNames[numValidResourceNames] = rs[i].name;
                     ++numValidResourceNames;
                 }
+
+                // See if any engines marked these resources as propellants.
+                // If so, we have stage and stageMax info available, so we can
+                // sum them up.
+                var list = activeResources[rs[i].resourceId];
+                if (list.Count > 0)
+                {
+                    float stage = 0.0f, stageMax = 0.0f;
+                    
+                    for (int j = 0; j < list.Count; ++j)
+                    {
+                        stage += (float)list[j].amount;
+                        stageMax += (float)list[j].maxAmount;
+                    }
+
+                    rs[i].stage = stage;
+                    rs[i].stagemax = stageMax;
+                }
             }
         }
 
@@ -117,16 +148,43 @@ namespace JSI
 
         public void MarkPropellant(Propellant propel)
         {
-            foreach (PartResource resource in propel.connectedResources)
+            var connectedResources = propel.connectedResources;
+            for (int resourceIdx = 0; resourceIdx < connectedResources.Count; ++resourceIdx)
             {
                 try
                 {
-                    ResourceData r = nameResources[resource.info.name];
+                    ResourceData r = nameResources[connectedResources[resourceIdx].info.name];
                     r.ispropellant = true;
+
+                    // If the resoruce in question isn't a "free flow" -
+                    // that is, an ALL_VESSEL_* resource - then add the
+                    // PartResource to the list we will consider for stage
+                    // resource availability.  But also don't add it if the
+                    // particular PartResource is in the list (as based on
+                    // checking GetHashCode()).
+                    // MOARdV TODO: I *could* make a dictionary instead of list,
+                    // but I don't know if it's worthwhile.
+                    if (!IsFreeFlow(connectedResources[resourceIdx].info.resourceFlowMode))
+                    {
+                        var list = activeResources[r.resourceId];
+                        bool needsAdded = true;
+                        for (int listIndex = 0; listIndex < list.Count; ++listIndex)
+                        {
+                            if (list[listIndex].GetHashCode() == connectedResources[resourceIdx].GetHashCode())
+                            {
+                                needsAdded = false;
+                                break;
+                            }
+                        }
+                        if (needsAdded)
+                        {
+                            list.Add(connectedResources[resourceIdx]);
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
-                    JUtil.LogErrorMessage(this, "Error in MarkPropellant({0}): {1}", resource.info.name, e);
+                    JUtil.LogErrorMessage(this, "Error in MarkPropellant({0}): {1}", connectedResources[resourceIdx].info.name, e);
                 }
             }
         }
@@ -333,6 +391,13 @@ namespace JSI
                 ResourceData res = nameResources[resource.info.name];
                 res.current += (float)resource.amount;
                 res.max += (float)resource.maxAmount;
+
+                var flowmode = resource.info.resourceFlowMode;
+                if (IsFreeFlow(flowmode))
+                {
+                    res.stage += (float)resource.amount;
+                    res.stagemax += (float)resource.maxAmount;
+                }
             }
             catch (Exception e)
             {
@@ -347,6 +412,8 @@ namespace JSI
                 ResourceData res = nameResources[resource.info.name];
                 res.stage = (float)resource.amount;
                 res.stagemax = (float)resource.maxAmount;
+                var list = activeResources[resource.info.id];
+                list.Clear();
             }
             catch (Exception e)
             {
@@ -367,6 +434,8 @@ namespace JSI
 
             public float density;
             public float delta;
+
+            public int resourceId;
 
             public bool ispropellant;
         }

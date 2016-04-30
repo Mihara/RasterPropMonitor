@@ -1478,32 +1478,17 @@ namespace JSI
 
             // We can use the stock routines to get at the per-stage resources.
             // Except KSP 1.1.1 broke GetActiveResources() and GetActiveResource(resource).
-            // Like exception-throwing broke.
-            /*
-            var activeResources = vessel.GetActiveResources();
-            for (int i = 0; i < activeResources.Count; ++i)
-            {
-                resources.SetActive(activeResources[i]);
-            }
-            */
-            /*
+            // Like exception-throwing broke.  It was fixed in 1.1.2, but I
+            // already put together a work-around.
             try
             {
-                //var ro = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.ResourceOverlay>();
-                var ro = KSP.UI.Screens.ResourceDisplay.Instance;
-                var resitems = ro.resourceItems;
-                for (int i = 0; i < resitems.Count; ++i)
+                var activeResources = vessel.GetActiveResources();
+                for (int i = 0; i < activeResources.Count; ++i)
                 {
-                    JUtil.LogMessage(this, "Resource {0}: vrCurrent {1}, delta {2}, vrPrevious {3}, previousAmt {4}",
-                        resitems[i].nameText.text, resitems[i].vesselResourceCurrent, resitems[i].delta, resitems[i].vesselResourcePrevious, resitems[i].previousAmount);
+                    resources.SetActive(activeResources[i]);
                 }
-                // Notes:
-                // ResourceDisplay exists.
-                // .delta is consumption per second (at least, I assume that's the units - it's what is displayed).
-                // .vesselResourceCurrent == .previousAmount == total resource
-            }
-            catch { JUtil.LogMessage(this, "Nope.  No ResourceOverlay"); }
-            */
+            } catch {}
+
             resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
