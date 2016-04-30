@@ -45,7 +45,7 @@ namespace JSI
 
         private static bool IsFreeFlow(ResourceFlowMode flowMode)
         {
-            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.ALL_VESSEL_BALANCE);
+            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.ALL_VESSEL_BALANCE || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
         }
 
         public ResourceDataStorage()
@@ -412,6 +412,8 @@ namespace JSI
                 ResourceData res = nameResources[resource.info.name];
                 res.stage = (float)resource.amount;
                 res.stagemax = (float)resource.maxAmount;
+                var list = activeResources[resource.info.id];
+                list.Clear();
             }
             catch (Exception e)
             {
