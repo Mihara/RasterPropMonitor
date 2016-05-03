@@ -588,6 +588,10 @@ namespace JSI
                     return (string variable) => { return actualAverageIsp; };
                 case "MAXISP":
                     return (string variable) => { return actualMaxIsp; };
+                case "CURRENTENGINEFUELFLOW":
+                    return (string variable) => { return currentEngineFuelFlow; };
+                case "MAXENGINEFUELFLOW":
+                    return (string variable) => { return maxEngineFuelFlow; };
                 case "HOVERPOINT":
                     return (string variable) => { return (localGeeDirect / (totalLimitedMaximumThrust / totalShipWetMass)).Clamp(0.0f, 1.0f); };
                 case "HOVERPOINTEXISTS":
