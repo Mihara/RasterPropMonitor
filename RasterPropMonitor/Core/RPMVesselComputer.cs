@@ -556,6 +556,12 @@ namespace JSI
         public override void OnAwake()
         {
             base.OnAwake();
+
+            if (!InstallationPathWarning.Warn())
+            {
+                return;
+            }
+
             vessel = GetComponent<Vessel>();
             if (vessel == null || vessel.isEVA || !vessel.isCommandable)
             {
