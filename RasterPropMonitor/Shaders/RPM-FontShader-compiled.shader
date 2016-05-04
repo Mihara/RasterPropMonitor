@@ -1,5 +1,5 @@
 ﻿
-Shader "RPM/DisplayShader"
+Shader "RPM/FontShader"
 {
 	Properties
 	{
@@ -10,6 +10,7 @@ Shader "RPM/DisplayShader"
 
 		Tags { "RenderType"="Overlay" "Queue" = "Transparent" }
 
+		Pass {
 		// Premultiplied Alpha shader for rendering text on displays.
 
 		Lighting Off
@@ -19,7 +20,6 @@ Shader "RPM/DisplayShader"
 		ZWrite Off
 		ZTest Always
 
-		Pass {
 			Program "vp" {
 // Vertex combos: 1
 //   d3d9 - ALU: 6 to 6

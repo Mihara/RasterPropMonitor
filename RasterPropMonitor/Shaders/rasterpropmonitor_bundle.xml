@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<KSPBundleDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" UrlName="rasterpropmonitor" Name="rasterpropmonitor" CreatedTime="-8587392394433498673">
+  <Author>MOARdV</Author>
+  <Info>Shaders for RasterPropMonitor</Info>
+  <Assets>
+    <Asset Name="RPM/FontShader" Path="Assets/RasterPropMonitor/Shaders/RPM-FontShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-FontShader" AutoLoad="false" />
+    <Asset Name="RPM/CroppedDisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-CroppedDisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-CroppedDisplayShader" AutoLoad="false" />
+    <Asset Name="RPM/DisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-DisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-DisplayShader" AutoLoad="false" />
+  </Assets>
+  <Dependencies />
+</KSPBundleDefinition>
