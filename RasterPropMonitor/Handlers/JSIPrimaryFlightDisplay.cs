@@ -148,7 +148,7 @@ namespace JSI
 
             float overlayDepth = navBall.transform.position.z - navballRadius - 0.1f;
 
-            Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+            Shader displayShader = JUtil.LoadInternalShader("RPM/DisplayShader");
 
             if (!string.IsNullOrEmpty(staticOverlay))
             {
@@ -410,7 +410,7 @@ namespace JSI
                     waypointColorValue = ConfigNode.ParseColor32(waypointColor);
                 }
 
-                Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+                Shader displayShader = JUtil.LoadInternalShader("RPM/DisplayShader");
 
                 try
                 {

@@ -116,7 +116,7 @@ namespace JSI
             float screenWidth = (float)screen.width;
             float screenHeight = (float)screen.height;
 
-            Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+            Shader displayShader = JUtil.LoadInternalShader("RPM/DisplayShader");
 
             if (!string.IsNullOrEmpty(cameraTransform))
             {
@@ -141,7 +141,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(horizonTexture))
             {
-                Shader ladderShader = JUtil.LoadInternalShader("RPM-CroppedDisplayShader");
+                Shader ladderShader = JUtil.LoadInternalShader("RPM/CroppedDisplayShader");
                 Material ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
