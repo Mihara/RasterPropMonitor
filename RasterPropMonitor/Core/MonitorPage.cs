@@ -738,7 +738,7 @@ namespace JSI
                     break;
                 case BackgroundType.Camera:
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
-                    if (!cameraObject.Render())
+                    if (!cameraObject.Render(screen, 0.0f, 0.0f))
                     {
                         if (ourMonitor.noSignalTexture != null)
                         {

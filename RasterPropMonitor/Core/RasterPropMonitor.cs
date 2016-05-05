@@ -181,7 +181,7 @@ namespace JSI
                 }
 
                 // Create camera instance...
-                cameraStructure = new FlyingCamera(part, screenTexture, cameraAspect);
+                cameraStructure = new FlyingCamera(part, cameraAspect);
 
                 // The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
                 // Well, we don't need it. GameDatabase, gimme config nodes for all props!

@@ -109,8 +109,6 @@ namespace JSI
         /// <summary>
         /// Initialize the renderable game objects for the HUD.
         /// </summary>
-        /// <param name="screenWidth"></param>
-        /// <param name="screenHeight"></param>
         void InitializeRenderables(RenderTexture screen)
         {
             float screenWidth = (float)screen.width;
@@ -120,7 +118,7 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(cameraTransform))
             {
-                cameraObject = new FlyingCamera(part, screen, hudCamera.aspect);
+                cameraObject = new FlyingCamera(part, hudCamera.aspect);
                 cameraObject.PointCamera(cameraTransform, hudFov);
             }
 
@@ -434,7 +432,7 @@ namespace JSI
             // Draw the camera's view, if configured.
             if (cameraObject != null)
             {
-                cameraObject.Render();
+                cameraObject.Render(screen, 0.0f, 0.0f);
             }
 
             hudCamera.targetTexture = screen;

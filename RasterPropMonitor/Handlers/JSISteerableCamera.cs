@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -99,7 +119,6 @@ namespace JSI
         [KSPField]
         public string cameraInfoVarName = string.Empty;
 
-        //private RasterPropMonitorComputer rpmComp;
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
         private float zoomDirection;
@@ -109,6 +128,7 @@ namespace JSI
         // Target tracking icon
         private Texture2D gizmoTexture;
         private Material iconMaterial;
+        //private Material effect;
 
         private int currentCamera = 0;
         private List<SteerableCameraParameters> cameras = new List<SteerableCameraParameters>();
@@ -190,15 +210,20 @@ namespace JSI
 
             if (cameraObject == null)
             {
-                cameraObject = new FlyingCamera(part, screen, cameraAspect);
+                cameraObject = new FlyingCamera(part, cameraAspect);
                 cameraObject.PointCamera(activeCamera.cameraTransform, activeCamera.currentFoV);
             }
 
             cameraObject.FOV = activeCamera.currentFoV;
 
+            //RenderTexture rt = RenderTexture.GetTemporary(screen.width, screen.height, screen.depth, screen.format);
+
             // Negate pitch - the camera object treats a negative pitch as "up"
-            if (cameraObject.Render(activeCamera.currentYaw, -activeCamera.currentPitch))
+            if (cameraObject.Render(screen, activeCamera.currentYaw, -activeCamera.currentPitch))
             {
+                //Graphics.Blit(rt, screen, effect);
+                //RenderTexture.ReleaseTemporary(rt);
+
                 ITargetable target = FlightGlobals.fetch.VesselTarget;
 
                 bool drawSomething = ((gizmoTexture != null && target != null && showTargetIcon) || homeCrosshairMaterial.color.a > 0);
@@ -266,6 +291,8 @@ namespace JSI
                 // This will handle cameras getting ejected while in use.
                 SelectNextCamera();
             }
+
+            //RenderTexture.ReleaseTemporary(rt);
             return false;
         }
 
