@@ -6,6 +6,10 @@
     <Asset Name="RPM/FontShader" Path="Assets/RasterPropMonitor/Shaders/RPM-FontShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-FontShader" AutoLoad="false" />
     <Asset Name="RPM/CroppedDisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-CroppedDisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-CroppedDisplayShader" AutoLoad="false" />
     <Asset Name="RPM/DisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-DisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-DisplayShader" AutoLoad="false" />
+    <Asset Name="RPM/Grayscale" Path="Assets/RasterPropMonitor/Shaders/RPM-grayscale.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-grayscale" AutoLoad="false" />
+    <Asset Name="RPM/Greenscale" Path="Assets/RasterPropMonitor/Shaders/RPM-greenscale.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-greenscale" AutoLoad="false" />
+    <Asset Name="RPM/Blur" Path="Assets/RasterPropMonitor/Shaders/RPM-blur.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-blur" AutoLoad="false" />
+    <Asset Name="RPM/Noise" Path="Assets/RasterPropMonitor/Shaders/RPM-noise.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-noise" AutoLoad="false" />
   </Assets>
   <Dependencies />
 </KSPBundleDefinition>
