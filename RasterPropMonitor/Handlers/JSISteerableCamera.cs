@@ -118,6 +118,18 @@ namespace JSI
         public bool skipMissingCameras = false;
         [KSPField]
         public string cameraInfoVarName = string.Empty;
+        [KSPField]
+        public string cameraPixelSize = string.Empty;
+        private int rentexWidth = 0, rentexHeight = 0;
+
+        // Camera post-processing effects
+        [KSPField]
+        public string cameraEffectShader = string.Empty;
+        [KSPField]
+        public string cameraEffectVariables = string.Empty;
+        private List<ShaderEffectVariable> ceVariables = new List<ShaderEffectVariable>();
+        [KSPField]
+        public string cameraEffectTextures = string.Empty;
 
         private Material homeCrosshairMaterial;
         private FlyingCamera cameraObject;
@@ -128,7 +140,8 @@ namespace JSI
         // Target tracking icon
         private Texture2D gizmoTexture;
         private Material iconMaterial;
-        //private Material effect;
+
+        private Material cameraEffectMaterial;
 
         private int currentCamera = 0;
         private List<SteerableCameraParameters> cameras = new List<SteerableCameraParameters>();
@@ -216,13 +229,38 @@ namespace JSI
 
             cameraObject.FOV = activeCamera.currentFoV;
 
-            //RenderTexture rt = RenderTexture.GetTemporary(screen.width, screen.height, screen.depth, screen.format);
+            if (rentexWidth == 0)
+            {
+                rentexWidth = screen.width;
+                rentexHeight = screen.height;
+
+                // Note to self: when rentex dims != screen dims, the FOV seems to be wrong (like FOV is smaller).
+            }
+            RenderTexture renderTex = RenderTexture.GetTemporary(rentexWidth, rentexHeight, screen.depth, screen.format);
 
             // Negate pitch - the camera object treats a negative pitch as "up"
-            if (cameraObject.Render(screen, activeCamera.currentYaw, -activeCamera.currentPitch))
+            if (cameraObject.Render(renderTex, activeCamera.currentYaw, -activeCamera.currentPitch))
             {
-                //Graphics.Blit(rt, screen, effect);
-                //RenderTexture.ReleaseTemporary(rt);
+                if (cameraEffectMaterial != null)
+                {
+                    cameraEffectMaterial.SetVector("_ImageDims", new Vector4((float)renderTex.width, (float)renderTex.height, 1.0f / (float)renderTex.width, 1.0f / (float)renderTex.height));
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    for (int i = 0; i < ceVariables.Count; ++i)
+                    {
+                        float value;
+                        if (ceVariables[i].value.Get(out value, comp))
+                        {
+                            cameraEffectMaterial.SetFloat(ceVariables[i].variable, value);
+                        }
+                    }
+
+                    Graphics.Blit(renderTex, screen, cameraEffectMaterial);
+                }
+                else
+                {
+                    Graphics.Blit(renderTex, screen);
+                }
+                RenderTexture.ReleaseTemporary(renderTex);
 
                 ITargetable target = FlightGlobals.fetch.VesselTarget;
 
@@ -292,7 +330,7 @@ namespace JSI
                 SelectNextCamera();
             }
 
-            //RenderTexture.ReleaseTemporary(rt);
+            RenderTexture.ReleaseTemporary(renderTex);
             return false;
         }
 
@@ -330,6 +368,22 @@ namespace JSI
             }
 
             lastUpdateTime = thisUpdateTime;
+        }
+
+        public void OnDestroy()
+        {
+            if (homeCrosshairMaterial != null)
+            {
+                UnityEngine.Object.Destroy(homeCrosshairMaterial);
+            }
+            if (iconMaterial != null)
+            {
+                UnityEngine.Object.Destroy(iconMaterial);
+            }
+            if (cameraEffectMaterial != null)
+            {
+                UnityEngine.Object.Destroy(cameraEffectMaterial);
+            }
         }
 
         public void ClickProcessor(int buttonID)
@@ -575,6 +629,66 @@ namespace JSI
                 //    rpmComp.SetPropVar(cameraInfoVarName + "_ID", internalProp.propID, currentCamera + 1);
                 //}
             }
+
+            if (!string.IsNullOrEmpty(cameraEffectShader))
+            {
+                cameraEffectMaterial = new Material(JUtil.LoadInternalShader(cameraEffectShader));
+
+                if (!string.IsNullOrEmpty(cameraEffectVariables))
+                {
+                    try
+                    {
+                        string[] vars = cameraEffectVariables.Split('|');
+                        for (int i = 0; i < vars.Length; ++i)
+                        {
+                            string[] components = vars[i].Split(',');
+                            if (components.Length == 2)
+                            {
+                                ShaderEffectVariable sev = new ShaderEffectVariable();
+                                sev.variable = components[0].Trim();
+                                sev.value = VariableOrNumber.Instantiate(components[1]);
+                                ceVariables.Add(sev);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                if (!string.IsNullOrEmpty(cameraEffectTextures))
+                {
+                    try
+                    {
+                        string[] vars = cameraEffectTextures.Split('|');
+                        for (int i = 0; i < vars.Length; ++i)
+                        {
+                            string[] components = vars[i].Split(',');
+                            if (components.Length == 2)
+                            {
+                                Texture tex = GameDatabase.Instance.GetTexture(components[1], false);
+                                cameraEffectMaterial.SetTexture(components[0], tex);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(cameraPixelSize))
+            {
+                string[] vars = cameraPixelSize.Split(',');
+                if (vars.Length == 2)
+                {
+                    if (!int.TryParse(vars[0], out rentexWidth) || !int.TryParse(vars[1], out rentexHeight) || rentexHeight < 0 || rentexWidth < 0)
+                    {
+                        JUtil.LogMessage(this, "Bad image dimensions? {0} and {1}", vars[0], vars[1]);
+                        rentexHeight = rentexWidth = 0;
+                    }
+                    else
+                    {
+                        JUtil.LogMessage(this, "Setting rentex to {0} x {1}", rentexWidth, rentexHeight);
+                    }
+                }
+            }
         }
     }
 
@@ -642,5 +756,11 @@ namespace JSI
             currentPitch = 0.0f;
             seekHome = false;
         }
+    }
+
+    internal class ShaderEffectVariable
+    {
+        public string variable;
+        public VariableOrNumber value;
     }
 }
