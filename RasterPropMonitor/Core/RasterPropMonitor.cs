@@ -103,10 +103,6 @@ namespace JSI
         private int loopsWithoutInitCounter = 0;
         private bool startupFailed = false;
 
-#if ENABLE_TP
-        private bool ourPodIsTransparent = false;
-#endif
-
         private static Texture2D LoadFont(object caller, InternalProp thisProp, string location)
         {
             Texture2D font = null;
@@ -254,11 +250,6 @@ namespace JSI
                 }
 
                 audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
-
-                // One last thing to make sure of: If our pod is transparent, we're always active.
-#if ENABLE_TP
-                ourPodIsTransparent = JUtil.IsPodTransparent(part);
-#endif
 
                 // And if the try block never completed, startupComplete will never be true.
                 startupComplete = true;

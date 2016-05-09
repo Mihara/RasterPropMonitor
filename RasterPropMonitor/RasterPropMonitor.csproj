@@ -136,7 +136,6 @@
     <Compile Include="Core\VariableHandler.cs" />
     <Compile Include="Handlers\JSIInternalRPMButtons.cs" />
     <Compile Include="Handlers\JSIOdometer.cs" />
-    <Compile Include="Auxiliary modules\JSITransparentPod.cs" />
     <Compile Include="Auxiliary modules\JSISelectivelyVisibleProp.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
