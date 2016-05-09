@@ -58,6 +58,8 @@ namespace JSI
         public bool use360horizon = true;
         [KSPField] // Number of texels of the horizon texture to draw (width).
         public Vector2 horizonTextureSize = new Vector2(1f, 1f);
+        [KSPField]
+        public Vector2 horizonOffset = Vector2.zero;
 
         [KSPField]
         public string headingBar = string.Empty;
@@ -109,18 +111,16 @@ namespace JSI
         /// <summary>
         /// Initialize the renderable game objects for the HUD.
         /// </summary>
-        /// <param name="screenWidth"></param>
-        /// <param name="screenHeight"></param>
         void InitializeRenderables(RenderTexture screen)
         {
             float screenWidth = (float)screen.width;
             float screenHeight = (float)screen.height;
 
-            Shader displayShader = JUtil.LoadInternalShader("RPM-DisplayShader");
+            Shader displayShader = JUtil.LoadInternalShader("RPM/DisplayShader");
 
             if (!string.IsNullOrEmpty(cameraTransform))
             {
-                cameraObject = new FlyingCamera(part, screen, hudCamera.aspect);
+                cameraObject = new FlyingCamera(part, hudCamera.aspect);
                 cameraObject.PointCamera(cameraTransform, hudFov);
             }
 
@@ -141,11 +141,11 @@ namespace JSI
 
             if (!string.IsNullOrEmpty(horizonTexture))
             {
-                Shader ladderShader = JUtil.LoadInternalShader("RPM-CroppedDisplayShader");
+                Shader ladderShader = JUtil.LoadInternalShader("RPM/CroppedDisplayShader");
                 Material ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
-                Vector4 cropBound = new Vector4(-horizonSize.x / screenWidth, -horizonSize.y / screenHeight, horizonSize.x / screenWidth, horizonSize.y / screenHeight);
+                Vector4 cropBound = new Vector4((horizonOffset.x - horizonSize.x) / screenWidth, (horizonOffset.y - horizonSize.y) / screenHeight, (horizonOffset.x + horizonSize.x) / screenWidth, (horizonOffset.y + horizonSize.y) / screenHeight);
                 ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
@@ -159,7 +159,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(0, 0, 1.45f);
+                    ladderMesh.transform.position = new Vector3(horizonOffset.x, horizonOffset.y, 1.45f);
                     ladderMesh.GetComponent<Renderer>().material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
@@ -434,7 +434,7 @@ namespace JSI
             // Draw the camera's view, if configured.
             if (cameraObject != null)
             {
-                cameraObject.Render();
+                cameraObject.Render(screen, 0.0f, 0.0f);
             }
 
             hudCamera.targetTexture = screen;

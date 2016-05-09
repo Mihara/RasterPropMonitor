@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>JSI</RootNamespace>
     <AssemblyName>RasterPropMonitor</AssemblyName>
-    <ReleaseVersion>0.26.0</ReleaseVersion>
+    <ReleaseVersion>0.26.1</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <CodePage>65001</CodePage>
   </PropertyGroup>
@@ -203,11 +203,11 @@
   </ProjectExtensions>
   <ItemGroup />
   <ItemGroup>
-    <EmbeddedResource Include="Shaders\RPM-DisplayShader-compiled.shader" />
-    <EmbeddedResource Include="Shaders\RPM-CroppedDisplayShader-compiled.shader" />
+    <None Include="Shaders\RPM-DisplayShader-compiled.shader" />
+    <None Include="Shaders\RPM-CroppedDisplayShader-compiled.shader" />
     <None Include="Shaders\RPM-CroppedDisplayShader.shader" />
     <None Include="Shaders\RPM-DisplayShader.shader" />
-    <EmbeddedResource Include="Shaders\RPM-FontShader-compiled.shader" />
+    <None Include="Shaders\RPM-FontShader-compiled.shader" />
     <None Include="Shaders\RPM-FontShader.shader" />
   </ItemGroup>
   <PropertyGroup>

@@ -539,7 +539,7 @@ highp vec4 frag( in v2f i ) {
     if (((((i.pixelPos.x < _CropBound.x) || (i.pixelPos.y < _CropBound.y)) || (i.pixelPos.x > _CropBound.z)) || (i.pixelPos.y > _CropBound.w))){
         #line 336
         discard;
-        return vec4( 0.0);
+        return vec4( 0.0, 0.0, 0.0, 0.0);
     }
     else{
         #line 341

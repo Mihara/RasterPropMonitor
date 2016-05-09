@@ -20,7 +20,7 @@ namespace JSI
 
             internal FontRenderer(Texture2D fontTexture, Vector2 vectorSize, int drawingLayer, Transform parentTransform)
             {
-                Shader displayShader = JUtil.LoadInternalShader("RPM-FontShader");
+                Shader displayShader = JUtil.LoadInternalShader("RPM/FontShader");
 
                 fontMaterial = new Material(displayShader);
                 fontMaterial.color = Color.white;

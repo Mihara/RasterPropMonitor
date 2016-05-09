@@ -67,7 +67,7 @@ Shader "RPM/CroppedDisplayShader"
 				if(i.pixelPos.x < _CropBound.x || i.pixelPos.y < _CropBound.y || i.pixelPos.x > _CropBound.z || i.pixelPos.y > _CropBound.w)
 				{
 					discard;
-					return (0,0,0,0);
+					return float4(0,0,0,0);
 				}
 				else
 				{

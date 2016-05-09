@@ -1,4 +1,23 @@
-// Analysis disable once RedundantUsingDirective
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using UnityEngine;
 
@@ -25,7 +44,6 @@ namespace JSI
         private readonly Camera[] cameraObject = { null, null, null, null, null, null, null };
         private readonly float cameraAspect;
         private bool enabled;
-        private readonly RenderTexture screenTexture;
         private bool isReferenceCamera, isReferenceClawCamera;
         private ModuleGrappleNode clawModule;
         private Part referencePart;
@@ -37,11 +55,10 @@ namespace JSI
 
         public float FOV { get; set; }
 
-        public FlyingCamera(Part thatPart, RenderTexture screen, float aspect)
+        public FlyingCamera(Part thatPart, float aspect)
         {
             ourVessel = thatPart.vessel;
             ourPart = thatPart;
-            screenTexture = screen;
             cameraAspect = aspect;
         }
 
@@ -209,7 +226,6 @@ namespace JSI
 
                 cameraObject[index].CopyFrom(sourceCam);
                 cameraObject[index].enabled = false;
-                cameraObject[index].targetTexture = screenTexture;
                 cameraObject[index].aspect = cameraAspect;
 
                 // Minor hack to bring the near clip plane for the "up close"
@@ -218,7 +234,7 @@ namespace JSI
                 // or 750:1 Far/Near ratio.  Changing this to 8192:1 brings the
                 // near plane to 37cm or so, which hopefully is close enough to
                 // see nearby details without creating z-fighting artifacts.
-                if(index == 5 || index == 6)
+                if (index == 5 || index == 6)
                 {
                     cameraObject[index].nearClipPlane = cameraObject[index].farClipPlane / 8192.0f;
                 }
@@ -244,7 +260,7 @@ namespace JSI
             return isReferenceCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
         }
 
-        public bool Render(float yawOffset = 0.0f, float pitchOffset = 0.0f)
+        public bool Render(RenderTexture screen, float yawOffset, float pitchOffset)
         {
 
             if (isReferenceCamera && ourVessel.GetReferenceTransformPart() != referencePart)
@@ -324,11 +340,12 @@ namespace JSI
             {
                 if (cameraObject[i] != null)
                 {
-                    // ScaledSpace camera and it's derived cameras from Visual Enhancements mod are special - they don't move.
+                    // ScaledSpace camera and its derived cameras from Visual Enhancements mod are special - they don't move.
                     if (i >= 3)
                     {
                         cameraObject[i].transform.position = cameraTransform.transform.position;
                     }
+                    cameraObject[i].targetTexture = screen;
                     cameraObject[i].transform.rotation = rotation;
                     cameraObject[i].fieldOfView = FOV;
                     cameraObject[i].Render();

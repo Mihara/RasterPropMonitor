@@ -280,6 +280,8 @@ namespace JSI
         private float totalRawMaximumThrust;
         private float totalShipDryMass;
         private float totalShipWetMass;
+        private float maxEngineFuelFlow;
+        private float currentEngineFuelFlow;
 
         private List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
@@ -554,6 +556,12 @@ namespace JSI
         public override void OnAwake()
         {
             base.OnAwake();
+
+            if (!InstallationPathWarning.Warn())
+            {
+                return;
+            }
+
             vessel = GetComponent<Vessel>();
             if (vessel == null || vessel.isEVA || !vessel.isCommandable)
             {
@@ -1323,6 +1331,7 @@ namespace JSI
         private void FetchPerPartData()
         {
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
+            maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
             totalDataAmount = totalExperimentCount = 0.0f;
             heatShieldTemperature = heatShieldFlux = 0.0f;
             hottestPartTemperature = hottestEngineTemperature = 0.0f;
@@ -1373,15 +1382,22 @@ namespace JSI
                             anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
                             anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
 
-                            totalCurrentThrust += GetCurrentThrust(thatEngineModule);
-                            float maxThrust = GetMaximumThrust(thatEngineModule);
-                            totalRawMaximumThrust += maxThrust;
-                            maxThrust *= thatEngineModule.thrustPercentage * 0.01f;
+                            float currentThrust = GetCurrentThrust(thatEngineModule);
+                            totalCurrentThrust += currentThrust;
+                            float rawMaxThrust = GetMaximumThrust(thatEngineModule);
+                            totalRawMaximumThrust += rawMaxThrust;
+                            float maxThrust = rawMaxThrust * thatEngineModule.thrustPercentage * 0.01f;
                             totalLimitedMaximumThrust += maxThrust;
                             float realIsp = GetRealIsp(thatEngineModule);
                             if (realIsp > 0.0f)
                             {
                                 averageIspContribution += maxThrust / realIsp;
+
+                                // Compute specific fuel consumption and
+                                // multiply by thrust to get grams/sec fuel flow
+                                float specificFuelConsumption = 101972f / realIsp;
+                                maxEngineFuelFlow += specificFuelConsumption * rawMaxThrust;
+                                currentEngineFuelFlow += specificFuelConsumption * currentThrust;
                             }
 
                             foreach (Propellant thatResource in thatEngineModule.propellants)

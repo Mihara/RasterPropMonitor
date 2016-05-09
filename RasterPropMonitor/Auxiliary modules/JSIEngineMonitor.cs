@@ -69,6 +69,7 @@ namespace JSI
                 return;
             }
 
+            bool startedOkay = true;
             for(int i=0; i<part.Modules.Count; ++i)
             {
                 if(part.Modules[i] is MultiModeEngine)
@@ -81,6 +82,7 @@ namespace JSI
                     else
                     {
                         JUtil.LogErrorMessage(this, "Found more than one MultiModeEngine on {0} - I don't know what to do with it.", part.name);
+                        startedOkay = false;
                     }
                 }
                 else if(part.Modules[i] is ModuleEngines)
@@ -98,16 +100,21 @@ namespace JSI
                     else
                     {
                         JUtil.LogErrorMessage(this, "Found more than 2 ModuleEngines on {0} - I don't know what to do with them.", part.name);
+                        startedOkay = false;
                     }
                 }
             }
 
-            if(engineMode1Index == -1)
+            if (engineMode1Index == -1 || !startedOkay)
             {
+                JUtil.LogErrorMessage(this, "Unable to initialize - no ModuleEngine, or too many engines");
                 Destroy(this);
                 // No engines!
             }
-            UpdateName();
+            else
+            {
+                UpdateName();
+            }
         }
 
         public void FixedUpdate()
