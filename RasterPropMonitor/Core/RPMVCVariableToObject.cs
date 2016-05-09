@@ -1749,6 +1749,17 @@ namespace JSI
                 case "RANDOM":
                     cacheable = false;
                     return (string variable) => { return UnityEngine.Random.value; };
+                case "RANDOMNORMAL":
+                    cacheable = false;
+                    return (string variable) => 
+                    {
+                        // Box-Muller method tweaked to prevent a 0 in u.
+                        float u = UnityEngine.Random.Range(0.0009765625f, 1.0f);
+                        float v = UnityEngine.Random.Range(0.0f, 2.0f * Mathf.PI);
+                        float x = Mathf.Sqrt(-2.0f * Mathf.Log(u)) * Mathf.Cos(v);
+                        // TODO: verify the stddev - I believe it is 1; mean is 0.
+                        return x;
+                    };
                 case "PODTEMPERATURE":
                     return (string variable) => { return (part != null) ? (part.temperature + KelvinToCelsius) : 0.0; };
                 case "PODTEMPERATUREKELVIN":
