@@ -1405,6 +1405,29 @@ namespace JSI
 
             return stateCall;
         }
+
+        private static List<string> knownFonts = null;
+        internal static Font LoadOSFont(string fontName)
+        {
+            if(knownFonts == null)
+            {
+                string[] fn = Font.GetOSInstalledFontNames();
+                if (fn != null)
+                {
+                    knownFonts = fn.ToList<string>();
+                }
+            }
+
+            if(knownFonts.Contains(fontName))
+            {
+                return Font.CreateDynamicFontFromOSFont(fontName, 10);
+            }
+            else
+            {
+                // Fallback
+                return Font.CreateDynamicFontFromOSFont("Arial", 10);
+            }
+        }
     }
 
     // This, instead, is a static class on it's own because it needs its private static variables.
