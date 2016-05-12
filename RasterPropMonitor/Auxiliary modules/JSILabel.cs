@@ -30,6 +30,8 @@ namespace JSI
         public string labelText = "uninitialized";
         [KSPField]
         public string transformName;
+        [KSPField]
+        public Vector2 transformOffset = Vector2.zero;
 
         [KSPField]
         public float fontSize = 0.008f;
@@ -74,9 +76,26 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
-
-                textObj = textObjTransform.gameObject.AddComponent<TextMesh>();
-
+                // TODO: Can I make this work?
+#if THIS_WORKS
+                if(transformOffset!=Vector2.zero)
+                {
+                    Transform offsetTransform = new GameObject().transform;
+                    offsetTransform.parent=textObjTransform;
+                    offsetTransform.position = textObjTransform.position;
+                    offsetTransform.rotation = textObjTransform.rotation;
+                    offsetTransform.Translate(transformOffset.x, transformOffset.y, 0.0f);
+                    textObj = offsetTransform.gameObject.AddComponent<TextMesh>();
+                }
+                else
+#else
+                Vector3 localScale = internalProp.transform.localScale;
+                textObjTransform.Translate(transformOffset.x * localScale.x, transformOffset.y * localScale.y, 0.0f);
+#endif
+                {
+                    textObj = textObjTransform.gameObject.AddComponent<TextMesh>();
+                }
+                
                 font = JUtil.LoadOSFont(fontName);
 
                 textObj.font = font;
@@ -205,7 +224,7 @@ namespace JSI
             }
             catch(Exception e)
             {
-                JUtil.LogErrorMessage(this, "Start failed with exception {0}", e);
+                JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
                 spf = new StringProcessorFormatter(string.Empty);
             }
         }
