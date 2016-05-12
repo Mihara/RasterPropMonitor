@@ -1657,6 +1657,10 @@ namespace JSI
                     JUtil.LogInfo(this, "Found {0} RPM shaders.", shaders.Length);
                     for (int j = 0; j < shaders.Length; ++j)
                     {
+                        if (!shaders[j].isSupported)
+                        {
+                            JUtil.LogErrorMessage(this, "Shader {0} - unsupported in this configuration", shaders[j].name);
+                        }
                         JUtil.parsedShaders[shaders[j].name] = shaders[j];
                     }
 
