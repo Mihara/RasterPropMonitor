@@ -34,7 +34,7 @@ namespace JSI
         public Vector2 transformOffset = Vector2.zero;
 
         [KSPField]
-        public float fontSize = 0.008f;
+        public float fontSize = 8.0f;
         [KSPField]
         public float lineSpacing = 1.0f;
         [KSPField]
@@ -43,6 +43,8 @@ namespace JSI
         public string anchor = string.Empty;
         [KSPField]
         public string alignment = string.Empty;
+        [KSPField]
+        public int fontQuality = 32;
 
         [KSPField]
         public int refreshRate = 10;
@@ -95,8 +97,8 @@ namespace JSI
                 {
                     textObj = textObjTransform.gameObject.AddComponent<TextMesh>();
                 }
-                
-                font = JUtil.LoadOSFont(fontName);
+
+                font = JUtil.LoadOSFont(fontName, fontQuality);
 
                 textObj.font = font;
 
@@ -171,7 +173,8 @@ namespace JSI
                     }
                 }
 
-                textObj.characterSize = fontSize;
+                float sizeScalar = 32.0f / (float)fontQuality;
+                textObj.characterSize = fontSize * 0.0005f * sizeScalar;
                 textObj.lineSpacing = textObj.lineSpacing * lineSpacing;
 
                 // Force oneshot if there's no variables:

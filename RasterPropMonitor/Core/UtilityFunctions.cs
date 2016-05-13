@@ -1407,7 +1407,7 @@ namespace JSI
         }
 
         private static List<string> knownFonts = null;
-        internal static Font LoadOSFont(string fontName)
+        internal static Font LoadOSFont(string fontName, int size)
         {
             if(knownFonts == null)
             {
@@ -1420,12 +1420,12 @@ namespace JSI
 
             if(knownFonts.Contains(fontName))
             {
-                return Font.CreateDynamicFontFromOSFont(fontName, 10);
+                return Font.CreateDynamicFontFromOSFont(fontName, size);
             }
             else
             {
                 // Fallback
-                return Font.CreateDynamicFontFromOSFont("Arial", 10);
+                return Font.CreateDynamicFontFromOSFont("Arial", size);
             }
         }
     }
