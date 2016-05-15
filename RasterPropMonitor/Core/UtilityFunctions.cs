@@ -236,6 +236,7 @@ namespace JSI
         private static readonly int ClosestApproachRefinementInterval = 16;
         public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
+        internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
 
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
@@ -1407,8 +1408,14 @@ namespace JSI
         }
 
         private static List<string> knownFonts = null;
-        internal static Font LoadOSFont(string fontName, int size)
+        internal static Font LoadOSFont(string fontName, int size, out bool callerDestroys)
         {
+            if(loadedFonts.ContainsKey(fontName))
+            {
+                callerDestroys = false;
+                return loadedFonts[fontName];
+            }
+
             if(knownFonts == null)
             {
                 string[] fn = Font.GetOSInstalledFontNames();
@@ -1420,11 +1427,13 @@ namespace JSI
 
             if(knownFonts.Contains(fontName))
             {
+                callerDestroys = true;
                 return Font.CreateDynamicFontFromOSFont(fontName, size);
             }
             else
             {
                 // Fallback
+                callerDestroys = true;
                 return Font.CreateDynamicFontFromOSFont("Arial", size);
             }
         }
@@ -1627,6 +1636,7 @@ namespace JSI
             for (int i = 0; i < loadedBundles.Count; ++i)
             {
                 Shader[] shaders = null;
+                Font[] fonts = null;
                 bool theRightBundle = false;
 
                 try
@@ -1647,6 +1657,7 @@ namespace JSI
                             }
                         }
                     }
+                    fonts = loadedBundles[i].LoadAllAssets<Font>();
                 }
                 catch { }
 
@@ -1654,7 +1665,7 @@ namespace JSI
                 {
                     // If we found our bundle, set up our parsedShaders
                     // dictionary and bail - our mission is complete.
-                    JUtil.LogInfo(this, "Found {0} RPM shaders.", shaders.Length);
+                    JUtil.LogInfo(this, "Found {0} RPM shaders and {1} fonts.", shaders.Length, fonts.Length);
                     for (int j = 0; j < shaders.Length; ++j)
                     {
                         if (!shaders[j].isSupported)
@@ -1663,7 +1674,11 @@ namespace JSI
                         }
                         JUtil.parsedShaders[shaders[j].name] = shaders[j];
                     }
-
+                    for (int j = 0; j < fonts.Length; ++j)
+                    {
+                        JUtil.LogInfo(this, "Adding RPM-included font {0} / {1}", fonts[j].name, fonts[j].fontSize);
+                        JUtil.loadedFonts[fonts[j].name] = fonts[j];
+                    }
                     return;
                 }
             }
