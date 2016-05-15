@@ -66,6 +66,7 @@ namespace JSI
         private TextMesh textObj;
         private Material overrideMaterial;
         private Font font;
+        private bool destroyFontOnExit = false;
 
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
@@ -98,13 +99,17 @@ namespace JSI
                     textObj = textObjTransform.gameObject.AddComponent<TextMesh>();
                 }
 
-                font = JUtil.LoadOSFont(fontName, fontQuality);
+                font = JUtil.LoadOSFont(fontName, fontQuality, out destroyFontOnExit);
 
                 textObj.font = font;
 
                 Renderer r = textObj.GetComponent<Renderer>();
                 overrideMaterial = r.material;
+                // MOARdV TODO: Get the prop's shader.  Or write my own non-emissive shader
+                //Renderer parentRenderer = internalProp.gameObject.GetComponent<Renderer>();
+                //overrideMaterial.shader = parentRenderer.material.shader;
                 overrideMaterial.mainTexture = font.material.mainTexture;
+                //JUtil.LogMessage(this, "textObj's shader is {0}", overrideMaterial.shader.name);
 
                 // Doesn't work?
                 textObj.richText = true;
@@ -173,7 +178,7 @@ namespace JSI
                     }
                 }
 
-                float sizeScalar = 32.0f / (float)fontQuality;
+                float sizeScalar = 32.0f / (float)font.fontSize;
                 textObj.characterSize = fontSize * 0.0005f * sizeScalar;
                 textObj.lineSpacing = textObj.lineSpacing * lineSpacing;
 
@@ -254,8 +259,11 @@ namespace JSI
             textObj = null;
             Destroy(overrideMaterial);
             overrideMaterial = null;
-            Destroy(font);
-            font = null;
+            if (destroyFontOnExit)
+            {
+                Destroy(font);
+                font = null;
+            }
         }
 
         private void OnCallback(RPMVesselComputer comp, float value)
