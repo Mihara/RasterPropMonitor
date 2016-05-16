@@ -10,7 +10,8 @@ Shader "RPM/Noise"
 		_NoiseOffset ("_NoiseOffset", float) = 0.0
 		//_ImageDims ("_ImageDims", Vector) = (512,512,0.001953125,0.001953125)
 	}
-	SubShader {
+	SubShader 
+	{
 		ZTest Always Cull Off ZWrite Off Fog { Mode Off }
 		Pass
 		{
@@ -25,9 +26,8 @@ Shader "RPM/Noise"
 				uniform float _Gain;
 				uniform float _Blend;
 				uniform float _NoiseOffset;
-				//uniform float4 _ImageDims;
 
-				float4 frag(v2f_img IN) : COLOR
+				fixed4 frag(v2f_img IN) : SV_TARGET
 				{
 					// Fetch color
 					float2 uv = IN.uv;
