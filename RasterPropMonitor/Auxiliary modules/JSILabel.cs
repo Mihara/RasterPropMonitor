@@ -79,25 +79,13 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
-                // TODO: Can I make this work?
-#if THIS_WORKS
-                if(transformOffset!=Vector2.zero)
-                {
-                    Transform offsetTransform = new GameObject().transform;
-                    offsetTransform.parent=textObjTransform;
-                    offsetTransform.position = textObjTransform.position;
-                    offsetTransform.rotation = textObjTransform.rotation;
-                    offsetTransform.Translate(transformOffset.x, transformOffset.y, 0.0f);
-                    textObj = offsetTransform.gameObject.AddComponent<TextMesh>();
-                }
-                else
-#else
                 Vector3 localScale = internalProp.transform.localScale;
-                textObjTransform.Translate(transformOffset.x * localScale.x, transformOffset.y * localScale.y, 0.0f);
-#endif
-                {
-                    textObj = textObjTransform.gameObject.AddComponent<TextMesh>();
-                }
+
+                Transform offsetTransform = new GameObject().transform;
+                offsetTransform.gameObject.layer = textObjTransform.gameObject.layer;
+                offsetTransform.SetParent(textObjTransform, false);
+                offsetTransform.Translate(transformOffset.x* localScale.x, transformOffset.y* localScale.y, 0.0f);
+                textObj = offsetTransform.gameObject.AddComponent<TextMesh>();
 
                 font = JUtil.LoadOSFont(fontName, fontQuality, out destroyFontOnExit);
 
@@ -105,13 +93,10 @@ namespace JSI
 
                 Renderer r = textObj.GetComponent<Renderer>();
                 overrideMaterial = r.material;
-                // MOARdV TODO: Get the prop's shader.  Or write my own non-emissive shader
-                //Renderer parentRenderer = internalProp.gameObject.GetComponent<Renderer>();
-                //overrideMaterial.shader = parentRenderer.material.shader;
+                overrideMaterial.shader = JUtil.LoadInternalShader("RPM/LabelShader");
+                // MOARdV TODO: Get the prop's shader.  Or write my own non-emissive shader.
                 overrideMaterial.mainTexture = font.material.mainTexture;
-                //JUtil.LogMessage(this, "textObj's shader is {0}", overrideMaterial.shader.name);
 
-                // Doesn't work?
                 textObj.richText = true;
 
                 if (!string.IsNullOrEmpty(anchor))
