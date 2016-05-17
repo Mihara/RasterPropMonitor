@@ -49,7 +49,7 @@ namespace JSI
         {
             string varName = input.Trim();
             float floatval;
-            if(float.TryParse(varName, out floatval))
+            if (float.TryParse(varName, out floatval))
             {
                 // If it's a numeric value, let's canonicalize it using
                 // ToString, so we don't have duplicates that evaluate to the
@@ -70,7 +70,7 @@ namespace JSI
                 varName = RPMVesselComputer.MetersPerSecondToFeetPerMinute.ToString();
             }
 
-            if(!vars.ContainsKey(varName))
+            if (!vars.ContainsKey(varName))
             {
                 VariableOrNumber VoN = new VariableOrNumber(varName);
                 vars.Add(varName, VoN);
@@ -96,7 +96,7 @@ namespace JSI
                 numericValue = realValue;
                 type = VoNType.ConstantNumeric;
             }
-            else if(input[0] == '$')
+            else if (input[0] == '$')
             {
                 stringValue = input.Substring(1);
                 type = VoNType.ConstantString;
@@ -110,15 +110,15 @@ namespace JSI
 
         public object Evaluate(RPMVesselComputer comp)
         {
-            if(type == VoNType.ConstantNumeric)
+            if (type == VoNType.ConstantNumeric)
             {
                 return numericValue;
             }
-            else if(type ==VoNType.ConstantString)
+            else if (type == VoNType.ConstantString)
             {
                 return stringValue;
             }
-            else if(type == VoNType.VariableValue)
+            else if (type == VoNType.VariableValue)
             {
                 return comp.ProcessVariable(variableName);
             }
@@ -203,12 +203,17 @@ namespace JSI
         VariableOrNumber sourceValue;
         VariableOrNumber lowerBound;
         VariableOrNumber upperBound;
+        VariableOrNumber modulo;
 
-        public VariableOrNumberRange(string sourceVariable, string range1, string range2)
+        public VariableOrNumberRange(string sourceVariable, string range1, string range2, string moduloVariable = null)
         {
             sourceValue = VariableOrNumber.Instantiate(sourceVariable);
             lowerBound = VariableOrNumber.Instantiate(range1);
             upperBound = VariableOrNumber.Instantiate(range2);
+            if (!string.IsNullOrEmpty(moduloVariable))
+            {
+                modulo = VariableOrNumber.Instantiate(moduloVariable);
+            }
         }
 
         public bool InverseLerp(RPMVesselComputer comp, out float scaledValue)
@@ -222,8 +227,32 @@ namespace JSI
             }
             else
             {
-                scaledValue = Mathf.InverseLerp(low, high, value);
-                return true;
+                if (modulo != null)
+                {
+                    float mod;
+                    if (!modulo.Get(out mod, comp) || mod <= 0.0f)
+                    {
+                        scaledValue = 0.0f;
+                        return false;
+                    }
+                    else
+                    {
+                        scaledValue = Mathf.InverseLerp(low, high, value);
+                        float range = Mathf.Abs(high - low);
+                        if (range > 0.0f)
+                        {
+                            float modDivRange = mod / range;
+                            scaledValue = (scaledValue % (modDivRange)) / modDivRange;
+                        }
+                        //value = value % mod;
+                        return true;
+                    }
+                }
+                else
+                {
+                    scaledValue = Mathf.InverseLerp(low, high, value);
+                    return true;
+                }
             }
         }
 
@@ -238,7 +267,7 @@ namespace JSI
             float value;
             float low, high;
 
-            if(!(sourceValue.Get(out value, comp) && lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
+            if (!(sourceValue.Get(out value, comp) && lowerBound.Get(out low, comp) && upperBound.Get(out high, comp)))
             {
                 return false;
             }
