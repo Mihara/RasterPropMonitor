@@ -752,6 +752,7 @@ namespace JSI
                     bool wrapAround = usesModulo && (difference > 0.5f);
                     if (wrapAround)
                     {
+                        maxDelta = Mathf.Min(maxDelta, 1.0f - difference);
                         maxDelta = -maxDelta;
                     }
 
