@@ -32,6 +32,8 @@ namespace JSI
         public string transformName;
         [KSPField]
         public Vector2 transformOffset = Vector2.zero;
+        [KSPField]
+        public bool emissive = true;
 
         [KSPField]
         public float fontSize = 8.0f;
@@ -93,8 +95,15 @@ namespace JSI
 
                 Renderer r = textObj.GetComponent<Renderer>();
                 overrideMaterial = r.material;
-                overrideMaterial.shader = JUtil.LoadInternalShader("RPM/LabelShader");
-                // MOARdV TODO: Get the prop's shader.  Or write my own non-emissive shader.
+                if (emissive)
+                {
+                    overrideMaterial.shader = JUtil.LoadInternalShader("RPM/EmissiveLabel");
+                }
+                else
+                {
+                    overrideMaterial.shader = JUtil.LoadInternalShader("RPM/DiffuseLabel");
+                }
+
                 overrideMaterial.mainTexture = font.material.mainTexture;
 
                 textObj.richText = true;
