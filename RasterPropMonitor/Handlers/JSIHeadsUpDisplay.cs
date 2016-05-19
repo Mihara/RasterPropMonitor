@@ -60,6 +60,8 @@ namespace JSI
         public Vector2 horizonTextureSize = new Vector2(1f, 1f);
         [KSPField]
         public Vector2 horizonOffset = Vector2.zero;
+        private Vector4 cropBound = Vector4.zero;
+        private Material ladderMaterial;
 
         [KSPField]
         public string headingBar = string.Empty;
@@ -142,10 +144,10 @@ namespace JSI
             if (!string.IsNullOrEmpty(horizonTexture))
             {
                 Shader ladderShader = JUtil.LoadInternalShader("RPM/CroppedDisplayShader");
-                Material ladderMaterial = new Material(ladderShader);
+                ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
-                Vector4 cropBound = new Vector4((horizonOffset.x - horizonSize.x) / screenWidth, (horizonOffset.y - horizonSize.y) / screenHeight, (horizonOffset.x + horizonSize.x) / screenWidth, (horizonOffset.y + horizonSize.y) / screenHeight);
+                cropBound = new Vector4((horizonOffset.x - horizonSize.x) / screenWidth, (horizonOffset.y - horizonSize.y) / screenHeight, (horizonOffset.x + horizonSize.x) / screenWidth, (horizonOffset.y + horizonSize.y) / screenHeight);
                 ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
@@ -461,6 +463,7 @@ namespace JSI
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder(rotationVesselSurface, comp);
+                ladderMaterial.SetVector("_CropBound", cropBound); 
                 JUtil.ShowHide(true, ladderMesh);
                 //hudCamera.Render();
                 //JUtil.ShowHide(false, ladderMesh);
