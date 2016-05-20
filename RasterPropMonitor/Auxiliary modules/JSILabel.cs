@@ -33,7 +33,15 @@ namespace JSI
         [KSPField]
         public Vector2 transformOffset = Vector2.zero;
         [KSPField]
-        public bool emissive = true;
+        public string emissive = "always";
+        private EmissiveMode emissiveMode = EmissiveMode.always;
+        enum EmissiveMode
+        {
+            always,
+            never,
+            active,
+            passive
+        };
 
         [KSPField]
         public float fontSize = 8.0f;
@@ -64,6 +72,7 @@ namespace JSI
         [KSPField]
         public string zeroColor = string.Empty;
         private Color zeroColorValue = XKCDColors.White;
+        private bool variablePositive = false;
 
         private TextMesh textObj;
         private Material overrideMaterial;
@@ -93,17 +102,35 @@ namespace JSI
 
                 textObj.font = font;
 
-                Renderer r = textObj.GetComponent<Renderer>();
-                overrideMaterial = r.material;
-                if (emissive)
+                if(emissive.ToLower() == EmissiveMode.always.ToString())
                 {
-                    overrideMaterial.shader = JUtil.LoadInternalShader("RPM/EmissiveLabel");
+                    emissiveMode = EmissiveMode.always;
+                }
+                else if (emissive.ToLower() == EmissiveMode.never.ToString())
+                {
+                    emissiveMode = EmissiveMode.never;
+                }
+                else if (emissive.ToLower() == EmissiveMode.active.ToString())
+                {
+                    emissiveMode = EmissiveMode.active;
+                }
+                else if (emissive.ToLower() == EmissiveMode.passive.ToString())
+                {
+                    emissiveMode = EmissiveMode.passive;
                 }
                 else
                 {
-                    overrideMaterial.shader = JUtil.LoadInternalShader("RPM/DiffuseLabel");
+                    JUtil.LogErrorMessage(this, "Unrecognized emissive mode '{0}' in config for {1} ({2})", emissive, internalProp.propID, internalProp.propName);
+                    emissiveMode = EmissiveMode.always;
                 }
 
+                Renderer r = textObj.GetComponent<Renderer>();
+                /*
+                overrideMaterial = new Material(JUtil.LoadInternalShader("RPM/JSILabel"));
+                overrideMaterial.mainTexture = font.material.mainTexture;
+                */
+                overrideMaterial = r.material;
+                overrideMaterial.shader = JUtil.LoadInternalShader("RPM/JSILabel");
                 overrideMaterial.mainTexture = font.material.mainTexture;
 
                 textObj.richText = true;
@@ -213,22 +240,51 @@ namespace JSI
                     if (value < 0.0f)
                     {
                         textObj.color = negativeColorValue;
+                        variablePositive = false;
                     }
                     else if (value > 0.0f)
                     {
                         textObj.color = positiveColorValue;
+                        variablePositive = true;
                     }
                     else
                     {
                         textObj.color = zeroColorValue;
+                        variablePositive = false;
                     }
                 }
+
+                UpdateShader();
             }
             catch(Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
                 spf = new StringProcessorFormatter(string.Empty);
             }
+        }
+
+        private void UpdateShader()
+        {
+            float emissiveValue = 1.0f;
+            if(emissiveMode == EmissiveMode.always)
+            {
+                emissiveValue = 1.0f;
+            }
+            else if(emissiveMode == EmissiveMode.never)
+            {
+                emissiveValue = 0.0f;
+            }
+            else if(variablePositive ^ (emissiveMode==EmissiveMode.passive))
+            {
+                emissiveValue = 1.0f;
+            }
+            else
+            {
+                emissiveValue = 0.0f;
+            }
+
+            // TODO: Use an index, not a string.
+            overrideMaterial.SetFloat("_EmissiveFactor", emissiveValue);
         }
 
         public void OnDestroy()
@@ -273,14 +329,17 @@ namespace JSI
             if (value < 0.0f)
             {
                 textObj.color = negativeColorValue;
+                variablePositive = false;
             }
             else if (value > 0.0f)
             {
                 textObj.color = positiveColorValue;
+                variablePositive = true;
             }
             else
             {
                 textObj.color = zeroColorValue;
+                variablePositive = false;
             }
         }
 
@@ -297,6 +356,45 @@ namespace JSI
 
         public override void OnUpdate()
         {
+            // Update shader parameters
+            UpdateShader();
+
+            // Hackinate
+            /*
+            //Renderer[] r = part.transform.GetComponentsInChildren<Renderer>();
+            // PART: KSP/Specular and KSP/Bumped Specular
+            //Renderer[] r = internalProp.transform.GetComponentsInChildren<Renderer>();
+            // internalProp: KSP/Emissive/Specular
+            Renderer[] r = internalProp.internalModel.transform.GetComponentsInChildren<Renderer>();
+            // internalMode: KSP/Specular, KSP/Bumped Specular, KSP/Emissive/Specular, KSP/Alpha/Translucent Specular
+            if (r == null || r.Length == 0)
+            {
+                JUtil.LogMessage(this, "OnUpdate - renderer is null");
+            }
+            else
+            {
+                bool foundOne = false;
+                for (int i = 0; i < r.Length; ++i)
+                {
+                    if (r[i].material.HasProperty("_LightColor0"))
+                    {
+                        JUtil.LogMessage(this, "OnUpdate - _LightColor0 = {0} in {1}", r[i].material.GetVector("_LightColor0"), r[i].material.shader.name);
+                        foundOne = true;
+                    }
+
+                    if (r[i].material.HasProperty("_SpecColor"))
+                    {
+                        JUtil.LogMessage(this, "OnUpdate - _SpecColor = {0} in {1}", r[i].material.GetVector("_SpecColor"), r[i].material.shader.name);
+                        foundOne = true;
+                    }
+                }
+                if(!foundOne)
+                {
+                    JUtil.LogMessage(this, "No child has _LightColor0 or _SpecColor");
+                }
+            }
+             */
+
             if (oneshotComplete && oneshot)
             {
                 return;
