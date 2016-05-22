@@ -77,7 +77,6 @@ namespace JSI
         private TextMesh textObj;
         private Material overrideMaterial;
         private Font font;
-        private bool destroyFontOnExit = false;
 
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
@@ -98,7 +97,7 @@ namespace JSI
                 offsetTransform.Translate(transformOffset.x* localScale.x, transformOffset.y* localScale.y, 0.0f);
                 textObj = offsetTransform.gameObject.AddComponent<TextMesh>();
 
-                font = JUtil.LoadOSFont(fontName, fontQuality, out destroyFontOnExit);
+                font = JUtil.LoadFont(fontName, fontQuality);
 
                 textObj.font = font;
 
@@ -125,13 +124,10 @@ namespace JSI
                 }
 
                 Renderer r = textObj.GetComponent<Renderer>();
-                /*
+
                 overrideMaterial = new Material(JUtil.LoadInternalShader("RPM/JSILabel"));
                 overrideMaterial.mainTexture = font.material.mainTexture;
-                */
-                overrideMaterial = r.material;
-                overrideMaterial.shader = JUtil.LoadInternalShader("RPM/JSILabel");
-                overrideMaterial.mainTexture = font.material.mainTexture;
+                r.material = overrideMaterial;
 
                 textObj.richText = true;
 
@@ -309,11 +305,6 @@ namespace JSI
             textObj = null;
             Destroy(overrideMaterial);
             overrideMaterial = null;
-            if (destroyFontOnExit)
-            {
-                Destroy(font);
-                font = null;
-            }
         }
 
         private void OnCallback(RPMVesselComputer comp, float value)
@@ -358,42 +349,6 @@ namespace JSI
         {
             // Update shader parameters
             UpdateShader();
-
-            // Hackinate
-            /*
-            //Renderer[] r = part.transform.GetComponentsInChildren<Renderer>();
-            // PART: KSP/Specular and KSP/Bumped Specular
-            //Renderer[] r = internalProp.transform.GetComponentsInChildren<Renderer>();
-            // internalProp: KSP/Emissive/Specular
-            Renderer[] r = internalProp.internalModel.transform.GetComponentsInChildren<Renderer>();
-            // internalMode: KSP/Specular, KSP/Bumped Specular, KSP/Emissive/Specular, KSP/Alpha/Translucent Specular
-            if (r == null || r.Length == 0)
-            {
-                JUtil.LogMessage(this, "OnUpdate - renderer is null");
-            }
-            else
-            {
-                bool foundOne = false;
-                for (int i = 0; i < r.Length; ++i)
-                {
-                    if (r[i].material.HasProperty("_LightColor0"))
-                    {
-                        JUtil.LogMessage(this, "OnUpdate - _LightColor0 = {0} in {1}", r[i].material.GetVector("_LightColor0"), r[i].material.shader.name);
-                        foundOne = true;
-                    }
-
-                    if (r[i].material.HasProperty("_SpecColor"))
-                    {
-                        JUtil.LogMessage(this, "OnUpdate - _SpecColor = {0} in {1}", r[i].material.GetVector("_SpecColor"), r[i].material.shader.name);
-                        foundOne = true;
-                    }
-                }
-                if(!foundOne)
-                {
-                    JUtil.LogMessage(this, "No child has _LightColor0 or _SpecColor");
-                }
-            }
-             */
 
             if (oneshotComplete && oneshot)
             {

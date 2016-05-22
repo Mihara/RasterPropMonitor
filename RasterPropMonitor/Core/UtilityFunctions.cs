@@ -1408,15 +1408,18 @@ namespace JSI
         }
 
         private static List<string> knownFonts = null;
-        internal static Font LoadOSFont(string fontName, int size, out bool callerDestroys)
+        internal static Font LoadFont(string fontName, int size)
         {
-            if(loadedFonts.ContainsKey(fontName))
+            if (loadedFonts.ContainsKey(fontName))
             {
-                callerDestroys = false;
                 return loadedFonts[fontName];
             }
+            else if(loadedFonts.ContainsKey(fontName+size.ToString()))
+            {
+                return loadedFonts[fontName + size.ToString()];
+            }
 
-            if(knownFonts == null)
+            if (knownFonts == null)
             {
                 string[] fn = Font.GetOSInstalledFontNames();
                 if (fn != null)
@@ -1425,16 +1428,16 @@ namespace JSI
                 }
             }
 
-            if(knownFonts.Contains(fontName))
+            if (knownFonts.Contains(fontName))
             {
-                callerDestroys = true;
-                return Font.CreateDynamicFontFromOSFont(fontName, size);
+                Font fontFn = Font.CreateDynamicFontFromOSFont(fontName, size);
+                loadedFonts.Add(fontName + size.ToString(), fontFn);
+                return fontFn;
             }
             else
             {
                 // Fallback
-                callerDestroys = true;
-                return Font.CreateDynamicFontFromOSFont("Arial", size);
+                return LoadFont("Arial", size);
             }
         }
     }
