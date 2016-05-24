@@ -19,6 +19,7 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace JSI
@@ -57,10 +58,16 @@ namespace JSI
         public int fontQuality = 32;
 
         [KSPField]
+        public string switchTransform = string.Empty;
+        [KSPField]
+        public string switchSound = "Squad/Sounds/sound_click_flick";
+        [KSPField]
+        public float switchSoundVolume = 0.5f;
+
+        [KSPField]
         public int refreshRate = 10;
         [KSPField]
         public bool oneshot;
-        private bool oneshotComplete;
         [KSPField]
         public string variableName = string.Empty;
         [KSPField]
@@ -77,9 +84,12 @@ namespace JSI
         private JSITextMesh textObj;
         private Font font;
 
+        private List<JSILabelSet> labels = new List<JSILabelSet>();
+        private int activeLabel = 0;
+        private FXGroup audioOutput;
+
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
-        private StringProcessorFormatter spf;
 
         public void Start()
         {
@@ -172,23 +182,70 @@ namespace JSI
                 textObj.characterSize = fontSize * 0.00005f * sizeScalar;
                 textObj.lineSpacing = textObj.lineSpacing * lineSpacing;
 
-                // Force oneshot if there's no variables:
-                oneshot |= !labelText.Contains("$&$");
-                string sourceString = labelText.UnMangleConfigText();
-
-                if (!string.IsNullOrEmpty(sourceString) && sourceString.Length > 1)
+                // "Normal" mode
+                if (string.IsNullOrEmpty(switchTransform))
                 {
-                    // Alow a " character to escape leading whitespace
-                    if (sourceString[0] == '"')
+                    // Force oneshot if there's no variables:
+                    oneshot |= !labelText.Contains("$&$");
+                    string sourceString = labelText.UnMangleConfigText();
+
+                    if (!string.IsNullOrEmpty(sourceString) && sourceString.Length > 1)
                     {
-                        sourceString = sourceString.Substring(1);
+                        // Alow a " character to escape leading whitespace
+                        if (sourceString[0] == '"')
+                        {
+                            sourceString = sourceString.Substring(1);
+                        }
+                    }
+                    labels.Add(new JSILabelSet(sourceString, oneshot));
+
+                    if (!oneshot)
+                    {
+                        comp.UpdateDataRefreshRate(refreshRate);
                     }
                 }
-                spf = new StringProcessorFormatter(sourceString);
-
-                if (!oneshot)
+                else // Switchable mode
                 {
-                    comp.UpdateDataRefreshRate(refreshRate);
+                    SmarterButton.CreateButton(internalProp, switchTransform, Click);
+                    audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
+                    
+                    foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
+                    {
+                        if (node.GetValue("name") == internalProp.propName)
+                        {
+                            ConfigNode moduleConfig = node.GetNodes("MODULE")[moduleID];
+                            ConfigNode[] variableNodes = moduleConfig.GetNodes("VARIABLESET");
+
+                            for (int i = 0; i < variableNodes.Length; i++)
+                            {
+                                try
+                                {
+                                    bool lOneshot = false;
+                                    if(variableNodes[i].HasValue("oneshot"))
+                                    {
+                                        bool.TryParse(variableNodes[i].GetValue("oneshot"), out lOneshot);
+                                    }
+                                    if (variableNodes[i].HasValue("labelText"))
+                                    {
+                                        string lText = variableNodes[i].GetValue("labelText");
+                                        string sourceString = lText.UnMangleConfigText();
+                                        lOneshot |= !lText.Contains("$&$");
+                                        labels.Add(new JSILabelSet(sourceString, lOneshot));
+                                        if (!lOneshot)
+                                        {
+                                            comp.UpdateDataRefreshRate(refreshRate);
+                                        }
+                                    }
+                                }
+                                catch (ArgumentException e)
+                                {
+                                    JUtil.LogErrorMessage(this, "Error in building prop number {1} - {0}", e.Message, internalProp.propID);
+                                }
+                            }
+                            break;
+                        }
+                    }
+
                 }
 
                 if (!string.IsNullOrEmpty(zeroColor))
@@ -263,7 +320,29 @@ namespace JSI
             catch(Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
-                spf = new StringProcessorFormatter(string.Empty);
+                labels.Add(new JSILabelSet("ERR", true));
+            }
+        }
+
+        public void Click()
+        {
+            activeLabel++;
+
+            if (activeLabel == labels.Count)
+            {
+                activeLabel = 0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+
+            // Force an update.
+            updateCountdown = 0;
+
+            if (audioOutput != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA ||
+                CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal))
+            {
+                audioOutput.audio.Play();
             }
         }
 
@@ -356,7 +435,7 @@ namespace JSI
             // Update shader parameters
             UpdateShader();
 
-            if (oneshotComplete && oneshot)
+            if (labels[activeLabel].oneshotComplete && labels[activeLabel].oneshot)
             {
                 return;
             }
@@ -364,9 +443,24 @@ namespace JSI
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text = StringProcessor.ProcessString(spf, comp);
-                oneshotComplete = true;
+                textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+                labels[activeLabel].oneshotComplete = true;
             }
         }
     }
+
+    internal class JSILabelSet
+    {
+        public readonly StringProcessorFormatter spf;
+        public bool oneshotComplete;
+        public readonly bool oneshot;
+
+        internal JSILabelSet(string labelText, bool isOneshot)
+        {
+            oneshot = isOneshot;
+            oneshotComplete = false;
+            spf = new StringProcessorFormatter(labelText);
+        }
+    }
+
 }
