@@ -261,7 +261,7 @@ namespace JSI
                     if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#')
                     {
                         // Valid color tags are [#rrggbbaa] or [#rrggbb].
-                        fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
+                        fontColor = XKCDColors.ColorTranslator.FromHtml(tagText);
                         charIndex += nextBracket + 1;
                     }
                     else if (tagText.Length > 2 && tagText[0] == '@')
