@@ -140,8 +140,8 @@ namespace JSI
                 overrideMaterial = new Material(JUtil.LoadInternalShader("RPM/JSILabel"));
                 overrideMaterial.mainTexture = font.material.mainTexture;
                 r.material = overrideMaterial;
-#endif
                 textObj.richText = true;
+#endif
 
                 if (!string.IsNullOrEmpty(anchor))
                 {
