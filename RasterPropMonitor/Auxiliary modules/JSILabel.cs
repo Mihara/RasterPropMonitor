@@ -33,7 +33,7 @@ namespace JSI
         [KSPField]
         public Vector2 transformOffset = Vector2.zero;
         [KSPField]
-        public string emissive = "always";
+        public string emissive = string.Empty;
         private EmissiveMode emissiveMode = EmissiveMode.always;
         enum EmissiveMode
         {
@@ -101,28 +101,6 @@ namespace JSI
                 font = JUtil.LoadFont(fontName, fontQuality);
 
                 textObj.font = font;
-
-                if(emissive.ToLower() == EmissiveMode.always.ToString())
-                {
-                    emissiveMode = EmissiveMode.always;
-                }
-                else if (emissive.ToLower() == EmissiveMode.never.ToString())
-                {
-                    emissiveMode = EmissiveMode.never;
-                }
-                else if (emissive.ToLower() == EmissiveMode.active.ToString())
-                {
-                    emissiveMode = EmissiveMode.active;
-                }
-                else if (emissive.ToLower() == EmissiveMode.passive.ToString())
-                {
-                    emissiveMode = EmissiveMode.passive;
-                }
-                else
-                {
-                    JUtil.LogErrorMessage(this, "Unrecognized emissive mode '{0}' in config for {1} ({2})", emissive, internalProp.propID, internalProp.propName);
-                    emissiveMode = EmissiveMode.always;
-                }
 
                 textObj.material.mainTexture = font.material.mainTexture;
 
@@ -219,8 +197,10 @@ namespace JSI
                     textObj.color = zeroColorValue;
                 }
 
+                bool usesMultiColor = false;
                 if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
                 {
+                    usesMultiColor = true;
                     positiveColorValue = ConfigNode.ParseColor32(positiveColor);
                     negativeColorValue = ConfigNode.ParseColor32(negativeColor);
                     del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
@@ -243,6 +223,39 @@ namespace JSI
                         textObj.color = zeroColorValue;
                         variablePositive = false;
                     }
+                }
+
+                if(string.IsNullOrEmpty(emissive))
+                {
+                    if (usesMultiColor)
+                    {
+                        emissiveMode = EmissiveMode.active;
+                    }
+                    else
+                    {
+                        emissiveMode = EmissiveMode.always;
+                    }
+                }
+                else if (emissive.ToLower() == EmissiveMode.always.ToString())
+                {
+                    emissiveMode = EmissiveMode.always;
+                }
+                else if (emissive.ToLower() == EmissiveMode.never.ToString())
+                {
+                    emissiveMode = EmissiveMode.never;
+                }
+                else if (emissive.ToLower() == EmissiveMode.active.ToString())
+                {
+                    emissiveMode = EmissiveMode.active;
+                }
+                else if (emissive.ToLower() == EmissiveMode.passive.ToString())
+                {
+                    emissiveMode = EmissiveMode.passive;
+                }
+                else
+                {
+                    JUtil.LogErrorMessage(this, "Unrecognized emissive mode '{0}' in config for {1} ({2})", emissive, internalProp.propID, internalProp.propName);
+                    emissiveMode = EmissiveMode.always;
                 }
 
                 UpdateShader();
