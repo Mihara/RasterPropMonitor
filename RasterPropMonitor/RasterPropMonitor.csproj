@@ -74,6 +74,7 @@
     <Compile Include="Auxiliary modules\JSISwitch.cs" />
     <Compile Include="Core\AeroExtensions.cs" />
     <Compile Include="Core\CustomVariable.cs" />
+    <Compile Include="Core\JSITextMesh.cs" />
     <Compile Include="Core\MathVariable.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMVCPersistence.cs" />

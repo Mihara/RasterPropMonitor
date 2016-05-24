@@ -1,4 +1,5 @@
-﻿/*****************************************************************************
+﻿#define USE_JSITEXTMESH
+/*****************************************************************************
  * RasterPropMonitor
  * =================
  * Plugin for Kerbal Space Program
@@ -74,8 +75,12 @@ namespace JSI
         private Color zeroColorValue = XKCDColors.White;
         private bool variablePositive = false;
 
+#if USE_JSITEXTMESH
+        private JSITextMesh textObj;
+#else
         private TextMesh textObj;
         private Material overrideMaterial;
+#endif
         private Font font;
 
         private int updateCountdown;
@@ -92,10 +97,15 @@ namespace JSI
                 Vector3 localScale = internalProp.transform.localScale;
 
                 Transform offsetTransform = new GameObject().transform;
+                offsetTransform.gameObject.name = "JSILabel-" + this.internalProp.propID+"-" + this.GetHashCode().ToString();
                 offsetTransform.gameObject.layer = textObjTransform.gameObject.layer;
                 offsetTransform.SetParent(textObjTransform, false);
                 offsetTransform.Translate(transformOffset.x* localScale.x, transformOffset.y* localScale.y, 0.0f);
+#if USE_JSITEXTMESH
+                textObj = offsetTransform.gameObject.AddComponent<JSITextMesh>();
+#else
                 textObj = offsetTransform.gameObject.AddComponent<TextMesh>();
+#endif
 
                 font = JUtil.LoadFont(fontName, fontQuality);
 
@@ -123,12 +133,14 @@ namespace JSI
                     emissiveMode = EmissiveMode.always;
                 }
 
+#if USE_JSITEXTMESH
+                textObj.material.mainTexture = font.material.mainTexture;
+#else
                 Renderer r = textObj.GetComponent<Renderer>();
-
                 overrideMaterial = new Material(JUtil.LoadInternalShader("RPM/JSILabel"));
                 overrideMaterial.mainTexture = font.material.mainTexture;
                 r.material = overrideMaterial;
-
+#endif
                 textObj.richText = true;
 
                 if (!string.IsNullOrEmpty(anchor))
@@ -196,7 +208,11 @@ namespace JSI
                 }
 
                 float sizeScalar = 32.0f / (float)font.fontSize;
+#if USE_JSITEXTMESH
+                textObj.characterSize = fontSize * 0.00005f * sizeScalar;
+#else
                 textObj.characterSize = fontSize * 0.0005f * sizeScalar;
+#endif
                 textObj.lineSpacing = textObj.lineSpacing * lineSpacing;
 
                 // Force oneshot if there's no variables:
@@ -280,7 +296,11 @@ namespace JSI
             }
 
             // TODO: Use an index, not a string.
+#if USE_JSITEXTMESH
+            textObj.material.SetFloat("_EmissiveFactor", emissiveValue);
+#else
             overrideMaterial.SetFloat("_EmissiveFactor", emissiveValue);
+#endif
         }
 
         public void OnDestroy()
@@ -303,8 +323,10 @@ namespace JSI
             //JUtil.LogMessage(this, "OnDestroy()");
             Destroy(textObj);
             textObj = null;
+#if !USE_JSITEXTMESH
             Destroy(overrideMaterial);
             overrideMaterial = null;
+#endif
         }
 
         private void OnCallback(RPMVesselComputer comp, float value)
