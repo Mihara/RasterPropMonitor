@@ -153,7 +153,7 @@ namespace JSI
             }
         }
 
-        private float lineSpacing_;
+        private float lineSpacing_ = 1.0f;
         public float lineSpacing
         {
             get
@@ -422,24 +422,24 @@ namespace JSI
             switch (anchor_)
             {
                 case TextAnchor.LowerCenter:
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.LowerLeft:
                     //xAnchor = 0;
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.LowerRight:
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.MiddleCenter:
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.MiddleLeft:
                     //xAnchor = 0;
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.MiddleRight:
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.UpperCenter:
                     yPos = -font_.ascent;
@@ -453,6 +453,7 @@ namespace JSI
                     break;
             }
 
+            int lineAdvance = (int)(lineSpacing_ * font_.lineHeight);
             for (int line = 0; line < textLines.Length; ++line)
             {
                 int xPos = 0;
@@ -573,7 +574,7 @@ namespace JSI
                     }
                 }
 
-                yPos -= font_.lineHeight;
+                yPos -= lineAdvance;
             }
 
             meshFilter_.mesh.vertices = vertices;
@@ -646,24 +647,24 @@ namespace JSI
             switch (anchor_)
             {
                 case TextAnchor.LowerCenter:
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.LowerLeft:
                     //xAnchor = 0;
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.LowerRight:
-                    yPos = font_.lineHeight * textLines.Length - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) - font_.ascent;
                     break;
                 case TextAnchor.MiddleCenter:
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.MiddleLeft:
                     //xAnchor = 0;
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.MiddleRight:
-                    yPos = (font_.lineHeight * textLines.Length) / 2 - font_.ascent;
+                    yPos = (int)(lineSpacing_ * font_.lineHeight * textLines.Length) / 2 - font_.ascent;
                     break;
                 case TextAnchor.UpperCenter:
                     yPos = -font_.ascent;
@@ -677,6 +678,7 @@ namespace JSI
                     break;
             }
 
+            int lineAdvance = (int)(lineSpacing_ * font_.lineHeight);
             for (int line = 0; line < textLines.Length; ++line)
             {
                 int xPos = 0;
@@ -735,7 +737,7 @@ namespace JSI
                     }
                 }
 
-                yPos -= font_.lineHeight;
+                yPos -= lineAdvance;
             }
 
             meshFilter_.mesh.vertices = vertices;
