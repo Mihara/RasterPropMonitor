@@ -285,36 +285,6 @@ namespace JSI
             return obj;
         }
 
-        public static void SetLayer(this Transform trans, int layer)
-        {
-            trans.gameObject.layer = layer;
-            foreach (Transform child in trans)
-                child.SetLayer(layer);
-        }
-
-        public static void SetCameraCullingMaskForIVA(string cameraName, bool flag)
-        {
-            Camera thatCamera = JUtil.GetCameraByName(cameraName);
-
-            if (thatCamera != null)
-            {
-                if (flag)
-                {
-                    thatCamera.cullingMask |= 1 << 16 | 1 << 20;
-                }
-                else
-                {
-                    thatCamera.cullingMask &= ~(1 << 16 | 1 << 20);
-                }
-            }
-            else if (flag != cameraMaskShowsIVA)
-            {
-                LogErrorMessage(null, "Could not find camera \"" + cameraName + "\" to change its culling mask, check your code.");
-                cameraMaskShowsIVA = false;
-            }
-
-        }
-
         internal static Shader LoadInternalShader(string shaderName)
         {
             // Reminder: if RPM_USE_ASSET_BUNDLE is not defined, update the
@@ -414,44 +384,19 @@ namespace JSI
                 if (objects[i] != null)
                 {
                     objects[i].SetActive(status);
-                    if (objects[i].GetComponent<Renderer>() != null)
+                    Renderer renderer = null;
+                    objects[i].GetComponentCached<Renderer>(ref renderer);
+                    if (renderer != null)
                     {
-                        objects[i].GetComponent<Renderer>().enabled = status;
+                        renderer.enabled = status;
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// From MechJeb
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="order"></param>
-        /// <returns></returns>
-        public static Vector3d Reorder(this Vector3d vector, int order)
+        public static Vector3d SwizzleXZY(this Vector3d vector)
         {
-            switch (order)
-            {
-                case 123:
-                    return new Vector3d(vector.x, vector.y, vector.z);
-                case 132:
-                    return new Vector3d(vector.x, vector.z, vector.y);
-                case 213:
-                    return new Vector3d(vector.y, vector.x, vector.z);
-                case 231:
-                    return new Vector3d(vector.y, vector.z, vector.x);
-                case 312:
-                    return new Vector3d(vector.z, vector.x, vector.y);
-                case 321:
-                    return new Vector3d(vector.z, vector.y, vector.x);
-            }
-            throw new ArgumentException("Invalid order", "order");
-        }
-
-        public static void SetMainCameraCullingMaskForIVA(bool flag)
-        {
-            SetCameraCullingMaskForIVA("Camera 00", flag);
-            cameraMaskShowsIVA = flag;
+            return new Vector3d(vector.x, vector.z, vector.y);
         }
 
         public static void MakeReferencePart(this Part thatPart)
