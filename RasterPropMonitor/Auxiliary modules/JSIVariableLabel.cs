@@ -82,9 +82,10 @@ namespace JSI
 
                 if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
                 {
-                    positiveColorValue = ConfigNode.ParseColor32(positiveColor);
-                    negativeColorValue = ConfigNode.ParseColor32(negativeColor);
-                    zeroColorValue = ConfigNode.ParseColor32(zeroColor);
+                    RasterPropMonitorComputer rpmComp = null;
+                    positiveColorValue = JUtil.ParseColor32(positiveColor, part, ref rpmComp);
+                    negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
+                    zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
                     del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
                     comp.RegisterCallback(variableName, del);
 

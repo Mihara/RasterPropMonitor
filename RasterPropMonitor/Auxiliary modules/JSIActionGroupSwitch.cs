@@ -583,8 +583,9 @@ namespace JSI
                 {
                     // Set up the color shift.
                     Renderer colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
-                    disabledColorValue = ConfigNode.ParseColor32(disabledColor);
-                    enabledColorValue = ConfigNode.ParseColor32(enabledColor);
+                    RasterPropMonitorComputer rpmComp = null;
+                    disabledColorValue = JUtil.ParseColor32(disabledColor, part, ref rpmComp);
+                    enabledColorValue = JUtil.ParseColor32(enabledColor, part, ref rpmComp);
                     colorShiftMaterial = colorShiftRenderer.material;
                     colorShiftMaterial.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }

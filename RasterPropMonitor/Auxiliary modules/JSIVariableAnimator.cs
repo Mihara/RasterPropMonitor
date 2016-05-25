@@ -367,15 +367,17 @@ namespace JSI
                 {
                     colorName = node.GetValue("colorName");
                 }
+
+                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
-                    activeColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-                    passiveColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                    activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    passiveColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
                 }
                 else
                 {
-                    passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-                    activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                    passiveColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    activeColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
                 }
                 Renderer colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 affectedMaterial = colorShiftRenderer.material;
