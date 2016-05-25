@@ -6,7 +6,8 @@ Shader "RPM/Greenscale"
 		_MainTex ("Render Input", 2D) = "white" {}
 		_Gain ("Gain", float) = 1.0
 	}
-	SubShader {
+	SubShader 
+	{
 		ZTest Always Cull Off ZWrite Off Fog { Mode Off }
 		Pass 
 		{
@@ -18,7 +19,7 @@ Shader "RPM/Greenscale"
 				sampler2D _MainTex;
 				uniform float _Gain;
 			
-				float4 frag(v2f_img IN) : COLOR 
+				fixed4 frag(v2f_img IN) : SV_TARGET 
 				{
 					float4 c = tex2D (_MainTex, IN.uv);
 					
@@ -26,7 +27,7 @@ Shader "RPM/Greenscale"
 					float Y = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
 					// Apply gain
 					Y = saturate(Y * _Gain);
-					return half4(0.0, Y, 0.0, c.a);
+					return fixed4(0.0, Y, 0.0, c.a);
 				}
 			ENDCG
 		}

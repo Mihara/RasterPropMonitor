@@ -16,7 +16,7 @@ namespace JSI
 
             public List<Vector3> vertices = new List<Vector3>();
             public List<Vector2> uvs = new List<Vector2>();
-            public List<Color> colors = new List<Color>();
+            public List<Color32> colors32 = new List<Color32>();
 
             internal FontRenderer(Texture2D fontTexture, Vector2 vectorSize, int drawingLayer, Transform parentTransform)
             {
@@ -57,17 +57,17 @@ namespace JSI
                 mesh.vertices = vertices.ToArray();
                 mesh.uv = uvs.ToArray();
 
-                if (colors.Count > 0)
+                if (colors32.Count > 0)
                 {
-                    Color[] colorarr = new Color[colors.Count * 4];
-                    for (int i = 0; i < colors.Count; ++i)
+                    Color32[] colorarr = new Color32[colors32.Count * 4];
+                    for (int i = 0; i < colors32.Count; ++i)
                     {
-                        colorarr[i * 4 + 0] = colors[i];
-                        colorarr[i * 4 + 1] = colors[i];
-                        colorarr[i * 4 + 2] = colors[i];
-                        colorarr[i * 4 + 3] = colors[i];
+                        colorarr[i * 4 + 0] = colors32[i];
+                        colorarr[i * 4 + 1] = colors32[i];
+                        colorarr[i * 4 + 2] = colors32[i];
+                        colorarr[i * 4 + 3] = colors32[i];
                     }
-                    mesh.colors = colorarr;
+                    mesh.colors32 = colorarr;
                 }
 
                 int quadCount = vertices.Count / 4;
@@ -93,7 +93,7 @@ namespace JSI
             {
                 vertices.Clear();
                 uvs.Clear();
-                colors.Clear();
+                colors32.Clear();
             }
 
             // MOARdV TODO: Make this do something
@@ -235,7 +235,7 @@ namespace JSI
             }
 
             float yCursor = screenYMin * fontLetterHeight;
-            Color fontColor = defaultColor;
+            Color32 fontColor = defaultColor;
             float xOffset = 0.0f;
             float yOffset = 0.0f;
             Script scriptType = Script.Normal;
@@ -261,7 +261,7 @@ namespace JSI
                     if ((tagText.Length == 9 || tagText.Length == 7) && tagText[0] == '#')
                     {
                         // Valid color tags are [#rrggbbaa] or [#rrggbb].
-                        fontColor = JUtil.HexRGBAToColor(tagText.Substring(1));
+                        fontColor = XKCDColors.ColorTranslator.FromHtml(tagText);
                         charIndex += nextBracket + 1;
                     }
                     else if (tagText.Length > 2 && tagText[0] == '@')
@@ -399,7 +399,7 @@ namespace JSI
         /**
          * Record the vertex, uv, and color information for a single character.
          */
-        private bool DrawChar(FontRenderer fr, char letter, float xPos, float yPos, Color letterColor, Script scriptType, Width fontWidth)
+        private bool DrawChar(FontRenderer fr, char letter, float xPos, float yPos, Color32 letterColor, Script scriptType, Width fontWidth)
         {
             if (fontCharacters.ContainsKey(letter))
             {
@@ -417,7 +417,7 @@ namespace JSI
                 fr.uvs.Add(new Vector2(uv.xMin, uv.yMax));
                 fr.uvs.Add(new Vector2(uv.xMax, uv.yMax));
 
-                fr.colors.Add(letterColor);
+                fr.colors32.Add(letterColor);
             }
             else if (!characterWarnings.Contains(letter))
             {

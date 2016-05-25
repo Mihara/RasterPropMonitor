@@ -67,12 +67,14 @@
   <ItemGroup>
     <Compile Include="Auxiliary modules\JSICallbackAnimator.cs" />
     <Compile Include="Auxiliary modules\JSIEngineMonitor.cs" />
+    <Compile Include="Auxiliary modules\JSILabel.cs" />
     <Compile Include="Auxiliary modules\JSINavBall.cs" />
     <Compile Include="Auxiliary modules\JSINumericInput.cs" />
     <Compile Include="Auxiliary modules\JSIRadar.cs" />
     <Compile Include="Auxiliary modules\JSISwitch.cs" />
     <Compile Include="Core\AeroExtensions.cs" />
     <Compile Include="Core\CustomVariable.cs" />
+    <Compile Include="Core\JSITextMesh.cs" />
     <Compile Include="Core\MathVariable.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMVCPersistence.cs" />
@@ -136,7 +138,6 @@
     <Compile Include="Core\VariableHandler.cs" />
     <Compile Include="Handlers\JSIInternalRPMButtons.cs" />
     <Compile Include="Handlers\JSIOdometer.cs" />
-    <Compile Include="Auxiliary modules\JSITransparentPod.cs" />
     <Compile Include="Auxiliary modules\JSISelectivelyVisibleProp.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

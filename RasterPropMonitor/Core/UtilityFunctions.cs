@@ -236,6 +236,7 @@ namespace JSI
         private static readonly int ClosestApproachRefinementInterval = 16;
         public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
+        internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
 
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
@@ -420,20 +421,6 @@ namespace JSI
                 }
             }
         }
-
-#if ENABLE_TP
-        public static bool IsPodTransparent(Part thatPart)
-        {
-            foreach (PartModule thatModule in thatPart.Modules)
-            {
-                if (thatModule is JSITransparentPod)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-#endif
 
         /// <summary>
         /// From MechJeb
@@ -845,23 +832,11 @@ namespace JSI
             }
         }
 
-        public static Color32 HexRGBAToColor(string hex)
-        {
-            byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-            byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-            byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
-            byte a = hex.Length >= 8 ? byte.Parse(hex.Substring(6, 2), System.Globalization.NumberStyles.HexNumber) : byte.MaxValue;
-            return new Color32(r, g, b, a);
-        }
-
         public static string ColorToColorTag(Color32 color)
         {
             var result = new StringBuilder();
-            result.Append("[#");
-            result.Append(color.r.ToString("X").PadLeft(2, '0'));
-            result.Append(color.g.ToString("X").PadLeft(2, '0'));
-            result.Append(color.b.ToString("X").PadLeft(2, '0'));
-            result.Append(color.a.ToString("X").PadLeft(2, '0'));
+            result.Append("[");
+            result.Append(XKCDColors.ColorTranslator.ToHexA(color));
             result.Append("]");
             return result.ToString();
         }
@@ -1419,6 +1394,40 @@ namespace JSI
 
             return stateCall;
         }
+
+        private static List<string> knownFonts = null;
+        internal static Font LoadFont(string fontName, int size)
+        {
+            if (loadedFonts.ContainsKey(fontName))
+            {
+                return loadedFonts[fontName];
+            }
+            else if(loadedFonts.ContainsKey(fontName+size.ToString()))
+            {
+                return loadedFonts[fontName + size.ToString()];
+            }
+
+            if (knownFonts == null)
+            {
+                string[] fn = Font.GetOSInstalledFontNames();
+                if (fn != null)
+                {
+                    knownFonts = fn.ToList<string>();
+                }
+            }
+
+            if (knownFonts.Contains(fontName))
+            {
+                Font fontFn = Font.CreateDynamicFontFromOSFont(fontName, size);
+                loadedFonts.Add(fontName + size.ToString(), fontFn);
+                return fontFn;
+            }
+            else
+            {
+                // Fallback
+                return LoadFont("Arial", size);
+            }
+        }
     }
 
     // This, instead, is a static class on it's own because it needs its private static variables.
@@ -1618,6 +1627,7 @@ namespace JSI
             for (int i = 0; i < loadedBundles.Count; ++i)
             {
                 Shader[] shaders = null;
+                Font[] fonts = null;
                 bool theRightBundle = false;
 
                 try
@@ -1638,6 +1648,7 @@ namespace JSI
                             }
                         }
                     }
+                    fonts = loadedBundles[i].LoadAllAssets<Font>();
                 }
                 catch { }
 
@@ -1645,12 +1656,20 @@ namespace JSI
                 {
                     // If we found our bundle, set up our parsedShaders
                     // dictionary and bail - our mission is complete.
-                    JUtil.LogInfo(this, "Found {0} RPM shaders.", shaders.Length);
+                    JUtil.LogInfo(this, "Found {0} RPM shaders and {1} fonts.", shaders.Length, fonts.Length);
                     for (int j = 0; j < shaders.Length; ++j)
                     {
+                        if (!shaders[j].isSupported)
+                        {
+                            JUtil.LogErrorMessage(this, "Shader {0} - unsupported in this configuration", shaders[j].name);
+                        }
                         JUtil.parsedShaders[shaders[j].name] = shaders[j];
                     }
-
+                    for (int j = 0; j < fonts.Length; ++j)
+                    {
+                        JUtil.LogInfo(this, "Adding RPM-included font {0} / {1}", fonts[j].name, fonts[j].fontSize);
+                        JUtil.loadedFonts[fonts[j].name] = fonts[j];
+                    }
                     return;
                 }
             }

@@ -53,10 +53,6 @@ namespace JSI
         private Action<RPMVesselComputer, float> del;
         private StringProcessorFormatter spf;
 
-        // Annoying as it is, that is the only font actually available to InternalComponents for some bizarre reason,
-        // even though I'm pretty sure there are quite a few other fonts in there.
-        private const string fontName = "Arial";
-
         public void Start()
         {
             try
@@ -64,7 +60,7 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
-                textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
+                textObj = InternalComponents.Instance.CreateText("Arial", fontSize, textObjTransform, string.Empty);
                 // Force oneshot if there's no variables:
                 oneshot |= !labelText.Contains("$&$");
                 string sourceString = labelText.UnMangleConfigText();

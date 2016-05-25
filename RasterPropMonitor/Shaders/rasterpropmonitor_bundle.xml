@@ -1,14 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<KSPBundleDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" UrlName="rasterpropmonitor" Name="rasterpropmonitor" CreatedTime="-8587392394433498673">
+<KSPBundleDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" UrlName="rasterpropmonitor" Name="rasterpropmonitor" CreatedTime="-8587375536966002769">
   <Author>MOARdV</Author>
-  <Info>Shaders for RasterPropMonitor</Info>
+  <Info>Shaders and Fonts for RasterPropMonitor</Info>
   <Assets>
-    <Asset Name="RPM/FontShader" Path="Assets/RasterPropMonitor/Shaders/RPM-FontShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-FontShader" AutoLoad="false" />
+    <Asset Name="InconsolataGo-Bold" Path="Assets/RasterPropMonitor/Fonts/InconsolataGo-Bold.ttf" Type="Font" Url="RasterPropMonitor/Fonts/InconsolataGo-Bold" AutoLoad="false" />
+    <Asset Name="InconsolataGo-Regular" Path="Assets/RasterPropMonitor/Fonts/InconsolataGo-Regular.ttf" Type="Font" Url="RasterPropMonitor/Fonts/InconsolataGo-Regular" AutoLoad="false" />
+    <Asset Name="digital-7 (italic)" Path="Assets/RasterPropMonitor/Fonts/digital-7 (italic).ttf" Type="Font" Url="RasterPropMonitor/Fonts/digital-7 (italic)" AutoLoad="false" />
+    <Asset Name="digital-7 (mono italic)" Path="Assets/RasterPropMonitor/Fonts/digital-7 (mono italic).ttf" Type="Font" Url="RasterPropMonitor/Fonts/digital-7 (mono italic)" AutoLoad="false" />
+    <Asset Name="digital-7 (mono)" Path="Assets/RasterPropMonitor/Fonts/digital-7 (mono).ttf" Type="Font" Url="RasterPropMonitor/Fonts/digital-7 (mono)" AutoLoad="false" />
+    <Asset Name="digital-7" Path="Assets/RasterPropMonitor/Fonts/digital-7.ttf" Type="Font" Url="RasterPropMonitor/Fonts/digital-7" AutoLoad="false" />
+    <Asset Name="repet___" Path="Assets/RasterPropMonitor/Fonts/repet___.ttf" Type="Font" Url="RasterPropMonitor/Fonts/repet___" AutoLoad="false" />
     <Asset Name="RPM/CroppedDisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-CroppedDisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-CroppedDisplayShader" AutoLoad="false" />
     <Asset Name="RPM/DisplayShader" Path="Assets/RasterPropMonitor/Shaders/RPM-DisplayShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-DisplayShader" AutoLoad="false" />
+    <Asset Name="RPM/FontShader" Path="Assets/RasterPropMonitor/Shaders/RPM-FontShader.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-FontShader" AutoLoad="false" />
+    <Asset Name="RPM/JSILabel" Path="Assets/RasterPropMonitor/Shaders/RPM-JSILabel.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-JSILabel" AutoLoad="false" />
+    <Asset Name="RPM/Blur" Path="Assets/RasterPropMonitor/Shaders/RPM-blur.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-blur" AutoLoad="false" />
     <Asset Name="RPM/Grayscale" Path="Assets/RasterPropMonitor/Shaders/RPM-grayscale.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-grayscale" AutoLoad="false" />
     <Asset Name="RPM/Greenscale" Path="Assets/RasterPropMonitor/Shaders/RPM-greenscale.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-greenscale" AutoLoad="false" />
-    <Asset Name="RPM/Blur" Path="Assets/RasterPropMonitor/Shaders/RPM-blur.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-blur" AutoLoad="false" />
     <Asset Name="RPM/Noise" Path="Assets/RasterPropMonitor/Shaders/RPM-noise.shader" Type="Shader" Url="RasterPropMonitor/Shaders/RPM-noise" AutoLoad="false" />
   </Assets>
   <Dependencies />

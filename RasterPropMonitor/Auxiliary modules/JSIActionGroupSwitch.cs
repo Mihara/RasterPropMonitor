@@ -606,11 +606,11 @@ namespace JSI
 
                 startupComplete = true;
             }
-            catch
+            catch(Exception e)
             {
+                JUtil.LogErrorMessage(this, "Exception configuring prop {0} ({1}): {2}", internalProp.propID, internalProp.propName, e); 
                 JUtil.AnnoyUser(this);
                 enabled = false;
-                throw;
             }
         }
 

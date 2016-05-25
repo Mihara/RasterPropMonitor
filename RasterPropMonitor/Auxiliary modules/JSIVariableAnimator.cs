@@ -179,6 +179,7 @@ namespace JSI
         private readonly float alarmSoundVolume;
         private readonly Vector2 threshold = Vector2.zero;
         private readonly bool reverse;
+        private readonly bool usesModulo;
         private readonly string animationName;
         private readonly string stopAnimationName;
         private readonly float animationSpeed;
@@ -271,7 +272,16 @@ namespace JSI
                 throw new ArgumentException("Missing variable name.");
             }
 
-            variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+            if (node.HasValue("modulo"))
+            {
+                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1], node.GetValue("modulo"));
+                usesModulo = true;
+            }
+            else
+            {
+                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+                usesModulo = false;
+            }
 
             // That takes care of the scale, now what to do about that scale:
             if (node.HasValue("reverse"))
@@ -736,8 +746,16 @@ namespace JSI
             {
                 float maxDelta = (float)(universalTime - lastAnimUpdate) * maxRateChange;
 
-                if (Mathf.Abs(lastScaledValue - scaledValue) > maxDelta)
+                float difference = Mathf.Abs(lastScaledValue - scaledValue);
+                if (difference > maxDelta)
                 {
+                    bool wrapAround = usesModulo && (difference > 0.5f);
+                    if (wrapAround)
+                    {
+                        maxDelta = Mathf.Min(maxDelta, 1.0f - difference);
+                        maxDelta = -maxDelta;
+                    }
+
                     if (scaledValue < lastScaledValue)
                     {
                         scaledValue = lastScaledValue - maxDelta;
@@ -745,6 +763,18 @@ namespace JSI
                     else
                     {
                         scaledValue = lastScaledValue + maxDelta;
+                    }
+
+                    if(wrapAround)
+                    {
+                        if(scaledValue < 0.0f)
+                        {
+                            scaledValue += 1.0f;
+                        }
+                        else if(scaledValue > 1.0f)
+                        {
+                            scaledValue -= 1.0f;
+                        }
                     }
                 }
             }
