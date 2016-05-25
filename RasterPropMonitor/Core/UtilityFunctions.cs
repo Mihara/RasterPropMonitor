@@ -237,6 +237,8 @@ namespace JSI
         public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
+        internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
+        internal static bool globalColorsLoaded = false;
 
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
@@ -375,6 +377,97 @@ namespace JSI
             LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
             return embeddedShader;
 #endif
+        }
+
+        /// <summary>
+        /// Parse a config file color string into a Color32.  The colorString
+        /// parameter is a sequnce of R, G, B, A (ranging [0,255]), or it is a
+        /// string prefixed with "COLOR_".  In the latter case, we'll look up
+        /// the color from config files specified in the parent part's
+        /// RasterPropMonitorComputer module, or from a globally-defined color
+        /// table.
+        /// </summary>
+        /// <param name="colorString">The color string to parse.</param>
+        /// <param name="part">The part containing the prop that is asking for
+        /// the color parsing.</param>
+        /// <param name="rpmComp">The rpmComp for the specified part; if null,
+        /// ParseColor32 looks up the RPMC module.</param>
+        /// <returns>Color32; white if colorString is empty, obnoxious magenta
+        /// if an unknown COLOR_ string is provided.</returns>
+        internal static Color32 ParseColor32(string colorString, Part part, ref RasterPropMonitorComputer rpmComp)
+        {
+            if (string.IsNullOrEmpty(colorString))
+            {
+                return Color.white;
+            }
+
+            colorString = colorString.Trim();
+            if (colorString.StartsWith("COLOR_"))
+            {
+                if (globalColorsLoaded == false)
+                {
+                    ConfigNode[] globalColorSetup = GameDatabase.Instance.GetConfigNodes("RPM_GLOBALCOLORSETUP");
+                    for (int idx = 0; idx < globalColorSetup.Length; ++idx)
+                    {
+                        ConfigNode[] colorConfig = globalColorSetup[idx].GetNodes("COLORDEFINITION");
+                        for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
+                        {
+                            if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
+                            {
+                                string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
+                                Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
+                                if (globalColors.ContainsKey(name))
+                                {
+                                    globalColors[name] = color;
+                                }
+                                else
+                                {
+                                    globalColors.Add(name, color);
+                                }
+                            }
+                        }
+                    }
+
+                    globalColorsLoaded = true;
+                }
+
+                if (part != null)
+                {
+                    if (rpmComp == null)
+                    {
+                        for (int i = 0; i < part.Modules.Count; i++)
+                        {
+                            if (part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name)
+                            {
+                                rpmComp = part.Modules[i] as RasterPropMonitorComputer;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (rpmComp != null)
+                    {
+                        if (rpmComp.overrideColors.ContainsKey(colorString))
+                        {
+                            return rpmComp.overrideColors[colorString];
+                        }
+                    }
+                }
+
+                if (globalColors.ContainsKey(colorString))
+                {
+                    return globalColors[colorString];
+                }
+                else
+                {
+                    JUtil.LogErrorMessage(null, "Unrecognized color '{0}' in ParseColor32", colorString);
+                    return new Color32(255, 0, 255, 255);
+                }
+            }
+            else
+            {
+                return ConfigNode.ParseColor32(colorString);
+            }
         }
 
         internal static void ShowHide(bool status, params GameObject[] objects)
@@ -1347,7 +1440,7 @@ namespace JSI
             {
                 return loadedFonts[fontName];
             }
-            else if(loadedFonts.ContainsKey(fontName+size.ToString()))
+            else if (loadedFonts.ContainsKey(fontName + size.ToString()))
             {
                 return loadedFonts[fontName + size.ToString()];
             }
