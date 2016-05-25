@@ -45,6 +45,8 @@ namespace JSI
         private readonly string editorNewline = ((char)0x0a).ToString();
         private string lastVesselDescription = string.Empty;
 
+        internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
+
         // Public functions:
         // Request the instance, create it if one doesn't exist:
         public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
@@ -126,6 +128,35 @@ namespace JSI
                     for (int i = 0; i < varstring.Length; ++i)
                     {
                         comp.AddTriggeredEvent(varstring[i].Trim());
+                    }
+                }
+
+                ConfigNode[] moduleConfigs = part.partInfo.partConfig.GetNodes("MODULE");
+                for (int moduleId = 0; moduleId < moduleConfigs.Length; ++moduleId)
+                {
+                    if (moduleConfigs[moduleId].GetValue("name") == moduleName)
+                    {
+                        ConfigNode[] overrideColorSetup = moduleConfigs[moduleId].GetNodes("RPM_COLOROVERRIDE");
+                        for(int colorGrp=0; colorGrp < overrideColorSetup.Length; ++colorGrp)
+                        {
+                            ConfigNode[] colorConfig = overrideColorSetup[colorGrp].GetNodes("COLORDEFINITION");
+                            for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
+                            {
+                                if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
+                                {
+                                    string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
+                                    Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
+                                    if (overrideColors.ContainsKey(name))
+                                    {
+                                        overrideColors[name] = color;
+                                    }
+                                    else
+                                    {
+                                        overrideColors.Add(name, color);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
