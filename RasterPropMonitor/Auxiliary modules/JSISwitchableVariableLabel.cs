@@ -42,6 +42,7 @@ namespace JSI
         public string coloredObject = string.Empty;
         [KSPField]
         public string colorName = "_EmissiveColor";
+        private int colorNameId = -1;
         private readonly List<VariableLabelSet> labelsEx = new List<VariableLabelSet>();
         private int activeLabel;
         private const string fontName = "Arial";
@@ -112,7 +113,8 @@ namespace JSI
                 colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
                 if (labelsEx[activeLabel].hasColor)
                 {
-                    colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
+                    colorNameId = Shader.PropertyToID(colorName);
+                    colorShiftRenderer.material.SetColor(colorNameId, labelsEx[activeLabel].color);
                 }
                 if (labelsEx[activeLabel].hasText)
                 {
@@ -182,7 +184,7 @@ namespace JSI
 
             if (labelsEx[activeLabel].hasColor)
             {
-                colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
+                colorShiftRenderer.material.SetColor(colorNameId, labelsEx[activeLabel].color);
             }
 
             if (labelsEx[activeLabel].hasText)

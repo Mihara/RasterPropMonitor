@@ -173,8 +173,9 @@ namespace JSI
                 heading = JUtil.CreateSimplePlane("RPMPFDHeading" + internalProp.propID, new Vector2(headingBarPosition.z * pixelSize, headingBarPosition.w * pixelSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
                 heading.transform.position = new Vector3(hbXPos * pixelSize, hbYPos * pixelSize, headingAboveOverlay ? (overlayDepth - 0.1f) : (overlayDepth + 0.1f));
                 heading.transform.parent = cameraBody.transform;
-                heading.GetComponent<Renderer>().material = headingMaterial;
-                heading.GetComponent<Renderer>().material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
+                Renderer hdgMatl = null;
+                heading.GetComponentCached<Renderer>(ref hdgMatl).material = headingMaterial;
+                hdgMatl.material.SetTextureScale("_MainTex", new Vector2(headingSpan, 1f));
             }
 
             Texture2D gizmoTexture = JUtil.GetGizmoTexture();
@@ -334,10 +335,15 @@ namespace JSI
             }
         }
 
+        private readonly int opacityIndex = Shader.PropertyToID("_Opacity");
+        private DefaultableDictionary<GameObject, Renderer> markerRenderer = new DefaultableDictionary<GameObject, Renderer>(null);
         private void MoveMarker(GameObject marker, Vector3 position, Quaternion voodooGymbal)
         {
             Vector3 newPosition = ((voodooGymbal * position) * navballRadius) + navBallOrigin;
-            marker.GetComponent<Renderer>().material.SetFloat("_Opacity", Mathf.Clamp01(newPosition.z + 0.5f));
+            Renderer r = markerRenderer[marker];
+            marker.GetComponentCached<Renderer>(ref r);
+            markerRenderer[marker] = r;
+            r.material.SetFloat(opacityIndex, Mathf.Clamp01(newPosition.z + 0.5f));
             marker.transform.position = new Vector3(newPosition.x, newPosition.y, markerDepth);
         }
 

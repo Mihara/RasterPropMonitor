@@ -146,7 +146,7 @@ namespace JSI
         private readonly Vector3 initialPosition, initialScale, vectorStart, vectorEnd;
         private readonly Quaternion initialRotation, rotationStart, rotationEnd;
         private readonly bool longPath;
-        private readonly string colorName = "_EmissiveColor";
+        private readonly int colorName = -1;
         private readonly Vector2 textureShiftStart, textureShiftEnd, textureScaleStart, textureScaleEnd;
         private Material affectedMaterial;
         private List<string> textureLayer = new List<string>();
@@ -270,10 +270,12 @@ namespace JSI
             }
             else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject"))
             {
+                string colorNameString = "_EmissiveColor";
                 if (node.HasValue("colorName"))
                 {
-                    colorName = node.GetValue("colorName");
+                    colorNameString = node.GetValue("colorName");
                 }
+                colorName = Shader.PropertyToID(colorNameString);
 
                 RasterPropMonitorComputer rpmComp = null;
                 if (reverse)

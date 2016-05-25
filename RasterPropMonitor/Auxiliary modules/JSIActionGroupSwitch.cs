@@ -73,6 +73,7 @@ namespace JSI
         public string coloredObject = string.Empty;
         [KSPField]
         public string colorName = "_EmissiveColor";
+        private int colorNameId = -1;
         [KSPField]
         public string consumeOnToggle = string.Empty;
         [KSPField]
@@ -587,7 +588,8 @@ namespace JSI
                     disabledColorValue = JUtil.ParseColor32(disabledColor, part, ref rpmComp);
                     enabledColorValue = JUtil.ParseColor32(enabledColor, part, ref rpmComp);
                     colorShiftMaterial = colorShiftRenderer.material;
-                    colorShiftMaterial.SetColor(colorName, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
+                    colorNameId = Shader.PropertyToID(colorName);
+                    colorShiftMaterial.SetColor(colorNameId, (currentState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
                 else
                 {
@@ -961,7 +963,7 @@ namespace JSI
                 }
                 else if (colorShiftMaterial != null)
                 {
-                    colorShiftMaterial.SetColor(colorName, (newState ^ reverse ? enabledColorValue : disabledColorValue));
+                    colorShiftMaterial.SetColor(colorNameId, (newState ^ reverse ? enabledColorValue : disabledColorValue));
                 }
                 currentState = newState;
             }

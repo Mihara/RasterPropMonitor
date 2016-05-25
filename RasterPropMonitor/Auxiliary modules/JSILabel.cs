@@ -83,6 +83,7 @@ namespace JSI
 
         private JSITextMesh textObj;
         private Font font;
+        private readonly int emissiveFactorIndex = Shader.PropertyToID("_EmissiveFactor");
 
         private List<JSILabelSet> labels = new List<JSILabelSet>();
         private int activeLabel = 0;
@@ -367,8 +368,7 @@ namespace JSI
                 emissiveValue = 0.0f;
             }
 
-            // TODO: Use an index, not a string.
-            textObj.material.SetFloat("_EmissiveFactor", emissiveValue);
+            textObj.material.SetFloat(emissiveFactorIndex, emissiveValue);
         }
 
         public void OnDestroy()
