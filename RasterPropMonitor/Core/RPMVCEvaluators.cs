@@ -226,21 +226,33 @@ namespace JSI
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
 
-            return (string variable) => { return accessor(); };
+            return (string variable) => 
+            {
+                double est = accessor();
+                return (est == 0.0) ? estLandingAltitude : est;
+            };
         }
 
         private VariableEvaluator LandingLatitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
 
-            return (string variable) => { return accessor(); };
+            return (string variable) =>
+            {
+                double est = accessor();
+                return (est == 0.0) ? estLandingLatitude : est;
+            };
         }
 
         private VariableEvaluator LandingLongitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
 
-            return (string variable) => { return accessor(); };
+            return (string variable) =>
+            {
+                double est = accessor();
+                return (est == 0.0) ? estLandingLongitude : est;
+            };
         }
 
         private VariableEvaluator LiftAccel()
@@ -424,6 +436,10 @@ namespace JSI
             if (double.IsNaN(timeToImpact) || timeToImpact > 365.0 * 24.0 * 60.0 * 60.0 || timeToImpact < 0.0)
             {
                 timeToImpact = -1.0;
+            }
+            else if(timeToImpact == 0.0)
+            {
+                return estLandingUT - Planetarium.GetUniversalTime();
             }
             return timeToImpact;
         }
