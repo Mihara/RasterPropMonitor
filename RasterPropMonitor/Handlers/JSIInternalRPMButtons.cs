@@ -1023,10 +1023,6 @@ namespace JSI
                     return node;
                 }
             }
-            else
-            {
-                JUtil.LogErrorMessage(vessel, "referencePart is null?");
-            }
 
             for (int i = 0; i < vessel.parts.Count; ++i)
             {

@@ -1,9 +1,29 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
-using System.Linq;
 
 namespace JSI
 {
@@ -747,11 +767,15 @@ namespace JSI
         private bool UpdateReferencePartAsClaw()
         {
             ModuleGrappleNode thatClaw = null;
-            foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+            Part referencePart = vessel.GetReferenceTransformPart();
+            if (referencePart != null)
             {
-                thatClaw = thatModule as ModuleGrappleNode;
-                if (thatClaw != null)
-                    break;
+                foreach (PartModule thatModule in referencePart.Modules)
+                {
+                    thatClaw = thatModule as ModuleGrappleNode;
+                    if (thatClaw != null)
+                        break;
+                }
             }
 
             if (thatClaw != null && (thatClaw.state == "Ready" || thatClaw.state == "Disabled"))
@@ -897,12 +921,16 @@ namespace JSI
         private void ArmGrapple(int index, TextMenu.Item ti)
         {
             ModuleGrappleNode thatClaw = null;
-            foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+            Part referencePart = vessel.GetReferenceTransformPart();
+            if (referencePart != null)
             {
-                thatClaw = thatModule as ModuleGrappleNode;
-                if (thatClaw != null)
+                foreach (PartModule thatModule in referencePart.Modules)
                 {
-                    break;
+                    thatClaw = thatModule as ModuleGrappleNode;
+                    if (thatClaw != null)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -910,7 +938,7 @@ namespace JSI
             {
                 try
                 {
-                    ModuleAnimateGeneric clawAnimation = (vessel.GetReferenceTransformPart().Modules[thatClaw.deployAnimationController] as ModuleAnimateGeneric);
+                    ModuleAnimateGeneric clawAnimation = (referencePart.Modules[thatClaw.deployAnimationController] as ModuleAnimateGeneric);
                     if (clawAnimation != null)
                     {
                         clawAnimation.Toggle();
