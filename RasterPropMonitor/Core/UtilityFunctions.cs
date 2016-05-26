@@ -455,37 +455,41 @@ namespace JSI
         */
         public static bool ActiveKerbalIsLocal(this Part thisPart)
         {
-            return FindCurrentKerbal(thisPart) != null;
+            Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if(thatKerbal != null)
+            {
+                return thatKerbal.InPart == thisPart;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public static int CurrentActiveSeat(this Part thisPart)
         {
-            Kerbal activeKerbal = thisPart.FindCurrentKerbal();
-            return activeKerbal != null ? activeKerbal.protoCrewMember.seatIdx : -1;
+            Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if (activeKerbal != null)
+            {
+                return (activeKerbal.InPart == thisPart) ? activeKerbal.protoCrewMember.seatIdx : -1;
+            }
+            else
+            {
+                return -1;
+            }
         }
 
         public static Kerbal FindCurrentKerbal(this Part thisPart)
         {
-            if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
-                return null;
-            /*
-            // InternalCamera instance does not contain a reference to the kerbal it's looking from.
-            // So we have to search through all of them...
-            Kerbal thatKerbal = null;
-            foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
+            Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if(activeKerbal != null)
             {
-                if (thatSeat.kerbalRef != null)
-                {
-                    if (thatSeat.kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent)
-                    {
-                        thatKerbal = thatSeat.kerbalRef;
-                        break;
-                    }
-                }
+                return (activeKerbal.InPart == thisPart) ? activeKerbal : null;
             }
-             */
-            Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
-            return thatKerbal;
+            else
+            {
+                return null;
+            }
         }
 
         public static void HideShowProp(InternalProp thatProp, bool visibility)
@@ -626,16 +630,22 @@ namespace JSI
 
             // Just in case, check for whether we're not in flight.
             if (!HighLogic.LoadedSceneIsFlight)
+            {
                 return false;
+            }
 
             // If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
-            if (!VesselIsInIVA(thisPart.vessel) || thisPart.internalModel == null)
+            if (thisPart.internalModel == null || !VesselIsInIVA(thisPart.vessel))
+            {
                 return false;
+            }
 
             // Now that we got that out of the way, we know that the user is in SOME pod on our ship. We just don't know which.
             // Let's see if he's controlling a kerbal in our pod.
             if (ActiveKerbalIsLocal(thisPart))
+            {
                 return true;
+            }
 
             // There still remains an option of InternalCamera which we will now sort out.
             if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
@@ -647,10 +657,13 @@ namespace JSI
                 // Unfortunately I don't have anything smarter right now than get a list of all transforms in the internal and cycle through it.
                 // This is a more annoying computation than looking through every kerbal in a pod (there's only a few of those,
                 // but potentially hundreds of transforms) and might not even be working as I expect. It needs testing.
-                foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>())
+                Transform[] componentTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
+                foreach (Transform thisTransform in componentTransforms)
                 {
                     if (thisTransform == InternalCamera.Instance.transform.parent)
+                    {
                         return true;
+                    }
                 }
             }
 
