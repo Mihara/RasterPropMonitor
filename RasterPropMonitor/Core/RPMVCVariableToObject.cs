@@ -281,12 +281,22 @@ namespace JSI
                     {
                         return (string variable) =>
                         {
+                            Part aPart = DeduceCurrentPart();
+                            if (aPart == null)
+                            {
+                                return "";
+                            }
+                            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(aPart, false);
+                            if (rpmComp == null)
+                            {
+                                return "";
+                            }
                             string[] toks = variable.Split('_');
                             int storedNumber;
                             int.TryParse(toks[1], out storedNumber);
-                            if (storedNumber < storedStrings.Count)
+                            if (storedNumber < rpmComp.storedStringsArray.Count)
                             {
-                                return storedStrings[storedNumber];
+                                return rpmComp.storedStringsArray[storedNumber];
                             }
                             else
                             {
@@ -298,11 +308,21 @@ namespace JSI
                     {
                         return (string variable) =>
                         {
+                            Part aPart = DeduceCurrentPart();
+                            if(aPart == null)
+                            {
+                                return "";
+                            }
+                            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(aPart, false);
+                            if(rpmComp == null)
+                            {
+                                return "";
+                            }
                             string[] toks = variable.Split('_');
                             int stringNumber;
-                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < storedStrings.Count)
+                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < rpmComp.storedStringsArray.Count)
                             {
-                                return storedStrings[stringNumber];
+                                return rpmComp.storedStrings[stringNumber];
                             }
                             else
                             {

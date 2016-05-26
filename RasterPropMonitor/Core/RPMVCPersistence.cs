@@ -26,8 +26,6 @@ namespace JSI
     {
         private Dictionary<string, object> persistentVars = new Dictionary<string, object>();
 
-        private List<string> storedStrings = new List<string>();
-
         /// <summary>
         /// Returns the named persistent value, or the default provided if
         /// it's not set.  The persistent value is initialized to the default
@@ -108,46 +106,6 @@ namespace JSI
                 // Not needed?  Looks like the assignment will add the value.
                 persistentVars.Add(name, value);
                 //JUtil.LogMessage(this, "Adding persistent var {0} as {1}", name, value);
-            }
-        }
-
-        /// <summary>
-        /// Initializes the stores strings list.  If the list is already
-        /// initialized, it instead validates that the new array matches the
-        /// existing array.
-        /// </summary>
-        /// <param name="stringsArray"></param>
-        internal void SetStoredStrings(string[] stringsArray)
-        {
-            if (stringsArray.Length > 0)
-            {
-                if (storedStrings.Count == 0)
-                {
-                    for (int i=0; i<stringsArray.Length; ++i)
-                    {
-                        storedStrings.Add(stringsArray[i]);
-                    }
-                }
-                else
-                {
-                    // We've already initialized this array.  Let's warn if we
-                    // are getting conflicting values.
-                    if(stringsArray.Length != storedStrings.Count)
-                    {
-                        JUtil.LogErrorMessage(this, "Attempt to re-initialize storedStrings with a different-sized array was ignored.");
-                    }
-                    else
-                    {
-                        for (int i = 0; i < stringsArray.Length; ++i)
-                        {
-                            if(storedStrings[i] != stringsArray[i])
-                            {
-                                JUtil.LogErrorMessage(this, "Attempt to re-initialize storedStrings with a different values was ignored.");
-                                return;
-                            }
-                        }
-                    }
-                }
             }
         }
     }

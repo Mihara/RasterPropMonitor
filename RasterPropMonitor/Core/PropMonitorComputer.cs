@@ -45,11 +45,12 @@ namespace JSI
         private readonly string editorNewline = ((char)0x0a).ToString();
         private string lastVesselDescription = string.Empty;
 
+        internal List<string> storedStringsArray = new List<string>();
         internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
 
         // Public functions:
         // Request the instance, create it if one doesn't exist:
-        public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation)
+        public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation, bool createIfMissing)
         {
             var thatProp = referenceLocation as InternalProp;
             var thatPart = referenceLocation as Part;
@@ -68,7 +69,7 @@ namespace JSI
                     return thatPart.Modules[i] as RasterPropMonitorComputer;
                 }
             }
-            return thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer;
+            return (createIfMissing) ? thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer : null;
         }
 
         // Page handler interface for vessel description page.
@@ -115,8 +116,11 @@ namespace JSI
                 // Now let's parse our stored strings...
                 if (!string.IsNullOrEmpty(storedStrings))
                 {
-                    var storedStringsArray = storedStrings.Split('|');
-                    comp.SetStoredStrings(storedStringsArray);
+                    var storedStringsSplit = storedStrings.Split('|');
+                    for (int i = 0; i < storedStringsSplit.Length; ++i)
+                    {
+                        storedStringsArray.Add(storedStringsSplit[i]);
+                    }
                 }
 
                 // TODO: If there are triggered events, register for an undock
