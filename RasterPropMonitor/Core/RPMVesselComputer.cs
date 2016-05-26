@@ -1220,28 +1220,41 @@ namespace JSI
 
             if (JUtil.VesselIsInIVA(vessel))
             {
-                foreach (Part thisPart in InternalModelParts(vessel))
+                Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+                if (thatKerbal != null)
                 {
-                    foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
+                    // This should be a drastically faster way to determine
+                    // where we are.  I hope.
+                    currentPart = thatKerbal.InPart;
+                }
+
+                if(currentPart == null)
+                {
+                    Transform internalCameraTransform = InternalCamera.Instance.transform;
+                    foreach (Part thisPart in InternalModelParts(vessel))
                     {
-                        if (thatSeat.kerbalRef != null)
+                        for (int seatIdx = 0; seatIdx < thisPart.internalModel.seats.Count; ++seatIdx)
                         {
-                            if (thatSeat.kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent)
+                            if (thisPart.internalModel.seats[seatIdx].kerbalRef != null)
                             {
-                                currentPart = thisPart;
-                                break;
+                                if (thisPart.internalModel.seats[seatIdx].kerbalRef.eyeTransform == internalCameraTransform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
-                    {
-                        foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>())
+                        if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
                         {
-                            if (thisTransform == InternalCamera.Instance.transform.parent)
+                            Transform[] modelTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
+                            for (int xformIdx = 0; xformIdx < modelTransforms.Length; ++xformIdx)
                             {
-                                currentPart = thisPart;
-                                break;
+                                if (modelTransforms[xformIdx] == InternalCamera.Instance.transform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
                             }
                         }
                     }
