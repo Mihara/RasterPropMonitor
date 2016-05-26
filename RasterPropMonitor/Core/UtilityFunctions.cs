@@ -1,4 +1,3 @@
-#define RPM_USE_ASSET_BUNDLE
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -289,9 +288,6 @@ namespace JSI
 
         internal static Shader LoadInternalShader(string shaderName)
         {
-            // Reminder: if RPM_USE_ASSET_BUNDLE is not defined, update the
-            // project so the shader text is embedded in the DLL.
-#if RPM_USE_ASSET_BUNDLE
             if (!parsedShaders.ContainsKey(shaderName))
             {
                 JUtil.LogErrorMessage(null, "Failed to find shader {0}", shaderName);
@@ -301,82 +297,6 @@ namespace JSI
             {
                 return parsedShaders[shaderName];
             }
-#else
-            shaderName = shaderName.Replace('/', '-');
-
-            string myShader = "JSI.Shaders." + shaderName + "-compiled.shader";
-
-            if (parsedShaders.ContainsKey(myShader))
-            {
-                return parsedShaders[myShader];
-            }
-
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            Stream manifestStream = null;
-            if (assembly != null)
-            {
-                manifestStream = assembly.GetManifestResourceStream(myShader);
-            }
-            else
-            {
-                LogErrorMessage(null, "FetchShader: Failed to get my assembly, so I can't read my embedded shaders.");
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-
-            StreamReader shaderStreamReader = null;
-            if (manifestStream != null)
-            {
-                shaderStreamReader = new StreamReader(manifestStream);
-            }
-            else
-            {
-                LogErrorMessage(null, "FetchShader: Unable to find embedded shader {0} in my DLL.", myShader);
-                var names = assembly.GetManifestResourceNames();
-                foreach (string name in names)
-                {
-                    LogErrorMessage(null, " - {0}", name);
-                }
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-
-            String shaderTxt = null;
-            if (shaderStreamReader != null)
-            {
-                shaderTxt = shaderStreamReader.ReadToEnd();
-            }
-            else
-            {
-                LogErrorMessage(null, "FetchShader: Failed to create manifest reader to read shader {0}", myShader);
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-
-            Shader embeddedShader = null;
-            if (string.IsNullOrEmpty(shaderTxt))
-            {
-                LogErrorMessage(null, "FetchShader: shaderTxt is null!  Something's wrong with the shader {0}", myShader);
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-            else
-            {
-                embeddedShader = new Material(shaderTxt).shader;
-            }
-
-            if (embeddedShader == null)
-            {
-                LogErrorMessage(null, "FetchShader: Unable to create a shader for {0}", myShader);
-            }
-
-            // Yes, if we fail to load the shader, we store a NULL, so we
-            // don't try to re-parse it later.
-            parsedShaders.Add(myShader, embeddedShader);
-
-            LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
-            return embeddedShader;
-#endif
         }
 
         /// <summary>
