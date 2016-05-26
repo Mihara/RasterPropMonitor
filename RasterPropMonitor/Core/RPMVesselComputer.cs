@@ -1701,55 +1701,64 @@ namespace JSI
         {
             if(orbitSensibility && vessel.orbit.PeA < 0.0)
             {
-                if (runningPredicition == false)
+                try
                 {
-                    lastRadius = vessel.orbit.PeR;
+                    if (runningPredicition == false)
+                    {
+                        lastRadius = vessel.orbit.PeR;
 
-                    // First estimate
-                    double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), lastRadius);
-                    Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
-                    estLandingLatitude = vessel.mainBody.GetLatitude(pos);
-                    estLandingLongitude = vessel.mainBody.GetLongitude(pos);
-                    estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
-                    if(vessel.mainBody.ocean)
-                    {
-                        estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
+                        // First estimate
+                        double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), lastRadius);
+                        Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
+                        estLandingLatitude = vessel.mainBody.GetLatitude(pos);
+                        estLandingLongitude = vessel.mainBody.GetLongitude(pos);
+                        estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
+                        if (vessel.mainBody.ocean)
+                        {
+                            estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
+                        }
+                        if (estLandingAltitude >= vessel.orbit.PeA)
+                        {
+                            //lastPoint = pos;
+                            estLandingUT = nextUt;
+                            lastRadius = estLandingAltitude + vessel.mainBody.Radius;
+                            runningPredicition = true;
+                            //JUtil.LogMessage(this, "Initial point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
+                            //    estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
+                        }
+                        else
+                        {
+                            // Have not hit the planet.  Try again next round
+                            //JUtil.LogMessage(this, "Seeking point of impact");
+                            runningPredicition = false;
+                            estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
+                        }
                     }
-                    if (estLandingAltitude >= vessel.orbit.PeA)
+                    else
                     {
+                        double nextRadius = Math.Max(vessel.orbit.PeR, lastRadius);
+                        double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), nextRadius);
+                        Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
+                        estLandingLatitude = vessel.mainBody.GetLatitude(pos);
+                        estLandingLongitude = vessel.mainBody.GetLongitude(pos);
+                        estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
+                        if (vessel.mainBody.ocean)
+                        {
+                            estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
+                        }
                         //lastPoint = pos;
                         estLandingUT = nextUt;
                         lastRadius = estLandingAltitude + vessel.mainBody.Radius;
                         runningPredicition = true;
-                        JUtil.LogMessage(this, "Initial point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
-                            estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
-                    }
-                    else
-                    {
-                        // Have not hit the planet.  Try again next round
-                        JUtil.LogMessage(this, "Seeking point of impact");
-                        runningPredicition = false;
-                        estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
+                        //JUtil.LogMessage(this, "Revised point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
+                        //    estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
                     }
                 }
-                else
+                catch
                 {
-                    double nextRadius = Math.Max(vessel.orbit.PeR, lastRadius);
-                    double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), nextRadius);
-                    Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
-                    estLandingLatitude = vessel.mainBody.GetLatitude(pos);
-                    estLandingLongitude = vessel.mainBody.GetLongitude(pos);
-                    estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
-                    if (vessel.mainBody.ocean)
-                    {
-                        estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
-                    }
-                    //lastPoint = pos;
-                    estLandingUT = nextUt;
-                    lastRadius = estLandingAltitude + vessel.mainBody.Radius;
-                    runningPredicition = true;
-                    JUtil.LogMessage(this, "Revised point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
-                        estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
+                    // Any exceptions probably came from the bugs in KSP 1.1.2 Orbit code, so we reset everything
+                    runningPredicition = false;
+                    estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
                 }
             }
             else
