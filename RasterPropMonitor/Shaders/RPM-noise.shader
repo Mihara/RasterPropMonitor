@@ -34,9 +34,10 @@ Shader "RPM/Noise"
 					float4 color = tex2D(_MainTex, uv);
 
 					// Apply gain
-					color.r = color.r * _Gain;
-					color.g = color.g * _Gain;
-					color.b = color.b * _Gain;
+					float gainBoost = max(0.0, _Gain - 1.0) * 0.15;
+					color.r = saturate((color.r * _Gain) + gainBoost);
+					color.g = saturate((color.g * _Gain) + gainBoost);
+					color.b = saturate((color.b * _Gain) + gainBoost);
 					
 					// Fetch noise, including offset
 					uv.y = frac(uv.y + _NoiseOffset);
