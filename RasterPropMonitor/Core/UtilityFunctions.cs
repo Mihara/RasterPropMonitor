@@ -435,14 +435,7 @@ namespace JSI
                 {
                     if (rpmComp == null)
                     {
-                        for (int i = 0; i < part.Modules.Count; i++)
-                        {
-                            if (part.Modules[i].ClassName == typeof(RasterPropMonitorComputer).Name)
-                            {
-                                rpmComp = part.Modules[i] as RasterPropMonitorComputer;
-                                break;
-                            }
-                        }
+                        rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
                     }
 
                     if (rpmComp != null)
