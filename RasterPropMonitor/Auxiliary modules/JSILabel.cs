@@ -102,10 +102,10 @@ namespace JSI
                 Vector3 localScale = internalProp.transform.localScale;
 
                 Transform offsetTransform = new GameObject().transform;
-                offsetTransform.gameObject.name = "JSILabel-" + this.internalProp.propID+"-" + this.GetHashCode().ToString();
+                offsetTransform.gameObject.name = "JSILabel-" + this.internalProp.propID + "-" + this.GetHashCode().ToString();
                 offsetTransform.gameObject.layer = textObjTransform.gameObject.layer;
                 offsetTransform.SetParent(textObjTransform, false);
-                offsetTransform.Translate(transformOffset.x* localScale.x, transformOffset.y* localScale.y, 0.0f);
+                offsetTransform.Translate(transformOffset.x * localScale.x, transformOffset.y * localScale.y, 0.0f);
 
                 textObj = offsetTransform.gameObject.AddComponent<JSITextMesh>();
 
@@ -117,7 +117,7 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(anchor))
                 {
-                    if(anchor == TextAnchor.LowerCenter.ToString())
+                    if (anchor == TextAnchor.LowerCenter.ToString())
                     {
                         textObj.anchor = TextAnchor.LowerCenter;
                     }
@@ -161,7 +161,7 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(alignment))
                 {
-                    if(alignment == TextAlignment.Center.ToString())
+                    if (alignment == TextAlignment.Center.ToString())
                     {
                         textObj.alignment = TextAlignment.Center;
                     }
@@ -209,7 +209,7 @@ namespace JSI
                 {
                     SmarterButton.CreateButton(internalProp, switchTransform, Click);
                     audioOutput = JUtil.SetupIVASound(internalProp, switchSound, switchSoundVolume, false);
-                    
+
                     foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                     {
                         if (node.GetValue("name") == internalProp.propName)
@@ -222,7 +222,7 @@ namespace JSI
                                 try
                                 {
                                     bool lOneshot = false;
-                                    if(variableNodes[i].HasValue("oneshot"))
+                                    if (variableNodes[i].HasValue("oneshot"))
                                     {
                                         bool.TryParse(variableNodes[i].GetValue("oneshot"), out lOneshot);
                                     }
@@ -284,7 +284,7 @@ namespace JSI
                     }
                 }
 
-                if(string.IsNullOrEmpty(emissive))
+                if (string.IsNullOrEmpty(emissive))
                 {
                     if (usesMultiColor)
                     {
@@ -319,7 +319,7 @@ namespace JSI
 
                 UpdateShader();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
                 labels.Add(new JSILabelSet("ERR", true));
@@ -351,15 +351,15 @@ namespace JSI
         private void UpdateShader()
         {
             float emissiveValue = 1.0f;
-            if(emissiveMode == EmissiveMode.always)
+            if (emissiveMode == EmissiveMode.always)
             {
                 emissiveValue = 1.0f;
             }
-            else if(emissiveMode == EmissiveMode.never)
+            else if (emissiveMode == EmissiveMode.never)
             {
                 emissiveValue = 0.0f;
             }
-            else if(variablePositive ^ (emissiveMode==EmissiveMode.passive))
+            else if (variablePositive ^ (emissiveMode == EmissiveMode.passive))
             {
                 emissiveValue = 1.0f;
             }
@@ -373,6 +373,7 @@ namespace JSI
 
         public void OnDestroy()
         {
+            //JUtil.LogMessage(this, "OnDestroy() for {0}", GetHashCode());
             if (del != null)
             {
                 try
@@ -388,7 +389,6 @@ namespace JSI
                     //JUtil.LogMessage(this, "Trapped exception unregistering JSIVariableLabel (you can ignore this)");
                 }
             }
-            //JUtil.LogMessage(this, "OnDestroy()");
             Destroy(textObj);
             textObj = null;
         }
@@ -400,6 +400,19 @@ namespace JSI
             {
                 // We're not attached to a ship?
                 comp.UnregisterCallback(variableName, del);
+                return;
+            }
+
+            if (textObj == null)
+            {
+                // I don't know what is going on here.  This callback is
+                // getting called when textObj is null - did the callback
+                // fail to unregister on destruction?  It can't get called
+                // before textObj is created.
+                if (del != null && !string.IsNullOrEmpty(variableName))
+                {
+                    comp.UnregisterCallback(variableName, del);
+                }
                 return;
             }
 
@@ -433,6 +446,13 @@ namespace JSI
 
         public override void OnUpdate()
         {
+            if(textObj == null)
+            {
+                // Shouldn't happen ... but it does, thanks to the quirks of
+                // docking and undocking.
+                return;
+            }
+
             // Update shader parameters
             UpdateShader();
 
