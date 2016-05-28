@@ -144,6 +144,19 @@ namespace JSI
                 return;
             }
 
+            if (textObj == null)
+            {
+                // I don't know what is going on here.  This callback is
+                // getting called when textObj is null - did the callback
+                // fail to unregister on destruction?  It can't get called
+                // before textObj is created.
+                if (del != null && !string.IsNullOrEmpty(variableName))
+                {
+                    comp.UnregisterCallback(variableName, del);
+                }
+                return;
+            }
+
             if (value < 0.0f)
             {
                 textObj.text.Color = negativeColorValue;
@@ -171,6 +184,13 @@ namespace JSI
 
         public override void OnUpdate()
         {
+            if (textObj == null)
+            {
+                // Shouldn't happen ... but it does, thanks to the quirks of
+                // docking and undocking.
+                return;
+            }
+
             if (oneshotComplete && oneshot)
             {
                 return;
