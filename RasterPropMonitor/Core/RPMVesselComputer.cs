@@ -51,11 +51,6 @@ namespace JSI
          */
         private static Dictionary<Guid, RPMVesselComputer> instances;
 
-        internal static Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
-        internal static List<string> knownLoadedAssemblies = new List<string>();
-        internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
-        private static List<TriggeredEventTemplate> triggeredEvents;
-
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
         private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
         private static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
@@ -576,26 +571,10 @@ namespace JSI
                 throw new Exception("GameDatabase is not ready?");
             }
 
-            var rpmSettings = GameDatabase.Instance.GetConfigNodes("RasterPropMonitorSettings");
-            if (rpmSettings.Length > 0)
-            {
-                // Really, there should be only one
-                if (rpmSettings[0].TryGetValue("ShowCallCount", ref debug_showVariableCallCount))
-                {
-                    // call count doesn't write anything if enableLogging is false
-                    debug_showVariableCallCount = debug_showVariableCallCount && JUtil.debugLoggingEnabled;
-                }
-            }
-
             if (instances == null)
             {
                 JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
-                if (rpmSettings.Length > 1)
-                {
-                    JUtil.LogInfo(this, "Multiple RasterPropMonitorSettings configs were found in this installation.  Please make sure you have installed this mod correctly.");
-                    JUtil.AnnoyUser(this);
-                }
             }
 
             if (instances.ContainsKey(vessel.id))
@@ -628,31 +607,6 @@ namespace JSI
             for (int i = 0; i < installedModules.Count; ++i)
             {
                 installedModules[i].vessel = vessel;
-            }
-
-            if (triggeredEvents == null)
-            {
-                triggeredEvents = new List<TriggeredEventTemplate>();
-
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_TRIGGERED_EVENT"))
-                {
-                    string eventName = node.GetValue("eventName").Trim();
-
-                    try
-                    {
-                        TriggeredEventTemplate triggeredVar = new TriggeredEventTemplate(node);
-
-                        if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
-                        {
-                            triggeredEvents.Add(triggeredVar);
-                            JUtil.LogMessage(this, "I know about event {0}", eventName);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
-                    }
-                }
             }
         }
 
@@ -2165,10 +2119,6 @@ namespace JSI
             //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
             // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
-            if (data != GameScenes.FLIGHT && triggeredEvents != null)
-            {
-                triggeredEvents = null;
-            }
             VariableOrNumber.Clear();
         }
 

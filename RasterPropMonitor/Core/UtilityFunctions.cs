@@ -232,9 +232,7 @@ namespace JSI
         public static readonly string[] VariableListSeparator = { "$&$" };
         public static readonly string[] VariableSeparator = { };
         public static readonly string[] LineSeparator = { Environment.NewLine };
-        public static bool debugLoggingEnabled = false;
         private static readonly int ClosestApproachRefinementInterval = 16;
-        public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
         internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
@@ -668,7 +666,7 @@ namespace JSI
 
         public static void LogMessage(object caller, string line, params object[] list)
         {
-            if (debugLoggingEnabled)
+            if (RPMGlobals.debugLoggingEnabled)
             {
                 if (caller != null)
                 {
@@ -1537,8 +1535,23 @@ namespace JSI
                 bool enableLogging = false;
                 if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
                 {
-                    JUtil.debugLoggingEnabled = enableLogging;
+                    RPMGlobals.debugLoggingEnabled = enableLogging;
                     JUtil.LogInfo(this, "Set debugLoggingEnabled to {0}", enableLogging);
+                }
+                else
+                {
+                    RPMGlobals.debugLoggingEnabled = false;
+                }
+
+                bool showVariableCallCount = false;
+                if (rpmSettings[0].TryGetValue("ShowCallCount", ref showVariableCallCount))
+                {
+                    // call count doesn't write anything if enableLogging is false
+                    RPMGlobals.debugShowVariableCallCount = showVariableCallCount && RPMGlobals.debugLoggingEnabled;
+                }
+                else
+                {
+                    RPMGlobals.debugShowVariableCallCount = false;
                 }
             }
 
@@ -1559,7 +1572,7 @@ namespace JSI
         /// <returns></returns>
         private IEnumerator LoadCustomVariables()
         {
-            RPMVesselComputer.customVariables.Clear();
+            RPMGlobals.customVariables.Clear();
 
             ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE");
             for (int i=0; i<nodes.Length; ++i)
@@ -1573,7 +1586,7 @@ namespace JSI
                     if (!string.IsNullOrEmpty(varName) && customVar != null)
                     {
                         string completeVarName = "CUSTOM_" + varName;
-                        RPMVesselComputer.customVariables.Add(completeVarName, customVar);
+                        RPMGlobals.customVariables.Add(completeVarName, customVar);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1601,7 +1614,7 @@ namespace JSI
                     if (!string.IsNullOrEmpty(varName) && mappedVar != null)
                     {
                         string completeVarName = "MAPPED_" + varName;
-                        RPMVesselComputer.customVariables.Add(completeVarName, mappedVar);
+                        RPMGlobals.customVariables.Add(completeVarName, mappedVar);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1628,7 +1641,7 @@ namespace JSI
                     if (!string.IsNullOrEmpty(varName) && mathVar != null)
                     {
                         string completeVarName = "MATH_" + varName;
-                        RPMVesselComputer.customVariables.Add(completeVarName, mathVar);
+                        RPMGlobals.customVariables.Add(completeVarName, mathVar);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1655,7 +1668,7 @@ namespace JSI
                     if (!string.IsNullOrEmpty(varName) && selectVar != null)
                     {
                         string completeVarName = "SELECT_" + varName;
-                        RPMVesselComputer.customVariables.Add(completeVarName, selectVar);
+                        RPMGlobals.customVariables.Add(completeVarName, selectVar);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1670,6 +1683,7 @@ namespace JSI
             }
             yield return null;
 
+            JUtil.globalColors.Clear();
             nodes = GameDatabase.Instance.GetConfigNodes("RPM_GLOBALCOLORSETUP");
             for (int idx = 0; idx < nodes.Length; ++idx)
             {
@@ -1692,6 +1706,27 @@ namespace JSI
                 }
             }
 
+            RPMGlobals.triggeredEvents.Clear();
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_TRIGGERED_EVENT");
+            for (int idx = 0; idx < nodes.Length; ++idx)
+            {
+                string eventName = nodes[idx].GetValue("eventName").Trim();
+
+                try
+                {
+                    RPMVesselComputer.TriggeredEventTemplate triggeredVar = new RPMVesselComputer.TriggeredEventTemplate(nodes[idx]);
+
+                    if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
+                    {
+                        RPMGlobals.triggeredEvents.Add(triggeredVar);
+                        JUtil.LogMessage(this, "I know about event {0}", eventName);
+                    }
+                }
+                catch (Exception e)
+                {
+                    JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                }
+            }
             yield return null;
         }
 
@@ -1701,11 +1736,11 @@ namespace JSI
         /// <returns></returns>
         private IEnumerator LoadKnownAssembliesAndResources()
         {
-            RPMVesselComputer.knownLoadedAssemblies.Clear();
+            RPMGlobals.knownLoadedAssemblies.Clear();
             for (int i = 0; i < AssemblyLoader.loadedAssemblies.Count; ++i)
             {
                 string thatName = AssemblyLoader.loadedAssemblies[i].assembly.GetName().Name;
-                RPMVesselComputer.knownLoadedAssemblies.Add(thatName.ToUpper());
+                RPMGlobals.knownLoadedAssemblies.Add(thatName.ToUpper());
                 JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
                 if ((i & 0xf) == 0xf)
                 {
@@ -1713,11 +1748,11 @@ namespace JSI
                 }
             }
 
-            RPMVesselComputer.systemNamedResources.Clear();
+            RPMGlobals.systemNamedResources.Clear();
             foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions)
             {
                 string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
-                RPMVesselComputer.systemNamedResources.Add(varname, thatResource.name);
+                RPMGlobals.systemNamedResources.Add(varname, thatResource.name);
                 JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
             }
 
