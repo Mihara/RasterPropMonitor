@@ -51,9 +51,9 @@ namespace JSI
          */
         private static Dictionary<Guid, RPMVesselComputer> instances;
 
-        private static Dictionary<string, IComplexVariable> customVariables;
-        private static List<string> knownLoadedAssemblies;
-        private static SortedDictionary<string, string> systemNamedResources;
+        internal static Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
+        internal static List<string> knownLoadedAssemblies = new List<string>();
+        internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
         private static List<TriggeredEventTemplate> triggeredEvents;
 
         private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
@@ -580,17 +580,10 @@ namespace JSI
             if (rpmSettings.Length > 0)
             {
                 // Really, there should be only one
-                bool enableLogging = false;
-                if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
-                {
-                    JUtil.debugLoggingEnabled = enableLogging;
-                    JUtil.LogMessage(this, "Set debugLoggingEnabled to {0}", enableLogging);
-                }
-
                 if (rpmSettings[0].TryGetValue("ShowCallCount", ref debug_showVariableCallCount))
                 {
                     // call count doesn't write anything if enableLogging is false
-                    debug_showVariableCallCount = debug_showVariableCallCount && enableLogging;
+                    debug_showVariableCallCount = debug_showVariableCallCount && JUtil.debugLoggingEnabled;
                 }
             }
 
@@ -601,6 +594,7 @@ namespace JSI
                 if (rpmSettings.Length > 1)
                 {
                     JUtil.LogInfo(this, "Multiple RasterPropMonitorSettings configs were found in this installation.  Please make sure you have installed this mod correctly.");
+                    JUtil.AnnoyUser(this);
                 }
             }
 
@@ -619,124 +613,6 @@ namespace JSI
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
-
-            if (knownLoadedAssemblies == null)
-            {
-                knownLoadedAssemblies = new List<string>();
-                foreach (AssemblyLoader.LoadedAssembly thatAssembly in AssemblyLoader.loadedAssemblies)
-                {
-                    string thatName = thatAssembly.assembly.GetName().Name;
-                    knownLoadedAssemblies.Add(thatName.ToUpper());
-                    JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
-                }
-            }
-
-            if (customVariables == null)
-            {
-                customVariables = new Dictionary<string, IComplexVariable>();
-
-                // Parse known custom variables
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE"))
-                {
-                    string varName = node.GetValue("name");
-
-                    try
-                    {
-                        CustomVariable customVar = new CustomVariable(node);
-
-                        if (!string.IsNullOrEmpty(varName) && customVar != null)
-                        {
-                            string completeVarName = "CUSTOM_" + varName;
-                            customVariables.Add(completeVarName, customVar);
-                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
-                        }
-                    }
-                    catch
-                    {
-
-                    }
-                }
-
-                // And parse known mapped variables
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE"))
-                {
-                    string varName = node.GetValue("mappedVariable");
-
-                    try
-                    {
-                        MappedVariable mappedVar = new MappedVariable(node);
-
-                        if (!string.IsNullOrEmpty(varName) && mappedVar != null)
-                        {
-                            string completeVarName = "MAPPED_" + varName;
-                            customVariables.Add(completeVarName, mappedVar);
-                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
-                        }
-                    }
-                    catch
-                    {
-
-                    }
-                }
-
-                // And parse known math variables
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE"))
-                {
-                    string varName = node.GetValue("name");
-
-                    try
-                    {
-                        MathVariable mathVar = new MathVariable(node);
-
-                        if (!string.IsNullOrEmpty(varName) && mathVar != null)
-                        {
-                            string completeVarName = "MATH_" + varName;
-                            customVariables.Add(completeVarName, mathVar);
-                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
-                        }
-                    }
-                    catch
-                    {
-
-                    }
-                }
-
-                // And parse known select variables
-                foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE"))
-                {
-                    string varName = node.GetValue("name");
-
-                    try
-                    {
-                        SelectVariable selectVar = new SelectVariable(node);
-
-                        if (!string.IsNullOrEmpty(varName) && selectVar != null)
-                        {
-                            string completeVarName = "SELECT_" + varName;
-                            customVariables.Add(completeVarName, selectVar);
-                            JUtil.LogMessage(this, "I know about {0}", completeVarName);
-                        }
-                    }
-                    catch
-                    {
-
-                    }
-                }
-            }
-
-            // TODO: Not really needed - the resource object tracks the SYSR names.
-            if (systemNamedResources == null)
-            {
-                // Let's deal with the system resource library.
-                // This dictionary is sorted so that longer names go first to prevent false identification - they're compared in order.
-                systemNamedResources = new SortedDictionary<string, string>(new ResourceNameLengthComparer());
-                foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions)
-                {
-                    string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
-                    systemNamedResources.Add(varname, thatResource.name);
-                    JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
-                }
-            }
 
             installedModules.Add(new JSIParachute());
             installedModules.Add(new JSIMechJeb());
@@ -2289,19 +2165,27 @@ namespace JSI
             //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
             // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
-            if (data != GameScenes.FLIGHT && customVariables != null)
+            if (data != GameScenes.FLIGHT && triggeredEvents != null)
             {
-                customVariables = null;
-                knownLoadedAssemblies = null;
-                systemNamedResources = null;
                 triggeredEvents = null;
-
-                VariableOrNumber.Clear();
             }
+            VariableOrNumber.Clear();
         }
 
         private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
         {
+            if(action.from.vessel.id == vessel.id)
+            {
+                JUtil.LogMessage(this, "onPartCouple(): I am 'from' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
+            }
+            else if(action.to.vessel.id == vessel.id)
+            {
+                JUtil.LogMessage(this, "onPartCouple(): I am 'to' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
+            }
+            else
+            {
+                JUtil.LogMessage(this, "onPartCouple(): I am not involved from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
+            }
             if (action.from.vessel.id == vessel.id)
             {
                 RPMVesselComputer otherComp = null;
@@ -2318,7 +2202,7 @@ namespace JSI
         {
             if (p.vessel.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "onPartUndock(): {0} expects to undock", vessel.id);
+                JUtil.LogMessage(this, "onPartUndock(): I {0} expect to undock", vessel.id);
                 pendingUndocking = true;
             }
         }
@@ -2336,7 +2220,7 @@ namespace JSI
         {
             if (v.id == vessel.id)
             {
-                //JUtil.LogMessage(this, "VesselModifiedCallback(): for me {0}", v.id);
+                JUtil.LogMessage(this, "VesselModifiedCallback(): for me {0}", v.id);
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
@@ -2355,7 +2239,7 @@ namespace JSI
                     {
                         pendingUndocking = false;
                         otherComp.pendingUndocking = false;
-                        //JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
+                        JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
                         MergePersistents(otherComp);
                     }
                     forceCallbackRefresh = true;
