@@ -80,7 +80,10 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonClearNodes(bool state)
         {
-            JUtil.RemoveAllNodes(vessel.patchedConicSolver);
+            if (vessel != null)
+            {
+                JUtil.RemoveAllNodes(vessel.patchedConicSolver);
+            }
         }
 
         /// <summary>
@@ -127,25 +130,28 @@ namespace JSI
         /// <param name="state">"true" for on, "false" for off</param>
         public void ButtonEnableEngines(bool state)
         {
-            for (int i = 0; i < vessel.parts.Count; ++i)
+            if (vessel != null)
             {
-                // We accept "state == false" to allow engines that are
-                // activated outside of the current staging to be shut off by
-                // this function.
-                if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
+                for (int i = 0; i < vessel.parts.Count; ++i)
                 {
-                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
+                    // We accept "state == false" to allow engines that are
+                    // activated outside of the current staging to be shut off by
+                    // this function.
+                    if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
                     {
-                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
-                        if (engine != null && engine.EngineIgnited != state)
+                        for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
                         {
-                            if (state && engine.allowRestart)
+                            var engine = vessel.parts[i].Modules[j] as ModuleEngines;
+                            if (engine != null && engine.EngineIgnited != state)
                             {
-                                engine.Activate();
-                            }
-                            else if (engine.allowShutdown)
-                            {
-                                engine.Shutdown();
+                                if (state && engine.allowRestart)
+                                {
+                                    engine.Activate();
+                                }
+                                else if (engine.allowShutdown)
+                                {
+                                    engine.Shutdown();
+                                }
                             }
                         }
                     }
@@ -294,7 +300,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeStabilityAssist(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.StabilityAssist))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.StabilityAssist))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.StabilityAssist);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.StabilityAssist);
@@ -317,7 +323,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModePrograde(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Prograde))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Prograde))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Prograde);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Prograde);
@@ -340,7 +346,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeRetrograde(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Retrograde))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Retrograde))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Retrograde);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Retrograde);
@@ -363,7 +369,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeNormal(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Normal))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Normal))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Normal);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Normal);
@@ -386,7 +392,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeAntiNormal(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Antinormal))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Antinormal))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Antinormal);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Antinormal);
@@ -409,7 +415,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeRadialIn(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialIn))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialIn))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.RadialIn);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.RadialIn);
@@ -432,7 +438,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeRadialOut(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialOut))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.RadialOut))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.RadialOut);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.RadialOut);
@@ -455,7 +461,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeTarget(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Target))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Target))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Target);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Target);
@@ -478,7 +484,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeAntiTarget(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.AntiTarget))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.AntiTarget))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.AntiTarget);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.AntiTarget);
@@ -501,7 +507,7 @@ namespace JSI
         // Analysis disable once UnusedParameter
         public void ButtonSASModeManeuver(bool ignored)
         {
-            if (vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Maneuver))
+            if (vessel != null && vessel.Autopilot.CanSetMode(VesselAutopilot.AutopilotMode.Maneuver))
             {
                 vessel.Autopilot.SetMode(VesselAutopilot.AutopilotMode.Maneuver);
                 ForceUpdateSASModeToggleButtons(VesselAutopilot.AutopilotMode.Maneuver);
@@ -914,7 +920,7 @@ namespace JSI
                     return;
             }
 
-            if (vessel.Autopilot.CanSetMode(autopilotMode))
+            if (vessel != null && vessel.Autopilot.CanSetMode(autopilotMode))
             {
                 vessel.Autopilot.SetMode(autopilotMode);
                 ForceUpdateSASModeToggleButtons(autopilotMode);
