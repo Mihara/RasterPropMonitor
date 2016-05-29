@@ -574,6 +574,7 @@ namespace JSI
                 yPos -= lineAdvance;
             }
 
+            meshFilter_.mesh.Clear();
             meshFilter_.mesh.vertices = vertices;
             meshFilter_.mesh.colors32 = colors32;
             meshFilter_.mesh.tangents = tangents;
