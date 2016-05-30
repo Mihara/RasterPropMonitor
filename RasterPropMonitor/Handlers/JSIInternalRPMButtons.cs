@@ -630,6 +630,15 @@ namespace JSI
         }
 
         /// <summary>
+        /// Returns true when the "Recover Vessel" feature is true.
+        /// </summary>
+        /// <returns></returns>
+        public bool CanRecoverVessel()
+        {
+            return (vessel != null) ? vessel.IsRecoverable : false;
+        }
+
+        /// <summary>
         /// Undock the current reference part, or the inferred first dock on
         /// the current vessel.
         /// 
