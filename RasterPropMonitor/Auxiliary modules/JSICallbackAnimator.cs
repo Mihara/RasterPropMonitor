@@ -111,7 +111,7 @@ namespace JSI
                 RPMVesselComputer comp = null;
                 if (RPMVesselComputer.TryGetInstance(registeredVessel, ref comp))
                 {
-                    JUtil.LogMessage(this, "OnDestroy - unregistering del {0} in {2} (current vessel is {1})", del.GetHashCode(), vessel.id, registeredVessel);
+                    //JUtil.LogMessage(this, "OnDestroy - unregistering del {0} in {2} (current vessel is {1})", del.GetHashCode(), vessel.id, registeredVessel);
                     comp.UnregisterCallback(variableName, del);
                 }
             }
