@@ -211,9 +211,16 @@ namespace JSI
                     invalidated = true;
                     text_ = value;
 
-                    if (meshRenderer_ != null && string.IsNullOrEmpty(text_))
+                    if (meshRenderer_ != null)
                     {
-                        meshRenderer_.gameObject.SetActive(false);
+                        if (string.IsNullOrEmpty(text_))
+                        {
+                            meshRenderer_.gameObject.SetActive(false);
+                        }
+                        else
+                        {
+                            meshRenderer_.gameObject.SetActive(true);
+                        }
                     }
                 }
             }
