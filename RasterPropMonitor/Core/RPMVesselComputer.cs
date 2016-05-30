@@ -462,6 +462,40 @@ namespace JSI
             otherComp.persistentVars = new Dictionary<string, object>(persistentVars);
         }
 
+        private Kerbal lastActiveKerbal = null;
+        internal void SetKerbalVisible(Kerbal activeKerbal, JSISetInternalCameraFOV.HideKerbal hideKerbal)
+        {
+            if (lastActiveKerbal != activeKerbal)
+            {
+                //JUtil.LogMessage(this, "SetKerbalVisible({0}, {1})", (activeKerbal != null) ? activeKerbal.crewMemberName : "(null)", hideKerbal.ToString());
+                if (lastActiveKerbal != null)
+                {
+                    lastActiveKerbal.headTransform.parent.gameObject.SetActive(true);
+                    lastActiveKerbal.headTransform.gameObject.SetActive(true);
+                }
+
+                if (hideKerbal == JSISetInternalCameraFOV.HideKerbal.none)
+                {
+                    // If we aren't going to hide it, don't track it.
+                    activeKerbal = null;
+                }
+
+                if (activeKerbal != null)
+                {
+                    if (hideKerbal == JSISetInternalCameraFOV.HideKerbal.all)
+                    {
+                        activeKerbal.headTransform.parent.gameObject.SetActive(false);
+                    }
+                    else
+                    {
+                        activeKerbal.headTransform.gameObject.SetActive(false);
+                    }
+                }
+
+                lastActiveKerbal = activeKerbal;
+            }
+        }
+
         #region VesselModule Overrides
         /// <summary>
         /// Load and parse persistent variables
@@ -729,6 +763,16 @@ namespace JSI
             if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
                 timeToUpdate = true;
+            }
+
+            if (!JUtil.IsInIVA() && lastActiveKerbal != null)
+            {
+                // If JSISetInternalCameraFOV asked us to hide a kerbal's head
+                // (or body), we need to undo that change here, since we're no
+                // longer in IVA.
+                lastActiveKerbal.headTransform.parent.gameObject.SetActive(true);
+                lastActiveKerbal.headTransform.gameObject.SetActive(true);
+                lastActiveKerbal = null;
             }
         }
 
@@ -1071,7 +1115,7 @@ namespace JSI
                     currentPart = thatKerbal.InPart;
                 }
 
-                if(currentPart == null)
+                if (currentPart == null)
                 {
                     Transform internalCameraTransform = InternalCamera.Instance.transform;
                     foreach (Part thisPart in InternalModelParts(vessel))
@@ -1363,7 +1407,8 @@ namespace JSI
                 {
                     resources.SetActive(activeResources[i]);
                 }
-            } catch {}
+            }
+            catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
 
@@ -1555,7 +1600,7 @@ namespace JSI
         private double estLandingAltitude;
         private void UpdateLandingPredictions()
         {
-            if(orbitSensibility && vessel.orbit.PeA < 0.0)
+            if (orbitSensibility && vessel.orbit.PeA < 0.0)
             {
                 try
                 {
@@ -2137,11 +2182,11 @@ namespace JSI
 
         private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
         {
-            if(action.from.vessel.id == vessel.id)
+            if (action.from.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'from' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
             }
-            else if(action.to.vessel.id == vessel.id)
+            else if (action.to.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'to' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
             }
