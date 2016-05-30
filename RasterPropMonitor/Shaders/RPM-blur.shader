@@ -107,9 +107,10 @@ Shader "RPM/Blur"
 					uv = saturate(IN.uv + float2(+2.0 * _ImageDims.z, +2.0 * _ImageDims.w));
 					color += tex2D(_MainTex, uv) * 0.003663003;
 
-					color.r = color.r * _Gain;
-					color.g = color.g * _Gain;
-					color.b = color.b * _Gain;
+					float gainBoost = max(0.0, _Gain - 1.0) * 0.15;
+					color.r = saturate((color.r * _Gain) + gainBoost);
+					color.g = saturate((color.g * _Gain) + gainBoost);
+					color.b = saturate((color.b * _Gain) + gainBoost);
 					
 					return color;
 				}

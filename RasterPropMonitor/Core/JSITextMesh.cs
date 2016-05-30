@@ -528,48 +528,45 @@ namespace JSI
                         CharacterInfo charInfo;
                         if (font_.GetCharacterInfo(escapedBracket ? '[' : textLines[line][charIndex], out charInfo, 0, style))
                         {
-                            if (charInfo.minX == charInfo.maxX || charInfo.minY == charInfo.maxY)
+                            if (charInfo.minX != charInfo.maxX && charInfo.minY != charInfo.maxY)
                             {
-                                JUtil.LogMessage(this, "Degenerate character '{0}' advances {1}", textLines[line][charIndex], charInfo.advance);
+                                triangles[charWritten * 6 + 0] = arrayIndex + 0;
+                                triangles[charWritten * 6 + 1] = arrayIndex + 3;
+                                triangles[charWritten * 6 + 2] = arrayIndex + 2;
+                                triangles[charWritten * 6 + 3] = arrayIndex + 0;
+                                triangles[charWritten * 6 + 4] = arrayIndex + 1;
+                                triangles[charWritten * 6 + 5] = arrayIndex + 3;
+
+                                vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.minX), characterSize_ * (float)(yPos + charInfo.maxY), 0.0f);
+                                colors32[arrayIndex] = fontColor;
+                                tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+                                uv[arrayIndex] = charInfo.uvTopLeft;
+
+                                ++arrayIndex;
+
+                                vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.maxX), characterSize_ * (float)(yPos + charInfo.maxY), 0.0f);
+                                colors32[arrayIndex] = fontColor;
+                                tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+                                uv[arrayIndex] = charInfo.uvTopRight;
+
+                                ++arrayIndex;
+
+                                vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.minX), characterSize_ * (float)(yPos + charInfo.minY), 0.0f);
+                                colors32[arrayIndex] = fontColor;
+                                tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+                                uv[arrayIndex] = charInfo.uvBottomLeft;
+
+                                ++arrayIndex;
+
+                                vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.maxX), characterSize_ * (float)(yPos + charInfo.minY), 0.0f);
+                                colors32[arrayIndex] = fontColor;
+                                tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+                                uv[arrayIndex] = charInfo.uvBottomRight;
+
+                                ++arrayIndex;
+                                ++charWritten;
                             }
-                            //textLength[line] += charInfo.advance;
-                            triangles[charWritten * 6 + 0] = arrayIndex + 0;
-                            triangles[charWritten * 6 + 1] = arrayIndex + 3;
-                            triangles[charWritten * 6 + 2] = arrayIndex + 2;
-                            triangles[charWritten * 6 + 3] = arrayIndex + 0;
-                            triangles[charWritten * 6 + 4] = arrayIndex + 1;
-                            triangles[charWritten * 6 + 5] = arrayIndex + 3;
-
-                            vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.minX), characterSize_ * (float)(yPos + charInfo.maxY), 0.0f);
-                            colors32[arrayIndex] = fontColor;
-                            tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-                            uv[arrayIndex] = charInfo.uvTopLeft;
-
-                            ++arrayIndex;
-
-                            vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.maxX), characterSize_ * (float)(yPos + charInfo.maxY), 0.0f);
-                            colors32[arrayIndex] = fontColor;
-                            tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-                            uv[arrayIndex] = charInfo.uvTopRight;
-
-                            ++arrayIndex;
-
-                            vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.minX), characterSize_ * (float)(yPos + charInfo.minY), 0.0f);
-                            colors32[arrayIndex] = fontColor;
-                            tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-                            uv[arrayIndex] = charInfo.uvBottomLeft;
-
-                            ++arrayIndex;
-
-                            vertices[arrayIndex] = new Vector3(characterSize_ * (float)(xPos + charInfo.maxX), characterSize_ * (float)(yPos + charInfo.minY), 0.0f);
-                            colors32[arrayIndex] = fontColor;
-                            tangents[arrayIndex] = new Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-                            uv[arrayIndex] = charInfo.uvBottomRight;
-
-                            ++arrayIndex;
-
                             xPos += charInfo.advance;
-                            ++charWritten;
                         }
                     }
                 }
@@ -577,6 +574,7 @@ namespace JSI
                 yPos -= lineAdvance;
             }
 
+            meshFilter_.mesh.Clear();
             meshFilter_.mesh.vertices = vertices;
             meshFilter_.mesh.colors32 = colors32;
             meshFilter_.mesh.tangents = tangents;

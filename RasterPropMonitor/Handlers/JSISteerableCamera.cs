@@ -645,7 +645,7 @@ namespace JSI
                             if (components.Length == 2)
                             {
                                 ShaderEffectVariable sev = new ShaderEffectVariable();
-                                sev.variable = components[0].Trim();
+                                sev.variable = Shader.PropertyToID(components[0].Trim());
                                 sev.value = VariableOrNumber.Instantiate(components[1]);
                                 ceVariables.Add(sev);
                             }
@@ -760,7 +760,7 @@ namespace JSI
 
     internal class ShaderEffectVariable
     {
-        public string variable;
+        public int variable;
         public VariableOrNumber value;
     }
 }

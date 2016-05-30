@@ -281,12 +281,22 @@ namespace JSI
                     {
                         return (string variable) =>
                         {
+                            Part aPart = DeduceCurrentPart();
+                            if (aPart == null)
+                            {
+                                return "";
+                            }
+                            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(aPart, false);
+                            if (rpmComp == null)
+                            {
+                                return "";
+                            }
                             string[] toks = variable.Split('_');
                             int storedNumber;
                             int.TryParse(toks[1], out storedNumber);
-                            if (storedNumber < storedStrings.Count)
+                            if (storedNumber < rpmComp.storedStringsArray.Count)
                             {
-                                return storedStrings[storedNumber];
+                                return rpmComp.storedStringsArray[storedNumber];
                             }
                             else
                             {
@@ -298,11 +308,21 @@ namespace JSI
                     {
                         return (string variable) =>
                         {
+                            Part aPart = DeduceCurrentPart();
+                            if (aPart == null)
+                            {
+                                return "";
+                            }
+                            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(aPart, false);
+                            if (rpmComp == null)
+                            {
+                                return "";
+                            }
                             string[] toks = variable.Split('_');
                             int stringNumber;
-                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < storedStrings.Count)
+                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < rpmComp.storedStringsArray.Count)
                             {
-                                return storedStrings[stringNumber];
+                                return rpmComp.storedStrings[stringNumber];
                             }
                             else
                             {
@@ -1300,7 +1320,7 @@ namespace JSI
                             {
                                 return -1d;
                             }
-                            else if(target is PositionTarget)
+                            else if (target is PositionTarget)
                             {
                                 return 1d;
                             }
@@ -1751,7 +1771,7 @@ namespace JSI
                     return (string variable) => { return UnityEngine.Random.value; };
                 case "RANDOMNORMAL":
                     cacheable = false;
-                    return (string variable) => 
+                    return (string variable) =>
                     {
                         // Box-Muller method tweaked to prevent a 0 in u.
                         float u = UnityEngine.Random.Range(0.0009765625f, 1.0f);
@@ -1828,11 +1848,15 @@ namespace JSI
                     return (string variable) =>
                     {
                         ModuleDockingNode thatPort = null;
-                        foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+                        Part referencePart = vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
                         {
-                            thatPort = thatModule as ModuleDockingNode;
-                            if (thatPort != null)
-                                break;
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatPort = thatModule as ModuleDockingNode;
+                                if (thatPort != null)
+                                    break;
+                            }
                         }
                         if (thatPort != null)
                             return 1d;
@@ -1842,11 +1866,15 @@ namespace JSI
                     return (string variable) =>
                     {
                         ModuleGrappleNode thatClaw = null;
-                        foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+                        Part referencePart = vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
                         {
-                            thatClaw = thatModule as ModuleGrappleNode;
-                            if (thatClaw != null)
-                                break;
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatClaw = thatModule as ModuleGrappleNode;
+                                if (thatClaw != null)
+                                    break;
+                            }
                         }
                         if (thatClaw != null)
                             return 1d;
@@ -1856,11 +1884,15 @@ namespace JSI
                     return (string variable) =>
                     {
                         ModuleCommand thatPod = null;
-                        foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+                        Part referencePart = vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
                         {
-                            thatPod = thatModule as ModuleCommand;
-                            if (thatPod != null)
-                                break;
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatPod = thatModule as ModuleCommand;
+                                if (thatPod != null)
+                                    break;
+                            }
                         }
                         if (thatPod == null)
                             return 1d;

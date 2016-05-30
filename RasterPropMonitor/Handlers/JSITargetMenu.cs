@@ -1,9 +1,29 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
-using System.Linq;
 
 namespace JSI
 {
@@ -62,28 +82,30 @@ namespace JSI
         private const string clearTargetItemText = "Clear target";
         private const string undockItemText = "Undock";
         private const string armGrappleText = "Arm Grapple";
+        private const string crewEvaText = "Crew EVA";
         private readonly List<string> rootMenu = new List<string> {
-			"Celestials",
-			"Vessels",
-			"Space Objects",
-			"Reference part",
-			undockItemText,
-			armGrappleText,
-			"Filters",
-			clearTargetItemText,
-		};
+            "Celestials",
+            "Vessels",
+            "Space Objects",
+            "Reference part",
+            undockItemText,
+            armGrappleText,
+            "Filters",
+            clearTargetItemText,
+            crewEvaText,
+        };
         private readonly Dictionary<VesselType, bool> vesselFilter = new Dictionary<VesselType, bool> {
-			{ VesselType.Ship,true },
-			{ VesselType.Station,true },
-			{ VesselType.Probe,false },
-			{ VesselType.Lander,false },
-			{ VesselType.Rover,false },
-			{ VesselType.EVA,false },
-			{ VesselType.Flag,false },
-			{ VesselType.Base,false },
-			{ VesselType.Debris,false },
-			{ VesselType.Unknown,false },
-		};
+            { VesselType.Ship,true },
+            { VesselType.Station,true },
+            { VesselType.Probe,false },
+            { VesselType.Lander,false },
+            { VesselType.Rover,false },
+            { VesselType.EVA,false },
+            { VesselType.Flag,false },
+            { VesselType.Base,false },
+            { VesselType.Debris,false },
+            { VesselType.Unknown,false },
+        };
 
         private enum MenuList
         {
@@ -95,6 +117,7 @@ namespace JSI
             Ports,
             Undock,
             Filters,
+            CrewEVA,
         };
 
         private enum SortMode
@@ -187,6 +210,9 @@ namespace JSI
                         return string.Empty;
                     }
                     activeMenu.menuTitle = MakeMenuTitle(selectedVessel.GetName());
+                    break;
+                case MenuList.CrewEVA:
+                    activeMenu.menuTitle = MakeMenuTitle("Crew EVA");
                     break;
             }
 
@@ -560,12 +586,28 @@ namespace JSI
                     foreach (ModuleDockingNode port in portsList)
                     {
                         var tmi = new TextMenu.Item();
-                        tmi.action = TargetVessel;
+                        tmi.action = TargetPort;
                         tmi.labelText = GetPortName(port);
                         tmi.rightText = PortOrientationText(port.vessel.ReferenceTransform, port.controlTransform);
                         tmi.isSelected = (selectedPort == port);
-                        tmi.action = TargetPort;
                         activeMenu.Add(tmi);
+                    }
+                    break;
+                case MenuList.CrewEVA:
+                    activeMenu.Clear();
+                    var vesselCrew = vessel.GetVesselCrew();
+                    for (int crewIdx = 0; crewIdx < vesselCrew.Count; ++crewIdx)
+                    {
+                        if (vesselCrew[crewIdx] != null)
+                        {
+                            var tmi = new TextMenu.Item();
+                            tmi.action = CrewEVA;
+                            tmi.labelText = vesselCrew[crewIdx].name;
+                            tmi.rightText = vesselCrew[crewIdx].experienceTrait.Title;
+                            tmi.isSelected = false;
+                            tmi.id = crewIdx;
+                            activeMenu.Add(tmi);
+                        }
                     }
                     break;
             }
@@ -675,6 +717,7 @@ namespace JSI
             menuActions.Add(ArmGrapple);
             menuActions.Add(ShowFiltersMenu);
             menuActions.Add(ClearTarget);
+            menuActions.Add(ShowCrewEVA);
 
             for (int i = 0; i < rootMenu.Count; ++i)
             {
@@ -692,6 +735,11 @@ namespace JSI
                         break;
                     case armGrappleText:
                         grappleMenuItem = topMenu[i];
+                        break;
+                    case crewEvaText:
+                        float acLevel = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+                        bool evaUnlocked = GameVariables.Instance.UnlockedEVA(acLevel);
+                        menuitem.isDisabled = !GameVariables.Instance.EVAIsPossible(evaUnlocked, vessel);
                         break;
                 }
             }
@@ -747,11 +795,15 @@ namespace JSI
         private bool UpdateReferencePartAsClaw()
         {
             ModuleGrappleNode thatClaw = null;
-            foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+            Part referencePart = vessel.GetReferenceTransformPart();
+            if (referencePart != null)
             {
-                thatClaw = thatModule as ModuleGrappleNode;
-                if (thatClaw != null)
-                    break;
+                foreach (PartModule thatModule in referencePart.Modules)
+                {
+                    thatClaw = thatModule as ModuleGrappleNode;
+                    if (thatClaw != null)
+                        break;
+                }
             }
 
             if (thatClaw != null && (thatClaw.state == "Ready" || thatClaw.state == "Disabled"))
@@ -889,6 +941,33 @@ namespace JSI
             }
         }
 
+        private void ShowCrewEVA(int index, TextMenu.Item ti)
+        {
+            currentMenu = MenuList.CrewEVA;
+
+            activeMenu = new TextMenu();
+            activeMenu.labelColor = nameColorTag;
+            activeMenu.selectedColor = selectedColorTag;
+            activeMenu.disabledColor = unavailableColorTag;
+            activeMenu.rightTextColor = distanceColorTag;
+
+            var vesselCrew = vessel.GetVesselCrew();
+            for (int crewIdx = 0; crewIdx < vesselCrew.Count; ++crewIdx)
+            {
+                if (vesselCrew[crewIdx] != null)
+                {
+                    var tmi = new TextMenu.Item();
+                    tmi.action = CrewEVA;
+                    tmi.labelText = vesselCrew[crewIdx].name;
+                    tmi.rightText = vesselCrew[crewIdx].experienceTrait.Title;
+                    tmi.isSelected = false;
+                    tmi.id = crewIdx;
+                    activeMenu.Add(tmi);
+                }
+            }
+
+        }
+
         private static void ClearTarget(int index, TextMenu.Item ti)
         {
             FlightGlobals.fetch.SetVesselTarget((ITargetable)null);
@@ -897,12 +976,16 @@ namespace JSI
         private void ArmGrapple(int index, TextMenu.Item ti)
         {
             ModuleGrappleNode thatClaw = null;
-            foreach (PartModule thatModule in vessel.GetReferenceTransformPart().Modules)
+            Part referencePart = vessel.GetReferenceTransformPart();
+            if (referencePart != null)
             {
-                thatClaw = thatModule as ModuleGrappleNode;
-                if (thatClaw != null)
+                foreach (PartModule thatModule in referencePart.Modules)
                 {
-                    break;
+                    thatClaw = thatModule as ModuleGrappleNode;
+                    if (thatClaw != null)
+                    {
+                        break;
+                    }
                 }
             }
 
@@ -910,7 +993,7 @@ namespace JSI
             {
                 try
                 {
-                    ModuleAnimateGeneric clawAnimation = (vessel.GetReferenceTransformPart().Modules[thatClaw.deployAnimationController] as ModuleAnimateGeneric);
+                    ModuleAnimateGeneric clawAnimation = (referencePart.Modules[thatClaw.deployAnimationController] as ModuleAnimateGeneric);
                     if (clawAnimation != null)
                     {
                         clawAnimation.Toggle();
@@ -1009,6 +1092,19 @@ namespace JSI
             comp.SetPersistentVariable(persistentVarName, VesselFilterToBitmask(vesselFilter));
             ti.isSelected = !ti.isSelected;
             ti.labelText = vesselFilter.ElementAt(index).Key.ToString().PadRight(9) + (ti.isSelected ? "- On" : "- Off");
+        }
+        // EVA Menu
+        private void CrewEVA(int index, TextMenu.Item ti)
+        {
+            var vesselCrew = vessel.GetVesselCrew();
+            float acLevel = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+            bool evaUnlocked = GameVariables.Instance.UnlockedEVA(acLevel);
+            bool evaPossible = GameVariables.Instance.EVAIsPossible(evaUnlocked, vessel);
+            if (evaPossible && ti.id < vesselCrew.Count && vesselCrew[ti.id] != null && HighLogic.CurrentGame.Parameters.Flight.CanEVA)
+            {
+                FlightEVA.SpawnEVA(vesselCrew[ti.id].KerbalRef);
+                CameraManager.Instance.SetCameraFlight();
+            }
         }
 
         // Iterator helpers

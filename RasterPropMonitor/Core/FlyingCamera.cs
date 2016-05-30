@@ -99,12 +99,15 @@ namespace JSI
             referencePart = ourVessel.GetReferenceTransformPart();
             ModuleDockingNode thatPort = null;
             ModuleGrappleNode thatClaw = null;
-            foreach (PartModule thatModule in ourVessel.GetReferenceTransformPart().Modules)
+            if (referencePart != null)
             {
-                thatPort = thatModule as ModuleDockingNode;
-                thatClaw = thatModule as ModuleGrappleNode;
-                if (thatPort != null || thatClaw != null)
-                    break;
+                foreach (PartModule thatModule in referencePart.Modules)
+                {
+                    thatPort = thatModule as ModuleDockingNode;
+                    thatClaw = thatModule as ModuleGrappleNode;
+                    if (thatPort != null || thatClaw != null)
+                        break;
+                }
             }
             if (thatPort != null || thatClaw != null)
             {
@@ -117,7 +120,7 @@ namespace JSI
                 else if (thatClaw != null)
                 {
                     // Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
-                    if (LocateCamera(ourVessel.GetReferenceTransformPart(), "ArticulatedCap"))
+                    if (LocateCamera(referencePart, "ArticulatedCap"))
                     {
                         isReferenceClawCamera = true;
                         clawModule = thatClaw;

@@ -290,6 +290,7 @@ namespace JSI
 
         private Dictionary<string, List<Action<RPMVesselComputer, float>>> onChangeCallbacks = new Dictionary<string, List<Action<RPMVesselComputer, float>>>();
         private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
+        private bool forceCallbackRefresh = false;
 
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom, terrainDelta;
@@ -404,6 +405,7 @@ namespace JSI
                 onChangeCallbacks[variableName] = callbackList;
                 onChangeValue[variableName] = float.MaxValue;
             }
+            forceCallbackRefresh = true;
         }
 
         /// <summary>
@@ -901,7 +903,7 @@ namespace JSI
                 {
                     float previousValue = onChangeValue[cbVal.Key];
                     float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
-                    if (!Mathf.Approximately(newVal, previousValue))
+                    if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
                     {
                         for (int i = 0; i < cbVal.Value.Count; ++i)
                         {
@@ -917,6 +919,8 @@ namespace JSI
                     ++debug_callbackQueriesMade;
 #endif
                 }
+
+                forceCallbackRefresh = false;
 
                 ++debug_fixedUpdates;
 
@@ -1216,28 +1220,41 @@ namespace JSI
 
             if (JUtil.VesselIsInIVA(vessel))
             {
-                foreach (Part thisPart in InternalModelParts(vessel))
+                Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+                if (thatKerbal != null)
                 {
-                    foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
+                    // This should be a drastically faster way to determine
+                    // where we are.  I hope.
+                    currentPart = thatKerbal.InPart;
+                }
+
+                if(currentPart == null)
+                {
+                    Transform internalCameraTransform = InternalCamera.Instance.transform;
+                    foreach (Part thisPart in InternalModelParts(vessel))
                     {
-                        if (thatSeat.kerbalRef != null)
+                        for (int seatIdx = 0; seatIdx < thisPart.internalModel.seats.Count; ++seatIdx)
                         {
-                            if (thatSeat.kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent)
+                            if (thisPart.internalModel.seats[seatIdx].kerbalRef != null)
                             {
-                                currentPart = thisPart;
-                                break;
+                                if (thisPart.internalModel.seats[seatIdx].kerbalRef.eyeTransform == internalCameraTransform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
                             }
                         }
-                    }
 
-                    if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
-                    {
-                        foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>())
+                        if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
                         {
-                            if (thisTransform == InternalCamera.Instance.transform.parent)
+                            Transform[] modelTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
+                            for (int xformIdx = 0; xformIdx < modelTransforms.Length; ++xformIdx)
                             {
-                                currentPart = thisPart;
-                                break;
+                                if (modelTransforms[xformIdx] == InternalCamera.Instance.transform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -1682,6 +1699,86 @@ namespace JSI
             {
                 node = null;
             }
+
+            UpdateLandingPredictions();
+
+        }
+
+        private bool runningPredicition = false;
+        private double lastRadius;
+        private double estLandingUT;
+        private double estLandingLatitude;
+        private double estLandingLongitude;
+        private double estLandingAltitude;
+        private void UpdateLandingPredictions()
+        {
+            if(orbitSensibility && vessel.orbit.PeA < 0.0)
+            {
+                try
+                {
+                    if (runningPredicition == false)
+                    {
+                        lastRadius = vessel.orbit.PeR;
+
+                        // First estimate
+                        double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), lastRadius);
+                        Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
+                        estLandingLatitude = vessel.mainBody.GetLatitude(pos);
+                        estLandingLongitude = vessel.mainBody.GetLongitude(pos);
+                        estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
+                        if (vessel.mainBody.ocean)
+                        {
+                            estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
+                        }
+                        if (estLandingAltitude >= vessel.orbit.PeA)
+                        {
+                            //lastPoint = pos;
+                            estLandingUT = nextUt;
+                            lastRadius = estLandingAltitude + vessel.mainBody.Radius;
+                            runningPredicition = true;
+                            //JUtil.LogMessage(this, "Initial point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
+                            //    estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
+                        }
+                        else
+                        {
+                            // Have not hit the planet.  Try again next round
+                            //JUtil.LogMessage(this, "Seeking point of impact");
+                            runningPredicition = false;
+                            estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
+                        }
+                    }
+                    else
+                    {
+                        double nextRadius = Math.Max(vessel.orbit.PeR, lastRadius);
+                        double nextUt = vessel.orbit.NextTimeOfRadius(Planetarium.GetUniversalTime(), nextRadius);
+                        Vector3d pos = vessel.orbit.getPositionAtUT(nextUt);
+                        estLandingLatitude = vessel.mainBody.GetLatitude(pos);
+                        estLandingLongitude = vessel.mainBody.GetLongitude(pos);
+                        estLandingAltitude = vessel.mainBody.TerrainAltitude(estLandingLatitude, estLandingLongitude);
+                        if (vessel.mainBody.ocean)
+                        {
+                            estLandingAltitude = Math.Max(estLandingAltitude, 0.0);
+                        }
+                        //lastPoint = pos;
+                        estLandingUT = nextUt;
+                        lastRadius = estLandingAltitude + vessel.mainBody.Radius;
+                        runningPredicition = true;
+                        //JUtil.LogMessage(this, "Revised point-of-impact: {0:##0.00} x {1:###0.00} @ {2:0}m in {3:0}s",
+                        //    estLandingLatitude, estLandingLongitude, estLandingAltitude, estLandingUT - Planetarium.GetUniversalTime());
+                    }
+                }
+                catch
+                {
+                    // Any exceptions probably came from the bugs in KSP 1.1.2 Orbit code, so we reset everything
+                    runningPredicition = false;
+                    estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
+                }
+            }
+            else
+            {
+                runningPredicition = false;
+                estLandingLatitude = estLandingLongitude = estLandingAltitude = estLandingUT = 0.0;
+            }
         }
 
         /// <summary>
@@ -2105,7 +2202,7 @@ namespace JSI
         {
             double launchpadAngularRate = 360 / launchBody.rotationPeriod;
             double targetAngularRate = 360.0 / target.period;
-            if (Vector3d.Dot(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
+            if (Vector3d.Dot(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
 
             Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
             Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
@@ -2146,10 +2243,10 @@ namespace JSI
         /// <returns></returns>
         private static double TimeToPlane(CelestialBody launchBody, double launchLatitude, double launchLongitude, Orbit target)
         {
-            double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity));
-            Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().Reorder(132).normalized).normalized; // I don't understand the sign here, but this seems to work
+            double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity));
+            Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().SwizzleXZY().normalized).normalized; // I don't understand the sign here, but this seems to work
             b *= launchBody.Radius * Math.Sin(Math.PI / 180 * launchLatitude) / Math.Tan(Math.PI / 180 * inc);
-            Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().Reorder(132).normalized, launchBody.angularVelocity).normalized;
+            Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity).normalized;
             double cMagnitudeSquared = Math.Pow(launchBody.Radius * Math.Cos(Math.PI / 180 * launchLatitude), 2) - b.sqrMagnitude;
             if (cMagnitudeSquared < 0) cMagnitudeSquared = 0;
             c *= Math.Sqrt(cMagnitudeSquared);
@@ -2244,6 +2341,7 @@ namespace JSI
                 {
                     timeToUpdate = true;
                 }
+                forceCallbackRefresh = true;
             }
             else
             {
@@ -2260,6 +2358,9 @@ namespace JSI
                         //JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
                         MergePersistents(otherComp);
                     }
+                    forceCallbackRefresh = true;
+                    otherComp.forceCallbackRefresh = true;
+
                     //else
                     //{
                     //    JUtil.LogMessage(this, "VesselModifiedCallback(): for {0} - but {1} not pendingUndocking", v.id, vessel.id);

@@ -146,7 +146,7 @@ namespace JSI
         private readonly Vector3 initialPosition, initialScale, vectorStart, vectorEnd;
         private readonly Quaternion initialRotation, rotationStart, rotationEnd;
         private readonly bool longPath;
-        private readonly string colorName = "_EmissiveColor";
+        private readonly int colorName = -1;
         private readonly Vector2 textureShiftStart, textureShiftEnd, textureScaleStart, textureScaleEnd;
         private Material affectedMaterial;
         private List<string> textureLayer = new List<string>();
@@ -270,19 +270,23 @@ namespace JSI
             }
             else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject"))
             {
+                string colorNameString = "_EmissiveColor";
                 if (node.HasValue("colorName"))
                 {
-                    colorName = node.GetValue("colorName");
+                    colorNameString = node.GetValue("colorName");
                 }
+                colorName = Shader.PropertyToID(colorNameString);
+
+                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
-                    activeColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-                    passiveColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                    activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    passiveColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
                 }
                 else
                 {
-                    passiveColor = ConfigNode.ParseColor32(node.GetValue("passiveColor"));
-                    activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
+                    passiveColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    activeColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
                 }
                 Renderer colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
                 affectedMaterial = colorShiftRenderer.material;

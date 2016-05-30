@@ -42,6 +42,7 @@ namespace JSI
         public string coloredObject = string.Empty;
         [KSPField]
         public string colorName = "_EmissiveColor";
+        private int colorNameId = -1;
         private readonly List<VariableLabelSet> labelsEx = new List<VariableLabelSet>();
         private int activeLabel;
         private const string fontName = "Arial";
@@ -79,7 +80,7 @@ namespace JSI
                         {
                             try
                             {
-                                labelsEx.Add(new VariableLabelSet(variableNodes[i]));
+                                labelsEx.Add(new VariableLabelSet(variableNodes[i], part));
                             }
                             catch (ArgumentException e)
                             {
@@ -95,7 +96,7 @@ namespace JSI
                 {
                     try
                     {
-                        labelsEx.Add(new VariableLabelSet(moduleConfig));
+                        labelsEx.Add(new VariableLabelSet(moduleConfig, part));
                     }
                     catch (ArgumentException e)
                     {
@@ -112,7 +113,8 @@ namespace JSI
                 colorShiftRenderer = internalProp.FindModelComponent<Renderer>(coloredObject);
                 if (labelsEx[activeLabel].hasColor)
                 {
-                    colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
+                    colorNameId = Shader.PropertyToID(colorName);
+                    colorShiftRenderer.material.SetColor(colorNameId, labelsEx[activeLabel].color);
                 }
                 if (labelsEx[activeLabel].hasText)
                 {
@@ -182,7 +184,7 @@ namespace JSI
 
             if (labelsEx[activeLabel].hasColor)
             {
-                colorShiftRenderer.material.SetColor(colorName, labelsEx[activeLabel].color);
+                colorShiftRenderer.material.SetColor(colorNameId, labelsEx[activeLabel].color);
             }
 
             if (labelsEx[activeLabel].hasText)
@@ -210,7 +212,7 @@ namespace JSI
         public readonly Color color;
         public readonly bool hasColor;
 
-        public VariableLabelSet(ConfigNode node)
+        public VariableLabelSet(ConfigNode node, Part part)
         {
             if (node.HasValue("labelText"))
             {
@@ -227,7 +229,8 @@ namespace JSI
 
             if (node.HasValue("color"))
             {
-                color = ConfigNode.ParseColor32(node.GetValue("color").Trim());
+                RasterPropMonitorComputer rpmComp = null;
+                color = JUtil.ParseColor32(node.GetValue("color").Trim(), part, ref rpmComp);
                 hasColor = true;
             }
             else

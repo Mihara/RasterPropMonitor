@@ -1,4 +1,3 @@
-#define RPM_USE_ASSET_BUNDLE
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -237,6 +236,8 @@ namespace JSI
         public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
+        internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
+        internal static bool globalColorsLoaded = false;
 
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
@@ -285,41 +286,8 @@ namespace JSI
             return obj;
         }
 
-        public static void SetLayer(this Transform trans, int layer)
-        {
-            trans.gameObject.layer = layer;
-            foreach (Transform child in trans)
-                child.SetLayer(layer);
-        }
-
-        public static void SetCameraCullingMaskForIVA(string cameraName, bool flag)
-        {
-            Camera thatCamera = JUtil.GetCameraByName(cameraName);
-
-            if (thatCamera != null)
-            {
-                if (flag)
-                {
-                    thatCamera.cullingMask |= 1 << 16 | 1 << 20;
-                }
-                else
-                {
-                    thatCamera.cullingMask &= ~(1 << 16 | 1 << 20);
-                }
-            }
-            else if (flag != cameraMaskShowsIVA)
-            {
-                LogErrorMessage(null, "Could not find camera \"" + cameraName + "\" to change its culling mask, check your code.");
-                cameraMaskShowsIVA = false;
-            }
-
-        }
-
         internal static Shader LoadInternalShader(string shaderName)
         {
-            // Reminder: if RPM_USE_ASSET_BUNDLE is not defined, update the
-            // project so the shader text is embedded in the DLL.
-#if RPM_USE_ASSET_BUNDLE
             if (!parsedShaders.ContainsKey(shaderName))
             {
                 JUtil.LogErrorMessage(null, "Failed to find shader {0}", shaderName);
@@ -329,82 +297,90 @@ namespace JSI
             {
                 return parsedShaders[shaderName];
             }
-#else
-            shaderName = shaderName.Replace('/', '-');
+        }
 
-            string myShader = "JSI.Shaders." + shaderName + "-compiled.shader";
-
-            if (parsedShaders.ContainsKey(myShader))
+        /// <summary>
+        /// Parse a config file color string into a Color32.  The colorString
+        /// parameter is a sequnce of R, G, B, A (ranging [0,255]), or it is a
+        /// string prefixed with "COLOR_".  In the latter case, we'll look up
+        /// the color from config files specified in the parent part's
+        /// RasterPropMonitorComputer module, or from a globally-defined color
+        /// table.
+        /// </summary>
+        /// <param name="colorString">The color string to parse.</param>
+        /// <param name="part">The part containing the prop that is asking for
+        /// the color parsing.</param>
+        /// <param name="rpmComp">The rpmComp for the specified part; if null,
+        /// ParseColor32 looks up the RPMC module.</param>
+        /// <returns>Color32; white if colorString is empty, obnoxious magenta
+        /// if an unknown COLOR_ string is provided.</returns>
+        internal static Color32 ParseColor32(string colorString, Part part, ref RasterPropMonitorComputer rpmComp)
+        {
+            if (string.IsNullOrEmpty(colorString))
             {
-                return parsedShaders[myShader];
+                return Color.white;
             }
 
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            Stream manifestStream = null;
-            if (assembly != null)
+            colorString = colorString.Trim();
+            if (colorString.StartsWith("COLOR_"))
             {
-                manifestStream = assembly.GetManifestResourceStream(myShader);
-            }
-            else
-            {
-                LogErrorMessage(null, "FetchShader: Failed to get my assembly, so I can't read my embedded shaders.");
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-
-            StreamReader shaderStreamReader = null;
-            if (manifestStream != null)
-            {
-                shaderStreamReader = new StreamReader(manifestStream);
-            }
-            else
-            {
-                LogErrorMessage(null, "FetchShader: Unable to find embedded shader {0} in my DLL.", myShader);
-                var names = assembly.GetManifestResourceNames();
-                foreach (string name in names)
+                if (globalColorsLoaded == false)
                 {
-                    LogErrorMessage(null, " - {0}", name);
+                    ConfigNode[] globalColorSetup = GameDatabase.Instance.GetConfigNodes("RPM_GLOBALCOLORSETUP");
+                    for (int idx = 0; idx < globalColorSetup.Length; ++idx)
+                    {
+                        ConfigNode[] colorConfig = globalColorSetup[idx].GetNodes("COLORDEFINITION");
+                        for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
+                        {
+                            if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
+                            {
+                                string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
+                                Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
+                                if (globalColors.ContainsKey(name))
+                                {
+                                    globalColors[name] = color;
+                                }
+                                else
+                                {
+                                    globalColors.Add(name, color);
+                                }
+                            }
+                        }
+                    }
+
+                    globalColorsLoaded = true;
                 }
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
 
-            String shaderTxt = null;
-            if (shaderStreamReader != null)
-            {
-                shaderTxt = shaderStreamReader.ReadToEnd();
+                if (part != null)
+                {
+                    if (rpmComp == null)
+                    {
+                        rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
+                    }
+
+                    if (rpmComp != null)
+                    {
+                        if (rpmComp.overrideColors.ContainsKey(colorString))
+                        {
+                            return rpmComp.overrideColors[colorString];
+                        }
+                    }
+                }
+
+                if (globalColors.ContainsKey(colorString))
+                {
+                    return globalColors[colorString];
+                }
+                else
+                {
+                    JUtil.LogErrorMessage(null, "Unrecognized color '{0}' in ParseColor32", colorString);
+                    return new Color32(255, 0, 255, 255);
+                }
             }
             else
             {
-                LogErrorMessage(null, "FetchShader: Failed to create manifest reader to read shader {0}", myShader);
-                parsedShaders.Add(myShader, null);
-                return null;
+                return ConfigNode.ParseColor32(colorString);
             }
-
-            Shader embeddedShader = null;
-            if (string.IsNullOrEmpty(shaderTxt))
-            {
-                LogErrorMessage(null, "FetchShader: shaderTxt is null!  Something's wrong with the shader {0}", myShader);
-                parsedShaders.Add(myShader, null);
-                return null;
-            }
-            else
-            {
-                embeddedShader = new Material(shaderTxt).shader;
-            }
-
-            if (embeddedShader == null)
-            {
-                LogErrorMessage(null, "FetchShader: Unable to create a shader for {0}", myShader);
-            }
-
-            // Yes, if we fail to load the shader, we store a NULL, so we
-            // don't try to re-parse it later.
-            parsedShaders.Add(myShader, embeddedShader);
-
-            LogMessage(embeddedShader, "Found embedded shader {0} - {1}", myShader, (embeddedShader == null) ? "null" : "valid");
-            return embeddedShader;
-#endif
         }
 
         internal static void ShowHide(bool status, params GameObject[] objects)
@@ -414,44 +390,19 @@ namespace JSI
                 if (objects[i] != null)
                 {
                     objects[i].SetActive(status);
-                    if (objects[i].GetComponent<Renderer>() != null)
+                    Renderer renderer = null;
+                    objects[i].GetComponentCached<Renderer>(ref renderer);
+                    if (renderer != null)
                     {
-                        objects[i].GetComponent<Renderer>().enabled = status;
+                        renderer.enabled = status;
                     }
                 }
             }
         }
 
-        /// <summary>
-        /// From MechJeb
-        /// </summary>
-        /// <param name="vector"></param>
-        /// <param name="order"></param>
-        /// <returns></returns>
-        public static Vector3d Reorder(this Vector3d vector, int order)
+        public static Vector3d SwizzleXZY(this Vector3d vector)
         {
-            switch (order)
-            {
-                case 123:
-                    return new Vector3d(vector.x, vector.y, vector.z);
-                case 132:
-                    return new Vector3d(vector.x, vector.z, vector.y);
-                case 213:
-                    return new Vector3d(vector.y, vector.x, vector.z);
-                case 231:
-                    return new Vector3d(vector.y, vector.z, vector.x);
-                case 312:
-                    return new Vector3d(vector.z, vector.x, vector.y);
-                case 321:
-                    return new Vector3d(vector.z, vector.y, vector.x);
-            }
-            throw new ArgumentException("Invalid order", "order");
-        }
-
-        public static void SetMainCameraCullingMaskForIVA(bool flag)
-        {
-            SetCameraCullingMaskForIVA("Camera 00", flag);
-            cameraMaskShowsIVA = flag;
+            return new Vector3d(vector.x, vector.z, vector.y);
         }
 
         public static void MakeReferencePart(this Part thatPart)
@@ -504,37 +455,41 @@ namespace JSI
         */
         public static bool ActiveKerbalIsLocal(this Part thisPart)
         {
-            return FindCurrentKerbal(thisPart) != null;
+            Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if(thatKerbal != null)
+            {
+                return thatKerbal.InPart == thisPart;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public static int CurrentActiveSeat(this Part thisPart)
         {
-            Kerbal activeKerbal = thisPart.FindCurrentKerbal();
-            return activeKerbal != null ? activeKerbal.protoCrewMember.seatIdx : -1;
+            Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if (activeKerbal != null)
+            {
+                return (activeKerbal.InPart == thisPart) ? activeKerbal.protoCrewMember.seatIdx : -1;
+            }
+            else
+            {
+                return -1;
+            }
         }
 
         public static Kerbal FindCurrentKerbal(this Part thisPart)
         {
-            if (thisPart.internalModel == null || !JUtil.VesselIsInIVA(thisPart.vessel))
-                return null;
-            /*
-            // InternalCamera instance does not contain a reference to the kerbal it's looking from.
-            // So we have to search through all of them...
-            Kerbal thatKerbal = null;
-            foreach (InternalSeat thatSeat in thisPart.internalModel.seats)
+            Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+            if(activeKerbal != null)
             {
-                if (thatSeat.kerbalRef != null)
-                {
-                    if (thatSeat.kerbalRef.eyeTransform == InternalCamera.Instance.transform.parent)
-                    {
-                        thatKerbal = thatSeat.kerbalRef;
-                        break;
-                    }
-                }
+                return (activeKerbal.InPart == thisPart) ? activeKerbal : null;
             }
-             */
-            Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
-            return thatKerbal;
+            else
+            {
+                return null;
+            }
         }
 
         public static void HideShowProp(InternalProp thatProp, bool visibility)
@@ -675,16 +630,22 @@ namespace JSI
 
             // Just in case, check for whether we're not in flight.
             if (!HighLogic.LoadedSceneIsFlight)
+            {
                 return false;
+            }
 
             // If we're not in IVA, or the part does not have an instantiated IVA, the user can't be in it.
-            if (!VesselIsInIVA(thisPart.vessel) || thisPart.internalModel == null)
+            if (thisPart.internalModel == null || !VesselIsInIVA(thisPart.vessel))
+            {
                 return false;
+            }
 
             // Now that we got that out of the way, we know that the user is in SOME pod on our ship. We just don't know which.
             // Let's see if he's controlling a kerbal in our pod.
             if (ActiveKerbalIsLocal(thisPart))
+            {
                 return true;
+            }
 
             // There still remains an option of InternalCamera which we will now sort out.
             if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
@@ -696,10 +657,13 @@ namespace JSI
                 // Unfortunately I don't have anything smarter right now than get a list of all transforms in the internal and cycle through it.
                 // This is a more annoying computation than looking through every kerbal in a pod (there's only a few of those,
                 // but potentially hundreds of transforms) and might not even be working as I expect. It needs testing.
-                foreach (Transform thisTransform in thisPart.internalModel.GetComponentsInChildren<Transform>())
+                Transform[] componentTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
+                foreach (Transform thisTransform in componentTransforms)
                 {
                     if (thisTransform == InternalCamera.Instance.transform.parent)
+                    {
                         return true;
+                    }
                 }
             }
 
@@ -1402,7 +1366,7 @@ namespace JSI
             {
                 return loadedFonts[fontName];
             }
-            else if(loadedFonts.ContainsKey(fontName+size.ToString()))
+            else if (loadedFonts.ContainsKey(fontName + size.ToString()))
             {
                 return loadedFonts[fontName + size.ToString()];
             }

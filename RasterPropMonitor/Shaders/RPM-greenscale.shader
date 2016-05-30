@@ -26,7 +26,8 @@ Shader "RPM/Greenscale"
 					// CIE 1931 conversion of linear color to luminance
 					float Y = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
 					// Apply gain
-					Y = saturate(Y * _Gain);
+					float gainBoost = max(0.0, _Gain - 1.0) * 0.15;
+					Y = saturate(Y * _Gain + gainBoost);
 					return fixed4(0.0, Y, 0.0, c.a);
 				}
 			ENDCG
