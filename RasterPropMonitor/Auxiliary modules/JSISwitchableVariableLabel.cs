@@ -150,6 +150,18 @@ namespace JSI
 
         private bool UpdateCheck()
         {
+            // Saw an out-of-range exception in the next if clause once as a
+            // side effect of docking.  Not sure if OnUpdate was called after
+            // onDestroy, or before Start.
+            if (activeLabel > labelsEx.Count)
+            {
+                activeLabel = labelsEx.Count - 1;
+                if(activeLabel < 0)
+                {
+                    return false;
+                }
+            }
+
             if (labelsEx[activeLabel].oneShot)
             {
                 return false;

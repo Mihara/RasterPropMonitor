@@ -91,6 +91,13 @@ namespace JSI
 
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
+        /// <summary>
+        /// The Guid of the vessel we belonged to at Start.  When undocking,
+        /// KSP will change the vessel member variable before calling OnDestroy,
+        /// which prevents us from getting the RPMVesselComputer we registered
+        /// with.  So we have to store the Guid separately.
+        /// </summary>
+        private Guid registeredVessel = Guid.Empty;
 
         public void Start()
         {
@@ -264,6 +271,7 @@ namespace JSI
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
                     comp.RegisterCallback(variableName, del);
+                    registeredVessel = vessel.id;
 
                     // Initialize the text color.
                     float value = comp.ProcessVariable(variableName).MassageToFloat();
@@ -379,7 +387,7 @@ namespace JSI
                 try
                 {
                     RPMVesselComputer comp = null;
-                    if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                    if (RPMVesselComputer.TryGetInstance(registeredVessel, ref comp))
                     {
                         comp.UnregisterCallback(variableName, del);
                     }
@@ -400,6 +408,7 @@ namespace JSI
             {
                 // We're not attached to a ship?
                 comp.UnregisterCallback(variableName, del);
+                JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
 
@@ -413,6 +422,7 @@ namespace JSI
                 {
                     comp.UnregisterCallback(variableName, del);
                 }
+                JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;
             }
 

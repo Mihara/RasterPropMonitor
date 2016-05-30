@@ -316,7 +316,6 @@ namespace JSI
         private bool pendingUndocking = false; // Used for a hack-ish way of updating RPMVC after an undock
 
         // Diagnostics
-        private bool debug_showVariableCallCount = false;
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
 #if SHOW_FIXEDUPDATE_TIMING
@@ -338,6 +337,26 @@ namespace JSI
                 if (instances.ContainsKey(v.id))
                 {
                     comp = instances[v.id];
+                    return (comp != null);
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Attempt to get a vessel computer based on the vessel's Guid.
+        /// </summary>
+        /// <param name="vid">The Guid of the vessel we want</param>
+        /// <param name="comp">[out] The RPMVesselComputer, untouched if this method returns false.</param>
+        /// <returns>true if the vessel has a computer, false otherwise</returns>
+        public static bool TryGetInstance(Guid vid, ref RPMVesselComputer comp)
+        {
+            if (instances != null && vid != Guid.Empty)
+            {
+                if (instances.ContainsKey(vid))
+                {
+                    comp = instances[vid];
                     return (comp != null);
                 }
             }
@@ -388,7 +407,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
         {
-            //JUtil.LogMessage(this, "RegisterCallback for {0}", variableName);
+            //JUtil.LogMessage(this, "RegisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
             if (onChangeCallbacks.ContainsKey(variableName))
             {
                 onChangeCallbacks[variableName].Add(cb);
@@ -410,13 +429,12 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterCallback(string variableName, Action<RPMVesselComputer, float> cb)
         {
-            //JUtil.LogMessage(this, "UnegisterCallback for {0}", variableName);
+            //JUtil.LogMessage(this, "UnregisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
             if (onChangeCallbacks.ContainsKey(variableName))
             {
                 try
                 {
                     onChangeCallbacks[variableName].Remove(cb);
-                    //JUtil.LogMessage(this, "...success");
                 }
                 catch
                 {
@@ -593,21 +611,16 @@ namespace JSI
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
 
-            installedModules.Add(new JSIParachute());
-            installedModules.Add(new JSIMechJeb());
-            installedModules.Add(new JSIInternalRPMButtons());
-            installedModules.Add(new JSIFAR());
-            installedModules.Add(new JSIKAC());
+            installedModules.Add(new JSIParachute(vessel));
+            installedModules.Add(new JSIMechJeb(vessel));
+            installedModules.Add(new JSIInternalRPMButtons(vessel));
+            installedModules.Add(new JSIFAR(vessel));
+            installedModules.Add(new JSIKAC(vessel));
 #if ENABLE_ENGINE_MONITOR
-            installedModules.Add(new JSIEngine());
+            installedModules.Add(new JSIEngine(vessel));
 #endif
-            installedModules.Add(new JSIPilotAssistant());
-            installedModules.Add(new JSIChatterer());
-            // Quick-and-dirty initialization.
-            for (int i = 0; i < installedModules.Count; ++i)
-            {
-                installedModules[i].vessel = vessel;
-            }
+            installedModules.Add(new JSIPilotAssistant(vessel));
+            installedModules.Add(new JSIChatterer(vessel));
         }
 
         public void Start()
@@ -654,7 +667,7 @@ namespace JSI
             JUtil.LogMessage(this, "{0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
                 debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates));
 #endif
-            if (debug_showVariableCallCount)
+            if (RPMGlobals.debugShowVariableCallCount)
             {
                 List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
                 l.AddRange(debug_callCount);
@@ -883,7 +896,7 @@ namespace JSI
 #if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
 #endif
-            if (debug_showVariableCallCount)
+            if (RPMGlobals.debugShowVariableCallCount)
             {
                 debug_callCount[input] = debug_callCount[input] + 1;
             }

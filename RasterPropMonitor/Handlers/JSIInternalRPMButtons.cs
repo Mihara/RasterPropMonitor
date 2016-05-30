@@ -33,6 +33,11 @@ namespace JSI
     /// </summary>
     public class JSIInternalRPMButtons : IJSIModule
     {
+        public JSIInternalRPMButtons(Vessel myVessel)
+        {
+            vessel = myVessel;
+        }
+
         /// <summary>
         /// Turns on the flowState for all resources on the ship.
         /// </summary>
