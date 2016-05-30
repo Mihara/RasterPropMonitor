@@ -119,7 +119,7 @@ namespace JSI
             }
         }
 
-        private int fontSize_;
+        private int fontSize_ = 32;
         public int fontSize
         {
             get
@@ -387,7 +387,7 @@ namespace JSI
                     if (charIndex < textLines[line].Length)
                     {
                         FontStyle style = GetFontStyle(bold, italic);
-                        font_.RequestCharactersInTexture(escapedBracket ? "[" : textLines[line][charIndex].ToString(), 0, style);
+                        font_.RequestCharactersInTexture(escapedBracket ? "[" : textLines[line][charIndex].ToString(), fontSize_, style);
                         CharacterInfo charInfo;
                         if (font_.GetCharacterInfo(textLines[line][charIndex], out charInfo, 0, style))
                         {
@@ -609,7 +609,7 @@ namespace JSI
             for (int line = 0; line < textLines.Length; ++line)
             {
                 textLength[line] = 0;
-                font_.RequestCharactersInTexture(textLines[line]);
+                font_.RequestCharactersInTexture(textLines[line], fontSize_);
                 maxVerts += Font.GetMaxVertsForString(textLines[line]);
 
                 for (int ch = 0; ch < textLines[line].Length; ++ch)

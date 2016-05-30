@@ -119,6 +119,8 @@ namespace JSI
                 font = JUtil.LoadFont(fontName, fontQuality);
 
                 textObj.font = font;
+                //textObj.fontSize = fontQuality; // This doesn't work with Unity-embedded fonts
+                textObj.fontSize = font.fontSize;
 
                 textObj.material.mainTexture = font.material.mainTexture;
 
