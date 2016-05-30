@@ -463,6 +463,15 @@ namespace JSI
         }
 
         private Kerbal lastActiveKerbal = null;
+        /// <summary>
+        /// Used to control what portion of a Kerbal is visible while "looking
+        /// through its eyes".  This capability is managed in RPMVesselComputer
+        /// because the JSISetInternalCameraFOV is disabled when leaving the
+        /// part (such as returning from IVA to external camera), so the
+        /// portrait view shows a partially-missing Kerbal.
+        /// </summary>
+        /// <param name="activeKerbal">Which Kerbal we're changing.  Can be null.</param>
+        /// <param name="hideKerbal">What portion of the Kerbal to hide.</param>
         internal void SetKerbalVisible(Kerbal activeKerbal, JSISetInternalCameraFOV.HideKerbal hideKerbal)
         {
             if (lastActiveKerbal != activeKerbal)
