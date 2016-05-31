@@ -101,6 +101,7 @@ namespace JSI
         private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
         private Part part;
+        private RasterPropMonitorComputer rpmComp;
         internal Part ReferencePart
         {
             // Return the part that RPMVesselComputer considers the reference
@@ -110,7 +111,6 @@ namespace JSI
                 return part;
             }
         }
-        private ExternalVariableHandlers plugins = null;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -839,21 +839,6 @@ namespace JSI
 #endif
                 Protractor.OnFixedUpdate();
 
-                Part newpart = DeduceCurrentPart();
-                if (newpart != part)
-                {
-                    part = newpart;
-                    // We instantiate plugins late.
-                    if (part == null)
-                    {
-                        JUtil.LogErrorMessage(this, "Unable to deduce the current part");
-                    }
-                    else if (plugins == null)
-                    {
-                        plugins = new ExternalVariableHandlers(part);
-                    }
-                }
-
 #if SHOW_FIXEDUPDATE_TIMING
                 long newPart = stopwatch.ElapsedMilliseconds;
 #endif
@@ -930,22 +915,6 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input)
         {
-            if (plugins == null)
-            {
-                if (part == null)
-                {
-                    part = DeduceCurrentPart();
-                }
-
-                if (part != null)
-                {
-                    if (plugins == null)
-                    {
-                        plugins = new ExternalVariableHandlers(part);
-                    }
-                }
-            }
-
 #if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
 #endif
@@ -1002,7 +971,7 @@ namespace JSI
                 bool cacheable = true;
                 try
                 {
-                    if (plugins == null || !plugins.ProcessVariable(input, out returnValue, out cacheable))
+                    if (rpmComp == null || !rpmComp.ProcessVariable(input, out returnValue, out cacheable))
                     {
                         cacheable = false;
                         returnValue = input;
@@ -2167,6 +2136,27 @@ namespace JSI
         /// <returns>true if it's time to update things</returns>
         private bool UpdateCheck()
         {
+            Part newpart = DeduceCurrentPart();
+            if(part != newpart)
+            {
+                // Do some processing?
+                if (part != null)
+                {
+                    rpmComp = RasterPropMonitorComputer.Instantiate(part, true);
+                }
+                else
+                {
+                    rpmComp = null;
+                }
+
+                dataUpdateCountdown = refreshDataRate;
+                part = newpart;
+                // Force an early flush of the result cache, in case per-part
+                // variables need to be rendered.
+                resultCache.Clear();
+                return true;
+            }
+
             if (--dataUpdateCountdown < 0)
             {
                 dataUpdateCountdown = refreshDataRate;
@@ -2185,8 +2175,11 @@ namespace JSI
         {
             //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
-            // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
-            VariableOrNumber.Clear();
+            if (data != GameScenes.FLIGHT)
+            {
+                // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
+                VariableOrNumber.Clear();
+            }
         }
 
         private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
@@ -2228,6 +2221,7 @@ namespace JSI
         {
             if (v.id == vessel.id)
             {
+                JUtil.LogMessage(this, "onVesselChange(): for me {0}", v.id);
                 timeToUpdate = true;
                 resultCache.Clear();
             }
@@ -2237,12 +2231,12 @@ namespace JSI
         {
             if (v.id == vessel.id)
             {
-                JUtil.LogMessage(this, "VesselModifiedCallback(): for me {0}", v.id);
+                JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", v.id);
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
+                    forceCallbackRefresh = true;
                 }
-                forceCallbackRefresh = true;
             }
             else
             {
@@ -2256,10 +2250,12 @@ namespace JSI
                     {
                         pendingUndocking = false;
                         otherComp.pendingUndocking = false;
-                        JUtil.LogMessage(this, "VesselModifiedCallback(): {0} merging persistents with {1}", vessel.id, v.id);
+                        JUtil.LogMessage(this, "onVesselWasModified(): {0} merging persistents with {1}", vessel.id, v.id);
                         MergePersistents(otherComp);
                     }
+                    timeToUpdate = true;
                     forceCallbackRefresh = true;
+                    otherComp.timeToUpdate = true;
                     otherComp.forceCallbackRefresh = true;
 
                     //else

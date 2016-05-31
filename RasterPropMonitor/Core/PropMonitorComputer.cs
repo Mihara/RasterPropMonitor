@@ -46,6 +46,12 @@ namespace JSI
         private string lastVesselDescription = string.Empty;
 
         internal List<string> storedStringsArray = new List<string>();
+
+        [KSPField(isPersistant = true)]
+        public string RPMCid = string.Empty;
+        private Guid id = Guid.Empty;
+
+        private ExternalVariableHandlers plugins = null;
         internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
 
         // Public functions:
@@ -72,6 +78,18 @@ namespace JSI
             return (createIfMissing) ? thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer : null;
         }
 
+        /// <summary>
+        /// Wrapper for ExternalVariablesHandler.ProcessVariable.
+        /// </summary>
+        /// <param name="variable"></param>
+        /// <param name="result"></param>
+        /// <param name="cacheable"></param>
+        /// <returns></returns>
+        internal bool ProcessVariable(string variable, out object result, out bool cacheable)
+        {
+            return plugins.ProcessVariable(variable, out result, out cacheable);
+        }
+
         // Page handler interface for vessel description page.
         // Analysis disable UnusedParameter
         public string VesselDescriptionRaw(int screenWidth, int screenHeight)
@@ -91,8 +109,25 @@ namespace JSI
         {
             if (!HighLogic.LoadedSceneIsEditor)
             {
+                if(string.IsNullOrEmpty(RPMCid))
+                {
+                    id = Guid.NewGuid();
+                    RPMCid = id.ToString();
+                    JUtil.LogMessage(this, "Start: Creating GUID {0}", id);
+                }
+                else
+                {
+                    id = new Guid(RPMCid);
+                    JUtil.LogMessage(this, "Start: Loading GUID string {0} into {1}", RPMCid, id);
+                }
+
+                plugins = new ExternalVariableHandlers(part);
+
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.SetVesselDescription(vesselDescription);
+                if (!string.IsNullOrEmpty(vesselDescription))
+                {
+                    comp.SetVesselDescription(vesselDescription);
+                }
 
                 // Make sure we have the description strings parsed.
                 string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
