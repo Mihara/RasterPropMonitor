@@ -122,8 +122,6 @@ namespace JSI
                 //textObj.fontSize = fontQuality; // This doesn't work with Unity-embedded fonts
                 textObj.fontSize = font.fontSize;
 
-                textObj.material.mainTexture = font.material.mainTexture;
-
                 if (!string.IsNullOrEmpty(anchor))
                 {
                     if (anchor == TextAnchor.LowerCenter.ToString())

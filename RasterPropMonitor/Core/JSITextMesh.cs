@@ -115,6 +115,11 @@ namespace JSI
                 {
                     invalidated = true;
                     font_ = value;
+                    if (font_ != null)
+                    {
+                        CreateComponents();
+                        meshRenderer_.material.mainTexture = font_.material.mainTexture;
+                    }
                 }
             }
         }
@@ -178,12 +183,6 @@ namespace JSI
             {
                 CreateComponents();
                 return meshRenderer_.material;
-            }
-            set
-            {
-                invalidated = true;
-                CreateComponents();
-                meshRenderer_.material = value;
             }
         }
 
@@ -250,7 +249,38 @@ namespace JSI
         /// </summary>
         public void Start()
         {
+            Font.textureRebuilt += FontRebuiltCallback;
             CreateComponents();
+        }
+
+        /// <summary>
+        /// Make sure we don't leave our callback lingering.
+        /// </summary>
+        public void OnDestroy()
+        {
+            Font.textureRebuilt -= FontRebuiltCallback;
+
+            Destroy(meshFilter_);
+            meshFilter_ = null;
+
+            Destroy(meshRenderer_.material);
+
+            Destroy(meshRenderer_);
+            meshRenderer_ = null;
+        }
+
+        /// <summary>
+        /// Callback to tell us when a Font had to rebuild its texture atlas.
+        /// When that happens, we have to regenerate our text.
+        /// </summary>
+        /// <param name="whichFont"></param>
+        private void FontRebuiltCallback(Font whichFont)
+        {
+            if (whichFont == font_)
+            {
+                invalidated = true;
+                meshRenderer_.material.mainTexture = font_.material.mainTexture;
+            }
         }
 
         /// <summary>
