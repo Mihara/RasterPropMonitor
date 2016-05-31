@@ -630,6 +630,19 @@ namespace JSI
         }
 
         /// <summary>
+        /// Recover the vessel.  Only recovers when the vessel is recoverable,
+        /// regardless of the parameter.
+        /// </summary>
+        /// <param name="ignored">Ignored</param>
+        public void RecoverVessel(bool ignored)
+        { 
+            if(vessel != null && vessel.IsRecoverable)
+            {
+                GameEvents.OnVesselRecoveryRequested.Fire(vessel);
+            }
+        }
+
+        /// <summary>
         /// Returns true when the "Recover Vessel" feature is true.
         /// </summary>
         /// <returns></returns>
