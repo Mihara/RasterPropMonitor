@@ -668,13 +668,11 @@ namespace JSI
         {
             if (RPMGlobals.debugLoggingEnabled)
             {
-                if (caller != null)
+                string callerName = (caller != null) ? caller.GetType().Name : "RasterPropMonitor";
+
+                if (RPMGlobals.debugShowOnly.Count == 0 || RPMGlobals.debugShowOnly.Contains(callerName))
                 {
-                    Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
-                }
-                else
-                {
-                    Debug.Log(String.Format("RasterPropMonitor: " + line, list));
+                    Debug.Log(String.Format(callerName + ": " + line, list));
                 }
             }
         }
@@ -1495,6 +1493,8 @@ namespace JSI
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     public class RPMShaderLoader : MonoBehaviour
     {
+        //private bool reloadInProgress = false;
+
         RPMShaderLoader()
         {
             // I don't want this object destroyed on scene change, since the database
@@ -1553,6 +1553,17 @@ namespace JSI
                 {
                     RPMGlobals.debugShowVariableCallCount = false;
                 }
+
+                RPMGlobals.debugShowOnly.Clear();
+                string showOnlyConcat = string.Empty;
+                if (rpmSettings[0].TryGetValue("ShowOnly", ref showOnlyConcat) && !string.IsNullOrEmpty(showOnlyConcat))
+                {
+                    string[] showOnly = showOnlyConcat.Split('|');
+                    for(int i=0; i<showOnly.Length; ++i)
+                    {
+                        RPMGlobals.debugShowOnly.Add(showOnly[i].Trim());
+                    }
+                }
             }
 
             // HACK: Pass only one of the asset definitions, since LoadAssets
@@ -1560,17 +1571,24 @@ namespace JSI
             // gets fixed, I can clean up AssetsLoaded drastically.
             KSPAssets.Loaders.AssetLoader.LoadAssets(AssetsLoaded, rpmShaders[0]);
 
-            StartCoroutine("LoadCustomVariables");
-            StartCoroutine("LoadKnownAssembliesAndResources");
+            //reloadInProgress = true;
+            StartCoroutine("LoadRasterPropMonitorValues");
+
+            // Register a callback with ModuleManager so we can get notified
+            // of database reloads.
+            if (!RegisterWithModuleManager())
+            {
+                JUtil.LogErrorMessage(this, "Unable to register with ModuleManager for database reloads");
+            }
         }
 
         /// <summary>
         /// Coroutine for loading the various custom variables used for variables.
         /// Yield-returns ever 32 or so variables so it's not as costly in a
-        /// given frame.
+        /// given frame.  Also loads all the other various values used by RPM.
         /// </summary>
         /// <returns></returns>
-        private IEnumerator LoadCustomVariables()
+        private IEnumerator LoadRasterPropMonitorValues()
         {
             RPMGlobals.customVariables.Clear();
 
@@ -1702,6 +1720,7 @@ namespace JSI
                         {
                             JUtil.globalColors.Add(name, color);
                         }
+                        JUtil.LogMessage(this, "I know {0} = {1}", name, color);
                     }
                 }
             }
@@ -1727,15 +1746,7 @@ namespace JSI
                     JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
                 }
             }
-            yield return null;
-        }
 
-        /// <summary>
-        /// Coroutine for identifying loaded assemblies and system resources.
-        /// </summary>
-        /// <returns></returns>
-        private IEnumerator LoadKnownAssembliesAndResources()
-        {
             RPMGlobals.knownLoadedAssemblies.Clear();
             for (int i = 0; i < AssemblyLoader.loadedAssemblies.Count; ++i)
             {
@@ -1756,6 +1767,7 @@ namespace JSI
                 JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
             }
 
+            //reloadInProgress = false;
             yield return null;
         }
 
@@ -1851,6 +1863,54 @@ namespace JSI
             }
 
             JUtil.LogErrorMessage(this, "No RasterPropMonitor shaders were loaded - how did this callback execute?");
+        }
+
+        public void PostPatchCallback()
+        {
+            JUtil.LogMessage(this, "ModuleManager has reloaded - reloading RPM values");
+            StartCoroutine("LoadRasterPropMonitorValues");
+        }
+
+        private bool RegisterWithModuleManager()
+        {
+            var mmPatchLoader = AssemblyLoader.loadedAssemblies
+                .Select(a => a.assembly.GetExportedTypes())
+                .SelectMany(t => t)
+                .FirstOrDefault(t => t.FullName == "ModuleManager.MMPatchLoader");
+
+            if(mmPatchLoader == null)
+            {
+                return false;
+            }
+
+            MethodInfo addPostPatchCallback = mmPatchLoader.GetMethod("addPostPatchCallback", BindingFlags.Static | BindingFlags.Public);
+
+            if(addPostPatchCallback == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                var parms = addPostPatchCallback.GetParameters();
+                if (parms.Length < 1)
+                {
+                    return false;
+                }
+
+                Delegate callback = Delegate.CreateDelegate(parms[0].ParameterType, this, "PostPatchCallback");
+
+                object[] args = new object[] { callback };
+
+                addPostPatchCallback.Invoke(null, args);
+            }
+            catch(Exception e)
+            {
+                JUtil.LogMessage(this, "addPostPatchCallback threw {0}", e);
+                return false;
+            }
+
+            return true;
         }
     }
 }

@@ -40,6 +40,8 @@ namespace JSI
         /// </summary>
         internal static bool debugShowVariableCallCount = false;
 
+        internal static List<string> debugShowOnly = new List<string>();
+
         internal static Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
         internal static List<string> knownLoadedAssemblies = new List<string>();
         internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
