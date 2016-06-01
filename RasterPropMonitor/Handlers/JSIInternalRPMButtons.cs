@@ -33,6 +33,11 @@ namespace JSI
     /// </summary>
     public class JSIInternalRPMButtons : IJSIModule
     {
+        public JSIInternalRPMButtons(Vessel myVessel)
+        {
+            vessel = myVessel;
+        }
+
         /// <summary>
         /// Turns on the flowState for all resources on the ship.
         /// </summary>
@@ -622,6 +627,28 @@ namespace JSI
         public bool ButtonFullThrottleState()
         {
             return ((vessel != null) && vessel.ctrlState.mainThrottle > 0.99f);
+        }
+
+        /// <summary>
+        /// Recover the vessel.  Only recovers when the vessel is recoverable,
+        /// regardless of the parameter.
+        /// </summary>
+        /// <param name="ignored">Ignored</param>
+        public void RecoverVessel(bool ignored)
+        { 
+            if(vessel != null && vessel.IsRecoverable)
+            {
+                GameEvents.OnVesselRecoveryRequested.Fire(vessel);
+            }
+        }
+
+        /// <summary>
+        /// Returns true when the "Recover Vessel" feature is true.
+        /// </summary>
+        /// <returns></returns>
+        public bool CanRecoverVessel()
+        {
+            return (vessel != null) ? vessel.IsRecoverable : false;
         }
 
         /// <summary>

@@ -115,11 +115,16 @@ namespace JSI
                 {
                     invalidated = true;
                     font_ = value;
+                    if (font_ != null)
+                    {
+                        CreateComponents();
+                        meshRenderer_.material.mainTexture = font_.material.mainTexture;
+                    }
                 }
             }
         }
 
-        private int fontSize_;
+        private int fontSize_ = 32;
         public int fontSize
         {
             get
@@ -179,12 +184,6 @@ namespace JSI
                 CreateComponents();
                 return meshRenderer_.material;
             }
-            set
-            {
-                invalidated = true;
-                CreateComponents();
-                meshRenderer_.material = value;
-            }
         }
 
         public Mesh mesh
@@ -211,9 +210,16 @@ namespace JSI
                     invalidated = true;
                     text_ = value;
 
-                    if (meshRenderer_ != null && string.IsNullOrEmpty(text_))
+                    if (meshRenderer_ != null)
                     {
-                        meshRenderer_.gameObject.SetActive(false);
+                        if (string.IsNullOrEmpty(text_))
+                        {
+                            meshRenderer_.gameObject.SetActive(false);
+                        }
+                        else
+                        {
+                            meshRenderer_.gameObject.SetActive(true);
+                        }
                     }
                 }
             }
@@ -243,7 +249,38 @@ namespace JSI
         /// </summary>
         public void Start()
         {
+            Font.textureRebuilt += FontRebuiltCallback;
             CreateComponents();
+        }
+
+        /// <summary>
+        /// Make sure we don't leave our callback lingering.
+        /// </summary>
+        public void OnDestroy()
+        {
+            Font.textureRebuilt -= FontRebuiltCallback;
+
+            Destroy(meshFilter_);
+            meshFilter_ = null;
+
+            Destroy(meshRenderer_.material);
+
+            Destroy(meshRenderer_);
+            meshRenderer_ = null;
+        }
+
+        /// <summary>
+        /// Callback to tell us when a Font had to rebuild its texture atlas.
+        /// When that happens, we have to regenerate our text.
+        /// </summary>
+        /// <param name="whichFont"></param>
+        private void FontRebuiltCallback(Font whichFont)
+        {
+            if (whichFont == font_)
+            {
+                invalidated = true;
+                meshRenderer_.material.mainTexture = font_.material.mainTexture;
+            }
         }
 
         /// <summary>
@@ -380,7 +417,7 @@ namespace JSI
                     if (charIndex < textLines[line].Length)
                     {
                         FontStyle style = GetFontStyle(bold, italic);
-                        font_.RequestCharactersInTexture(escapedBracket ? "[" : textLines[line][charIndex].ToString(), 0, style);
+                        font_.RequestCharactersInTexture(escapedBracket ? "[" : textLines[line][charIndex].ToString(), fontSize_, style);
                         CharacterInfo charInfo;
                         if (font_.GetCharacterInfo(textLines[line][charIndex], out charInfo, 0, style))
                         {
@@ -602,7 +639,7 @@ namespace JSI
             for (int line = 0; line < textLines.Length; ++line)
             {
                 textLength[line] = 0;
-                font_.RequestCharactersInTexture(textLines[line]);
+                font_.RequestCharactersInTexture(textLines[line], fontSize_);
                 maxVerts += Font.GetMaxVertsForString(textLines[line]);
 
                 for (int ch = 0; ch < textLines[line].Length; ++ch)

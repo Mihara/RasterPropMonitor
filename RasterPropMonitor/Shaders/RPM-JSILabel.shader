@@ -42,7 +42,8 @@ Shader "RPM/JSILabel"
 
         #include "../../SquadCore/LightingKSP.cginc"
 		//#pragma surface surf BlinnPhongSmooth alpha:fade
-		#pragma surface surf BlinnPhongSmooth alpha:fade fullforwardshadows
+		//#pragma surface surf BlinnPhongSmooth alpha:fade fullforwardshadows
+		#pragma surface surf BlinnPhongSmooth alpha:blend fullforwardshadows
 		#pragma target 3.0
 
 		half _Shininess;
@@ -73,7 +74,7 @@ Shader "RPM/JSILabel"
 		{
 			float4 color = IN.color * _BurnColor;
 
-			float alpha = tex2D(_MainTex, (IN.uv_MainTex)).a;
+			float alpha = tex2D(_MainTex, (IN.uv_MainTex)).a * IN.color.a;
 
 			float3 normal = float3(0.0,0.0,1.0);
 			half rim = 1.0 - saturate(dot (normalize(IN.viewDir), normal));

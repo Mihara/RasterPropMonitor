@@ -246,11 +246,11 @@ namespace JSI
                 }
             }
 
-            for (int i = 0; i < triggeredEvents.Count; ++i)
+            for (int i = 0; i < RPMGlobals.triggeredEvents.Count; ++i)
             {
-                if (triggeredEvents[i].eventName == eventName)
+                if (RPMGlobals.triggeredEvents[i].eventName == eventName)
                 {
-                    activeTriggeredEvents.Add(new TriggeredEvent(triggeredEvents[i], this));
+                    activeTriggeredEvents.Add(new TriggeredEvent(RPMGlobals.triggeredEvents[i], this));
                 }
             }
         }

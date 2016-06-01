@@ -97,8 +97,9 @@ namespace JSI
             }
         }
 
-        public JSIChatterer()
+        public JSIChatterer(Vessel myVessel)
         {
+            vessel = myVessel;
             JUtil.LogMessage(this, "A supported version of Chatterer is {0}", (chattererFound) ? "present" : "not available");
             lastVessel = Guid.Empty;
         }

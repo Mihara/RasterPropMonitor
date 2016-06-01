@@ -19,12 +19,13 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
-using System.Text;
-using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using System.Linq;
+using System.Reflection;
+using System.Text;
+using UnityEngine;
 
 namespace JSI
 {
@@ -231,13 +232,10 @@ namespace JSI
         public static readonly string[] VariableListSeparator = { "$&$" };
         public static readonly string[] VariableSeparator = { };
         public static readonly string[] LineSeparator = { Environment.NewLine };
-        public static bool debugLoggingEnabled = false;
         private static readonly int ClosestApproachRefinementInterval = 16;
-        public static bool cameraMaskShowsIVA = false;
         internal static Dictionary<string, Shader> parsedShaders = new Dictionary<string, Shader>();
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
         internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
-        internal static bool globalColorsLoaded = false;
 
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
@@ -324,33 +322,6 @@ namespace JSI
             colorString = colorString.Trim();
             if (colorString.StartsWith("COLOR_"))
             {
-                if (globalColorsLoaded == false)
-                {
-                    ConfigNode[] globalColorSetup = GameDatabase.Instance.GetConfigNodes("RPM_GLOBALCOLORSETUP");
-                    for (int idx = 0; idx < globalColorSetup.Length; ++idx)
-                    {
-                        ConfigNode[] colorConfig = globalColorSetup[idx].GetNodes("COLORDEFINITION");
-                        for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
-                        {
-                            if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
-                            {
-                                string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
-                                Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
-                                if (globalColors.ContainsKey(name))
-                                {
-                                    globalColors[name] = color;
-                                }
-                                else
-                                {
-                                    globalColors.Add(name, color);
-                                }
-                            }
-                        }
-                    }
-
-                    globalColorsLoaded = true;
-                }
-
                 if (part != null)
                 {
                     if (rpmComp == null)
@@ -695,7 +666,7 @@ namespace JSI
 
         public static void LogMessage(object caller, string line, params object[] list)
         {
-            if (debugLoggingEnabled)
+            if (RPMGlobals.debugLoggingEnabled)
             {
                 if (caller != null)
                 {
@@ -1518,13 +1489,23 @@ namespace JSI
     /// The RPMShaderLoader is a run-once class that is executed when KSP
     /// reaches the main menu.  Its purpose is to parse rasterpropmonitor.ksp
     /// and fetch the shaders embedded in there.  Those shaders are stored in
-    /// a dictionary in JUtil.
+    /// a dictionary in JUtil.  In addition, other config assets are parsed
+    /// and stored (primarily values found in the RPMVesselComputer).
     /// </summary>
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     public class RPMShaderLoader : MonoBehaviour
     {
+        RPMShaderLoader()
+        {
+            // I don't want this object destroyed on scene change, since the database
+            // loader coroutine can take a while to run to completion.  Eventually,
+            // I may add smarts so database reloads get handled, too.
+            DontDestroyOnLoad(this);
+        }
+
         /// <summary>
-        /// Wake up and ask for all of the shaders in our asset bundle.
+        /// Wake up and ask for all of the shaders in our asset bundle and kick off
+        /// the coroutines that look for global RPM config data.
         /// </summary>
         private void Awake()
         {
@@ -1541,10 +1522,241 @@ namespace JSI
                 return;
             }
 
+            if (!GameDatabase.Instance.IsReady())
+            {
+                JUtil.LogErrorMessage(this, "GameDatabase.IsReady is false");
+                throw new Exception("RPMShaderLoader: GameDatabase is not ready.  Unable to continue.");
+            }
+
+            var rpmSettings = GameDatabase.Instance.GetConfigNodes("RasterPropMonitorSettings");
+            if (rpmSettings.Length > 0)
+            {
+                // Really, there should be only one
+                bool enableLogging = false;
+                if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
+                {
+                    RPMGlobals.debugLoggingEnabled = enableLogging;
+                    JUtil.LogInfo(this, "Set debugLoggingEnabled to {0}", enableLogging);
+                }
+                else
+                {
+                    RPMGlobals.debugLoggingEnabled = false;
+                }
+
+                bool showVariableCallCount = false;
+                if (rpmSettings[0].TryGetValue("ShowCallCount", ref showVariableCallCount))
+                {
+                    // call count doesn't write anything if enableLogging is false
+                    RPMGlobals.debugShowVariableCallCount = showVariableCallCount && RPMGlobals.debugLoggingEnabled;
+                }
+                else
+                {
+                    RPMGlobals.debugShowVariableCallCount = false;
+                }
+            }
+
             // HACK: Pass only one of the asset definitions, since LoadAssets
             // behaves badly if we ask it to load more than one.  If that ever
             // gets fixed, I can clean up AssetsLoaded drastically.
             KSPAssets.Loaders.AssetLoader.LoadAssets(AssetsLoaded, rpmShaders[0]);
+
+            StartCoroutine("LoadCustomVariables");
+            StartCoroutine("LoadKnownAssembliesAndResources");
+        }
+
+        /// <summary>
+        /// Coroutine for loading the various custom variables used for variables.
+        /// Yield-returns ever 32 or so variables so it's not as costly in a
+        /// given frame.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator LoadCustomVariables()
+        {
+            RPMGlobals.customVariables.Clear();
+
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE");
+            for (int i=0; i<nodes.Length; ++i)
+            {
+                string varName = nodes[i].GetValue("name");
+
+                try
+                {
+                    CustomVariable customVar = new CustomVariable(nodes[i]);
+
+                    if (!string.IsNullOrEmpty(varName) && customVar != null)
+                    {
+                        string completeVarName = "CUSTOM_" + varName;
+                        RPMGlobals.customVariables.Add(completeVarName, customVar);
+                        JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                    }
+                }
+                catch
+                {
+
+                }
+
+                if ((i & 0x1f) == 0x1f)
+                {
+                    yield return null;
+                }
+            }
+
+            // And parse known mapped variables
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE");
+            for (int i = 0; i < nodes.Length; ++i)
+            {
+                string varName = nodes[i].GetValue("mappedVariable");
+
+                try
+                {
+                    MappedVariable mappedVar = new MappedVariable(nodes[i]);
+
+                    if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                    {
+                        string completeVarName = "MAPPED_" + varName;
+                        RPMGlobals.customVariables.Add(completeVarName, mappedVar);
+                        JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                    }
+                }
+                catch
+                {
+
+                }
+                if ((i & 0x1f) == 0x1f)
+                {
+                    yield return null;
+                }
+            }
+
+            // And parse known math variables
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE");
+            for (int i = 0; i < nodes.Length; ++i)
+            {
+                string varName = nodes[i].GetValue("name");
+
+                try
+                {
+                    MathVariable mathVar = new MathVariable(nodes[i]);
+
+                    if (!string.IsNullOrEmpty(varName) && mathVar != null)
+                    {
+                        string completeVarName = "MATH_" + varName;
+                        RPMGlobals.customVariables.Add(completeVarName, mathVar);
+                        JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                    }
+                }
+                catch
+                {
+
+                }
+                if ((i & 0x1f) == 0x1f)
+                {
+                    yield return null;
+                }
+            }
+
+            // And parse known select variables
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE");
+            for (int i = 0; i < nodes.Length; ++i)
+            {
+                string varName = nodes[i].GetValue("name");
+
+                try
+                {
+                    SelectVariable selectVar = new SelectVariable(nodes[i]);
+
+                    if (!string.IsNullOrEmpty(varName) && selectVar != null)
+                    {
+                        string completeVarName = "SELECT_" + varName;
+                        RPMGlobals.customVariables.Add(completeVarName, selectVar);
+                        JUtil.LogMessage(this, "I know about {0}", completeVarName);
+                    }
+                }
+                catch
+                {
+
+                }
+                if ((i & 0x1f) == 0x1f)
+                {
+                    yield return null;
+                }
+            }
+            yield return null;
+
+            JUtil.globalColors.Clear();
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_GLOBALCOLORSETUP");
+            for (int idx = 0; idx < nodes.Length; ++idx)
+            {
+                ConfigNode[] colorConfig = nodes[idx].GetNodes("COLORDEFINITION");
+                for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
+                {
+                    if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
+                    {
+                        string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
+                        Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
+                        if (JUtil.globalColors.ContainsKey(name))
+                        {
+                            JUtil.globalColors[name] = color;
+                        }
+                        else
+                        {
+                            JUtil.globalColors.Add(name, color);
+                        }
+                    }
+                }
+            }
+
+            RPMGlobals.triggeredEvents.Clear();
+            nodes = GameDatabase.Instance.GetConfigNodes("RPM_TRIGGERED_EVENT");
+            for (int idx = 0; idx < nodes.Length; ++idx)
+            {
+                string eventName = nodes[idx].GetValue("eventName").Trim();
+
+                try
+                {
+                    RPMVesselComputer.TriggeredEventTemplate triggeredVar = new RPMVesselComputer.TriggeredEventTemplate(nodes[idx]);
+
+                    if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
+                    {
+                        RPMGlobals.triggeredEvents.Add(triggeredVar);
+                        JUtil.LogMessage(this, "I know about event {0}", eventName);
+                    }
+                }
+                catch (Exception e)
+                {
+                    JUtil.LogErrorMessage(this, "Error adding triggered event {0}: {1}", eventName, e);
+                }
+            }
+            yield return null;
+        }
+
+        /// <summary>
+        /// Coroutine for identifying loaded assemblies and system resources.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator LoadKnownAssembliesAndResources()
+        {
+            RPMGlobals.knownLoadedAssemblies.Clear();
+            for (int i = 0; i < AssemblyLoader.loadedAssemblies.Count; ++i)
+            {
+                string thatName = AssemblyLoader.loadedAssemblies[i].assembly.GetName().Name;
+                RPMGlobals.knownLoadedAssemblies.Add(thatName.ToUpper());
+                JUtil.LogMessage(this, "I know that {0} ISLOADED_{1}", thatName, thatName.ToUpper());
+                if ((i & 0xf) == 0xf)
+                {
+                    yield return null;
+                }
+            }
+
+            RPMGlobals.systemNamedResources.Clear();
+            foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions)
+            {
+                string varname = thatResource.name.ToUpperInvariant().Replace(' ', '-').Replace('_', '-');
+                RPMGlobals.systemNamedResources.Add(varname, thatResource.name);
+                JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
+            }
+
+            yield return null;
         }
 
         /// <summary>

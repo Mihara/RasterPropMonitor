@@ -32,8 +32,9 @@ namespace JSI
             kacFound = KACWrapper.InitKACWrapper();
         }
 
-        public JSIKAC()
+        public JSIKAC(Vessel myVessel)
         {
+            vessel = myVessel;
             JUtil.LogMessage(this, "A supported version of Kerbal Alarm Clock is {0}", (kacFound) ? "present" : "not available");
         }
 

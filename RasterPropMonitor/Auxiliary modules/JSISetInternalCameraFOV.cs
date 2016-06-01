@@ -25,6 +25,13 @@ namespace JSI
 {
     public class JSISetInternalCameraFOV : InternalModule
     {
+        public enum HideKerbal
+        {
+            none,
+            head,
+            all
+        };
+
         private readonly List<SeatCamera> seats = new List<SeatCamera>();
         private int oldSeat = -1;
 
@@ -34,12 +41,14 @@ namespace JSI
             public float maxRot;
             public float maxPitch;
             public float minPitch;
+            public HideKerbal hideKerbal;
         }
 
         private const float defaultFov = 60f;
         private const float defaultMaxRot = 60f;
         private const float defaultMaxPitch = 60f;
         private const float defaultMinPitch = -30f;
+        private const HideKerbal defaultHideKerbal = HideKerbal.none;
 
         public void Start()
         {
@@ -57,9 +66,24 @@ namespace JSI
                             seatData.maxRot = moduleConfig.GetFloat("maxRot") ?? defaultMaxRot;
                             seatData.maxPitch = moduleConfig.GetFloat("maxPitch") ?? defaultMaxPitch;
                             seatData.minPitch = moduleConfig.GetFloat("minPitch") ?? defaultMinPitch;
+                            seatData.hideKerbal = HideKerbal.none;
+
+                            if (moduleConfig.HasValue("hideKerbal"))
+                            {
+                                string hideKerbalVal = moduleConfig.GetValue("hideKerbal");
+                                if (hideKerbalVal == HideKerbal.head.ToString())
+                                {
+                                    seatData.hideKerbal = HideKerbal.head;
+                                }
+                                else if (hideKerbalVal == HideKerbal.all.ToString())
+                                {
+                                    seatData.hideKerbal = HideKerbal.all;
+                                }
+                            }
+
                             seats.Add(seatData);
-                            JUtil.LogMessage(this, "Setting per-seat camera parameters for seat {0}: fov {1}, maxRot {2}, maxPitch {3}, minPitch {4}",
-                                seats.Count - 1, seatData.fov, seatData.maxRot, seatData.maxPitch, seatData.minPitch);
+                            JUtil.LogMessage(this, "Setting per-seat camera parameters for seat {0}: fov {1}, maxRot {2}, maxPitch {3}, minPitch {4}, hideKerbal {5}",
+                                seats.Count - 1, seatData.fov, seatData.maxRot, seatData.maxPitch, seatData.minPitch, seatData.hideKerbal.ToString());
                         }
                     }
                 }
@@ -70,7 +94,8 @@ namespace JSI
                 fov = defaultFov,
                 maxRot = defaultMaxRot,
                 maxPitch = defaultMaxPitch,
-                minPitch = defaultMinPitch
+                minPitch = defaultMinPitch,
+                hideKerbal = HideKerbal.none
             });
         }
 
@@ -78,25 +103,38 @@ namespace JSI
         {
             if (JUtil.UserIsInPod(part) && InternalCamera.Instance != null && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
             {
-                int seatID = part.CurrentActiveSeat();
+                Kerbal activeKerbal = part.FindCurrentKerbal();
+                int seatID;
+                if (activeKerbal == null)
+                {
+                    seatID = -1;
+                }
+                else
+                {
+                    seatID = activeKerbal.protoCrewMember.seatIdx;
+                }
+
                 if (seatID < 0)
+                {
                     seatID = seats.Count - 1;
+                }
+
                 if (seatID != oldSeat)
                 {
                     InternalCamera.Instance.SetFOV(seats[seatID].fov);
                     InternalCamera.Instance.maxRot = seats[seatID].maxRot;
                     InternalCamera.Instance.maxPitch = seats[seatID].maxPitch;
                     InternalCamera.Instance.minPitch = seats[seatID].minPitch;
+
+                    RPMVesselComputer comp = null;
+                    if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                    {
+                        comp.SetKerbalVisible(activeKerbal, seats[seatID].hideKerbal);
+                    }
+
+                    oldSeat = seatID;
                 }
-                oldSeat = seatID;
-
-                /* Figuring out an appropriate key combination is proving nontrivial.
-                if ((Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) && Input.GetKeyDown(KeyCode.Z)) {
-                    part.FindCurrentKerbal().ReseatKerbalInPart();
-                }*/
-
             }
         }
     }
 }
-

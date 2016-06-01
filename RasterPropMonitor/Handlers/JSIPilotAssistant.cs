@@ -225,8 +225,9 @@ namespace JSI
             paFound = true;
         }
 
-        public JSIPilotAssistant()
+        public JSIPilotAssistant(Vessel myVessel)
         {
+            vessel = myVessel;
             JUtil.LogMessage(this, "A supported version of Pilot Assistant is {0}", (paFound) ? "present" : "not available");
         }
 

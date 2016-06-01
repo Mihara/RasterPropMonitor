@@ -48,7 +48,7 @@ namespace JSI
                 {
                     string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
 
-                    if (knownLoadedAssemblies.Contains(assemblyname))
+                    if (RPMGlobals.knownLoadedAssemblies.Contains(assemblyname))
                     {
                         return (string variable) => { return 1.0f; };
                     }
@@ -60,7 +60,7 @@ namespace JSI
 
                 if (tokens.Length == 2 && tokens[0] == "SYSR")
                 {
-                    foreach (KeyValuePair<string, string> resourceType in RPMVesselComputer.systemNamedResources)
+                    foreach (KeyValuePair<string, string> resourceType in RPMGlobals.systemNamedResources)
                     {
                         if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
                         {
@@ -126,9 +126,9 @@ namespace JSI
                 // Custom variables - if the first token is CUSTOM, MAPPED, MATH, or SELECT, we'll evaluate it here
                 if (tokens.Length > 1 && (tokens[0] == "CUSTOM" || tokens[0] == "MAPPED" || tokens[0] == "MATH" || tokens[0] == "SELECT"))
                 {
-                    if (customVariables.ContainsKey(input))
+                    if (RPMGlobals.customVariables.ContainsKey(input))
                     {
-                        var o = customVariables[input];
+                        var o = RPMGlobals.customVariables[input];
                         return (string variable) => { return o.Evaluate(this); };
                     }
                     else
