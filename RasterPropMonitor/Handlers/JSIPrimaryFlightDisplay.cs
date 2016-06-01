@@ -272,20 +272,30 @@ namespace JSI
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
-                GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
-                Material material = navWaypointIndicator.GetComponent<Renderer>().sharedMaterial;
-                markerNavWaypoint.GetComponent<Renderer>().material.mainTexture = material.mainTexture;
-                markerNavWaypoint.GetComponent<Renderer>().material.mainTextureScale = Vector2.one;
-                markerNavWaypoint.GetComponent<Renderer>().material.mainTextureOffset = Vector2.zero;
-                if (string.IsNullOrEmpty(waypointColor))
+                // However, in 1.1.2 (maybe earlier), something changed and something here is incorrect.
+                try
                 {
-                    markerNavWaypoint.GetComponent<Renderer>().material.SetVector("_Color", material.GetVector("_Color"));
+                    GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
+                    Renderer markerRenderer = null;
+                    markerNavWaypoint.GetComponentCached<Renderer>(ref markerRenderer);
+                    Material material = navWaypointIndicator.GetComponent<Renderer>().sharedMaterial;
+                    markerRenderer.material.mainTexture = material.mainTexture;
+                    markerRenderer.material.mainTextureScale = Vector2.one;
+                    markerRenderer.material.mainTextureOffset = Vector2.zero;
+                    if (string.IsNullOrEmpty(waypointColor))
+                    {
+                        markerRenderer.material.SetVector("_Color", material.GetVector("_Color"));
+                    }
+
+                    Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
+                    Vector3 waypointDirection = (waypointPosition - vessel.CoM).normalized;
+                    MoveMarker(markerNavWaypoint, waypointDirection, gymbal);
+                    JUtil.ShowHide(true, markerNavWaypoint);
                 }
-                
-                Vector3d waypointPosition = vessel.mainBody.GetWorldSurfacePosition(FinePrint.WaypointManager.navWaypoint.latitude, FinePrint.WaypointManager.navWaypoint.longitude, FinePrint.WaypointManager.navWaypoint.altitude);
-                Vector3 waypointDirection = (waypointPosition - vessel.CoM).normalized;
-                MoveMarker(markerNavWaypoint, waypointDirection, gymbal);
-                JUtil.ShowHide(true, markerNavWaypoint);
+                catch
+                {
+                    // if something's borked, let's just silently do nothing
+                }
             }
 
             ITargetable target = FlightGlobals.fetch.VesselTarget;
