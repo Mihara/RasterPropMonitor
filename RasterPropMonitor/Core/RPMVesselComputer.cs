@@ -55,7 +55,7 @@ namespace JSI
         private static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
         private static readonly int lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
         private static readonly int rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
-        private static readonly int[] actionGroupID = {
+        internal static readonly int[] actionGroupID = {
             BaseAction.GetGroupIndex(KSPActionGroup.Custom10),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom01),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom02),
@@ -67,7 +67,7 @@ namespace JSI
             BaseAction.GetGroupIndex(KSPActionGroup.Custom08),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom09)
         };
-        private static readonly string[] actionGroupMemo = {
+        internal static readonly string[] actionGroupMemo = {
             "AG0",
             "AG1",
             "AG2",
@@ -822,11 +822,11 @@ namespace JSI
             }
         }
 
-        private void DebugFunction()
-        {
-            JUtil.LogMessage(this, "TimeWarp.CurrentRate = {0}, TimeWarp.WarpMode = {1}, TimeWarp.deltaTime = {2:0.000}",
-                TimeWarp.CurrentRate, TimeWarp.WarpMode, TimeWarp.deltaTime);
-        }
+        //private void DebugFunction()
+        //{
+        //    JUtil.LogMessage(this, "TimeWarp.CurrentRate = {0}, TimeWarp.WarpMode = {1}, TimeWarp.deltaTime = {2:0.000}",
+        //        TimeWarp.CurrentRate, TimeWarp.WarpMode, TimeWarp.deltaTime);
+        //}
         #endregion
 
         #region Interface Methods
@@ -960,7 +960,7 @@ namespace JSI
         /// The lower of the current data rate and the new data rate is used.
         /// </summary>
         /// <param name="newDataRate">New data rate</param>
-        internal void UpdateDataRefreshRateEx(int newDataRate)
+        internal void UpdateDataRefreshRate(int newDataRate)
         {
             refreshDataRate = Math.Max(1, Math.Min(newDataRate, refreshDataRate));
         }
@@ -1607,106 +1607,6 @@ namespace JSI
             {
                 return 0.0f;
             }
-        }
-
-        /// <summary>
-        /// Creates a new PluginEvaluator object for the method supplied (if
-        /// the method exists), attached to an IJSIModule.
-        /// </summary>
-        /// <param name="packedMethod"></param>
-        /// <returns></returns>
-        private Delegate GetInternalMethod(string packedMethod)
-        {
-            string[] tokens = packedMethod.Split(':');
-            if (tokens.Length != 2 || string.IsNullOrEmpty(tokens[0]) || string.IsNullOrEmpty(tokens[1]))
-            {
-                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
-                throw new ArgumentException("stateMethod incorrectly formatted");
-            }
-
-            // Backwards compatibility:
-            if (tokens[0] == "MechJebRPMButtons")
-            {
-                tokens[0] = "JSIMechJeb";
-            }
-            else if (tokens[0] == "JSIGimbal")
-            {
-                tokens[0] = "JSIInternalRPMButtons";
-            }
-            IJSIModule jsiModule = null;
-            foreach (IJSIModule module in installedModules)
-            {
-                if (module.GetType().Name == tokens[0])
-                {
-                    jsiModule = module;
-                    break;
-                }
-            }
-
-            //JUtil.LogMessage(this, "searching for {0} : {1}", tokens[0], tokens[1]);
-            Delegate pluginEval = null;
-            if (jsiModule != null)
-            {
-                foreach (MethodInfo m in jsiModule.GetType().GetMethods())
-                {
-                    if (m.Name == tokens[1])
-                    {
-                        //JUtil.LogMessage(this, "Found method {1}: return type is {0}, IsStatic is {2}, with {3} parameters", m.ReturnType, tokens[1],m.IsStatic, m.GetParameters().Length);
-                        ParameterInfo[] parms = m.GetParameters();
-                        if (parms.Length > 0)
-                        {
-                            JUtil.LogErrorMessage(this, "GetInternalMethod failed: {1} parameters in plugin method {0}", packedMethod, parms.Length);
-                            return null;
-                        }
-
-                        if (m.ReturnType == typeof(bool))
-                        {
-                            try
-                            {
-                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<bool>), m) : Delegate.CreateDelegate(typeof(Func<bool>), jsiModule, m);
-                            }
-                            catch (Exception e)
-                            {
-                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
-                            }
-                        }
-                        else if (m.ReturnType == typeof(double))
-                        {
-                            try
-                            {
-                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<double>), m) : Delegate.CreateDelegate(typeof(Func<double>), jsiModule, m);
-                            }
-                            catch (Exception e)
-                            {
-                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
-                            }
-                        }
-                        else if (m.ReturnType == typeof(string))
-                        {
-                            try
-                            {
-                                pluginEval = (m.IsStatic) ? Delegate.CreateDelegate(typeof(Func<string>), m) : Delegate.CreateDelegate(typeof(Func<string>), jsiModule, m);
-                            }
-                            catch (Exception e)
-                            {
-                                JUtil.LogErrorMessage(this, "Failed creating a delegate for {0}: {1}", packedMethod, e);
-                            }
-                        }
-                        else
-                        {
-                            JUtil.LogErrorMessage(this, "I need to support a return type of {0}", m.ReturnType);
-                            throw new Exception("Not Implemented");
-                        }
-                    }
-                }
-
-                if (pluginEval == null)
-                {
-                    JUtil.LogErrorMessage(this, "I failed to find the method for {0}:{1}", tokens[0], tokens[1]);
-                }
-            }
-
-            return pluginEval;
         }
 
         /// <summary>

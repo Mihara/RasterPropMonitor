@@ -49,7 +49,7 @@ namespace JSI
         internal List<string> storedStringsArray = new List<string>();
 
         // Processing cache!
-        //private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
+        private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, RPMVesselComputer.VariableCache> variableCache = new DefaultableDictionary<string, RPMVesselComputer.VariableCache>(null);
         private uint masterSerialNumber = 0u;
@@ -250,7 +250,7 @@ namespace JSI
             RPMVesselComputer comp = null;
             if(RPMVesselComputer.TryGetInstance(vessel, ref comp))
             {
-                comp.UpdateDataRefreshRateEx(newDataRate);
+                comp.UpdateDataRefreshRate(newDataRate);
             }
         }
 
@@ -261,6 +261,17 @@ namespace JSI
             {
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
                 GameEvents.onVesselChange.Add(onVesselChange);
+
+                installedModules.Add(new JSIParachute(vessel));
+                installedModules.Add(new JSIMechJeb(vessel));
+                installedModules.Add(new JSIInternalRPMButtons(vessel));
+                installedModules.Add(new JSIFAR(vessel));
+                installedModules.Add(new JSIKAC(vessel));
+#if ENABLE_ENGINE_MONITOR
+                installedModules.Add(new JSIEngine(vessel));
+#endif
+                installedModules.Add(new JSIPilotAssistant(vessel));
+                installedModules.Add(new JSIChatterer(vessel));
 
                 if (string.IsNullOrEmpty(RPMCid))
                 {
@@ -458,10 +469,15 @@ namespace JSI
                 variableCache.Clear();
                 resultCache.Clear();
 
+                for (int i = 0; i < installedModules.Count; ++i)
+                {
+                    installedModules[i].vessel = vessel;
+                }
+
                 RPMVesselComputer comp = null;
                 if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
                 {
-                    comp.UpdateDataRefreshRateEx(refreshDataRate);
+                    comp.UpdateDataRefreshRate(refreshDataRate);
                 }
             }
         }
@@ -475,10 +491,15 @@ namespace JSI
                 variableCache.Clear();
                 resultCache.Clear();
 
+                for (int i = 0; i < installedModules.Count; ++i)
+                {
+                    installedModules[i].vessel = vessel;
+                }
+
                 RPMVesselComputer comp = null;
                 if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
                 {
-                    comp.UpdateDataRefreshRateEx(refreshDataRate);
+                    comp.UpdateDataRefreshRate(refreshDataRate);
                 }
             }
         }
