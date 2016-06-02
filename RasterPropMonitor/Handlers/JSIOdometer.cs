@@ -61,6 +61,7 @@ namespace JSI
         private Material screenMat;
         private int refreshDrawCountdown;
         private bool startupComplete;
+        private RasterPropMonitorComputer rpmComp;
 
         private readonly Dictionary<string, OdometerMode> modeList = new Dictionary<string, OdometerMode> {
 			{ "LINEAR", OdometerMode.LINEAR },
@@ -84,7 +85,7 @@ namespace JSI
             float value;
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
-                bool state = comp.GetPersistentVariable(perPodPersistenceName, false);
+                bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false);
                 value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
             }
             else
@@ -397,6 +398,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (!string.IsNullOrEmpty(odometerMode) && modeList.ContainsKey(odometerMode))
                 {
                     oMode = modeList[odometerMode];

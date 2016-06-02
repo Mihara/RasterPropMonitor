@@ -99,6 +99,7 @@ namespace JSI
         private Material screenMat;
         private bool startupComplete;
         private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
+        private RasterPropMonitorComputer rpmComp;
 
         private int loopsWithoutInitCounter = 0;
         private bool startupFailed = false;
@@ -138,6 +139,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 // Install the calculator module.
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.UpdateDataRefreshRate(refreshDataRate);
@@ -229,7 +232,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = comp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
+                int activePageID = rpmComp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -344,7 +347,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                comp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
+                rpmComp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);

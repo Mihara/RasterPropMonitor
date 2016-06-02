@@ -517,14 +517,31 @@ namespace JSI
             if (vessel != null)
             {
                 JUtil.LogMessage(this, "OnLoad for vessel {0}", vessel.id);
-                ConfigNode pers = new ConfigNode();
-                if (node.TryGetNode("RPM_PERSISTENT_VARS", ref pers))
+                List<RasterPropMonitorComputer> knownRpmc = new List<RasterPropMonitorComputer>();
+                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
-                    persistentVars.Clear();
-
-                    for (int i = 0; i < pers.CountValues; ++i)
+                    RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
+                    if(rpmc != null)
                     {
-                        ConfigNode.Value val = pers.values[i];
+                        JUtil.LogMessage(this, "Found RPMC {0}", rpmc.RPMCid);
+                        knownRpmc.Add(rpmc);
+                    }
+                }
+
+                ConfigNode[] pers = node.GetNodes("RPM_PERSISTENT_VARS");
+                for (int nodeIdx = 0; nodeIdx < pers.Length; ++nodeIdx)
+                {
+                    string nodeName = string.Empty;
+                    if(!pers[nodeIdx].TryGetValue("name", ref nodeName))
+                    {
+                        nodeName = "RPMVesselComputer";
+                    }
+
+                    Dictionary<string, object> myPersistentVars = new Dictionary<string,object>();
+
+                    for (int i = 0; i < pers[nodeIdx].CountValues; ++i)
+                    {
+                        ConfigNode.Value val = pers[nodeIdx].values[i];
 
                         string[] value = val.value.Split(',');
                         if (value.Length > 2) // urk.... commas in the stored string
@@ -537,44 +554,65 @@ namespace JSI
                             value[1] = s;
                         }
 
-                        switch (value[0].Trim())
+                        if (value[0] != nodeName)
                         {
-                            case "System.Boolean":
-                                bool vb = false;
-                                if (Boolean.TryParse(value[1].Trim(), out vb))
-                                {
-                                    persistentVars[val.name.Trim()] = vb;
-                                }
-                                else
-                                {
-                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as a boolean", val.name);
-                                }
+                            switch (value[0].Trim())
+                            {
+                                case "System.Boolean":
+                                    bool vb = false;
+                                    if (Boolean.TryParse(value[1].Trim(), out vb))
+                                    {
+                                        myPersistentVars[val.name.Trim()] = vb;
+                                    }
+                                    else
+                                    {
+                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as a boolean", val.name);
+                                    }
+                                    break;
+                                case "System.Int32":
+                                    int vi = 0;
+                                    if (Int32.TryParse(value[1].Trim(), out vi))
+                                    {
+                                        myPersistentVars[val.name.Trim()] = vi;
+                                    }
+                                    else
+                                    {
+                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as an int", val.name);
+                                    }
+                                    break;
+                                case "System.Single":
+                                    float vf = 0.0f;
+                                    if (Single.TryParse(value[1].Trim(), out vf))
+                                    {
+                                        myPersistentVars[val.name.Trim()] = vf;
+                                    }
+                                    else
+                                    {
+                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as a float", val.name);
+                                    }
+                                    break;
+                                default:
+                                    JUtil.LogErrorMessage(this, "Found unknown persistent type {0}", value[0]);
+                                    break;
+                            }
+                        }
+                    }
+
+                    if(nodeName == "RPMVesselComputer")
+                    {
+                        JUtil.LogMessage(this, "Updating RPMVesselComputer persistents");
+                        persistentVars = myPersistentVars;
+                    }
+                    else
+                    {
+                        for (int rpmIdx = 0; rpmIdx < knownRpmc.Count; ++rpmIdx)
+                        {
+                            if (knownRpmc[rpmIdx].RPMCid == nodeName)
+                            {
+                                JUtil.LogMessage(this, "Updating {0} persistents", nodeName);
+                                knownRpmc[rpmIdx].persistentVars = myPersistentVars;
                                 break;
-                            case "System.Int32":
-                                int vi = 0;
-                                if (Int32.TryParse(value[1].Trim(), out vi))
-                                {
-                                    persistentVars[val.name.Trim()] = vi;
-                                }
-                                else
-                                {
-                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as an int", val.name);
-                                }
-                                break;
-                            case "System.Single":
-                                float vf = 0.0f;
-                                if (Single.TryParse(value[1].Trim(), out vf))
-                                {
-                                    persistentVars[val.name.Trim()] = vf;
-                                }
-                                else
-                                {
-                                    JUtil.LogErrorMessage(this, "Failed to parse {0} as a float", val.name);
-                                }
-                                break;
-                            default:
-                                JUtil.LogErrorMessage(this, "Found unknown persistent type {0}", value[0]);
-                                break;
+                            }
                         }
                     }
                 }
@@ -599,15 +637,30 @@ namespace JSI
                 if (persistentVars.Count > 0)
                 {
                     ConfigNode pers = new ConfigNode("RPM_PERSISTENT_VARS");
+                    pers.AddValue("name", "RPMVesselComputer");
                     foreach (var val in persistentVars)
                     {
                         string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
                         pers.AddValue(val.Key, value);
-                        //JUtil.LogMessage(this, "Adding {0} = {1}", val.Key, value);
                     }
-
                     node.AddNode(pers);
                 }
+                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx )
+                {
+                    RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
+                    if(rpmc != null)
+                    {
+                        ConfigNode rpmcPers = new ConfigNode("RPM_PERSISTENT_VARS");
+                        rpmcPers.AddValue("name", rpmc.RPMCid);
+                        foreach (var val in rpmc.persistentVars)
+                        {
+                            string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
+                            rpmcPers.AddValue(val.Key, value);
+                        }
+                        node.AddNode(rpmcPers);
+                    }
+                }
+                
             }
         }
 

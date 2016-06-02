@@ -227,12 +227,21 @@ namespace JSI
                 if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
                 {
                     string substr = input.Substring("PERSISTENT".Length + 1);
-                    if (HasPersistentVariable(substr))
+                    if (rpmComp != null && rpmComp.HasPersistentVariable(substr))
                     {
                         return (string variable) =>
                         {
-                            string substring = variable.Substring("PERSISTENT".Length + 1);
-                            return GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                            Part apart = DeduceCurrentPart();
+                            RasterPropMonitorComputer aRpmComp = RasterPropMonitorComputer.Instantiate(apart, false);
+                            if (aRpmComp != null)
+                            {
+                                string substring = variable.Substring("PERSISTENT".Length + 1);
+                                return aRpmComp.GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                            }
+                            else
+                            {
+                                return -1.0f;
+                            }
                         };
                     }
                     else
@@ -241,9 +250,18 @@ namespace JSI
                         return (string variable) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            if (HasPersistentVariable(substring))
+                            Part apart = DeduceCurrentPart();
+                            RasterPropMonitorComputer aRpmComp = RasterPropMonitorComputer.Instantiate(apart, false);
+                            if (aRpmComp != null)
                             {
-                                return GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                if (aRpmComp.HasPersistentVariable(substring))
+                                {
+                                    return aRpmComp.GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                }
+                                else
+                                {
+                                    return -1.0f;
+                                }
                             }
                             else
                             {

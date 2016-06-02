@@ -71,11 +71,11 @@
     <Compile Include="Auxiliary modules\JSINavBall.cs" />
     <Compile Include="Auxiliary modules\JSINumericInput.cs" />
     <Compile Include="Auxiliary modules\JSIRadar.cs" />
-    <Compile Include="Auxiliary modules\JSISwitch.cs" />
     <Compile Include="Core\AeroExtensions.cs" />
     <Compile Include="Core\CustomVariable.cs" />
     <Compile Include="Core\JSITextMesh.cs" />
     <Compile Include="Core\MathVariable.cs" />
+    <Compile Include="Core\RPMCPersistence.cs" />
     <Compile Include="Core\RPMGlobals.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMVCPersistence.cs" />
@@ -109,7 +109,7 @@
     <Compile Include="Core\MonitorPage.cs" />
     <Compile Include="Core\SIFormatter.cs" />
     <Compile Include="Core\UtilityFunctions.cs" />
-    <Compile Include="Core\PropMonitorComputer.cs" />
+    <Compile Include="Core\RasterPropMonitorComputer.cs" />
     <Compile Include="Core\RasterPropMonitor.cs" />
     <Compile Include="Auxiliary modules\JSIInternalBackgroundNoise.cs" />
     <Compile Include="Auxiliary modules\JSIVariableLabel.cs" />

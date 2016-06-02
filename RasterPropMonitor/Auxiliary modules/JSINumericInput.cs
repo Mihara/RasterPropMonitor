@@ -47,6 +47,8 @@ namespace JSI
 
         private List<NumericInput> numericInputs = new List<NumericInput>();
 
+        private RasterPropMonitorComputer rpmComp;
+
         private VariableOrNumber minRange;
         private VariableOrNumber maxRange;
 
@@ -61,6 +63,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (string.IsNullOrEmpty(perPodPersistenceName))
                 {
                     JUtil.LogErrorMessage(this, "perPodPersistenceName must be defined");
@@ -96,7 +100,7 @@ namespace JSI
                 }
 
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                if (!comp.HasPersistentVariable(perPodPersistenceName))
+                if (!rpmComp.HasPersistentVariable(perPodPersistenceName))
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
@@ -109,7 +113,7 @@ namespace JSI
                             float remainder = value % stepSize;
                             value -= remainder;
                         }
-                        comp.SetPersistentVariable(perPodPersistenceName, value);
+                        rpmComp.SetPersistentVariable(perPodPersistenceName, value);
                     }
                     else
                     {
@@ -176,7 +180,7 @@ namespace JSI
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
-                    float val = comp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
+                    float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
                     val += change + remainder;
 
                     if (minRange != null)
@@ -231,7 +235,7 @@ namespace JSI
                         val -= remainder;
                     }
 
-                    comp.SetPersistentVariable(perPodPersistenceName, val);
+                    rpmComp.SetPersistentVariable(perPodPersistenceName, val);
                 }
                 else
                 {

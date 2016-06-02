@@ -24,7 +24,7 @@ using UnityEngine;
 
 namespace JSI
 {
-    public class RasterPropMonitorComputer : PartModule
+    public partial class RasterPropMonitorComputer : PartModule
     {
         // The only public configuration variable.
         [KSPField]
@@ -64,7 +64,8 @@ namespace JSI
             {
                 if (thatProp == null)
                 {
-                    throw new ArgumentException("Cannot instantiate RPMC in this location.");
+                    //throw new ArgumentException("Cannot instantiate RPMC in this location.");
+                    return null;
                 }
                 thatPart = thatProp.part;
             }
