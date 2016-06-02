@@ -50,7 +50,7 @@ namespace JSI
 
         private InternalText textObj;
         private int updateCountdown;
-        private Action<RPMVesselComputer, float> del;
+        private Action<float> del;
         private StringProcessorFormatter spf;
         private RasterPropMonitorComputer rpmComp;
         /// <summary>
@@ -66,8 +66,6 @@ namespace JSI
             try
             {
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
-
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
                 textObj = InternalComponents.Instance.CreateText("Arial", fontSize, textObjTransform, string.Empty);
@@ -87,7 +85,7 @@ namespace JSI
 
                 if (!oneshot)
                 {
-                    comp.UpdateDataRefreshRate(refreshRate);
+                    rpmComp.UpdateDataRefreshRate(refreshRate);
                 }
 
                 if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
@@ -95,8 +93,8 @@ namespace JSI
                     positiveColorValue = JUtil.ParseColor32(positiveColor, part, ref rpmComp);
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
-                    del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
-                    comp.RegisterCallback(variableName, del);
+                    del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
+                    rpmComp.RegisterCallback(variableName, del);
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
@@ -128,11 +126,7 @@ namespace JSI
             {
                 try
                 {
-                    RPMVesselComputer comp = null;
-                    if (RPMVesselComputer.TryGetInstance(registeredVessel, ref comp))
-                    {
-                        comp.UnregisterCallback(variableName, del);
-                    }
+                    rpmComp.UnregisterCallback(variableName, del);
                 }
                 catch
                 {
@@ -144,13 +138,13 @@ namespace JSI
             textObj = null;
         }
 
-        private void OnCallback(RPMVesselComputer comp, float value)
+        private void OnCallback(float value)
         {
             // Sanity checks:
-            if (vessel == null || vessel.id != comp.id)
+            if (vessel == null)
             {
                 // We're not attached to a ship?
-                comp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
@@ -163,7 +157,7 @@ namespace JSI
                 // before textObj is created.
                 if (del != null && !string.IsNullOrEmpty(variableName))
                 {
-                    comp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterCallback(variableName, del);
                 }
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;

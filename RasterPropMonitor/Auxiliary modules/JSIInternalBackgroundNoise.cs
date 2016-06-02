@@ -31,8 +31,7 @@ namespace JSI
 
             if (needsElectricCharge)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(soundCheckRate);
+                rpmComp.UpdateDataRefreshRate(soundCheckRate);
                 electricChargeReserve = rpmComp.ProcessVariable(resourceName).MassageToFloat();
             }
             audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);

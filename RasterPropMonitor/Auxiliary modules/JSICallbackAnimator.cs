@@ -30,7 +30,7 @@ namespace JSI
         public string variableName = string.Empty;
 
         private readonly List<CallbackAnimationSet> variableSets = new List<CallbackAnimationSet>();
-        private Action<RPMVesselComputer, float> del;
+        private Action<float> del;
         /// <summary>
         /// The Guid of the vessel we belonged to at Start.  When undocking,
         /// KSP will change the vessel member variable before calling OnDestroy,
@@ -81,15 +81,14 @@ namespace JSI
                 }
 
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
+                del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
                 float value = rpmComp.ProcessVariable(variableName).MassageToFloat();
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
                     variableSets[i].Update(rpmComp, value);
                 }
 
-                comp.RegisterCallback(variableName, del);
+                rpmComp.RegisterCallback(variableName, del);
                 registeredVessel = vessel.id;
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
             }
@@ -111,12 +110,7 @@ namespace JSI
 
             try
             {
-                RPMVesselComputer comp = null;
-                if (RPMVesselComputer.TryGetInstance(registeredVessel, ref comp))
-                {
-                    //JUtil.LogMessage(this, "OnDestroy - unregistering del {0} in {2} (current vessel is {1})", del.GetHashCode(), vessel.id, registeredVessel);
-                    comp.UnregisterCallback(variableName, del);
-                }
+                rpmComp.UnregisterCallback(variableName, del);
             }
             catch
             {
@@ -124,15 +118,15 @@ namespace JSI
             }
         }
 
-        void OnCallback(RPMVesselComputer comp, float value)
+        void OnCallback(float value)
         {
             // Sanity checks:
-            if (vessel == null || vessel.id != comp.id)
+            if (vessel == null)
             {
                 // Stop getting callbacks if for some reason a different
                 // computer is talking to us.
                 //JUtil.LogMessage(this, "OnCallback - unregistering del {0}, vessel null is {1}, comp.id = {2}", del.GetHashCode(), (vessel == null), comp.id);
-                comp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
             }
             else

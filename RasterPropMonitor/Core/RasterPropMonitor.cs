@@ -143,8 +143,7 @@ namespace JSI
                 JUtil.LogMessage(this, "Attaching monitor {2}-{1} to {0}", rpmComp.RPMCid, internalProp.propID, internalProp.internalModel.internalName);
 
                 // Install the calculator module.
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(refreshDataRate);
+                rpmComp.UpdateDataRefreshRate(refreshDataRate);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();

@@ -1,3 +1,4 @@
+//#define SHOW_VARIABLE_QUERY_COUNTER
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -53,9 +54,23 @@ namespace JSI
         private readonly DefaultableDictionary<string, RPMVesselComputer.VariableCache> variableCache = new DefaultableDictionary<string, RPMVesselComputer.VariableCache>(null);
         private uint masterSerialNumber = 0u;
 
+        // Data refresh
+        private int dataUpdateCountdown;
+        private int refreshDataRate = 60;
+        private bool timeToUpdate = false;
+
+        // Callback system
+        private Dictionary<string, List<Action<float>>> onChangeCallbacks = new Dictionary<string, List<Action<float>>>();
+        private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
+        private bool forceCallbackRefresh = false;
+
         // Diagnostics
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
+#if SHOW_VARIABLE_QUERY_COUNTER
+        private int debug_varsProcessed = 0;
+        private long debug_totalVars = 0;
+#endif
 
         [KSPField(isPersistant = true)]
         public string RPMCid = string.Empty;
@@ -124,6 +139,10 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input)
         {
+#if SHOW_VARIABLE_QUERY_COUNTER
+            ++debug_varsProcessed;
+#endif
+
             if (RPMGlobals.debugShowVariableCallCount)
             {
                 debug_callCount[input] = debug_callCount[input] + 1;
@@ -175,12 +194,73 @@ namespace JSI
             return comp.ProcessVariableEx(input, this);
         }
 
+        /// <summary>
+        /// Register a callback to receive notifications when a variable has changed.
+        /// Used to prevent polling of low-frequency, high-utilization variables.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void RegisterCallback(string variableName, Action<float> cb)
+        {
+            //JUtil.LogMessage(this, "RegisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                onChangeCallbacks[variableName].Add(cb);
+            }
+            else
+            {
+                var callbackList = new List<Action<float>>();
+                callbackList.Add(cb);
+                onChangeCallbacks[variableName] = callbackList;
+                onChangeValue[variableName] = float.MaxValue;
+            }
+            forceCallbackRefresh = true;
+        }
+
+        /// <summary>
+        /// Unregister a callback for receiving variable update notifications.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void UnregisterCallback(string variableName, Action<float> cb)
+        {
+            //JUtil.LogMessage(this, "UnregisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
+            if (onChangeCallbacks.ContainsKey(variableName))
+            {
+                try
+                {
+                    onChangeCallbacks[variableName].Remove(cb);
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set the refresh rate (number of Update() calls per triggered update).
+        /// The lower of the current data rate and the new data rate is used.
+        /// </summary>
+        /// <param name="newDataRate">New data rate</param>
+        internal void UpdateDataRefreshRate(int newDataRate)
+        {
+            refreshDataRate = Math.Max(1, Math.Min(newDataRate, refreshDataRate));
+
+            RPMVesselComputer comp = null;
+            if(RPMVesselComputer.TryGetInstance(vessel, ref comp))
+            {
+                comp.UpdateDataRefreshRateEx(newDataRate);
+            }
+        }
+
         #region Monobehaviour
         public void Start()
         {
             if (!HighLogic.LoadedSceneIsEditor)
             {
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
+                GameEvents.onVesselChange.Add(onVesselChange);
 
                 if (string.IsNullOrEmpty(RPMCid))
                 {
@@ -249,7 +329,7 @@ namespace JSI
                     if (moduleConfigs[moduleId].GetValue("name") == moduleName)
                     {
                         ConfigNode[] overrideColorSetup = moduleConfigs[moduleId].GetNodes("RPM_COLOROVERRIDE");
-                        for(int colorGrp=0; colorGrp < overrideColorSetup.Length; ++colorGrp)
+                        for (int colorGrp = 0; colorGrp < overrideColorSetup.Length; ++colorGrp)
                         {
                             ConfigNode[] colorConfig = overrideColorSetup[colorGrp].GetNodes("COLORDEFINITION");
                             for (int defIdx = 0; defIdx < colorConfig.Length; ++defIdx)
@@ -276,7 +356,45 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            ++masterSerialNumber;
+            if (JUtil.RasterPropMonitorShouldUpdate(vessel) && timeToUpdate)
+            {
+                ++masterSerialNumber;
+
+#if SHOW_VARIABLE_QUERY_COUNTER
+                int debug_callbacksProcessed = 0;
+                int debug_callbackQueriesMade = 0;
+#endif
+                foreach (var cbVal in onChangeCallbacks)
+                {
+                    float previousValue = onChangeValue[cbVal.Key];
+                    float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
+                    if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
+                    {
+                        for (int i = 0; i < cbVal.Value.Count; ++i)
+                        {
+#if SHOW_VARIABLE_QUERY_COUNTER
+                            ++debug_callbacksProcessed;
+#endif
+                            cbVal.Value[i](newVal);
+                        }
+
+                        onChangeValue[cbVal.Key] = newVal;
+                    }
+#if SHOW_VARIABLE_QUERY_COUNTER
+                    ++debug_callbackQueriesMade;
+#endif
+                }
+
+                ++debug_fixedUpdates;
+
+                forceCallbackRefresh = false;
+                timeToUpdate = false;
+#if SHOW_VARIABLE_QUERY_COUNTER
+                debug_totalVars += debug_varsProcessed;
+                JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
+                debug_varsProcessed = 0;
+#endif
+            }
         }
 
         public void Update()
@@ -292,11 +410,26 @@ namespace JSI
                     vesselDescription = s.Replace(editorNewline, "$$$");
                 }
             }
+            else if(JUtil.IsActiveVessel(vessel))
+            {
+                if (--dataUpdateCountdown < 0)
+                {
+                    dataUpdateCountdown = refreshDataRate;
+                    timeToUpdate = true;
+                }
+            }
         }
 
         public void OnDestroy()
         {
+#if SHOW_VARIABLE_QUERY_COUNTER
+            debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
+            JUtil.LogMessage(this, "{3}: {0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
+                debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates), RPMCid);
+#endif
+
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+            GameEvents.onVesselChange.Remove(onVesselChange);
 
             if (RPMGlobals.debugShowVariableCallCount)
             {
@@ -313,6 +446,24 @@ namespace JSI
             }
 
             variableCache.Clear();
+            resultCache.Clear();
+        }
+
+        private void onVesselChange(Vessel who)
+        {
+            if (who.id == vessel.id)
+            {
+                JUtil.LogMessage(this, "onVesselChange(): for me {0}", who.id);
+                forceCallbackRefresh = true;
+                variableCache.Clear();
+                resultCache.Clear();
+
+                RPMVesselComputer comp = null;
+                if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                {
+                    comp.UpdateDataRefreshRateEx(refreshDataRate);
+                }
+            }
         }
 
         private void onVesselWasModified(Vessel who)
@@ -320,7 +471,15 @@ namespace JSI
             if (who.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", who.id);
+                forceCallbackRefresh = true;
                 variableCache.Clear();
+                resultCache.Clear();
+
+                RPMVesselComputer comp = null;
+                if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+                {
+                    comp.UpdateDataRefreshRateEx(refreshDataRate);
+                }
             }
         }
         #endregion

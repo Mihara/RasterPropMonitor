@@ -299,7 +299,7 @@ namespace JSI
                             break;
                         case "plugin":
                             persistentVarName = string.Empty;
-                            comp.UpdateDataRefreshRate(refreshRate);
+                            rpmComp.UpdateDataRefreshRate(refreshRate);
 
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                             {
@@ -344,7 +344,7 @@ namespace JSI
                             break;
                         case "transfer":
                             persistentVarName = string.Empty;
-                            comp.UpdateDataRefreshRate(refreshRate);
+                            rpmComp.UpdateDataRefreshRate(refreshRate);
 
                             foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                             {
@@ -472,7 +472,7 @@ namespace JSI
                 if (needsElectricChargeValue || persistentVarValid || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
                     !string.IsNullOrEmpty(transferGetter) || transferSetter != null)
                 {
-                    comp.UpdateDataRefreshRate(refreshRate);
+                    rpmComp.UpdateDataRefreshRate(refreshRate);
 
                     if (!string.IsNullOrEmpty(masterVariableName))
                     {

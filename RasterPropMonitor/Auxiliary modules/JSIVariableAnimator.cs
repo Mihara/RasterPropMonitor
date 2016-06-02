@@ -100,8 +100,8 @@ namespace JSI
                 {
                     alwaysActive |= thatSet.alwaysActive;
                 }
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(refreshRate);
+
+                rpmComp.UpdateDataRefreshRate(refreshRate);
                 startupComplete = true;
             }
             catch
