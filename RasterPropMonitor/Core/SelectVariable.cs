@@ -68,18 +68,18 @@ namespace JSI
 
         }
 
-        public object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RasterPropMonitorComputer rpmComp)
         {
             int i = 0;
             for (; i < sourceVariables.Count; ++i)
             {
-                if (sourceVariables[i].IsInRange(comp) ^ reverse[i])
+                if (sourceVariables[i].IsInRange(rpmComp) ^ reverse[i])
                 {
                     break;
                 }
             }
 
-            return result[i].Evaluate(comp);
+            return result[i].Evaluate(rpmComp);
         }
 
         private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)

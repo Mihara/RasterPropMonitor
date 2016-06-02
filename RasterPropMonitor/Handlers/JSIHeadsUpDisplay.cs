@@ -104,6 +104,7 @@ namespace JSI
         private GameObject headingMesh;
         private GameObject progradeHeadingIcon;
         private float progradeHeadingIconOrigin;
+        private RasterPropMonitorComputer rpmComp;
 
         private float lastRoll = 0.0f;
 
@@ -424,11 +425,11 @@ namespace JSI
 
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(comp);
+                verticalBars[i].Update(rpmComp);
             }
             for (int i = 0; i < horizontalBars.Count; ++i)
             {
-                horizontalBars[i].Update(comp);
+                horizontalBars[i].Update(rpmComp);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -498,6 +499,8 @@ namespace JSI
             }
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
                 cameraBody = new GameObject();
@@ -661,18 +664,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp)
+        internal void Update(RasterPropMonitorComputer rpmComp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp))
+                if (!enablingVariable.IsInRange(rpmComp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp))
+            if (variable.Get(out value, rpmComp))
             {
                 if (useLog10)
                 {
@@ -800,18 +803,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp)
+        internal void Update(RasterPropMonitorComputer rpmComp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp))
+                if (!enablingVariable.IsInRange(rpmComp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp))
+            if (variable.Get(out value, rpmComp))
             {
                 if (useLog10)
                 {

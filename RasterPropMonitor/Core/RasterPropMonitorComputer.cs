@@ -47,6 +47,16 @@ namespace JSI
 
         internal List<string> storedStringsArray = new List<string>();
 
+        // Processing cache!
+        //private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
+        private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
+        private readonly DefaultableDictionary<string, RPMVesselComputer.VariableCache> variableCache = new DefaultableDictionary<string, RPMVesselComputer.VariableCache>(null);
+        private uint masterSerialNumber = 0u;
+
+        // Diagnostics
+        private int debug_fixedUpdates = 0;
+        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
+
         [KSPField(isPersistant = true)]
         public string RPMCid = string.Empty;
         private Guid id = Guid.Empty;
@@ -106,11 +116,73 @@ namespace JSI
             return JUtil.WordWrap(vesselDescriptionForDisplay.UnMangleConfigText(), screenWidth);
         }
 
+        /// <summary>
+        /// This intermediary will cache the results so that multiple variable
+        /// requests within the frame would not result in duplicated code.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public object ProcessVariable(string input)
+        {
+            if (RPMGlobals.debugShowVariableCallCount)
+            {
+                debug_callCount[input] = debug_callCount[input] + 1;
+            }
+
+            RPMVesselComputer.VariableCache vc = variableCache[input];
+            if (vc != null)
+            {
+                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
+                {
+                    try
+                    {
+                        object newValue = vc.accessor(input, this);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+                }
+
+                return vc.cachedValue;
+            }
+            else
+            {
+                bool cacheable;
+                RPMVesselComputer.VariableEvaluator evaluator = GetEvaluator(input, RPMVesselComputer.Instance(vessel), out cacheable);
+                if (evaluator != null)
+                {
+                    vc = new RPMVesselComputer.VariableCache(cacheable, evaluator);
+                    try
+                    {
+                        object newValue = vc.accessor(input, this);
+                        vc.serialNumber = masterSerialNumber;
+                        vc.cachedValue = newValue;
+                    }
+                    catch (Exception e)
+                    {
+                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    }
+
+                    variableCache[input] = vc;
+                    return vc.cachedValue;
+                }
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.ProcessVariableEx(input, this);
+        }
+
+        #region Monobehaviour
         public void Start()
         {
             if (!HighLogic.LoadedSceneIsEditor)
             {
-                if(string.IsNullOrEmpty(RPMCid))
+                GameEvents.onVesselWasModified.Add(onVesselWasModified);
+
+                if (string.IsNullOrEmpty(RPMCid))
                 {
                     id = Guid.NewGuid();
                     RPMCid = id.ToString();
@@ -202,6 +274,11 @@ namespace JSI
             }
         }
 
+        public void FixedUpdate()
+        {
+            ++masterSerialNumber;
+        }
+
         public void Update()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -216,5 +293,36 @@ namespace JSI
                 }
             }
         }
+
+        public void OnDestroy()
+        {
+            GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+
+            if (RPMGlobals.debugShowVariableCallCount)
+            {
+                List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
+                l.AddRange(debug_callCount);
+                l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
+                {
+                    return a.Value - b.Value;
+                });
+                for (int i = 0; i < l.Count; ++i)
+                {
+                    JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
+                }
+            }
+
+            variableCache.Clear();
+        }
+
+        private void onVesselWasModified(Vessel who)
+        {
+            if (who.id == vessel.id)
+            {
+                JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", who.id);
+                variableCache.Clear();
+            }
+        }
+        #endregion
     }
 }

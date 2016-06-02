@@ -101,7 +101,7 @@ namespace JSI
         private LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
         private Part part;
-        private RasterPropMonitorComputer rpmComp;
+        //private RasterPropMonitorComputer rpmComp;
         internal Part ReferencePart
         {
             // Return the part that RPMVesselComputer considers the reference
@@ -824,36 +824,43 @@ namespace JSI
                 int debug_callbacksProcessed = 0;
                 int debug_callbackQueriesMade = 0;
 #endif
-                foreach (var cbVal in onChangeCallbacks)
+                if (part != null)
                 {
-                    float previousValue = onChangeValue[cbVal.Key];
-                    float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
-                    if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
+                    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
+                    if (rpmComp != null)
                     {
-                        for (int i = 0; i < cbVal.Value.Count; ++i)
+                        foreach (var cbVal in onChangeCallbacks)
                         {
+                            float previousValue = onChangeValue[cbVal.Key];
+                            float newVal = ProcessVariableEx(cbVal.Key, rpmComp).MassageToFloat();
+                            if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
+                            {
+                                for (int i = 0; i < cbVal.Value.Count; ++i)
+                                {
 #if SHOW_VARIABLE_QUERY_COUNTER
                             ++debug_callbacksProcessed;
 #endif
-                            cbVal.Value[i](this, newVal);
-                        }
+                                    cbVal.Value[i](this, newVal);
+                                }
 
-                        onChangeValue[cbVal.Key] = newVal;
-                    }
+                                onChangeValue[cbVal.Key] = newVal;
+                            }
 #if SHOW_VARIABLE_QUERY_COUNTER
                     ++debug_callbackQueriesMade;
 #endif
-                }
+                        }
 
-                forceCallbackRefresh = false;
+                        forceCallbackRefresh = false;
 
-                ++debug_fixedUpdates;
+                        ++debug_fixedUpdates;
 
 #if SHOW_VARIABLE_QUERY_COUNTER
                 debug_totalVars += debug_varsProcessed;
                 JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
                 debug_varsProcessed = 0;
 #endif
+                    }
+                }
             }
         }
 
@@ -895,9 +902,16 @@ namespace JSI
 #endif
                 FetchTargetData();
 
-                for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                if (part != null)
                 {
-                    activeTriggeredEvents[i].Update(this);
+                    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
+                    if (rpmComp != null)
+                    {
+                        for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                        {
+                            activeTriggeredEvents[i].Update(rpmComp);
+                        }
+                    }
                 }
 #if SHOW_FIXEDUPDATE_TIMING
                 long targetdata = stopwatch.ElapsedMilliseconds;
@@ -940,9 +954,8 @@ namespace JSI
         /// requests within the frame would not result in duplicated code.
         /// </summary>
         /// <param name="input"></param>
-        /// <param name="propId"></param>
         /// <returns></returns>
-        public object ProcessVariable(string input)
+        public object ProcessVariableEx(string input, RasterPropMonitorComputer rpmComp)
         {
 #if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
@@ -959,7 +972,7 @@ namespace JSI
                 {
                     try
                     {
-                        object newValue = vc.accessor(input);
+                        object newValue = vc.accessor(input, rpmComp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
                     }
@@ -980,7 +993,7 @@ namespace JSI
                     vc = new VariableCache(cacheable, evaluator);
                     try
                     {
-                        object newValue = vc.accessor(input);
+                        object newValue = vc.accessor(input, rpmComp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
                     }
@@ -2169,13 +2182,15 @@ namespace JSI
             if (part != newpart)
             {
                 // Do some processing?
+                
                 if (part != null)
                 {
-                    rpmComp = RasterPropMonitorComputer.Instantiate(part, true);
+                    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, true);
+                    JUtil.LogMessage(this, "UpdateCheck(): part changed to {0}", rpmComp.RPMCid);
                 }
                 else
                 {
-                    rpmComp = null;
+                    JUtil.LogMessage(this, "UpdateCheck(): part changed to null");
                 }
 
                 dataUpdateCountdown = refreshDataRate;
@@ -2183,6 +2198,7 @@ namespace JSI
                 // Force an early flush of the result cache, in case per-part
                 // variables need to be rendered.
                 resultCache.Clear();
+                //variableCache.Clear();
                 return true;
             }
 
@@ -2270,7 +2286,7 @@ namespace JSI
             }
         }
 
-        internal delegate object VariableEvaluator(string s);
+        internal delegate object VariableEvaluator(string s, RasterPropMonitorComputer rpmComp);
         internal class VariableCache
         {
             internal object cachedValue = null;

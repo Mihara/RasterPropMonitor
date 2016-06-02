@@ -136,13 +136,13 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RasterPropMonitorComputer rpmComp)
         {
             if (indexOperator)
             {
                 int index = 0;
                 float value = 0.0f;
-                if (!sourceVariables[0].Get(out value, comp))
+                if (!sourceVariables[0].Get(out value, rpmComp))
                 {
                     return 0;
                 }
@@ -150,7 +150,7 @@ namespace JSI
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
                     float operand;
-                    if (!sourceVariables[i].Get(out operand, comp))
+                    if (!sourceVariables[i].Get(out operand, rpmComp))
                     {
                         return 0;
                     }
@@ -179,7 +179,7 @@ namespace JSI
             else
             {
                 double value = 0.0;
-                if (!sourceVariables[0].Get(out value, comp))
+                if (!sourceVariables[0].Get(out value, rpmComp))
                 {
                     return 0.0f;
                 }
@@ -187,7 +187,7 @@ namespace JSI
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
                     double operand;
-                    if (!sourceVariables[i].Get(out operand, comp))
+                    if (!sourceVariables[i].Get(out operand, rpmComp))
                     {
                         return 0.0f;
                     }

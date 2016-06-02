@@ -87,11 +87,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateAngleOfAttack(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateAngleOfAttack(); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -111,11 +111,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false))); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(false))); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -135,11 +135,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true))); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return (actualAverageIsp * gee) * Math.Log(totalShipWetMass / (totalShipWetMass - resources.PropellantMass(true))); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -159,11 +159,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateDragForce() / totalShipWetMass; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateDragForce() / totalShipWetMass; };
             }
             else
             {
-                return (string variable) => { return accessor() / totalShipWetMass; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor() / totalShipWetMass; };
             }
         }
 
@@ -183,11 +183,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateDragForce(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateDragForce(); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -207,11 +207,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return vessel.dynamicPressurekPa; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.dynamicPressurekPa; };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -219,14 +219,14 @@ namespace JSI
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingError", typeof(Func<double>));
 
-            return (string variable) => { return accessor(); };
+            return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
         }
 
         private VariableEvaluator LandingAltitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
 
-            return (string variable) => 
+            return (string variable, RasterPropMonitorComputer rpmComp) => 
             {
                 double est = accessor();
                 return (est == 0.0) ? estLandingAltitude : est;
@@ -237,7 +237,7 @@ namespace JSI
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
 
-            return (string variable) =>
+            return (string variable, RasterPropMonitorComputer rpmComp) =>
             {
                 double est = accessor();
                 return (est == 0.0) ? estLandingLatitude : est;
@@ -248,7 +248,7 @@ namespace JSI
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
 
-            return (string variable) =>
+            return (string variable, RasterPropMonitorComputer rpmComp) =>
             {
                 double est = accessor();
                 return (est == 0.0) ? estLandingLongitude : est;
@@ -271,11 +271,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateLiftForce() / totalShipWetMass; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateLiftForce() / totalShipWetMass; };
             }
             else
             {
-                return (string variable) => { return accessor() / totalShipWetMass; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor() / totalShipWetMass; };
             }
         }
 
@@ -295,11 +295,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateLiftForce(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateLiftForce(); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 
@@ -310,11 +310,11 @@ namespace JSI
             accessor = (Func<bool>)GetInternalMethod("JSIMechJeb:GetMechJebAvailable", typeof(Func<bool>));
             if (accessor == null)
             {
-                return (string variable) => { return false; };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return false; };
             }
             else
             {
-                return (string variable) => { return accessor().GetHashCode(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor().GetHashCode(); };
             }
         }
 
@@ -363,11 +363,11 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable) => { return FallbackEvaluateSideSlip(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return FallbackEvaluateSideSlip(); };
             }
             else
             {
-                return (string variable) => { return accessor(); };
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
             }
         }
 

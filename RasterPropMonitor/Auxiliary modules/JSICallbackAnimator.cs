@@ -38,6 +38,7 @@ namespace JSI
         /// with.  So we have to store the Guid separately.
         /// </summary>
         private Guid registeredVessel = Guid.Empty;
+        private RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
@@ -48,6 +49,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 ConfigNode moduleConfig = null;
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                 {
@@ -80,12 +83,12 @@ namespace JSI
 
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
-                float value = comp.ProcessVariable(variableName).MassageToFloat();
+                float value = rpmComp.ProcessVariable(variableName).MassageToFloat();
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
-                    variableSets[i].Update(comp, value);
+                    variableSets[i].Update(rpmComp, value);
                 }
-                //JUtil.LogMessage(this, "Start - registering del {0} in {1}", del.GetHashCode(), vessel.id);
+
                 comp.RegisterCallback(variableName, del);
                 registeredVessel = vessel.id;
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
@@ -136,7 +139,7 @@ namespace JSI
             {
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
-                    variableSets[i].Update(comp, value);
+                    variableSets[i].Update(rpmComp, value);
                 }
             }
         }
@@ -520,9 +523,9 @@ namespace JSI
             }
         }
 
-        public void Update(RPMVesselComputer comp, float value)
+        public void Update(RasterPropMonitorComputer rpmComp, float value)
         {
-            bool newState = variable.IsInRange(comp, value);
+            bool newState = variable.IsInRange(rpmComp, value);
 
             if (newState ^ currentState)
             {

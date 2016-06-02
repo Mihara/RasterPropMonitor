@@ -33,6 +33,7 @@ namespace JSI
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
         private bool muted = false;
+        private RasterPropMonitorComputer rpmComp;
 
         private bool UpdateCheck()
         {
@@ -54,6 +55,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 ConfigNode moduleConfig = null;
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                 {
@@ -151,11 +154,10 @@ namespace JSI
                 return;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(comp, universalTime);
+                variableSets[unit].Update(rpmComp, universalTime);
             }
         }
 
@@ -707,10 +709,10 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        public void Update(RPMVesselComputer comp, double universalTime)
+        public void Update(RasterPropMonitorComputer rpmComp, double universalTime)
         {
             float scaledValue;
-            if (!variable.InverseLerp(comp, out scaledValue))
+            if (!variable.InverseLerp(rpmComp, out scaledValue))
             {
                 return;
             }

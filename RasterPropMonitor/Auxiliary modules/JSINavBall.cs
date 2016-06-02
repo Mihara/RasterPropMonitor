@@ -44,12 +44,13 @@ namespace JSI
         public float maxAngleChange = 180.0f;
 
         private VariableOrNumberRange enablingVariable;
+        private RasterPropMonitorComputer rpmComp;
 
         private Quaternion lastOrientation;
 
-        public override void OnAwake()
+        public void Start()
         {
-            base.OnAwake();
+            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
             lastOrientation = navBall.rotation;
 
@@ -75,8 +76,7 @@ namespace JSI
                 return;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            if (enablingVariable.IsInRange(comp))
+            if (enablingVariable.IsInRange(rpmComp))
             {
                 base.OnUpdate();
                 Quaternion post = navBall.rotation;

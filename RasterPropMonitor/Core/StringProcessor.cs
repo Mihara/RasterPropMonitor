@@ -70,7 +70,7 @@ namespace JSI
     {
         private static readonly SIFormatProvider fp = new SIFormatProvider();
 
-        public static string ProcessString(StringProcessorFormatter formatter, RPMVesselComputer comp)
+        public static string ProcessString(StringProcessorFormatter formatter, RasterPropMonitorComputer rpmComp)
         {
             if (formatter.usesComp)
             {
@@ -78,7 +78,7 @@ namespace JSI
                 {
                     for (int i = 0; i < formatter.sourceVariables.Length; ++i)
                     {
-                        formatter.sourceValues[i] = comp.ProcessVariable(formatter.sourceVariables[i]);
+                        formatter.sourceValues[i] = rpmComp.ProcessVariable(formatter.sourceVariables[i]);
                     }
 
                     return string.Format(fp, formatter.formatString, formatter.sourceValues);
@@ -92,7 +92,7 @@ namespace JSI
             return formatter.formatString;
         }
 
-        public static string ProcessString(string input, RPMVesselComputer comp)
+        public static string ProcessString(string input, RasterPropMonitorComputer rpmComp)
         {
             try
             {
@@ -110,7 +110,7 @@ namespace JSI
                         var variables = new object[vars.Length];
                         for (int i = 0; i < vars.Length; i++)
                         {
-                            variables[i] = comp.ProcessVariable(vars[i]);
+                            variables[i] = rpmComp.ProcessVariable(vars[i]);
                         }
                         string output = string.Format(fp, tokens[0], variables);
                         return output.TrimEnd();
@@ -120,7 +120,7 @@ namespace JSI
             }
             catch (Exception e)
             {
-                JUtil.LogErrorMessage(comp, "Bad format on string {0}: {1}", input, e);
+                JUtil.LogErrorMessage(rpmComp, "Bad format on string {0}: {1}", input, e);
             }
 
             return input.TrimEnd();

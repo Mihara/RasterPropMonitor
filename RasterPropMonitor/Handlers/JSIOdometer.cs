@@ -81,16 +81,15 @@ namespace JSI
             double thisUpdate = Planetarium.GetUniversalTime();
             float dT = (float)(thisUpdate - lastUpdate) * odometerRotationScalar;
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             float value;
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
                 bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false);
-                value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
+                value = rpmComp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
             }
             else
             {
-                value = comp.ProcessVariable(variable).MassageToFloat();
+                value = rpmComp.ProcessVariable(variable).MassageToFloat();
             }
             // Make sure the value isn't going to be a problem.
             if (float.IsNaN(value))

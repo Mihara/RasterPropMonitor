@@ -98,11 +98,14 @@ namespace JSI
         /// with.  So we have to store the Guid separately.
         /// </summary>
         private Guid registeredVessel = Guid.Empty;
+        RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
@@ -256,7 +259,6 @@ namespace JSI
 
                 }
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (!string.IsNullOrEmpty(zeroColor))
                 {
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
@@ -274,7 +276,7 @@ namespace JSI
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
-                    float value = comp.ProcessVariable(variableName).MassageToFloat();
+                    float value = rpmComp.ProcessVariable(variableName).MassageToFloat();
                     if (value < 0.0f)
                     {
                         textObj.color = negativeColorValue;
@@ -343,8 +345,7 @@ namespace JSI
                 activeLabel = 0;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+            textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, rpmComp);
 
             // Force an update.
             updateCountdown = 0;
@@ -473,8 +474,7 @@ namespace JSI
 
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+                textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, rpmComp);
                 labels[activeLabel].oneshotComplete = true;
             }
         }

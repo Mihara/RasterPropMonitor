@@ -685,7 +685,7 @@ namespace JSI
                 unavailableColorValue = ConfigNode.ParseColor32(unavailableColor);
 
             persistentVarName = "targetfilter" + internalProp.propID;
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
             // 7 is the bitmask for ship-station-probe;
             VesselFilterFromBitmask(rpmComp.GetPersistentVariable(persistentVarName, defaultFilter).MassageToInt());
 
@@ -1090,7 +1090,6 @@ namespace JSI
         // Filters Menu
         private void ToggleFilter(int index, TextMenu.Item ti)
         {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             vesselFilter[vesselFilter.ElementAt(index).Key] = !vesselFilter[vesselFilter.ElementAt(index).Key];
             rpmComp.SetPersistentVariable(persistentVarName, VesselFilterToBitmask(vesselFilter));
             ti.isSelected = !ti.isSelected;

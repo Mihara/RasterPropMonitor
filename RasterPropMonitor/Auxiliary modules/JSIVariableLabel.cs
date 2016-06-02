@@ -52,6 +52,7 @@ namespace JSI
         private int updateCountdown;
         private Action<RPMVesselComputer, float> del;
         private StringProcessorFormatter spf;
+        private RasterPropMonitorComputer rpmComp;
         /// <summary>
         /// The Guid of the vessel we belonged to at Start.  When undocking,
         /// KSP will change the vessel member variable before calling OnDestroy,
@@ -64,6 +65,8 @@ namespace JSI
         {
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
@@ -89,7 +92,6 @@ namespace JSI
 
                 if (!(string.IsNullOrEmpty(variableName) || string.IsNullOrEmpty(positiveColor) || string.IsNullOrEmpty(negativeColor) || string.IsNullOrEmpty(zeroColor)))
                 {
-                    RasterPropMonitorComputer rpmComp = null;
                     positiveColorValue = JUtil.ParseColor32(positiveColor, part, ref rpmComp);
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
@@ -98,7 +100,7 @@ namespace JSI
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
-                    float value = comp.ProcessVariable(variableName).MassageToFloat();
+                    float value = rpmComp.ProcessVariable(variableName).MassageToFloat();
                     if (value < 0.0f)
                     {
                         textObj.text.Color = negativeColorValue;
@@ -208,8 +210,7 @@ namespace JSI
 
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(spf, comp);
+                textObj.text.Text = StringProcessor.ProcessString(spf, rpmComp);
                 oneshotComplete = true;
             }
         }

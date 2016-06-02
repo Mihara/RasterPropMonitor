@@ -140,6 +140,7 @@ namespace JSI
             try
             {
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+                JUtil.LogMessage(this, "Attaching monitor {2}-{1} to {0}", rpmComp.RPMCid, internalProp.propID, internalProp.internalModel.internalName);
 
                 // Install the calculator module.
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
@@ -343,7 +344,6 @@ namespace JSI
             triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
             if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker))
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
@@ -420,16 +420,14 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            activePage.UpdateText(comp);
+            activePage.UpdateText(rpmComp);
         }
 
         private void CheckForElectricCharge()
         {
             if (needsElectricCharge)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = comp.ProcessVariable(resourceName).MassageToFloat();
+                electricChargeReserve = rpmComp.ProcessVariable(resourceName).MassageToFloat();
             }
         }
 

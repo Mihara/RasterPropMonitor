@@ -58,6 +58,8 @@ namespace JSI
         private bool pageActiveState;
         private bool initialized = false;
         private int updateCountdown;
+        private RasterPropMonitorComputer rpmComp;
+
         // Analysis disable UnusedParameter
         public string ShowPage(int width, int height)
         {
@@ -92,11 +94,10 @@ namespace JSI
                 return;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             if (legacyRange != null)
             {
                 float scaledValue;
-                if (!legacyRange.InverseLerp(comp, out scaledValue))
+                if (!legacyRange.InverseLerp(rpmComp, out scaledValue))
                 {
                     activePage = 1;
                     return;
@@ -109,7 +110,7 @@ namespace JSI
                 activePage = 0;
                 for (activePage = 0; activePage < range.Count; ++activePage)
                 {
-                    if (range[activePage].IsInRange(comp))
+                    if (range[activePage].IsInRange(rpmComp))
                     {
                         break;
                     }
@@ -148,6 +149,13 @@ namespace JSI
 
         public void Start()
         {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                return;
+            }
+
+            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
             if (string.IsNullOrEmpty(definitionIn) && definitions != null)
             {
                 for (int i = 0; i < definitions.Length; ++i)
