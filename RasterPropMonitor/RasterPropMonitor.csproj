@@ -78,7 +78,6 @@
     <Compile Include="Core\RPMCPersistence.cs" />
     <Compile Include="Core\RPMGlobals.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
-    <Compile Include="Core\RPMVCPersistence.cs" />
     <Compile Include="Core\RPMVCTriggeredEvent.cs" />
     <Compile Include="Core\RPMVCVariableToObject.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />

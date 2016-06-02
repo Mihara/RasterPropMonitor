@@ -313,8 +313,6 @@ namespace JSI
         private float approachSpeed;
         private Quaternion targetOrientation;
 
-        private bool pendingUndocking = false; // Used for a hack-ish way of updating RPMVC after an undock
-
         // Diagnostics
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
@@ -443,25 +441,6 @@ namespace JSI
             }
         }
 
-        /// <summary>
-        /// Merge the persistent variable dictionaries of two RPMVesselComputers.
-        /// This allows persistents from two vessels to be shared on docking.
-        /// </summary>
-        /// <param name="otherComp"></param>
-        private void MergePersistents(RPMVesselComputer otherComp)
-        {
-            foreach (var key in otherComp.persistentVars)
-            {
-                if (!persistentVars.ContainsKey(key.Key))
-                {
-                    persistentVars.Add(key.Key, key.Value);
-                }
-            }
-
-            // Copy the dictionary
-            otherComp.persistentVars = new Dictionary<string, object>(persistentVars);
-        }
-
         private Kerbal lastActiveKerbal = null;
         /// <summary>
         /// Used to control what portion of a Kerbal is visible while "looking
@@ -514,6 +493,9 @@ namespace JSI
         {
             base.OnLoad(node);
 
+            // null vessels are possible - if I detect the craft is
+            // uncontrollable at Awake, I don't bother storing vessel, so we
+            // can see null here.  It is not an error.
             if (vessel != null)
             {
                 JUtil.LogMessage(this, "OnLoad for vessel {0}", vessel.id);
@@ -521,9 +503,8 @@ namespace JSI
                 for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
                     RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if(rpmc != null)
+                    if (rpmc != null)
                     {
-                        JUtil.LogMessage(this, "Found RPMC {0}", rpmc.RPMCid);
                         knownRpmc.Add(rpmc);
                     }
                 }
@@ -532,94 +513,80 @@ namespace JSI
                 for (int nodeIdx = 0; nodeIdx < pers.Length; ++nodeIdx)
                 {
                     string nodeName = string.Empty;
-                    if(!pers[nodeIdx].TryGetValue("name", ref nodeName))
+                    if (pers[nodeIdx].TryGetValue("name", ref nodeName))
                     {
-                        nodeName = "RPMVesselComputer";
-                    }
+                        Dictionary<string, object> myPersistentVars = new Dictionary<string, object>();
 
-                    Dictionary<string, object> myPersistentVars = new Dictionary<string,object>();
-
-                    for (int i = 0; i < pers[nodeIdx].CountValues; ++i)
-                    {
-                        ConfigNode.Value val = pers[nodeIdx].values[i];
-
-                        string[] value = val.value.Split(',');
-                        if (value.Length > 2) // urk.... commas in the stored string
+                        for (int i = 0; i < pers[nodeIdx].CountValues; ++i)
                         {
-                            string s = value[1].Trim();
-                            for (int j = 2; j < value.Length; ++j)
+                            ConfigNode.Value val = pers[nodeIdx].values[i];
+
+                            string[] value = val.value.Split(',');
+                            if (value.Length > 2) // urk.... commas in the stored string
                             {
-                                s = s + ',' + value[i].Trim();
+                                string s = value[1].Trim();
+                                for (int j = 2; j < value.Length; ++j)
+                                {
+                                    s = s + ',' + value[i].Trim();
+                                }
+                                value[1] = s;
                             }
-                            value[1] = s;
-                        }
 
-                        if (value[0] != nodeName)
-                        {
-                            switch (value[0].Trim())
+                            if (value[0] != nodeName)
                             {
-                                case "System.Boolean":
-                                    bool vb = false;
-                                    if (Boolean.TryParse(value[1].Trim(), out vb))
-                                    {
-                                        myPersistentVars[val.name.Trim()] = vb;
-                                    }
-                                    else
-                                    {
-                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as a boolean", val.name);
-                                    }
-                                    break;
-                                case "System.Int32":
-                                    int vi = 0;
-                                    if (Int32.TryParse(value[1].Trim(), out vi))
-                                    {
-                                        myPersistentVars[val.name.Trim()] = vi;
-                                    }
-                                    else
-                                    {
-                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as an int", val.name);
-                                    }
-                                    break;
-                                case "System.Single":
-                                    float vf = 0.0f;
-                                    if (Single.TryParse(value[1].Trim(), out vf))
-                                    {
-                                        myPersistentVars[val.name.Trim()] = vf;
-                                    }
-                                    else
-                                    {
-                                        JUtil.LogErrorMessage(this, "Failed to parse {0} as a float", val.name);
-                                    }
-                                    break;
-                                default:
-                                    JUtil.LogErrorMessage(this, "Found unknown persistent type {0}", value[0]);
-                                    break;
+                                switch (value[0].Trim())
+                                {
+                                    case "System.Boolean":
+                                        bool vb = false;
+                                        if (Boolean.TryParse(value[1].Trim(), out vb))
+                                        {
+                                            myPersistentVars[val.name.Trim()] = vb;
+                                        }
+                                        else
+                                        {
+                                            JUtil.LogErrorMessage(this, "Failed to parse {0} as a boolean", val.name);
+                                        }
+                                        break;
+                                    case "System.Int32":
+                                        int vi = 0;
+                                        if (Int32.TryParse(value[1].Trim(), out vi))
+                                        {
+                                            myPersistentVars[val.name.Trim()] = vi;
+                                        }
+                                        else
+                                        {
+                                            JUtil.LogErrorMessage(this, "Failed to parse {0} as an int", val.name);
+                                        }
+                                        break;
+                                    case "System.Single":
+                                        float vf = 0.0f;
+                                        if (Single.TryParse(value[1].Trim(), out vf))
+                                        {
+                                            myPersistentVars[val.name.Trim()] = vf;
+                                        }
+                                        else
+                                        {
+                                            JUtil.LogErrorMessage(this, "Failed to parse {0} as a float", val.name);
+                                        }
+                                        break;
+                                    default:
+                                        JUtil.LogErrorMessage(this, "Found unknown persistent type {0}", value[0]);
+                                        break;
+                                }
                             }
                         }
-                    }
 
-                    if(nodeName == "RPMVesselComputer")
-                    {
-                        JUtil.LogMessage(this, "Updating RPMVesselComputer persistents");
-                        persistentVars = myPersistentVars;
-                    }
-                    else
-                    {
                         for (int rpmIdx = 0; rpmIdx < knownRpmc.Count; ++rpmIdx)
                         {
                             if (knownRpmc[rpmIdx].RPMCid == nodeName)
                             {
-                                JUtil.LogMessage(this, "Updating {0} persistents", nodeName);
+                                JUtil.LogMessage(this, "Loading RPMC {0} persistents", nodeName);
                                 knownRpmc[rpmIdx].persistentVars = myPersistentVars;
                                 break;
                             }
                         }
                     }
                 }
-            }
-            else
-            {
-                JUtil.LogErrorMessage(this, "OnLoad was called while vessel is still null");
             }
         }
 
@@ -631,25 +598,19 @@ namespace JSI
         {
             base.OnSave(node);
 
+            // null vessels are possible - if I detect the craft is
+            // uncontrollable at Awake, I don't bother storing vessel, so we
+            // can see null here.  It is not an error.
             if (vessel != null)
             {
                 JUtil.LogMessage(this, "OnSave for vessel {0}", vessel.id);
-                if (persistentVars.Count > 0)
-                {
-                    ConfigNode pers = new ConfigNode("RPM_PERSISTENT_VARS");
-                    pers.AddValue("name", "RPMVesselComputer");
-                    foreach (var val in persistentVars)
-                    {
-                        string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
-                        pers.AddValue(val.Key, value);
-                    }
-                    node.AddNode(pers);
-                }
-                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx )
+
+                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
                     RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if(rpmc != null)
+                    if (rpmc != null && rpmc.persistentVars.Count > 0)
                     {
+                        JUtil.LogMessage(this, "Storing RPMC {0} persistents", rpmc.RPMCid);
                         ConfigNode rpmcPers = new ConfigNode("RPM_PERSISTENT_VARS");
                         rpmcPers.AddValue("name", rpmc.RPMCid);
                         foreach (var val in rpmc.persistentVars)
@@ -660,7 +621,7 @@ namespace JSI
                         node.AddNode(rpmcPers);
                     }
                 }
-                
+
             }
         }
 
@@ -677,7 +638,7 @@ namespace JSI
             if (vessel == null || vessel.isEVA || !vessel.isCommandable)
             {
                 vessel = null;
-                Destroy(this);
+                //Destroy(this);
                 return;
             }
             if (!GameDatabase.Instance.IsReady())
@@ -721,6 +682,11 @@ namespace JSI
 
         public void Start()
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             //JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             try
             {
@@ -822,6 +788,11 @@ namespace JSI
 
         public void Update()
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
                 timeToUpdate = true;
@@ -840,6 +811,11 @@ namespace JSI
 
         public void FixedUpdate()
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             if (JUtil.RasterPropMonitorShouldUpdate(vessel))
             {
                 UpdateVariables();
@@ -2190,7 +2166,7 @@ namespace JSI
         private bool UpdateCheck()
         {
             Part newpart = DeduceCurrentPart();
-            if(part != newpart)
+            if (part != newpart)
             {
                 // Do some processing?
                 if (part != null)
@@ -2240,24 +2216,14 @@ namespace JSI
             if (action.from.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'from' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
+                timeToUpdate = true;
+                forceCallbackRefresh = true;
             }
             else if (action.to.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'to' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
-            }
-            else
-            {
-                JUtil.LogMessage(this, "onPartCouple(): I am not involved from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
-            }
-            if (action.from.vessel.id == vessel.id)
-            {
-                RPMVesselComputer otherComp = null;
-                if (TryGetInstance(action.to.vessel, ref otherComp))
-                {
-                    //JUtil.LogMessage(this, "onPartCouple(): Merging RPMVesselComputers");
-                    MergePersistents(otherComp);
-                }
                 timeToUpdate = true;
+                forceCallbackRefresh = true;
             }
         }
 
@@ -2266,7 +2232,6 @@ namespace JSI
             if (p.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartUndock(): I {0} expect to undock", vessel.id);
-                pendingUndocking = true;
             }
         }
 
@@ -2276,6 +2241,7 @@ namespace JSI
             {
                 JUtil.LogMessage(this, "onVesselChange(): for me {0}", v.id);
                 timeToUpdate = true;
+                forceCallbackRefresh = true;
                 resultCache.Clear();
             }
         }
@@ -2291,36 +2257,6 @@ namespace JSI
                     forceCallbackRefresh = true;
                 }
             }
-            else
-            {
-                RPMVesselComputer otherComp = null;
-                if (TryGetInstance(v, ref otherComp))
-                {
-                    // I assume that when these callbacks trigger right after
-                    // undocking, I'll see at least one callback with one of
-                    // the RPMVC indicating 'pendingUndocking'.
-                    if (pendingUndocking || otherComp.pendingUndocking)
-                    {
-                        pendingUndocking = false;
-                        otherComp.pendingUndocking = false;
-                        JUtil.LogMessage(this, "onVesselWasModified(): {0} merging persistents with {1}", vessel.id, v.id);
-                        MergePersistents(otherComp);
-                    }
-                    timeToUpdate = true;
-                    forceCallbackRefresh = true;
-                    otherComp.timeToUpdate = true;
-                    otherComp.forceCallbackRefresh = true;
-
-                    //else
-                    //{
-                    //    JUtil.LogMessage(this, "VesselModifiedCallback(): for {0} - but {1} not pendingUndocking", v.id, vessel.id);
-                    //}
-                }
-                //else
-                //{
-                //    JUtil.LogMessage(this, "VesselModifiedCallback(): Failed to get {0}'s computer, can't share data", v.id);
-                //}
-            }
         }
         #endregion
 
@@ -2334,8 +2270,8 @@ namespace JSI
             }
         }
 
-        delegate object VariableEvaluator(string s);
-        private class VariableCache
+        internal delegate object VariableEvaluator(string s);
+        internal class VariableCache
         {
             internal object cachedValue = null;
             internal readonly VariableEvaluator accessor;
