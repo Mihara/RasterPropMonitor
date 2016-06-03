@@ -116,8 +116,6 @@ namespace JSI
         private bool timeToUpdate = false;
 
         // Processing cache!
-        private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
-        private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private uint masterSerialNumber = 0u;
 
@@ -613,17 +611,6 @@ namespace JSI
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
-
-            installedModules.Add(new JSIParachute(vessel));
-            installedModules.Add(new JSIMechJeb(vessel));
-            installedModules.Add(new JSIInternalRPMButtons(vessel));
-            installedModules.Add(new JSIFAR(vessel));
-            installedModules.Add(new JSIKAC(vessel));
-#if ENABLE_ENGINE_MONITOR
-            installedModules.Add(new JSIEngine(vessel));
-#endif
-            installedModules.Add(new JSIPilotAssistant(vessel));
-            installedModules.Add(new JSIChatterer(vessel));
         }
 
         public void Start()
@@ -701,7 +688,6 @@ namespace JSI
                 JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
-            resultCache.Clear();
             variableCache.Clear();
 
             vessel = null;
@@ -778,7 +764,7 @@ namespace JSI
                 long newPart = stopwatch.ElapsedMilliseconds;
 #endif
                 timeToUpdate = false;
-                resultCache.Clear();
+
                 ++masterSerialNumber;
 
 #if SHOW_FIXEDUPDATE_TIMING
@@ -903,33 +889,7 @@ namespace JSI
                 }
             }
 
-            object returnValue = resultCache[input];
-            if (returnValue == null)
-            {
-                bool cacheable = true;
-                try
-                {
-                    if (rpmComp == null || !rpmComp.ProcessVariable(input, out returnValue, out cacheable))
-                    {
-                        cacheable = false;
-                        returnValue = input;
-                    }
-                }
-                catch (Exception e)
-                {
-                    JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                    // Most of the variables are doubles...
-                    return double.NaN;
-                }
-
-                if (cacheable && returnValue != null)
-                {
-                    //JUtil.LogMessage(this, "Found variable \"{0}\"!  It was {1}", input, returnValue);
-                    resultCache.Add(input, returnValue);
-                }
-            }
-
-            return returnValue;
+            return input;
         }
 
         /// <summary>
@@ -1489,7 +1449,16 @@ namespace JSI
                 surfaceRight = Vector3.Cross(surfaceForward, up);
             }
 
-            rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
+            // This happens if we update right away, before navBall has been fetched.
+            // Like, at load time.
+            if (navBall != null)
+            {
+                rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
+            }
+            else
+            {
+                rotationVesselSurface = Quaternion.identity;
+            }
 
             prograde = vessel.orbit.GetVel().normalized;
             radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
@@ -1505,7 +1474,6 @@ namespace JSI
             }
 
             UpdateLandingPredictions();
-
         }
 
         private bool runningPredicition = false;
@@ -1975,10 +1943,7 @@ namespace JSI
             {
                 dataUpdateCountdown = refreshDataRate;
                 part = newpart;
-                // Force an early flush of the result cache, in case per-part
-                // variables need to be rendered.
-                resultCache.Clear();
-                //variableCache.Clear();
+
                 return true;
             }
 
@@ -2036,9 +2001,17 @@ namespace JSI
             if (v.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onVesselChange(): for me {0}", v.id);
+
+                // This looks messy because onVesselChange may be called before
+                // the navBall variable has been initialized.  We set timeToUpdate
+                // true so UpdateVariables executes now, and then we set it true
+                // afterwards because UpdateVariables sets it to false.  That
+                // way, the next FixedUpdate will trigger another update after
+                // navBall is ready.
                 timeToUpdate = true;
-                //forceCallbackRefresh = true;
-                resultCache.Clear();
+                UpdateVariables();
+                // Re-trigger the update for the next FixedUpdate.
+                timeToUpdate = true;
             }
         }
 
@@ -2050,7 +2023,6 @@ namespace JSI
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
-                    //forceCallbackRefresh = true;
                 }
             }
         }
