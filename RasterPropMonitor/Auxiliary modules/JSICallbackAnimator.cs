@@ -247,7 +247,7 @@ namespace JSI
                 }
                 else
                 {
-                    throw new ArgumentException("Animation "+ animationName +"could not be found.");
+                    throw new ArgumentException("Animation "+ animationName +" could not be found.");
                 }
 
                 if (node.HasValue("stopAnimationName"))
