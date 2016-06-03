@@ -260,8 +260,8 @@ namespace JSI
         internal ResourceDataStorage resources = new ResourceDataStorage();
         private float slopeAngle;
         private double speedHorizontal;
-        private double speedVertical;
-        private double speedVerticalRounded;
+        internal double speedVertical;
+        internal double speedVerticalRounded;
         private float totalCurrentThrust;
         private float totalDataAmount;
         private float totalExperimentCount;
@@ -280,7 +280,7 @@ namespace JSI
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom, terrainDelta;
         // radarAltitudeRate as computed using a simple exponential smoothing.
-        private float radarAltitudeRate = 0.0f;
+        internal float radarAltitudeRate = 0.0f;
         private double lastRadarAltitudeTime;
 
         // Target values
@@ -1834,10 +1834,6 @@ namespace JSI
         /// Computes the estimated speed at impact based on the parameters supplied.
         /// </summary>
         /// <param name="thrust"></param>
-        /// <param name="mass"></param>
-        /// <param name="freeFall"></param>
-        /// <param name="currentSpeed"></param>
-        /// <param name="currentAltitude"></param>
         /// <returns></returns>
         private double SpeedAtImpact(float thrust)
         {

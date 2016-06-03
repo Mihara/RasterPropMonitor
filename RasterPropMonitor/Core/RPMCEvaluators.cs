@@ -304,11 +304,97 @@ namespace JSI
                 };
             }
 
-            // Handle a few locally-defined variables
+            // Handle many/most variables
             switch (input)
             {
+                // Speeds.
+                case "VERTSPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.speedVertical; 
+                    };
+                case "VERTSPEEDLOG10":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return JUtil.PseudoLog10(vcomp.speedVertical); 
+                    };
+                case "VERTSPEEDROUNDED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.speedVerticalRounded; 
+                    };
+                case "RADARALTVERTSPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.radarAltitudeRate; 
+                    };
                 case "TERMINALVELOCITY":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return TerminalVelocity(); };
+                case "SURFSPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.srfSpeed; };
+                case "SURFSPEEDMACH":
+                    // Mach number wiggles around 1e-7 when sitting in launch
+                    // clamps before launch, so pull it down to zero if it's close.
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (vessel.mach < 0.001) ? 0.0 : vessel.mach; };
+                case "ORBTSPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.orbit.GetVel().magnitude; };
+                    //...
+                case "EASPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel) / 1.225);
+                        return vessel.srfSpeed * Math.Sqrt(densityRatio);
+                    };
+                case "IASPEED":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        double densityRatio = (AeroExtensions.GetCurrentDensity(vessel) / 1.225);
+                        double pressureRatio = AeroExtensions.StagnationPressureCalc(vessel.mainBody, vessel.mach);
+                        return vessel.srfSpeed * Math.Sqrt(densityRatio) * pressureRatio;
+                    };
+                    //...
+                case "TGTRELX":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        if (FlightGlobals.fetch.VesselTarget != null)
+                        {
+                            return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.right);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+
+                case "TGTRELY":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        if (FlightGlobals.fetch.VesselTarget != null)
+                        {
+                            return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.forward);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+                case "TGTRELZ":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        if (FlightGlobals.fetch.VesselTarget != null)
+                        {
+                            return Vector3d.Dot(FlightGlobals.ship_tgtVelocity, FlightGlobals.ActiveVessel.ReferenceTransform.up);
+                        }
+                        else
+                        {
+                            return 0.0;
+                        }
+                    };
+                
                 case "TIMETOIMPACTSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
                 case "DYNAMICPRESSURE":
@@ -337,6 +423,92 @@ namespace JSI
                     return LandingLongitude();
                 case "PREDICTEDLANDINGERROR":
                     return LandingError();
+                    //...
+                case "SPEEDDISPLAYMODE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        switch (FlightGlobals.speedDisplayMode)
+                        {
+                            case FlightGlobals.SpeedDisplayModes.Orbit:
+                                return 1d;
+                            case FlightGlobals.SpeedDisplayModes.Surface:
+                                return 0d;
+                            case FlightGlobals.SpeedDisplayModes.Target:
+                                return -1d;
+                        }
+                        return double.NaN;
+                    };
+                case "ISONKERBINTIME":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return GameSettings.KERBIN_TIME.GetHashCode(); };
+                case "ISDOCKINGPORTREFERENCE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        ModuleDockingNode thatPort = null;
+                        Part referencePart = rpmComp.vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
+                        {
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatPort = thatModule as ModuleDockingNode;
+                                if (thatPort != null)
+                                    break;
+                            }
+                        }
+                        if (thatPort != null)
+                            return 1d;
+                        return 0d;
+                    };
+                case "ISCLAWREFERENCE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        ModuleGrappleNode thatClaw = null;
+                        Part referencePart = rpmComp.vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
+                        {
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatClaw = thatModule as ModuleGrappleNode;
+                                if (thatClaw != null)
+                                    break;
+                            }
+                        }
+                        if (thatClaw != null)
+                            return 1d;
+                        return 0d;
+                    };
+                case "ISREMOTEREFERENCE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        ModuleCommand thatPod = null;
+                        Part referencePart = rpmComp.vessel.GetReferenceTransformPart();
+                        if (referencePart != null)
+                        {
+                            foreach (PartModule thatModule in referencePart.Modules)
+                            {
+                                thatPod = thatModule as ModuleCommand;
+                                if (thatPod != null)
+                                    break;
+                            }
+                        }
+                        if (thatPod == null)
+                            return 1d;
+                        return 0d;
+                    };
+                case "FLIGHTUIMODE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        switch (FlightUIModeController.Instance.Mode)
+                        {
+                            case FlightUIMode.DOCKING:
+                                return 1d;
+                            case FlightUIMode.STAGING:
+                                return -1d;
+                            case FlightUIMode.ORBITAL:
+                                return 0d;
+                        }
+                        return double.NaN;
+                    };
+
                 case "MECHJEBAVAILABLE":
                     return MechJebAvailable();
             }
