@@ -186,13 +186,13 @@ namespace JSI
         // If up x right is a degenerate vector (rolled on the side), we use
         // the forward vector to compose a new basis
         private Vector3 surfaceRight;
-        //public Vector3 SurfaceRight
-        //{
-        //    get
-        //    {
-        //        return surfaceRight;
-        //    }
-        //}
+        public Vector3 SurfaceRight
+        {
+            get
+            {
+                return surfaceRight;
+            }
+        }
         // surfaceForward is the cross of the up vector and right vector, so
         // that surface velocity can be decomposed to surface-relative components.
         private Vector3 surfaceForward;
@@ -259,7 +259,7 @@ namespace JSI
         private bool orbitSensibility;
         internal ResourceDataStorage resources = new ResourceDataStorage();
         private float slopeAngle;
-        private double speedHorizontal;
+        internal double speedHorizontal;
         internal double speedVertical;
         internal double speedVerticalRounded;
         private float totalCurrentThrust;
@@ -299,8 +299,8 @@ namespace JSI
                 return targetSeparation;
             }
         }
-        private Vector3d velocityRelativeTarget;
-        private float approachSpeed;
+        internal Vector3d velocityRelativeTarget;
+        internal float approachSpeed;
         private Quaternion targetOrientation;
 
         // Diagnostics

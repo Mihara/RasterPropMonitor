@@ -124,17 +124,17 @@ namespace JSI
                 //    return (string variable, RasterPropMonitorComputer rpmComp) => { return (vessel.mach < 0.001) ? 0.0 : vessel.mach; };
                 //case "ORBTSPEED":
                 //    return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.orbit.GetVel().magnitude; };
-                case "TRGTSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return velocityRelativeTarget.magnitude; };
-                case "HORZVELOCITY":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return speedHorizontal; };
-                case "HORZVELOCITYFORWARD":
-                    // Negate it, since this is actually movement on the Z axis,
-                    // and we want to treat it as a 2D projection on the surface
-                    // such that moving "forward" has a positive value.
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return -Vector3d.Dot(vessel.srf_velocity, surfaceForward); };
-                case "HORZVELOCITYRIGHT":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return Vector3d.Dot(vessel.srf_velocity, surfaceRight); };
+                //case "TRGTSPEED":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return velocityRelativeTarget.magnitude; };
+                //case "HORZVELOCITY":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return speedHorizontal; };
+                //case "HORZVELOCITYFORWARD":
+                //    // Negate it, since this is actually movement on the Z axis,
+                //    // and we want to treat it as a 2D projection on the surface
+                //    // such that moving "forward" has a positive value.
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return -Vector3d.Dot(vessel.srf_velocity, surfaceForward); };
+                //case "HORZVELOCITYRIGHT":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return Vector3d.Dot(vessel.srf_velocity, surfaceRight); };
                 //case "EASPEED":
                 //    return (string variable, RasterPropMonitorComputer rpmComp) =>
                 //    {
@@ -148,22 +148,22 @@ namespace JSI
                 //        double pressureRatio = AeroExtensions.StagnationPressureCalc(vessel.mainBody, vessel.mach);
                 //        return vessel.srfSpeed * Math.Sqrt(densityRatio) * pressureRatio;
                 //    };
-                case "APPROACHSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return approachSpeed; };
-                case "SELECTEDSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp) =>
-                    {
-                        switch (FlightGlobals.speedDisplayMode)
-                        {
-                            case FlightGlobals.SpeedDisplayModes.Orbit:
-                                return vessel.orbit.GetVel().magnitude;
-                            case FlightGlobals.SpeedDisplayModes.Surface:
-                                return vessel.srfSpeed;
-                            case FlightGlobals.SpeedDisplayModes.Target:
-                                return velocityRelativeTarget.magnitude;
-                        }
-                        return double.NaN;
-                    };
+                //case "APPROACHSPEED":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return approachSpeed; };
+                //case "SELECTEDSPEED":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                //    {
+                //        switch (FlightGlobals.speedDisplayMode)
+                //        {
+                //            case FlightGlobals.SpeedDisplayModes.Orbit:
+                //                return vessel.orbit.GetVel().magnitude;
+                //            case FlightGlobals.SpeedDisplayModes.Surface:
+                //                return vessel.srfSpeed;
+                //            case FlightGlobals.SpeedDisplayModes.Target:
+                //                return velocityRelativeTarget.magnitude;
+                //        }
+                //        return double.NaN;
+                //    };
 
                 //case "TGTRELX":
                 //    return (string variable, RasterPropMonitorComputer rpmComp) =>
