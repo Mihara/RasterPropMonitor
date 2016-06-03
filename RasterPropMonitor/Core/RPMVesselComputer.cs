@@ -260,12 +260,12 @@ namespace JSI
         internal double speedHorizontal;
         internal double speedVertical;
         internal double speedVerticalRounded;
-        private float totalCurrentThrust;
+        internal float totalCurrentThrust;
         private float totalDataAmount;
         private float totalExperimentCount;
-        private float totalLimitedMaximumThrust;
+        internal float totalLimitedMaximumThrust;
         private float totalRawMaximumThrust;
-        private float totalShipDryMass;
+        internal float totalShipDryMass;
         internal float totalShipWetMass;
         private float maxEngineFuelFlow;
         private float currentEngineFuelFlow;
@@ -1803,7 +1803,7 @@ namespace JSI
         /// </summary>
         /// <param name="thrust"></param>
         /// <returns></returns>
-        private double SpeedAtImpact(float thrust)
+        internal double SpeedAtImpact(float thrust)
         {
             float acceleration = localGeeASL - (thrust / totalShipWetMass);
             double timeToImpact = (speedVertical + Math.Sqrt(speedVertical * speedVertical + 2.0f * acceleration * altitudeTrue)) / acceleration;
@@ -1820,7 +1820,7 @@ namespace JSI
         /// avoid crashing.
         /// </summary>
         /// <returns></returns>
-        private double SuicideBurnCountdown()
+        internal double SuicideBurnCountdown()
         {
             Orbit orbit = vessel.orbit;
             if (orbit.PeA > 0.0) throw new ArgumentException("SuicideBurnCountdown: periapsis is above the ground");

@@ -205,31 +205,31 @@ namespace JSI
 
                 //case "TIMETOIMPACTSECS":
                 //    return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
-                case "SPEEDATIMPACT":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return SpeedAtImpact(totalCurrentThrust); };
-                case "BESTSPEEDATIMPACT":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return SpeedAtImpact(totalLimitedMaximumThrust); };
-                case "SUICIDEBURNSTARTSECS":
-                    return (string variable, RasterPropMonitorComputer rpmComp) =>
-                    {
-                        if (vessel.orbit.PeA > 0.0)
-                        {
-                            return double.NaN;
-                        }
-                        return SuicideBurnCountdown();
-                    };
+                //case "SPEEDATIMPACT":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return SpeedAtImpact(totalCurrentThrust); };
+                //case "BESTSPEEDATIMPACT":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return SpeedAtImpact(totalLimitedMaximumThrust); };
+                //case "SUICIDEBURNSTARTSECS":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                //    {
+                //        if (vessel.orbit.PeA > 0.0)
+                //        {
+                //            return double.NaN;
+                //        }
+                //        return SuicideBurnCountdown();
+                //    };
 
-                case "LATERALBRAKEDISTANCE":
-                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
-                    return (string variable, RasterPropMonitorComputer rpmComp) =>
-                    {
-                        if (totalLimitedMaximumThrust <= 0.0)
-                        {
-                            // It should be impossible for wet mass to be zero.
-                            return -1.0;
-                        }
-                        return (speedHorizontal * speedHorizontal) / (2.0 * totalLimitedMaximumThrust / totalShipWetMass);
-                    };
+                //case "LATERALBRAKEDISTANCE":
+                //    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
+                //    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                //    {
+                //        if (totalLimitedMaximumThrust <= 0.0)
+                //        {
+                //            // It should be impossible for wet mass to be zero.
+                //            return -1.0;
+                //        }
+                //        return (speedHorizontal * speedHorizontal) / (2.0 * totalLimitedMaximumThrust / totalShipWetMass);
+                //    };
 
                 // Altitudes
                 case "ALTITUDE":
@@ -1650,9 +1650,9 @@ namespace JSI
                 //        return double.NaN;
                 //    };
 
-                // Meta.
-                case "RPMVERSION":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion; };
+                //// Meta.
+                //case "RPMVERSION":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion; };
                 // That would return only the "AssemblyVersion" version which in our case does not change anymore.
                 // We use "AsssemblyFileVersion" for actual version numbers now to facilitate hardlinking.
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();

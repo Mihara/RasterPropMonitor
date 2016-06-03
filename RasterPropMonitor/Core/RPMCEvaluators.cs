@@ -20,6 +20,7 @@
  ****************************************************************************/
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
@@ -443,12 +444,87 @@ namespace JSI
                 
                 case "TIMETOIMPACTSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
+                case "SPEEDATIMPACT":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.SpeedAtImpact(vcomp.totalCurrentThrust); 
+                    };
+                case "BESTSPEEDATIMPACT":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.SpeedAtImpact(vcomp.totalLimitedMaximumThrust); 
+                    };
+                case "SUICIDEBURNSTARTSECS":
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        if (vessel.orbit.PeA > 0.0)
+                        {
+                            return double.NaN;
+                        }
+                        else
+                        {
+                            RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                            return vcomp.SuicideBurnCountdown();
+                        }
+                    };
+
+                case "LATERALBRAKEDISTANCE":
+                    // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        if (vcomp.totalLimitedMaximumThrust <= 0.0)
+                        {
+                            // It should be impossible for wet mass to be zero.
+                            return -1.0;
+                        }
+                        return (vcomp.speedHorizontal * vcomp.speedHorizontal) / (2.0 * vcomp.totalLimitedMaximumThrust / vcomp.totalShipWetMass);
+                    };
+                    //...
                 case "DYNAMICPRESSURE":
                     return DynamicPressure();
+                    //...
+
+                // Masses.
+                case "MASSDRY":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.totalShipDryMass; 
+                    };
+                case "MASSWET":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.totalShipWetMass; 
+                    };
+                case "MASSRESOURCES":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.totalShipWetMass - vcomp.totalShipDryMass; 
+                    };
+                case "MASSPROPELLANT":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.resources.PropellantMass(false); 
+                    };
+                case "MASSPROPELLANTSTAGE":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => 
+                    {
+                        RPMVesselComputer vcomp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        return vcomp.resources.PropellantMass(true); 
+                    };
+
+                // The delta V calculation.
                 case "DELTAV":
                     return DeltaV();
                 case "DELTAVSTAGE":
                     return DeltaVStage();
+                    //...
                 case "DRAG":
                     return DragForce();
                 case "DRAGACCEL":
@@ -555,6 +631,9 @@ namespace JSI
                         return double.NaN;
                     };
 
+                // Meta.
+                case "RPMVERSION":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion; };
                 case "MECHJEBAVAILABLE":
                     return MechJebAvailable();
             }
