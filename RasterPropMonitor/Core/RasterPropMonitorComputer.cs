@@ -52,6 +52,7 @@ namespace JSI
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, RPMVesselComputer.VariableCache> variableCache = new DefaultableDictionary<string, RPMVesselComputer.VariableCache>(null);
+        private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
         private uint masterSerialNumber = 0u;
 
         // Data refresh
@@ -162,6 +163,7 @@ namespace JSI
                     catch (Exception e)
                     {
                         JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                        variableCache.Clear();
                     }
                 }
 
@@ -183,6 +185,8 @@ namespace JSI
                     catch (Exception e)
                     {
                         JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                        variableCache.Clear();
+                        return -1;
                     }
 
                     variableCache[input] = vc;
@@ -190,8 +194,40 @@ namespace JSI
                 }
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            return comp.ProcessVariableEx(input, this);
+            object returnValue = resultCache[input];
+            if (returnValue == null)
+            {
+                bool cacheable = true;
+                try
+                {
+                    if (!ProcessVariable(input, out returnValue, out cacheable))
+                    {
+                        cacheable = false;
+                        returnValue = input;
+                        if (!unrecognizedVariables.Contains(input))
+                        {
+                            unrecognizedVariables.Add(input);
+                            JUtil.LogMessage(this, "Unrecognized variable {0}", input);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+                    // Most of the variables are doubles...
+                    return double.NaN;
+                }
+
+                if (cacheable && returnValue != null)
+                {
+                    //JUtil.LogMessage(this, "Found variable \"{0}\"!  It was {1}", input, returnValue);
+                    resultCache.Add(input, returnValue);
+                }
+            }
+
+            //RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            //return comp.ProcessVariableEx(input, this);
+            return returnValue;
         }
 
         /// <summary>
@@ -202,7 +238,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "RegisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
+            //JUtil.LogMessage(this, "RegisterCallback with {1} for {0}", variableName, RPMCid);
             if (onChangeCallbacks.ContainsKey(variableName))
             {
                 onChangeCallbacks[variableName].Add(cb);
@@ -224,7 +260,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "UnregisterCallback for {0} with delegate {1}", variableName, cb.GetHashCode());
+            //JUtil.LogMessage(this, "UnregisterCallback with {1} for {0}", variableName, RPMCid);
             if (onChangeCallbacks.ContainsKey(variableName))
             {
                 try
@@ -248,7 +284,7 @@ namespace JSI
             refreshDataRate = Math.Max(1, Math.Min(newDataRate, refreshDataRate));
 
             RPMVesselComputer comp = null;
-            if(RPMVesselComputer.TryGetInstance(vessel, ref comp))
+            if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
             {
                 comp.UpdateDataRefreshRate(newDataRate);
             }
@@ -282,7 +318,7 @@ namespace JSI
                 else
                 {
                     id = new Guid(RPMCid);
-                    JUtil.LogMessage(this, "Start: Loading GUID string {0} into {1}", RPMCid, id);
+                    JUtil.LogMessage(this, "Start: Loading GUID string {0}", RPMCid);
                 }
 
                 plugins = new ExternalVariableHandlers(part);
@@ -426,7 +462,7 @@ namespace JSI
                     vesselDescription = s.Replace(editorNewline, "$$$");
                 }
             }
-            else if(JUtil.IsActiveVessel(vessel))
+            else if (JUtil.IsActiveVessel(vessel))
             {
                 if (--dataUpdateCountdown < 0)
                 {
@@ -438,6 +474,11 @@ namespace JSI
 
         public void OnDestroy()
         {
+            if (id != Guid.Empty)
+            {
+                JUtil.LogMessage(this, "OnDestroy: GUID {0}", id);
+            }
+
 #if SHOW_VARIABLE_QUERY_COUNTER
             debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
             JUtil.LogMessage(this, "{3}: {0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
