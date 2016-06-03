@@ -340,7 +340,7 @@ namespace JSI
 
             if (progradeLadderIcon != null)
             {
-                float AoA = comp.AbsoluteAoA;
+                float AoA = rpmComp.AbsoluteAoA;
                 AoA = (float)JUtil.ClampDegrees180(AoA);
                 if (float.IsNaN(AoA))
                 {
@@ -378,7 +378,7 @@ namespace JSI
         /// <summary>
         /// Update the compass / heading bar
         /// </summary>
-        private void UpdateHeading(Quaternion rotationVesselSurface, RPMVesselComputer comp)
+        private void UpdateHeading(Quaternion rotationVesselSurface)
         {
             float heading = rotationVesselSurface.eulerAngles.y / 360.0f;
 
@@ -394,7 +394,7 @@ namespace JSI
 
             if (progradeHeadingIcon != null)
             {
-                float slipAngle = comp.Sideslip;
+                float slipAngle = rpmComp.Sideslip;
                 float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
                 float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
@@ -448,7 +448,7 @@ namespace JSI
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             if (headingMesh != null)
             {
-                UpdateHeading(rotationVesselSurface, comp);
+                UpdateHeading(rotationVesselSurface);
                 JUtil.ShowHide(true, headingMesh);
             }
 

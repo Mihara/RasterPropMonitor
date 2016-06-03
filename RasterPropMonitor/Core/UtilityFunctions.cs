@@ -1733,7 +1733,7 @@ namespace JSI
 
                 try
                 {
-                    RPMVesselComputer.TriggeredEventTemplate triggeredVar = new RPMVesselComputer.TriggeredEventTemplate(nodes[idx]);
+                    RasterPropMonitorComputer.TriggeredEventTemplate triggeredVar = new RasterPropMonitorComputer.TriggeredEventTemplate(nodes[idx]);
 
                     if (!string.IsNullOrEmpty(eventName) && triggeredVar != null)
                     {

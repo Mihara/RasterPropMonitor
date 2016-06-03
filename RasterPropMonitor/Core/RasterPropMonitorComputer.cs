@@ -330,7 +330,7 @@ namespace JSI
                     string[] varstring = triggeredEvents.Split('|');
                     for (int i = 0; i < varstring.Length; ++i)
                     {
-                        comp.AddTriggeredEvent(varstring[i].Trim());
+                        AddTriggeredEvent(varstring[i].Trim());
                     }
                 }
 
@@ -405,6 +405,11 @@ namespace JSI
                 JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
                 debug_varsProcessed = 0;
 #endif
+
+                for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                {
+                    activeTriggeredEvents[i].Update(this);
+                }
             }
         }
 
@@ -464,7 +469,7 @@ namespace JSI
         {
             if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselChange(): for me {0}", who.id);
+                JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} ({1} vars)", RPMCid, persistentVars.Count);
                 forceCallbackRefresh = true;
                 variableCache.Clear();
                 resultCache.Clear();
@@ -486,7 +491,7 @@ namespace JSI
         {
             if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", who.id);
+                JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} ({1} vars)", RPMCid, persistentVars.Count);
                 forceCallbackRefresh = true;
                 variableCache.Clear();
                 resultCache.Clear();

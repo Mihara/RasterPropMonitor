@@ -79,7 +79,7 @@ namespace JSI
             "AG8",
             "AG9"
         };
-        private const float gee = 9.81f;
+        internal const float gee = 9.81f;
         private readonly double upperAtmosphereLimit = Math.Log(100000.0);
         #endregion
 
@@ -214,25 +214,25 @@ namespace JSI
         }
 
         // Helper to get sideslip for the HUD
-        internal float Sideslip
-        {
-            get
-            {
-                return EvaluateSideSlip();
-            }
-        }
+        //internal float Sideslip
+        //{
+        //    get
+        //    {
+        //        return EvaluateSideSlip();
+        //    }
+        //}
         // Helper to get the AoA in absolute terms (instead of relative to the
         // nose) for the HUD.
-        internal float AbsoluteAoA
-        {
-            get
-            {
-                return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - EvaluateAngleOfAttack();
-            }
-        }
+        //internal float AbsoluteAoA
+        //{
+        //    get
+        //    {
+        //        return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - EvaluateAngleOfAttack();
+        //    }
+        //}
 
         // Tracked vessel variables
-        private float actualAverageIsp;
+        internal float actualAverageIsp;
         private float actualMaxIsp;
         private double altitudeASL;
         //public double AltitudeASL
@@ -257,7 +257,7 @@ namespace JSI
         private float localGeeASL;
         private float localGeeDirect;
         private bool orbitSensibility;
-        private ResourceDataStorage resources = new ResourceDataStorage();
+        internal ResourceDataStorage resources = new ResourceDataStorage();
         private float slopeAngle;
         private double speedHorizontal;
         private double speedVertical;
@@ -268,7 +268,7 @@ namespace JSI
         private float totalLimitedMaximumThrust;
         private float totalRawMaximumThrust;
         private float totalShipDryMass;
-        private float totalShipWetMass;
+        internal float totalShipWetMass;
         private float maxEngineFuelFlow;
         private float currentEngineFuelFlow;
 
@@ -526,7 +526,7 @@ namespace JSI
                         {
                             if (knownRpmc[rpmIdx].RPMCid == nodeName)
                             {
-                                JUtil.LogMessage(this, "Loading RPMC {0} persistents", nodeName);
+                                JUtil.LogMessage(this, "Loading RPMC {0} persistents ({1} values)", nodeName, myPersistentVars.Count);
                                 knownRpmc[rpmIdx].persistentVars = myPersistentVars;
                                 break;
                             }
@@ -722,9 +722,9 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            evaluateAngleOfAttack = null;
-            evaluateSideSlip = null;
-            evaluateTerminalVelocity = null;
+            //evaluateAngleOfAttack = null;
+            //evaluateSideSlip = null;
+            //evaluateTerminalVelocity = null;
         }
 
         public void Update()
@@ -801,17 +801,17 @@ namespace JSI
 #endif
                 FetchTargetData();
 
-                if (part != null)
-                {
-                    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
-                    if (rpmComp != null)
-                    {
-                        for (int i = 0; i < activeTriggeredEvents.Count; ++i)
-                        {
-                            activeTriggeredEvents[i].Update(rpmComp);
-                        }
-                    }
-                }
+                //if (part != null)
+                //{
+                //    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
+                //    if (rpmComp != null)
+                //    {
+                //        for (int i = 0; i < activeTriggeredEvents.Count; ++i)
+                //        {
+                //            activeTriggeredEvents[i].Update(rpmComp);
+                //        }
+                //    }
+                //}
 #if SHOW_FIXEDUPDATE_TIMING
                 long targetdata = stopwatch.ElapsedMilliseconds;
                 stopwatch.Stop();
@@ -830,23 +830,23 @@ namespace JSI
         #endregion
 
         #region Interface Methods
-        /// <summary>
-        /// Get a plugin or internal method.
-        /// </summary>
-        /// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
-        /// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
-        /// <param name="delegateType">The expected signature of the method.</param>
-        /// <returns></returns>
-        public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
-        {
-            Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
-            if (returnValue == null && internalProp != null)
-            {
-                returnValue = JUtil.GetMethod(packedMethod, internalProp, delegateType);
-            }
+        ///// <summary>
+        ///// Get a plugin or internal method.
+        ///// </summary>
+        ///// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
+        ///// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
+        ///// <param name="delegateType">The expected signature of the method.</param>
+        ///// <returns></returns>
+        //public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
+        //{
+        //    Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
+        //    if (returnValue == null && internalProp != null)
+        //    {
+        //        returnValue = JUtil.GetMethod(packedMethod, internalProp, delegateType);
+        //    }
 
-            return returnValue;
-        }
+        //    return returnValue;
+        //}
 
         /// <summary>
         /// This intermediary will cache the results so that multiple variable
@@ -1510,10 +1510,10 @@ namespace JSI
 
         private bool runningPredicition = false;
         private double lastRadius;
-        private double estLandingUT;
-        private double estLandingLatitude;
-        private double estLandingLongitude;
-        private double estLandingAltitude;
+        internal double estLandingUT;
+        internal double estLandingLatitude;
+        internal double estLandingLongitude;
+        internal double estLandingAltitude;
         private void UpdateLandingPredictions()
         {
             if (orbitSensibility && vessel.orbit.PeA < 0.0)
@@ -1609,59 +1609,59 @@ namespace JSI
             }
         }
 
-        /// <summary>
-        /// Get an internal method (one that is built into an IJSIModule)
-        /// </summary>
-        /// <param name="packedMethod"></param>
-        /// <param name="delegateType"></param>
-        /// <returns></returns>
-        public Delegate GetInternalMethod(string packedMethod, Type delegateType)
-        {
-            string[] tokens = packedMethod.Split(':');
-            if (tokens.Length != 2)
-            {
-                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
-                throw new ArgumentException("stateMethod incorrectly formatted");
-            }
+        ///// <summary>
+        ///// Get an internal method (one that is built into an IJSIModule)
+        ///// </summary>
+        ///// <param name="packedMethod"></param>
+        ///// <param name="delegateType"></param>
+        ///// <returns></returns>
+        //public Delegate GetInternalMethod(string packedMethod, Type delegateType)
+        //{
+        //    string[] tokens = packedMethod.Split(':');
+        //    if (tokens.Length != 2)
+        //    {
+        //        JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+        //        throw new ArgumentException("stateMethod incorrectly formatted");
+        //    }
 
-            // Backwards compatibility:
-            if (tokens[0] == "MechJebRPMButtons")
-            {
-                tokens[0] = "JSIMechJeb";
-            }
-            IJSIModule jsiModule = null;
-            foreach (IJSIModule module in installedModules)
-            {
-                if (module.GetType().Name == tokens[0])
-                {
-                    jsiModule = module;
-                    break;
-                }
-            }
+        //    // Backwards compatibility:
+        //    if (tokens[0] == "MechJebRPMButtons")
+        //    {
+        //        tokens[0] = "JSIMechJeb";
+        //    }
+        //    IJSIModule jsiModule = null;
+        //    foreach (IJSIModule module in installedModules)
+        //    {
+        //        if (module.GetType().Name == tokens[0])
+        //        {
+        //            jsiModule = module;
+        //            break;
+        //        }
+        //    }
 
-            Delegate stateCall = null;
-            if (jsiModule != null)
-            {
-                var methodInfo = delegateType.GetMethod("Invoke");
-                Type returnType = methodInfo.ReturnType;
-                foreach (MethodInfo m in jsiModule.GetType().GetMethods())
-                {
-                    if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
-                    {
-                        if (m.IsStatic)
-                        {
-                            stateCall = Delegate.CreateDelegate(delegateType, m);
-                        }
-                        else
-                        {
-                            stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
-                        }
-                    }
-                }
-            }
+        //    Delegate stateCall = null;
+        //    if (jsiModule != null)
+        //    {
+        //        var methodInfo = delegateType.GetMethod("Invoke");
+        //        Type returnType = methodInfo.ReturnType;
+        //        foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+        //        {
+        //            if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
+        //            {
+        //                if (m.IsStatic)
+        //                {
+        //                    stateCall = Delegate.CreateDelegate(delegateType, m);
+        //                }
+        //                else
+        //                {
+        //                    stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+        //                }
+        //            }
+        //        }
+        //    }
 
-            return stateCall;
-        }
+        //    return stateCall;
+        //}
 
         /// <summary>
         /// Get the maximum thrust of the engine.
@@ -1752,33 +1752,33 @@ namespace JSI
             return angle;
         }
 
-        /// <summary>
-        /// Returns whether two methods are effectively equal
-        /// </summary>
-        /// <param name="method1"></param>
-        /// <param name="method2"></param>
-        /// <returns></returns>
-        private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
-        {
-            if (method1.ReturnType == method2.ReturnType)
-            {
-                var m1Parms = method1.GetParameters();
-                var m2Parms = method2.GetParameters();
-                if (m1Parms.Length == m2Parms.Length)
-                {
-                    for (int i = 0; i < m1Parms.Length; ++i)
-                    {
-                        if (m1Parms[i].GetType() != m2Parms[i].GetType())
-                        {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            }
+        ///// <summary>
+        ///// Returns whether two methods are effectively equal
+        ///// </summary>
+        ///// <param name="method1"></param>
+        ///// <param name="method2"></param>
+        ///// <returns></returns>
+        //private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
+        //{
+        //    if (method1.ReturnType == method2.ReturnType)
+        //    {
+        //        var m1Parms = method1.GetParameters();
+        //        var m2Parms = method2.GetParameters();
+        //        if (m1Parms.Length == m2Parms.Length)
+        //        {
+        //            for (int i = 0; i < m1Parms.Length; ++i)
+        //            {
+        //                if (m1Parms[i].GetType() != m2Parms[i].GetType())
+        //                {
+        //                    return false;
+        //                }
+        //            }
+        //            return true;
+        //        }
+        //    }
 
-            return false;
-        }
+        //    return false;
+        //}
 
         /// <summary>
         /// Returns a number identifying the next apsis type
@@ -1977,18 +1977,6 @@ namespace JSI
             Part newpart = DeduceCurrentPart();
             if (part != newpart)
             {
-                // Do some processing?
-                
-                if (part != null)
-                {
-                    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, true);
-                    JUtil.LogMessage(this, "UpdateCheck(): part changed to {0}", rpmComp.RPMCid);
-                }
-                else
-                {
-                    JUtil.LogMessage(this, "UpdateCheck(): part changed to null");
-                }
-
                 dataUpdateCountdown = refreshDataRate;
                 part = newpart;
                 // Force an early flush of the result cache, in case per-part

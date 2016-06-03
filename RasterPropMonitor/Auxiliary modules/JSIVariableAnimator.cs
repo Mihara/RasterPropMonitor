@@ -70,7 +70,7 @@ namespace JSI
                         {
                             try
                             {
-                                variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
+                                variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp, rpmComp));
                             }
                             catch (ArgumentException e)
                             {
@@ -86,7 +86,7 @@ namespace JSI
                 {
                     try
                     {
-                        variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp));
+                        variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp, rpmComp));
                     }
                     catch (ArgumentException e)
                     {
@@ -228,7 +228,7 @@ namespace JSI
         // I haven't seen conclusive signs of destructors working in child
         // objects like this, so do I need a manual method?  Or make it a MonoBehavior
         // with only the OnDestroy implemented?
-        public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
+        public VariableAnimationSet(ConfigNode node, InternalProp thisProp, RasterPropMonitorComputer rpmComp)
         {
             part = thisProp.part;
 
@@ -256,10 +256,9 @@ namespace JSI
             }
             else if (node.HasValue("stateMethod"))
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(part.vessel);
                 string stateMethod = node.GetValue("stateMethod").Trim();
                 // Verify the state method actually exists
-                Func<bool> stateFunction = (Func<bool>)comp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
+                Func<bool> stateFunction = (Func<bool>)rpmComp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
                     variableName = "PLUGIN_" + stateMethod;
@@ -372,7 +371,6 @@ namespace JSI
                 }
                 colorName = Shader.PropertyToID(colorNameString);
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
                     activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);

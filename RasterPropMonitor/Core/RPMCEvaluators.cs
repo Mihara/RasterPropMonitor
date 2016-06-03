@@ -22,17 +22,48 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using UnityEngine;
 
 namespace JSI
 {
     public partial class RasterPropMonitorComputer : PartModule
     {
+        private RPMVesselComputer.VariableEvaluator sideSlipEvaluator;
+        internal float Sideslip
+        {
+            get
+            {
+                if (sideSlipEvaluator == null)
+                {
+                    sideSlipEvaluator = SideSlip();
+                }
+                return sideSlipEvaluator(string.Empty, this).MassageToFloat();
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator angleOfAttackEvaluator;
+        internal float AbsoluteAoA
+        {
+            get
+            {
+                if (angleOfAttackEvaluator == null)
+                {
+                    angleOfAttackEvaluator = AngleOfAttack();
+                }
+
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return ((comp.RotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - comp.RotationVesselSurface.eulerAngles.x) : -comp.RotationVesselSurface.eulerAngles.x) - angleOfAttackEvaluator(string.Empty, this).MassageToFloat();
+            }
+        }
+
+        #region evaluator
         internal RPMVesselComputer.VariableEvaluator GetEvaluator(string input, RPMVesselComputer comp, out bool cacheable)
         {
+            cacheable = true;
+
             if (input.IndexOf("_", StringComparison.Ordinal) > -1)
             {
                 string[] tokens = input.Split('_');
-                cacheable = true;
 
                 // Is loaded?
                 if (tokens.Length >= 2 && tokens[0] == "ISLOADED")
@@ -242,7 +273,6 @@ namespace JSI
 
             if (input.StartsWith("AGMEMO", StringComparison.Ordinal))
             {
-                cacheable = true;
                 return (string variable, RasterPropMonitorComputer rpmComp) =>
                 {
                     uint groupID;
@@ -263,7 +293,6 @@ namespace JSI
             // Action group state.
             if (input.StartsWith("AGSTATE", StringComparison.Ordinal))
             {
-                cacheable = true;
                 return (string variable, RasterPropMonitorComputer rpmComp) =>
                 {
                     uint groupID;
@@ -275,7 +304,65 @@ namespace JSI
                 };
             }
 
+            // Handle a few locally-defined variables
+            switch (input)
+            {
+                case "TERMINALVELOCITY":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return TerminalVelocity(); };
+                case "TIMETOIMPACTSECS":
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
+                case "DYNAMICPRESSURE":
+                    return DynamicPressure();
+                case "DELTAV":
+                    return DeltaV();
+                case "DELTAVSTAGE":
+                    return DeltaVStage();
+                case "DRAG":
+                    return DragForce();
+                case "DRAGACCEL":
+                    return DragAccel();
+                case "LIFT":
+                    return LiftForce();
+                case "LIFTACCEL":
+                    return LiftAccel();
+                case "ANGLEOFATTACK":
+                    return AngleOfAttack();
+                case "SIDESLIP":
+                    return SideSlip();
+                case "PREDICTEDLANDINGALTITUDE":
+                    return LandingAltitude();
+                case "PREDICTEDLANDINGLATITUDE":
+                    return LandingLatitude();
+                case "PREDICTEDLANDINGLONGITUDE":
+                    return LandingLongitude();
+                case "PREDICTEDLANDINGERROR":
+                    return LandingError();
+                case "MECHJEBAVAILABLE":
+                    return MechJebAvailable();
+            }
+
+            // If we made it here, it's in the comp.
             return comp.GetEvaluator(input, out cacheable);
+        }
+        #endregion
+
+        #region delegation
+        /// <summary>
+        /// Get a plugin or internal method.
+        /// </summary>
+        /// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
+        /// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
+        /// <param name="delegateType">The expected signature of the method.</param>
+        /// <returns></returns>
+        public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
+        {
+            Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
+            if (returnValue == null && internalProp != null)
+            {
+                returnValue = JUtil.GetMethod(packedMethod, internalProp, delegateType);
+            }
+
+            return returnValue;
         }
 
         /// <summary>
@@ -377,5 +464,554 @@ namespace JSI
 
             return pluginEval;
         }
+
+        /// <summary>
+        /// Get an internal method (one that is built into an IJSIModule)
+        /// </summary>
+        /// <param name="packedMethod"></param>
+        /// <param name="delegateType"></param>
+        /// <returns></returns>
+        public Delegate GetInternalMethod(string packedMethod, Type delegateType)
+        {
+            string[] tokens = packedMethod.Split(':');
+            if (tokens.Length != 2)
+            {
+                JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
+                throw new ArgumentException("stateMethod incorrectly formatted");
+            }
+
+            // Backwards compatibility:
+            if (tokens[0] == "MechJebRPMButtons")
+            {
+                tokens[0] = "JSIMechJeb";
+            }
+            IJSIModule jsiModule = null;
+            foreach (IJSIModule module in installedModules)
+            {
+                if (module.GetType().Name == tokens[0])
+                {
+                    jsiModule = module;
+                    break;
+                }
+            }
+
+            Delegate stateCall = null;
+            if (jsiModule != null)
+            {
+                var methodInfo = delegateType.GetMethod("Invoke");
+                Type returnType = methodInfo.ReturnType;
+                foreach (MethodInfo m in jsiModule.GetType().GetMethods())
+                {
+                    if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
+                    {
+                        if (m.IsStatic)
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, m);
+                        }
+                        else
+                        {
+                            stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
+                        }
+                    }
+                }
+            }
+
+            return stateCall;
+        }
+
+        /// <summary>
+        /// Returns whether two methods are effectively equal
+        /// </summary>
+        /// <param name="method1"></param>
+        /// <param name="method2"></param>
+        /// <returns></returns>
+        private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
+        {
+            if (method1.ReturnType == method2.ReturnType)
+            {
+                var m1Parms = method1.GetParameters();
+                var m2Parms = method2.GetParameters();
+                if (m1Parms.Length == m2Parms.Length)
+                {
+                    for (int i = 0; i < m1Parms.Length; ++i)
+                    {
+                        if (m1Parms[i].GetType() != m2Parms[i].GetType())
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        #endregion
+
+        #region pluginevaluators
+        //private Func<double> evaluateAngleOfAttack;
+        //private Func<double> evaluateSideSlip;
+        private Func<double> evaluateTerminalVelocity;
+        private bool evaluateTerminalVelocityReady;
+        private Func<double> evaluateTimeToImpact;
+        private bool evaluateTimeToImpactReady;
+
+        //private float EvaluateAngleOfAttack()
+        //{
+        //    if (evaluateAngleOfAttack == null)
+        //    {
+        //        Func<double> accessor = null;
+
+        //        accessor = (Func<double>)GetInternalMethod("JSIFAR:GetAngleOfAttack", typeof(Func<double>));
+        //        if (accessor != null)
+        //        {
+        //            double value = accessor();
+        //            if (double.IsNaN(value))
+        //            {
+        //                accessor = null;
+        //            }
+        //        }
+
+        //        if (accessor == null)
+        //        {
+        //            evaluateAngleOfAttack = FallbackEvaluateAngleOfAttack;
+        //        }
+        //        else
+        //        {
+        //            evaluateAngleOfAttack = accessor;
+        //        }
+        //    }
+
+        //    return (float)evaluateAngleOfAttack();
+        //}
+
+        private RPMVesselComputer.VariableEvaluator AngleOfAttack()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetAngleOfAttack", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateAngleOfAttack(); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator DeltaV()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetDeltaV", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return (comp.actualAverageIsp * RPMVesselComputer.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false))); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator DeltaVStage()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetStageDeltaV", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return (comp.actualAverageIsp * RPMVesselComputer.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true))); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator DragAccel()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateDragForce() / comp.totalShipWetMass; 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return accessor() / comp.totalShipWetMass; 
+                };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator DragForce()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDragForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateDragForce(); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator DynamicPressure()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetDynamicPressure", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.dynamicPressurekPa; };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator LandingError()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingError", typeof(Func<double>));
+
+            return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+        }
+
+        private RPMVesselComputer.VariableEvaluator LandingAltitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
+
+            return (string variable, RasterPropMonitorComputer rpmComp) =>
+            {
+                double est = accessor();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                return (est == 0.0) ? comp.estLandingAltitude : est;
+            };
+        }
+
+        private RPMVesselComputer.VariableEvaluator LandingLatitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
+
+            return (string variable, RasterPropMonitorComputer rpmComp) =>
+            {
+                double est = accessor();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                return (est == 0.0) ? comp.estLandingLatitude : est;
+            };
+        }
+
+        private RPMVesselComputer.VariableEvaluator LandingLongitude()
+        {
+            Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
+
+            return (string variable, RasterPropMonitorComputer rpmComp) =>
+            {
+                double est = accessor();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                return (est == 0.0) ? comp.estLandingLongitude : est;
+            };
+        }
+
+        private RPMVesselComputer.VariableEvaluator LiftAccel()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateLiftForce() / comp.totalShipWetMass; 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return accessor() / comp.totalShipWetMass; 
+                };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator LiftForce()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetLiftForce", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateLiftForce(); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        private RPMVesselComputer.VariableEvaluator MechJebAvailable()
+        {
+            Func<bool> accessor = null;
+
+            accessor = (Func<bool>)GetInternalMethod("JSIMechJeb:GetMechJebAvailable", typeof(Func<bool>));
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return false; };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor().GetHashCode(); };
+            }
+        }
+
+        //private float EvaluateSideSlip()
+        //{
+        //    if (evaluateSideSlip == null)
+        //    {
+        //        Func<double> accessor = null;
+
+        //        accessor = (Func<double>)GetInternalMethod("JSIFAR:GetSideSlip", typeof(Func<double>));
+        //        if (accessor != null)
+        //        {
+        //            double value = accessor();
+        //            if (double.IsNaN(value))
+        //            {
+        //                accessor = null;
+        //            }
+        //        }
+
+        //        if (accessor == null)
+        //        {
+        //            evaluateSideSlip = FallbackEvaluateSideSlip;
+        //        }
+        //        else
+        //        {
+        //            evaluateSideSlip = accessor;
+        //        }
+        //    }
+
+        //    return (float)evaluateSideSlip();
+        //}
+
+        private RPMVesselComputer.VariableEvaluator SideSlip()
+        {
+            Func<double> accessor = null;
+
+            accessor = (Func<double>)GetInternalMethod("JSIFAR:GetSideSlip", typeof(Func<double>));
+            if (accessor != null)
+            {
+                double value = accessor();
+                if (double.IsNaN(value))
+                {
+                    accessor = null;
+                }
+            }
+
+            if (accessor == null)
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => 
+                {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    return comp.FallbackEvaluateSideSlip(); 
+                };
+            }
+            else
+            {
+                return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
+            }
+        }
+
+        internal double TerminalVelocity()
+        {
+            if (evaluateTerminalVelocityReady == false)
+            {
+                Func<double> accessor = null;
+
+                accessor = (Func<double>)GetInternalMethod("JSIFAR:GetTerminalVelocity", typeof(Func<double>));
+                if (accessor != null)
+                {
+                    double value = accessor();
+                    if (value < 0.0)
+                    {
+                        accessor = null;
+                    }
+                }
+
+                if (accessor == null)
+                {
+                    accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetTerminalVelocity", typeof(Func<double>));
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                evaluateTerminalVelocity = accessor;
+                evaluateTerminalVelocityReady = true;
+            }
+
+            if (evaluateTerminalVelocity == null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.FallbackEvaluateTerminalVelocity();
+            }
+            else
+            {
+                return evaluateTerminalVelocity();
+            }
+        }
+
+        private double TimeToImpact()
+        {
+            if (evaluateTimeToImpactReady == false)
+            {
+                Func<double> accessor = null;
+
+                if (accessor == null)
+                {
+                    accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingTime", typeof(Func<double>));
+                    double value = accessor();
+                    if (double.IsNaN(value))
+                    {
+                        accessor = null;
+                    }
+                }
+
+                evaluateTimeToImpact = accessor;
+
+                evaluateTimeToImpactReady = true;
+            }
+
+            double timeToImpact;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
+            if (evaluateTimeToImpact != null)
+            {
+                timeToImpact = evaluateTimeToImpact();
+            }
+            else
+            {
+                timeToImpact = comp.FallbackEvaluateTimeToImpact();
+            }
+
+            if (double.IsNaN(timeToImpact) || timeToImpact > 365.0 * 24.0 * 60.0 * 60.0 || timeToImpact < 0.0)
+            {
+                timeToImpact = -1.0;
+            }
+            else if (timeToImpact == 0.0)
+            {
+                return comp.estLandingUT - Planetarium.GetUniversalTime();
+            }
+            return timeToImpact;
+        }
+        #endregion
     }
 }

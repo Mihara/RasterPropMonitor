@@ -114,8 +114,8 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return speedVerticalRounded; };
                 case "RADARALTVERTSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return radarAltitudeRate; };
-                case "TERMINALVELOCITY":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return TerminalVelocity(); };
+                //case "TERMINALVELOCITY":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return TerminalVelocity(); };
                 case "SURFSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.srfSpeed; };
                 case "SURFSPEEDMACH":
@@ -203,8 +203,8 @@ namespace JSI
                         }
                     };
 
-                case "TIMETOIMPACTSECS":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
+                //case "TIMETOIMPACTSECS":
+                //    return (string variable, RasterPropMonitorComputer rpmComp) => { return TimeToImpact(); };
                 case "SPEEDATIMPACT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return SpeedAtImpact(totalCurrentThrust); };
                 case "BESTSPEEDATIMPACT":
@@ -276,8 +276,8 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres; };
                 case "ATMDENSITY":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return vessel.atmDensity; };
-                case "DYNAMICPRESSURE":
-                    return DynamicPressure();
+                //case "DYNAMICPRESSURE":
+                //    return DynamicPressure();
                 case "ATMOSPHEREDEPTH":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
@@ -315,10 +315,10 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return resources.PropellantMass(true); };
 
                 // The delta V calculation.
-                case "DELTAV":
-                    return DeltaV();
-                case "DELTAVSTAGE":
-                    return DeltaVStage();
+                //case "DELTAV":
+                //    return DeltaV();
+                //case "DELTAVSTAGE":
+                //    return DeltaVStage();
 
                 // Thrust and related
                 case "THRUST":
@@ -357,14 +357,14 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (totalRawMaximumThrust > 0.0f) ? (totalCurrentThrust / totalRawMaximumThrust) : 0.0f; };
                 case "EFFECTIVETHROTTLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (totalLimitedMaximumThrust > 0.0f) ? (totalCurrentThrust / totalLimitedMaximumThrust) : 0.0f; };
-                case "DRAG":
-                    return DragForce();
-                case "DRAGACCEL":
-                    return DragAccel();
-                case "LIFT":
-                    return LiftForce();
-                case "LIFTACCEL":
-                    return LiftAccel();
+                //case "DRAG":
+                //    return DragForce();
+                //case "DRAGACCEL":
+                //    return DragAccel();
+                //case "LIFT":
+                //    return LiftForce();
+                //case "LIFTACCEL":
+                //    return LiftAccel();
                 case "ACCELPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return Vector3.Dot(vessel.acceleration, prograde); };
                 case "ACCELRADIAL":
@@ -827,10 +827,10 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return -vessel.angularVelocity.y * Mathf.Rad2Deg; };
                 case "YAWRATE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return -vessel.angularVelocity.z * Mathf.Rad2Deg; };
-                case "ANGLEOFATTACK":
-                    return AngleOfAttack();
-                case "SIDESLIP":
-                    return SideSlip();
+                //case "ANGLEOFATTACK":
+                //    return AngleOfAttack();
+                //case "SIDESLIP":
+                //    return SideSlip();
                 // These values get odd when they're way out on the edge of the
                 // navball because they're projected into two dimensions.
                 case "PITCHSURFPROGRADE":
@@ -1463,14 +1463,14 @@ namespace JSI
                         return Protractor.TargetBodyDeltaV;
                     };
 
-                case "PREDICTEDLANDINGALTITUDE":
-                    return LandingAltitude();
-                case "PREDICTEDLANDINGLATITUDE":
-                    return LandingLatitude();
-                case "PREDICTEDLANDINGLONGITUDE":
-                    return LandingLongitude();
-                case "PREDICTEDLANDINGERROR":
-                    return LandingError();
+                //case "PREDICTEDLANDINGALTITUDE":
+                //    return LandingAltitude();
+                //case "PREDICTEDLANDINGLATITUDE":
+                //    return LandingLatitude();
+                //case "PREDICTEDLANDINGLONGITUDE":
+                //    return LandingLongitude();
+                //case "PREDICTEDLANDINGERROR":
+                //    return LandingError();
 
                 // FLight control status
                 case "THROTTLE":
@@ -1657,8 +1657,8 @@ namespace JSI
                 // We use "AsssemblyFileVersion" for actual version numbers now to facilitate hardlinking.
                 // return Assembly.GetExecutingAssembly().GetName().Version.ToString();
 
-                case "MECHJEBAVAILABLE":
-                    return MechJebAvailable();
+                //case "MECHJEBAVAILABLE":
+                //    return MechJebAvailable();
 
                 case "TIMEWARPPHYSICS":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (TimeWarp.CurrentRate > 1.0f && TimeWarp.WarpMode == TimeWarp.Modes.LOW).GetHashCode(); };

@@ -174,8 +174,6 @@ namespace JSI
             {
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-
                 if (!groupList.ContainsKey(actionName) && !customGroupList.ContainsKey(actionName))
                 {
                     JUtil.LogErrorMessage(this, "Action \"{0}\" is not supported.", actionName);
@@ -310,7 +308,7 @@ namespace JSI
                                         if (pluginConfig.HasValue("name") && pluginConfig.HasValue("actionMethod"))
                                         {
                                             string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("actionMethod").Trim();
-                                            actionHandler = (Action<bool>)comp.GetMethod(action, internalProp, typeof(Action<bool>));
+                                            actionHandler = (Action<bool>)rpmComp.GetMethod(action, internalProp, typeof(Action<bool>));
 
                                             if (actionHandler == null)
                                             {
@@ -368,7 +366,7 @@ namespace JSI
                                             if (pluginConfig.HasValue("setMethod"))
                                             {
                                                 string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("setMethod").Trim();
-                                                transferSetter = (Action<double>)comp.GetMethod(action, internalProp, typeof(Action<double>));
+                                                transferSetter = (Action<double>)rpmComp.GetMethod(action, internalProp, typeof(Action<double>));
 
                                                 if (transferSetter == null)
                                                 {
@@ -398,7 +396,7 @@ namespace JSI
                                                 if (pluginConfig.HasValue("perPodPersistenceName"))
                                                 {
                                                     string action = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("getMethod").Trim();
-                                                    var getter = (Func<double>)comp.GetMethod(action, internalProp, typeof(Func<double>));
+                                                    var getter = (Func<double>)rpmComp.GetMethod(action, internalProp, typeof(Func<double>));
 
                                                     if (getter == null)
                                                     {

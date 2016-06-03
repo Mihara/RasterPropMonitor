@@ -45,6 +45,6 @@ namespace JSI
         internal static Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
         internal static List<string> knownLoadedAssemblies = new List<string>();
         internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
-        internal static List<RPMVesselComputer.TriggeredEventTemplate> triggeredEvents = new List<RPMVesselComputer.TriggeredEventTemplate>();
+        internal static List<RasterPropMonitorComputer.TriggeredEventTemplate> triggeredEvents = new List<RasterPropMonitorComputer.TriggeredEventTemplate>();
     }
 }

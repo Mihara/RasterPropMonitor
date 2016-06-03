@@ -23,7 +23,7 @@ using System.Collections.Generic;
 
 namespace JSI
 {
-    public partial class RPMVesselComputer : VesselModule
+    public partial class RasterPropMonitorComputer : PartModule
     {
         internal class TriggeredEventTemplate
         {
@@ -106,7 +106,7 @@ namespace JSI
             // Once armed, has it been triggered?
             bool triggered;
 
-            internal TriggeredEvent(TriggeredEventTemplate template, RPMVesselComputer comp)
+            internal TriggeredEvent(TriggeredEventTemplate template, RasterPropMonitorComputer rpmComp)
             {
                 eventName = template.eventName;
                 if (string.IsNullOrEmpty(eventName))
@@ -133,7 +133,7 @@ namespace JSI
                 else
                 {
                     isPluginAction = true;
-                    pluginAction = (Action<bool>)comp.GetInternalMethod(template.triggerEvent, typeof(Action<bool>));
+                    pluginAction = (Action<bool>)rpmComp.GetInternalMethod(template.triggerEvent, typeof(Action<bool>));
 
                     if (pluginAction == null)
                     {
@@ -155,7 +155,7 @@ namespace JSI
 
                     if (isPluginAction)
                     {
-                        pluginState = (Func<bool>)comp.GetInternalMethod(template.eventState, typeof(Func<bool>));
+                        pluginState = (Func<bool>)rpmComp.GetInternalMethod(template.eventState, typeof(Func<bool>));
                         if (pluginState == null)
                         {
                             throw new Exception("TriggeredEvent: Unable to initialize pluginState");
