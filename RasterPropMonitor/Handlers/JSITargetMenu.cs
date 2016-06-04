@@ -644,15 +644,19 @@ namespace JSI
             unavailablePorts.Clear();
             portsList.Clear();
 
-            if (!selectedVessel.packed)
+            // Can be null during docking/undocking?
+            if (selectedVessel != null)
             {
-                foreach (uint id in FindUnavailablePorts(selectedVessel))
+                if (!selectedVessel.packed)
                 {
-                    unavailablePorts.Add(id);
-                }
-                foreach (ModuleDockingNode thatPort in FindAvailablePorts(selectedVessel, unavailablePorts))
-                {
-                    portsList.Add(thatPort);
+                    foreach (uint id in FindUnavailablePorts(selectedVessel))
+                    {
+                        unavailablePorts.Add(id);
+                    }
+                    foreach (ModuleDockingNode thatPort in FindAvailablePorts(selectedVessel, unavailablePorts))
+                    {
+                        portsList.Add(thatPort);
+                    }
                 }
             }
         }
