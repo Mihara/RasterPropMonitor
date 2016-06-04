@@ -1,4 +1,5 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
+//#define SHOW_DOCKING_EVENTS
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -99,7 +100,6 @@ namespace JSI
         }
         private NavBall navBall;
         internal LinearAtmosphereGauge linearAtmosGauge;
-        private ManeuverNode node;
         private Part part;
         internal Part CurrentIVAPart
         {
@@ -115,10 +115,6 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
-
-        // Processing cache!
-        //private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
-        //private uint masterSerialNumber = 0u;
 
         // Craft-relative basis vectors
         internal Vector3 forward;
@@ -212,35 +208,10 @@ namespace JSI
             }
         }
 
-        // Helper to get sideslip for the HUD
-        //internal float Sideslip
-        //{
-        //    get
-        //    {
-        //        return EvaluateSideSlip();
-        //    }
-        //}
-        // Helper to get the AoA in absolute terms (instead of relative to the
-        // nose) for the HUD.
-        //internal float AbsoluteAoA
-        //{
-        //    get
-        //    {
-        //        return ((rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - rotationVesselSurface.eulerAngles.x) : -rotationVesselSurface.eulerAngles.x) - EvaluateAngleOfAttack();
-        //    }
-        //}
-
         // Tracked vessel variables
         internal float actualAverageIsp;
         internal float actualMaxIsp;
         internal double altitudeASL;
-        //public double AltitudeASL
-        //{
-        //    get
-        //    {
-        //        return altitudeASL;
-        //    }
-        //}
         internal double altitudeBottom;
         internal double altitudeTrue;
         internal bool anyEnginesFlameout;
@@ -273,8 +244,6 @@ namespace JSI
 
         internal List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
         internal List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
-        //private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
-        //private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom;
@@ -588,7 +557,7 @@ namespace JSI
                 }
 
             }
-            else //if(vid!=Guid.Empty)
+            else
             {
                 JUtil.LogMessage(this, "OnSave vessel is null? expected for {0}", vid);
             }
@@ -632,11 +601,13 @@ namespace JSI
             }
             vid = vessel.id;
 
-            GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
+            //GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
+#if SHOW_DOCKING_EVENTS
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
+#endif
             GameEvents.onVesselDestroy.Add(onVesselDestroy);
             GameEvents.onVesselCreate.Add(onVesselCreate);
         }
@@ -709,11 +680,13 @@ namespace JSI
             }
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
-            GameEvents.onGameSceneLoadRequested.Remove(onGameSceneLoadRequested);
+            //GameEvents.onGameSceneLoadRequested.Remove(onGameSceneLoadRequested);
             GameEvents.onVesselChange.Remove(onVesselChange);
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+#if SHOW_DOCKING_EVENTS
             GameEvents.onPartCouple.Remove(onPartCouple);
             GameEvents.onPartUndock.Remove(onPartUndock);
+#endif
             GameEvents.onVesselDestroy.Remove(onVesselDestroy);
             GameEvents.onVesselCreate.Remove(onVesselCreate);
 
@@ -723,11 +696,8 @@ namespace JSI
                 JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
-            //variableCache.Clear();
-
             vessel = null;
             navBall = null;
-            node = null;
             part = null;
 
             target = null;
@@ -740,12 +710,6 @@ namespace JSI
 
             vesselCrew.Clear();
             vesselCrewMedical.Clear();
-            //localCrew.Clear();
-            //localCrewMedical.Clear();
-
-            //evaluateAngleOfAttack = null;
-            //evaluateSideSlip = null;
-            //evaluateTerminalVelocity = null;
         }
 
         public void Update()
@@ -775,22 +739,6 @@ namespace JSI
         {
             if (vessel == null)
             {
-                // This is something of an ugly hack.  When two craft dock,
-                // both vessel modules still exist, but one of them now has a
-                // null Vessel.
-                // At some point, it is assigned a new vessel, but I don't know
-                // what the mechanism is for detecing that besides polling here.
-                //Vessel avessel = GetComponent<Vessel>();
-                //if(avessel != null)
-                //{
-                //    // We have a new craft!
-                //    JUtil.LogMessage(this, "FixedUpdate with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
-                //    vessel = avessel;
-                //    vid = vessel.id;
-                //    instances.Add(vid, this);
-                //    timeToUpdate = true;
-                //}
-
                 return;
             }
 
@@ -816,8 +764,6 @@ namespace JSI
 #endif
                 timeToUpdate = false;
 
-                //++masterSerialNumber;
-
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
 #endif
@@ -838,17 +784,6 @@ namespace JSI
 #endif
                 FetchTargetData();
 
-                //if (part != null)
-                //{
-                //    RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(part, false);
-                //    if (rpmComp != null)
-                //    {
-                //        for (int i = 0; i < activeTriggeredEvents.Count; ++i)
-                //        {
-                //            activeTriggeredEvents[i].Update(rpmComp);
-                //        }
-                //    }
-                //}
 #if SHOW_FIXEDUPDATE_TIMING
                 long targetdata = stopwatch.ElapsedMilliseconds;
                 stopwatch.Stop();
@@ -867,82 +802,6 @@ namespace JSI
         #endregion
 
         #region Interface Methods
-        ///// <summary>
-        ///// Get a plugin or internal method.
-        ///// </summary>
-        ///// <param name="packedMethod">The method to fetch in the format ModuleName:MethodName</param>
-        ///// <param name="internalProp">The internal prop that should be used to instantiate InternalModule plugin methods.</param>
-        ///// <param name="delegateType">The expected signature of the method.</param>
-        ///// <returns></returns>
-        //public Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
-        //{
-        //    Delegate returnValue = GetInternalMethod(packedMethod, delegateType);
-        //    if (returnValue == null && internalProp != null)
-        //    {
-        //        returnValue = JUtil.GetMethod(packedMethod, internalProp, delegateType);
-        //    }
-
-        //    return returnValue;
-        //}
-
-        /// <summary>
-        /// This intermediary will cache the results so that multiple variable
-        /// requests within the frame would not result in duplicated code.
-        /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        //public object ProcessVariableEx(string input, RasterPropMonitorComputer rpmComp)
-        //{
-        //    if (RPMGlobals.debugShowVariableCallCount)
-        //    {
-        //        debug_callCount[input] = debug_callCount[input] + 1;
-        //    }
-
-        //    VariableCache vc = variableCache[input];
-        //    if (vc != null)
-        //    {
-        //        if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
-        //        {
-        //            try
-        //            {
-        //                object newValue = vc.accessor(input, rpmComp);
-        //                vc.serialNumber = masterSerialNumber;
-        //                vc.cachedValue = newValue;
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-        //            }
-        //        }
-
-        //        return vc.cachedValue;
-        //    }
-        //    else
-        //    {
-        //        bool cacheable;
-        //        VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
-        //        if (evaluator != null)
-        //        {
-        //            vc = new VariableCache(cacheable, evaluator);
-        //            try
-        //            {
-        //                object newValue = vc.accessor(input, rpmComp);
-        //                vc.serialNumber = masterSerialNumber;
-        //                vc.cachedValue = newValue;
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                JUtil.LogErrorMessage(this, "Processing error while adding {0}: {1}", input, e.Message);
-        //            }
-
-        //            variableCache[input] = vc;
-        //            return vc.cachedValue;
-        //        }
-        //    }
-
-        //    return input;
-        //}
-
         /// <summary>
         /// Initialize vessel description-based values.
         /// </summary>
@@ -962,8 +821,6 @@ namespace JSI
                     }
                 }
             }
-            //vesselDescriptionForDisplay = string.Join(Environment.NewLine, descriptionStrings).MangleConfigText();
-
         }
 
         /// <summary>
@@ -978,52 +835,6 @@ namespace JSI
         #endregion
 
         #region Internal Methods
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="element"></param>
-        /// <param name="seatID"></param>
-        /// <param name="crewList"></param>
-        /// <param name="crewMedical"></param>
-        /// <returns></returns>
-        //private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
-        //{
-        //    bool exists = (crewList != null) && (seatID < crewList.Count);
-        //    bool valid = exists && crewList[seatID] != null;
-        //    switch (element)
-        //    {
-        //        case "PRESENT":
-        //            return valid ? 1d : -1d;
-        //        case "EXISTS":
-        //            return exists ? 1d : -1d;
-        //        case "FIRST":
-        //            return valid ? crewList[seatID].name.Split()[0] : string.Empty;
-        //        case "LAST":
-        //            return valid ? crewList[seatID].name.Split()[1] : string.Empty;
-        //        case "FULL":
-        //            return valid ? crewList[seatID].name : string.Empty;
-        //        case "STUPIDITY":
-        //            return valid ? crewList[seatID].stupidity : -1d;
-        //        case "COURAGE":
-        //            return valid ? crewList[seatID].courage : -1d;
-        //        case "BADASS":
-        //            return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
-        //        case "PANIC":
-        //            return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
-        //        case "WHEE":
-        //            return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
-        //        case "TITLE":
-        //            return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
-        //        case "LEVEL":
-        //            return valid ? (float)crewList[seatID].experienceLevel : -1d;
-        //        case "EXPERIENCE":
-        //            return valid ? crewList[seatID].experience : -1d;
-        //        default:
-        //            return "???!";
-        //    }
-
-        //}
-
         /// <summary>
         /// Try to figure out which part on the craft is the current part.
         /// </summary>
@@ -1358,39 +1169,6 @@ namespace JSI
                     vesselCrewMedical[i] = (vesselCrew[i].KerbalRef != null) ? vesselCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>() : null;
                 }
             }
-
-            // Part-local list is assembled somewhat differently.
-            // Mental note: Actually, there's a list of ProtoCrewMember in part.protoModuleCrew. 
-            // But that list loses information about seats, which is what we'd like to keep in this particular case.
-            /*
-            if (part != null)
-            {
-                if (part.internalModel == null)
-                {
-                    JUtil.LogMessage(this, "Running on a part with no IVA, how did that happen?");
-                }
-                else
-                {
-                    if (localCrew.Count != part.internalModel.seats.Count)
-                    {
-                        localCrew.Clear();
-                        localCrewMedical.Clear();
-                        for (int i = 0; i < part.internalModel.seats.Count; i++)
-                        {
-                            localCrew.Add(part.internalModel.seats[i].crew);
-                            localCrewMedical.Add((localCrew[i] == null) ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>());
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < part.internalModel.seats.Count; i++)
-                        {
-                            localCrew[i] = part.internalModel.seats[i].crew;
-                            localCrewMedical[i] = (localCrew[i]) == null ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
-                        }
-                    }
-                }
-            }*/
         }
 
         /// <summary>
@@ -1516,15 +1294,6 @@ namespace JSI
             radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
             normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
 
-            if (vessel.patchedConicSolver != null)
-            {
-                node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
-            }
-            else
-            {
-                node = null;
-            }
-
             UpdateLandingPredictions();
         }
 
@@ -1629,60 +1398,6 @@ namespace JSI
             }
         }
 
-        ///// <summary>
-        ///// Get an internal method (one that is built into an IJSIModule)
-        ///// </summary>
-        ///// <param name="packedMethod"></param>
-        ///// <param name="delegateType"></param>
-        ///// <returns></returns>
-        //public Delegate GetInternalMethod(string packedMethod, Type delegateType)
-        //{
-        //    string[] tokens = packedMethod.Split(':');
-        //    if (tokens.Length != 2)
-        //    {
-        //        JUtil.LogErrorMessage(this, "Bad format on {0}", packedMethod);
-        //        throw new ArgumentException("stateMethod incorrectly formatted");
-        //    }
-
-        //    // Backwards compatibility:
-        //    if (tokens[0] == "MechJebRPMButtons")
-        //    {
-        //        tokens[0] = "JSIMechJeb";
-        //    }
-        //    IJSIModule jsiModule = null;
-        //    foreach (IJSIModule module in installedModules)
-        //    {
-        //        if (module.GetType().Name == tokens[0])
-        //        {
-        //            jsiModule = module;
-        //            break;
-        //        }
-        //    }
-
-        //    Delegate stateCall = null;
-        //    if (jsiModule != null)
-        //    {
-        //        var methodInfo = delegateType.GetMethod("Invoke");
-        //        Type returnType = methodInfo.ReturnType;
-        //        foreach (MethodInfo m in jsiModule.GetType().GetMethods())
-        //        {
-        //            if (!string.IsNullOrEmpty(tokens[1]) && m.Name == tokens[1] && IsEquivalent(m, methodInfo))
-        //            {
-        //                if (m.IsStatic)
-        //                {
-        //                    stateCall = Delegate.CreateDelegate(delegateType, m);
-        //                }
-        //                else
-        //                {
-        //                    stateCall = Delegate.CreateDelegate(delegateType, jsiModule, m);
-        //                }
-        //            }
-        //        }
-        //    }
-
-        //    return stateCall;
-        //}
-
         /// <summary>
         /// Get the maximum thrust of the engine.
         /// </summary>
@@ -1771,34 +1486,6 @@ namespace JSI
             }
             return angle;
         }
-
-        ///// <summary>
-        ///// Returns whether two methods are effectively equal
-        ///// </summary>
-        ///// <param name="method1"></param>
-        ///// <param name="method2"></param>
-        ///// <returns></returns>
-        //private static bool IsEquivalent(MethodInfo method1, MethodInfo method2)
-        //{
-        //    if (method1.ReturnType == method2.ReturnType)
-        //    {
-        //        var m1Parms = method1.GetParameters();
-        //        var m2Parms = method2.GetParameters();
-        //        if (m1Parms.Length == m2Parms.Length)
-        //        {
-        //            for (int i = 0; i < m1Parms.Length; ++i)
-        //            {
-        //                if (m1Parms[i].GetType() != m2Parms[i].GetType())
-        //                {
-        //                    return false;
-        //                }
-        //            }
-        //            return true;
-        //        }
-        //    }
-
-        //    return false;
-        //}
 
         /// <summary>
         /// Returns a number identifying the next apsis type
@@ -1905,85 +1592,6 @@ namespace JSI
             return impactTime - decelTime / 2.0 - Planetarium.GetUniversalTime();
         }
 
-        ///// <summary>
-        ///// Originally from MechJeb
-        ///// Computes the time until the phase angle between the launchpad and the target equals the given angle.
-        ///// The convention used is that phase angle is the angle measured starting at the target and going east until
-        ///// you get to the launchpad. 
-        ///// The time returned will not be exactly accurate unless the target is in an exactly circular orbit. However,
-        ///// the time returned will go to exactly zero when the desired phase angle is reached.
-        ///// </summary>
-        ///// <param name="phaseAngle"></param>
-        ///// <param name="launchBody"></param>
-        ///// <param name="launchLongitude"></param>
-        ///// <param name="target"></param>
-        ///// <returns></returns>
-        //private static double TimeToPhaseAngle(double phaseAngle, CelestialBody launchBody, double launchLongitude, Orbit target)
-        //{
-        //    double launchpadAngularRate = 360 / launchBody.rotationPeriod;
-        //    double targetAngularRate = 360.0 / target.period;
-        //    if (Vector3d.Dot(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
-
-        //    Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
-        //    Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
-        //    currentTargetDirection = Vector3d.Exclude(launchBody.angularVelocity, currentTargetDirection);
-
-        //    double currentPhaseAngle = Math.Abs(Vector3d.Angle(currentLaunchpadDirection, currentTargetDirection));
-        //    if (Vector3d.Dot(Vector3d.Cross(currentTargetDirection, currentLaunchpadDirection), launchBody.angularVelocity) < 0)
-        //    {
-        //        currentPhaseAngle = 360 - currentPhaseAngle;
-        //    }
-
-        //    double phaseAngleRate = launchpadAngularRate - targetAngularRate;
-
-        //    double phaseAngleDifference = JUtil.ClampDegrees360(phaseAngle - currentPhaseAngle);
-
-        //    if (phaseAngleRate < 0)
-        //    {
-        //        phaseAngleRate *= -1;
-        //        phaseAngleDifference = 360 - phaseAngleDifference;
-        //    }
-
-
-        //    return phaseAngleDifference / phaseAngleRate;
-        //}
-
-
-        ///// <summary>
-        ///// Originally from MechJeb
-        ///// Computes the time required for the given launch location to rotate under the target orbital plane. 
-        ///// If the latitude is too high for the launch location to ever actually rotate under the target plane,
-        ///// returns the time of closest approach to the target plane.
-        ///// I have a wonderful proof of this formula which this comment is too short to contain.
-        ///// </summary>
-        ///// <param name="launchBody"></param>
-        ///// <param name="launchLatitude"></param>
-        ///// <param name="launchLongitude"></param>
-        ///// <param name="target"></param>
-        ///// <returns></returns>
-        //private static double TimeToPlane(CelestialBody launchBody, double launchLatitude, double launchLongitude, Orbit target)
-        //{
-        //    double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity));
-        //    Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().SwizzleXZY().normalized).normalized; // I don't understand the sign here, but this seems to work
-        //    b *= launchBody.Radius * Math.Sin(Math.PI / 180 * launchLatitude) / Math.Tan(Math.PI / 180 * inc);
-        //    Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity).normalized;
-        //    double cMagnitudeSquared = Math.Pow(launchBody.Radius * Math.Cos(Math.PI / 180 * launchLatitude), 2) - b.sqrMagnitude;
-        //    if (cMagnitudeSquared < 0) cMagnitudeSquared = 0;
-        //    c *= Math.Sqrt(cMagnitudeSquared);
-        //    Vector3d a1 = b + c;
-        //    Vector3d a2 = b - c;
-
-        //    Vector3d longitudeVector = launchBody.GetSurfaceNVector(0, launchLongitude);
-
-        //    double angle1 = Math.Abs(Vector3d.Angle(longitudeVector, a1));
-        //    if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a1), launchBody.angularVelocity) < 0) angle1 = 360 - angle1;
-        //    double angle2 = Math.Abs(Vector3d.Angle(longitudeVector, a2));
-        //    if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a2), launchBody.angularVelocity) < 0) angle2 = 360 - angle2;
-
-        //    double angle = Math.Min(angle1, angle2);
-        //    return (angle / 360) * launchBody.rotationPeriod;
-        //}
-
         /// <summary>
         /// Determines if enough screen updates have passed to trigger another data update.
         /// </summary>
@@ -2013,33 +1621,40 @@ namespace JSI
 
         //--- Callbacks for registered GameEvent
         #region GameEvent Callbacks
-        private void onGameSceneLoadRequested(GameScenes data)
-        {
-            //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
+        //private void onGameSceneLoadRequested(GameScenes data)
+        //{
+        //    //JUtil.LogMessage(this, "onGameSceneLoadRequested({0}), active vessel is {1}", data, vessel.vesselName);
 
-            if (data != GameScenes.FLIGHT)
-            {
-                // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
-                VariableOrNumber.Clear();
-            }
-        }
+        //    if (data != GameScenes.FLIGHT)
+        //    {
+        //        // Are we leaving Flight?  If so, let's get rid of all of the tables we've created.
+        //        VariableOrNumber.Clear();
+        //    }
+        //}
 
+#if SHOW_DOCKING_EVENTS
+        /// <summary>
+        /// Callback to let us know we're docking.
+        /// </summary>
+        /// <param name="action"></param>
         private void onPartCouple(GameEvents.FromToAction<Part, Part> action)
         {
             if (action.from.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'from' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
                 timeToUpdate = true;
-                //forceCallbackRefresh = true;
             }
             else if (action.to.vessel.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onPartCouple(): I am 'to' from:{0} to:{1}", action.from.vessel.id, action.to.vessel.id);
                 timeToUpdate = true;
-                //forceCallbackRefresh = true;
             }
         }
 
+        /// <summary>
+        /// Callback to let us know when we're undocking.
+        /// </summary>
+        /// <param name="p"></param>
         private void onPartUndock(Part p)
         {
             if (p.vessel.id == vessel.id)
@@ -2047,12 +1662,18 @@ namespace JSI
                 JUtil.LogMessage(this, "onPartUndock(): I {0} expect to undock", vessel.id);
             }
         }
+#endif
 
-        private void onVesselChange(Vessel v)
+        /// <summary>
+        /// Callback to let us know when we become active so we can refresh
+        /// variables right away.
+        /// </summary>
+        /// <param name="who"></param>
+        private void onVesselChange(Vessel who)
         {
-            if (v.id == vessel.id)
+            if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselChange(): for me {0}", v.id);
+                JUtil.LogMessage(this, "onVesselChange(): for me {0}", who.id);
 
                 // This looks messy because onVesselChange may be called before
                 // the navBall variable has been initialized.  We set timeToUpdate
@@ -2067,11 +1688,16 @@ namespace JSI
             }
         }
 
-        private void onVesselWasModified(Vessel v)
+        /// <summary>
+        /// Callback to let us know when our vessel was modified so we can
+        /// refresh our variables.
+        /// </summary>
+        /// <param name="who"></param>
+        private void onVesselWasModified(Vessel who)
         {
-            if (v.id == vessel.id)
+            if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", v.id);
+                JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", who.id);
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
@@ -2079,17 +1705,29 @@ namespace JSI
             }
         }
 
-        private void onVesselDestroy(Vessel v)
+        /// <summary>
+        /// Callback to catch when a vessel is being destroyed so we can remove
+        /// the vessel from the instances dictionary.
+        /// </summary>
+        /// <param name="who"></param>
+        private void onVesselDestroy(Vessel who)
         {
             if (vessel != null)
             {
-                if (v.id == vessel.id)
+                if (who.id == vessel.id)
                 {
-                    JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", v.id);
-                    instances.Remove(v.id);
+                    JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", who.id);
+                    instances.Remove(who.id);
                 }
             }
         }
+
+        /// <summary>
+        /// Callback to catch situations where a RPMVesselComputer was left a
+        /// zombie because its craft was destroyed but it wasn't (as happens
+        /// with docking)
+        /// </summary>
+        /// <param name="who"></param>
         private void onVesselCreate(Vessel who)
         {
             if (vessel == null)
@@ -2112,21 +1750,6 @@ namespace JSI
                 // Note that we need longer strings first so we invert numbers.
                 int lengthComparison = -x.Length.CompareTo(y.Length);
                 return lengthComparison == 0 ? -string.Compare(x, y, StringComparison.Ordinal) : lengthComparison;
-            }
-        }
-
-        internal delegate object VariableEvaluator(string s, RasterPropMonitorComputer rpmComp);
-        internal class VariableCache
-        {
-            internal object cachedValue = null;
-            internal readonly VariableEvaluator accessor;
-            internal uint serialNumber = 0;
-            internal readonly bool cacheable;
-
-            internal VariableCache(bool cacheable, VariableEvaluator accessor)
-            {
-                this.cacheable = cacheable;
-                this.accessor = accessor;
             }
         }
     }

@@ -63,7 +63,7 @@ namespace JSI
         // Processing cache!
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
-        private readonly DefaultableDictionary<string, RPMVesselComputer.VariableCache> variableCache = new DefaultableDictionary<string, RPMVesselComputer.VariableCache>(null);
+        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
         private uint masterSerialNumber = 0u;
 
@@ -166,7 +166,7 @@ namespace JSI
                 debug_callCount[input] = debug_callCount[input] + 1;
             }
 
-            RPMVesselComputer.VariableCache vc = variableCache[input];
+            VariableCache vc = variableCache[input];
             if (vc != null)
             {
                 if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
@@ -189,15 +189,21 @@ namespace JSI
             else
             {
                 bool cacheable;
-                RPMVesselComputer.VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
+                VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
                 if (evaluator != null)
                 {
-                    vc = new RPMVesselComputer.VariableCache(cacheable, evaluator);
+                    vc = new VariableCache(cacheable, evaluator);
                     try
                     {
                         object newValue = vc.accessor(input, this);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
+
+                        if (newValue == input && !unrecognizedVariables.Contains(input))
+                        {
+                            unrecognizedVariables.Add(input);
+                            JUtil.LogMessage(this, "Unrecognized variable {0}", input);
+                        }
                     }
                     catch (Exception e)
                     {
@@ -242,8 +248,6 @@ namespace JSI
                 }
             }
 
-            //RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            //return comp.ProcessVariableEx(input, this);
             return returnValue;
         }
 
@@ -599,7 +603,7 @@ namespace JSI
             if (who.id == vessel.id)
             {
                 vid = vessel.id;
-                JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
+                //JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 forceCallbackRefresh = true;
                 variableCache.Clear();
                 resultCache.Clear();
@@ -640,5 +644,20 @@ namespace JSI
             }
         }
         #endregion
+
+        internal delegate object VariableEvaluator(string s, RasterPropMonitorComputer rpmComp);
+        internal class VariableCache
+        {
+            internal object cachedValue = null;
+            internal readonly VariableEvaluator accessor;
+            internal uint serialNumber = 0;
+            internal readonly bool cacheable;
+
+            internal VariableCache(bool cacheable, VariableEvaluator accessor)
+            {
+                this.cacheable = cacheable;
+                this.accessor = accessor;
+            }
+        }
     }
 }

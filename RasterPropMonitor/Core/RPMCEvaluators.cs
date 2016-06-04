@@ -30,7 +30,7 @@ namespace JSI
 {
     public partial class RasterPropMonitorComputer : PartModule
     {
-        private RPMVesselComputer.VariableEvaluator sideSlipEvaluator;
+        private VariableEvaluator sideSlipEvaluator;
         internal float Sideslip
         {
             get
@@ -43,7 +43,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator angleOfAttackEvaluator;
+        private VariableEvaluator angleOfAttackEvaluator;
         internal float AbsoluteAoA
         {
             get
@@ -60,7 +60,7 @@ namespace JSI
 
         #region evaluator
         //static // uncomment this to make sure there's no non-static methods being generated
-        internal RPMVesselComputer.VariableEvaluator GetEvaluator(string input, out bool cacheable)
+        internal VariableEvaluator GetEvaluator(string input, out bool cacheable)
         {
             cacheable = true;
 
@@ -3090,43 +3090,12 @@ namespace JSI
         #endregion
 
         #region pluginevaluators
-        //private Func<double> evaluateAngleOfAttack;
-        //private Func<double> evaluateSideSlip;
         private Func<double> evaluateTerminalVelocity;
         private bool evaluateTerminalVelocityReady;
         private Func<double> evaluateTimeToImpact;
         private bool evaluateTimeToImpactReady;
 
-        //private float EvaluateAngleOfAttack()
-        //{
-        //    if (evaluateAngleOfAttack == null)
-        //    {
-        //        Func<double> accessor = null;
-
-        //        accessor = (Func<double>)GetInternalMethod("JSIFAR:GetAngleOfAttack", typeof(Func<double>));
-        //        if (accessor != null)
-        //        {
-        //            double value = accessor();
-        //            if (double.IsNaN(value))
-        //            {
-        //                accessor = null;
-        //            }
-        //        }
-
-        //        if (accessor == null)
-        //        {
-        //            evaluateAngleOfAttack = FallbackEvaluateAngleOfAttack;
-        //        }
-        //        else
-        //        {
-        //            evaluateAngleOfAttack = accessor;
-        //        }
-        //    }
-
-        //    return (float)evaluateAngleOfAttack();
-        //}
-
-        private RPMVesselComputer.VariableEvaluator AngleOfAttack()
+        private VariableEvaluator AngleOfAttack()
         {
             Func<double> accessor = null;
 
@@ -3154,7 +3123,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator DeltaV()
+        private VariableEvaluator DeltaV()
         {
             Func<double> accessor = null;
 
@@ -3182,7 +3151,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator DeltaVStage()
+        private VariableEvaluator DeltaVStage()
         {
             Func<double> accessor = null;
 
@@ -3210,7 +3179,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator DragAccel()
+        private VariableEvaluator DragAccel()
         {
             Func<double> accessor = null;
 
@@ -3242,7 +3211,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator DragForce()
+        private VariableEvaluator DragForce()
         {
             Func<double> accessor = null;
 
@@ -3270,7 +3239,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator DynamicPressure()
+        private VariableEvaluator DynamicPressure()
         {
             Func<double> accessor = null;
 
@@ -3294,14 +3263,14 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator LandingError()
+        private VariableEvaluator LandingError()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingError", typeof(Func<double>));
 
             return (string variable, RasterPropMonitorComputer rpmComp) => { return accessor(); };
         }
 
-        private RPMVesselComputer.VariableEvaluator LandingAltitude()
+        private VariableEvaluator LandingAltitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingAltitude", typeof(Func<double>));
 
@@ -3313,7 +3282,7 @@ namespace JSI
             };
         }
 
-        private RPMVesselComputer.VariableEvaluator LandingLatitude()
+        private VariableEvaluator LandingLatitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLatitude", typeof(Func<double>));
 
@@ -3325,7 +3294,7 @@ namespace JSI
             };
         }
 
-        private RPMVesselComputer.VariableEvaluator LandingLongitude()
+        private VariableEvaluator LandingLongitude()
         {
             Func<double> accessor = (Func<double>)GetInternalMethod("JSIMechJeb:GetLandingLongitude", typeof(Func<double>));
 
@@ -3337,7 +3306,7 @@ namespace JSI
             };
         }
 
-        private RPMVesselComputer.VariableEvaluator LiftAccel()
+        private VariableEvaluator LiftAccel()
         {
             Func<double> accessor = null;
 
@@ -3369,7 +3338,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator LiftForce()
+        private VariableEvaluator LiftForce()
         {
             Func<double> accessor = null;
 
@@ -3397,7 +3366,7 @@ namespace JSI
             }
         }
 
-        private RPMVesselComputer.VariableEvaluator MechJebAvailable()
+        private VariableEvaluator MechJebAvailable()
         {
             Func<bool> accessor = null;
 
@@ -3412,36 +3381,7 @@ namespace JSI
             }
         }
 
-        //private float EvaluateSideSlip()
-        //{
-        //    if (evaluateSideSlip == null)
-        //    {
-        //        Func<double> accessor = null;
-
-        //        accessor = (Func<double>)GetInternalMethod("JSIFAR:GetSideSlip", typeof(Func<double>));
-        //        if (accessor != null)
-        //        {
-        //            double value = accessor();
-        //            if (double.IsNaN(value))
-        //            {
-        //                accessor = null;
-        //            }
-        //        }
-
-        //        if (accessor == null)
-        //        {
-        //            evaluateSideSlip = FallbackEvaluateSideSlip;
-        //        }
-        //        else
-        //        {
-        //            evaluateSideSlip = accessor;
-        //        }
-        //    }
-
-        //    return (float)evaluateSideSlip();
-        //}
-
-        private RPMVesselComputer.VariableEvaluator SideSlip()
+        private VariableEvaluator SideSlip()
         {
             Func<double> accessor = null;
 
