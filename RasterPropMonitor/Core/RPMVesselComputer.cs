@@ -88,6 +88,7 @@ namespace JSI
          * This region contains variables that apply per-instance (per vessel).
          */
         private Vessel vessel;
+        private Guid vid;
         internal Vessel getVessel() { return vessel; }
         internal Guid id
         {
@@ -116,8 +117,8 @@ namespace JSI
         private bool timeToUpdate = false;
 
         // Processing cache!
-        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
-        private uint masterSerialNumber = 0u;
+        //private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
+        //private uint masterSerialNumber = 0u;
 
         // Craft-relative basis vectors
         internal Vector3 forward;
@@ -270,10 +271,10 @@ namespace JSI
         internal float maxEngineFuelFlow;
         internal float currentEngineFuelFlow;
 
-        private List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
-        private List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
-        private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
-        private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
+        internal List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
+        internal List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
+        //private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
+        //private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         private double lastAltitudeBottomSampleTime;
         private double lastAltitudeBottom;
@@ -349,6 +350,25 @@ namespace JSI
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Fetch the RPMVesselComputer corresponding to the vessel.  Assumes
+        /// everything has been initialized.
+        /// </summary>
+        /// <param name="vid">The Guid of the Vessel we want</param>
+        /// <returns>The vessel, or null if it's not in hte dictionary.</returns>
+        public static RPMVesselComputer Instance(Guid vid)
+        {
+            if (instances != null && vid != Guid.Empty)
+            {
+                if (instances.ContainsKey(vid))
+                {
+                    return instances[vid];
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -606,12 +626,14 @@ namespace JSI
                 instances.Add(vessel.id, this);
                 JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
+            vid = vessel.id;
 
             GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
+            GameEvents.onVesselDestroy.Add(onVesselDestroy);
         }
 
         public void Start()
@@ -655,6 +677,15 @@ namespace JSI
         {
             if (vessel == null)
             {
+                Vessel avessel = GetComponent<Vessel>();
+                if (avessel == null)
+                {
+                    JUtil.LogMessage(this, "OnDestroy with GetComponent<Vessel> null, expected vid {0}", vid);
+                }
+                else
+                {
+                    JUtil.LogMessage(this, "OnDestroy with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
+                }
                 return;
             }
 
@@ -678,18 +709,15 @@ namespace JSI
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onPartCouple.Remove(onPartCouple);
             GameEvents.onPartUndock.Remove(onPartUndock);
+            GameEvents.onVesselDestroy.Remove(onVesselDestroy);
 
-            if (!instances.ContainsKey(vessel.id))
-            {
-                JUtil.LogErrorMessage(this, "OnDestroy for vessel {0}, but it's not in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName);
-            }
-            else
+            if (instances.ContainsKey(vessel.id))
             {
                 instances.Remove(vessel.id);
                 JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
-            variableCache.Clear();
+            //variableCache.Clear();
 
             vessel = null;
             navBall = null;
@@ -706,8 +734,8 @@ namespace JSI
 
             vesselCrew.Clear();
             vesselCrewMedical.Clear();
-            localCrew.Clear();
-            localCrewMedical.Clear();
+            //localCrew.Clear();
+            //localCrewMedical.Clear();
 
             //evaluateAngleOfAttack = null;
             //evaluateSideSlip = null;
@@ -741,6 +769,22 @@ namespace JSI
         {
             if (vessel == null)
             {
+                // This is something of an ugly hack.  When two craft dock,
+                // both vessel modules still exist, but one of them now has a
+                // null Vessel.
+                // At some point, it is assigned a new vessel, but I don't know
+                // what the mechanism is for detecing that besides polling here.
+                Vessel avessel = GetComponent<Vessel>();
+                if(avessel != null)
+                {
+                    // We have a new craft!
+                    JUtil.LogMessage(this, "FixedUpdate with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
+                    vessel = avessel;
+                    vid = vessel.id;
+                    instances.Add(vid, this);
+                    timeToUpdate = true;
+                }
+
                 return;
             }
 
@@ -766,7 +810,7 @@ namespace JSI
 #endif
                 timeToUpdate = false;
 
-                ++masterSerialNumber;
+                //++masterSerialNumber;
 
 #if SHOW_FIXEDUPDATE_TIMING
                 long invalidate = stopwatch.ElapsedMilliseconds;
@@ -841,57 +885,57 @@ namespace JSI
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public object ProcessVariableEx(string input, RasterPropMonitorComputer rpmComp)
-        {
-            if (RPMGlobals.debugShowVariableCallCount)
-            {
-                debug_callCount[input] = debug_callCount[input] + 1;
-            }
+        //public object ProcessVariableEx(string input, RasterPropMonitorComputer rpmComp)
+        //{
+        //    if (RPMGlobals.debugShowVariableCallCount)
+        //    {
+        //        debug_callCount[input] = debug_callCount[input] + 1;
+        //    }
 
-            VariableCache vc = variableCache[input];
-            if (vc != null)
-            {
-                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
-                {
-                    try
-                    {
-                        object newValue = vc.accessor(input, rpmComp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                    }
-                }
+        //    VariableCache vc = variableCache[input];
+        //    if (vc != null)
+        //    {
+        //        if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
+        //        {
+        //            try
+        //            {
+        //                object newValue = vc.accessor(input, rpmComp);
+        //                vc.serialNumber = masterSerialNumber;
+        //                vc.cachedValue = newValue;
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
+        //            }
+        //        }
 
-                return vc.cachedValue;
-            }
-            else
-            {
-                bool cacheable;
-                VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
-                if (evaluator != null)
-                {
-                    vc = new VariableCache(cacheable, evaluator);
-                    try
-                    {
-                        object newValue = vc.accessor(input, rpmComp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                    }
+        //        return vc.cachedValue;
+        //    }
+        //    else
+        //    {
+        //        bool cacheable;
+        //        VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
+        //        if (evaluator != null)
+        //        {
+        //            vc = new VariableCache(cacheable, evaluator);
+        //            try
+        //            {
+        //                object newValue = vc.accessor(input, rpmComp);
+        //                vc.serialNumber = masterSerialNumber;
+        //                vc.cachedValue = newValue;
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                JUtil.LogErrorMessage(this, "Processing error while adding {0}: {1}", input, e.Message);
+        //            }
 
-                    variableCache[input] = vc;
-                    return vc.cachedValue;
-                }
-            }
+        //            variableCache[input] = vc;
+        //            return vc.cachedValue;
+        //        }
+        //    }
 
-            return input;
-        }
+        //    return input;
+        //}
 
         /// <summary>
         /// Initialize vessel description-based values.
@@ -936,43 +980,43 @@ namespace JSI
         /// <param name="crewList"></param>
         /// <param name="crewMedical"></param>
         /// <returns></returns>
-        private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
-        {
-            bool exists = (crewList != null) && (seatID < crewList.Count);
-            bool valid = exists && crewList[seatID] != null;
-            switch (element)
-            {
-                case "PRESENT":
-                    return valid ? 1d : -1d;
-                case "EXISTS":
-                    return exists ? 1d : -1d;
-                case "FIRST":
-                    return valid ? crewList[seatID].name.Split()[0] : string.Empty;
-                case "LAST":
-                    return valid ? crewList[seatID].name.Split()[1] : string.Empty;
-                case "FULL":
-                    return valid ? crewList[seatID].name : string.Empty;
-                case "STUPIDITY":
-                    return valid ? crewList[seatID].stupidity : -1d;
-                case "COURAGE":
-                    return valid ? crewList[seatID].courage : -1d;
-                case "BADASS":
-                    return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
-                case "PANIC":
-                    return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
-                case "WHEE":
-                    return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
-                case "TITLE":
-                    return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
-                case "LEVEL":
-                    return valid ? (float)crewList[seatID].experienceLevel : -1d;
-                case "EXPERIENCE":
-                    return valid ? crewList[seatID].experience : -1d;
-                default:
-                    return "???!";
-            }
+        //private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
+        //{
+        //    bool exists = (crewList != null) && (seatID < crewList.Count);
+        //    bool valid = exists && crewList[seatID] != null;
+        //    switch (element)
+        //    {
+        //        case "PRESENT":
+        //            return valid ? 1d : -1d;
+        //        case "EXISTS":
+        //            return exists ? 1d : -1d;
+        //        case "FIRST":
+        //            return valid ? crewList[seatID].name.Split()[0] : string.Empty;
+        //        case "LAST":
+        //            return valid ? crewList[seatID].name.Split()[1] : string.Empty;
+        //        case "FULL":
+        //            return valid ? crewList[seatID].name : string.Empty;
+        //        case "STUPIDITY":
+        //            return valid ? crewList[seatID].stupidity : -1d;
+        //        case "COURAGE":
+        //            return valid ? crewList[seatID].courage : -1d;
+        //        case "BADASS":
+        //            return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
+        //        case "PANIC":
+        //            return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
+        //        case "WHEE":
+        //            return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
+        //        case "TITLE":
+        //            return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
+        //        case "LEVEL":
+        //            return valid ? (float)crewList[seatID].experienceLevel : -1d;
+        //        case "EXPERIENCE":
+        //            return valid ? crewList[seatID].experience : -1d;
+        //        default:
+        //            return "???!";
+        //    }
 
-        }
+        //}
 
         /// <summary>
         /// Try to figure out which part on the craft is the current part.
@@ -1312,6 +1356,7 @@ namespace JSI
             // Part-local list is assembled somewhat differently.
             // Mental note: Actually, there's a list of ProtoCrewMember in part.protoModuleCrew. 
             // But that list loses information about seats, which is what we'd like to keep in this particular case.
+            /*
             if (part != null)
             {
                 if (part.internalModel == null)
@@ -1339,7 +1384,7 @@ namespace JSI
                         }
                     }
                 }
-            }
+            }*/
         }
 
         /// <summary>
@@ -2024,6 +2069,18 @@ namespace JSI
                 if (JUtil.IsActiveVessel(vessel))
                 {
                     timeToUpdate = true;
+                }
+            }
+        }
+
+        private void onVesselDestroy(Vessel v)
+        {
+            if (vessel != null)
+            {
+                if (v.id == vessel.id)
+                {
+                    JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", v.id);
+                    instances.Remove(v.id);
                 }
             }
         }

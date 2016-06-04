@@ -25,6 +25,11 @@ using UnityEngine;
 
 namespace JSI
 {
+    // MOARdV TODO:
+    // Crew:
+    // onCrewBoardVessel
+    // onCrewOnEva
+    // onCrewTransferred
     public partial class RasterPropMonitorComputer : PartModule
     {
         // The only public configuration variable.
@@ -51,6 +56,9 @@ namespace JSI
         // Local variables
         private ManeuverNode node;
         private bool orbitSensibility;
+
+        private List<ProtoCrewMember> localCrew = new List<ProtoCrewMember>();
+        private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         // Processing cache!
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
@@ -80,6 +88,11 @@ namespace JSI
         [KSPField(isPersistant = true)]
         public string RPMCid = string.Empty;
         private Guid id = Guid.Empty;
+        /// <summary>
+        /// The Guid of the vessel to which we belong.  We update this very
+        /// obsessively to avoid it being out-of-sync with our craft.
+        /// </summary>
+        private Guid vid = Guid.Empty;
 
         private ExternalVariableHandlers plugins = null;
         internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
@@ -188,8 +201,8 @@ namespace JSI
                     }
                     catch (Exception e)
                     {
-                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                        variableCache.Clear();
+                        JUtil.LogErrorMessage(this, "Processing error while adding {0}: {1}", input, e.Message);
+                        //variableCache.Clear();
                         return -1;
                     }
 
@@ -299,6 +312,8 @@ namespace JSI
         {
             if (!HighLogic.LoadedSceneIsEditor)
             {
+                vid = vessel.id;
+
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
                 GameEvents.onVesselChange.Add(onVesselChange);
 
@@ -317,12 +332,26 @@ namespace JSI
                 {
                     id = Guid.NewGuid();
                     RPMCid = id.ToString();
-                    JUtil.LogMessage(this, "Start: Creating GUID {0}", id);
+                    if (part.internalModel != null)
+                    {
+                        JUtil.LogMessage(this, "Start: Creating GUID {0} in {1}", id, part.internalModel.internalName);
+                    }
+                    else
+                    {
+                        JUtil.LogMessage(this, "Start: Creating GUID {0}", id);
+                    }
                 }
                 else
                 {
                     id = new Guid(RPMCid);
-                    JUtil.LogMessage(this, "Start: Loading GUID string {0}", RPMCid);
+                    if (part.internalModel != null)
+                    {
+                        JUtil.LogMessage(this, "Start: Loading GUID string {0} in {1}", RPMCid, part.internalModel.internalName);
+                    }
+                    else
+                    {
+                        JUtil.LogMessage(this, "Start: Loading GUID {0}", id);
+                    }
                 }
 
                 plugins = new ExternalVariableHandlers(part);
@@ -403,6 +432,16 @@ namespace JSI
                     }
                 }
 
+                // part.internalModel can be null if the craft is loaded, but isn't the active/IVA craft
+                if (part.internalModel != null)
+                {
+                    for (int i = 0; i < part.internalModel.seats.Count; i++)
+                    {
+                        localCrew.Add(part.internalModel.seats[i].crew);
+                        localCrewMedical.Add((localCrew[i] == null) ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>());
+                    }
+                }
+
                 UpdateLocalVars();
             }
         }
@@ -417,7 +456,32 @@ namespace JSI
             {
                 node = null;
             }
+
             orbitSensibility = JUtil.OrbitMakesSense(vessel);
+
+            if (part.internalModel != null)
+            {
+                if (part.internalModel.seats.Count != localCrew.Count)
+                {
+                    // This can happen when the internalModel is loaded when
+                    // it wasn't previously, which appears to occur on docking
+                    // for instance.
+                    localCrew.Clear();
+                    localCrewMedical.Clear();
+                    for (int i = 0; i < part.internalModel.seats.Count; i++)
+                    {
+                        localCrew.Add(part.internalModel.seats[i].crew);
+                        localCrewMedical.Add((localCrew[i] == null) ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>());
+                    }
+
+                }
+                // TODO: Not polling this - find the callbacks for it
+                for (int i = 0; i < part.internalModel.seats.Count; i++)
+                {
+                    localCrew[i] = part.internalModel.seats[i].crew;
+                    localCrewMedical[i] = (localCrew[i]) == null ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+                }
+            }
         }
 
         public void FixedUpdate()
@@ -495,9 +559,9 @@ namespace JSI
 
         public void OnDestroy()
         {
-            if (id != Guid.Empty)
+            if (!string.IsNullOrEmpty(RPMCid))
             {
-                JUtil.LogMessage(this, "OnDestroy: GUID {0}", id);
+                JUtil.LogMessage(this, "OnDestroy: GUID {0}", RPMCid);
             }
 
 #if SHOW_VARIABLE_QUERY_COUNTER
@@ -523,6 +587,9 @@ namespace JSI
                 }
             }
 
+            localCrew.Clear();
+            localCrewMedical.Clear();
+
             variableCache.Clear();
             resultCache.Clear();
         }
@@ -531,7 +598,8 @@ namespace JSI
         {
             if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} ({1} vars)", RPMCid, persistentVars.Count);
+                vid = vessel.id;
+                JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 forceCallbackRefresh = true;
                 variableCache.Clear();
                 resultCache.Clear();
@@ -553,7 +621,8 @@ namespace JSI
         {
             if (who.id == vessel.id)
             {
-                JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} ({1} vars)", RPMCid, persistentVars.Count);
+                vid = vessel.id;
+                JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 forceCallbackRefresh = true;
                 variableCache.Clear();
                 resultCache.Clear();

@@ -74,6 +74,8 @@ namespace JSI
             if (input.IndexOf("_", StringComparison.Ordinal) > -1)
             {
                 string[] tokens = input.Split('_');
+                
+                // MOARdV TODO: Restructure this as a switch statement on tokens[0]
 
                 // Is loaded?
                 if (tokens.Length >= 2 && tokens[0] == "ISLOADED")
@@ -88,6 +90,71 @@ namespace JSI
                     {
                         return (string variable, RasterPropMonitorComputer rpmComp) => { return 0.0f; };
                     }
+                }
+
+
+                if (tokens.Length == 2 && tokens[0] == "SYSR")
+                {
+                    foreach (KeyValuePair<string, string> resourceType in RPMGlobals.systemNamedResources)
+                    {
+                        if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
+                        {
+                            return (string variable, RasterPropMonitorComputer rpmComp) => 
+                            {
+                                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
+                                return comp.resources.ListElement(variable); 
+                            };
+                        }
+                    }
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return variable; };
+                }
+
+                // If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
+                // The variables are named like LISTR_<number>_<NAME|VAL|MAX>
+                if (tokens.Length == 3 && tokens[0] == "LISTR")
+                {
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
+                        string[] toks = variable.Split('_');
+                        ushort resourceID = Convert.ToUInt16(toks[1]);
+                        string resourceName = comp.resources.GetActiveResourceByIndex(resourceID);
+                        if (toks[2] == "NAME")
+                        {
+                            return resourceName;
+                        }
+                        if (string.IsNullOrEmpty(resourceName))
+                        {
+                            return 0d;
+                        }
+                        else
+                        {
+                            return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
+                                comp.resources.ListElement(resourceName, toks[2].Substring("STAGE".Length), true) :
+                                comp.resources.ListElement(resourceName, toks[2], false);
+                        }
+                    };
+                }
+
+                // We do similar things for crew rosters.
+                // The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
+                // Part-local crew list is identical but CREWLOCAL_.
+                if (tokens.Length == 3 && (tokens[0] == "CREW" || tokens[0] == "CREWLOCAL"))
+                {
+                    return (string variable, RasterPropMonitorComputer rpmComp) =>
+                    {
+                        string[] toks = variable.Split('_');
+                        ushort crewSeatID = Convert.ToUInt16(toks[1]);
+                        switch (toks[0])
+                        {
+                            case "CREW":
+                                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
+                                return CrewListElement(toks[2], crewSeatID, comp.vesselCrew, comp.vesselCrewMedical);
+                            case "CREWLOCAL":
+                                return CrewListElement(toks[2], crewSeatID, rpmComp.localCrew, rpmComp.localCrewMedical);
+                        }
+                        return variable;
+                    };
                 }
 
                 // Periodic variables - A value that toggles between 0 and 1 with
@@ -300,6 +367,7 @@ namespace JSI
                     return input;
                 };
             }
+
             // Action group state.
             if (input.StartsWith("AGSTATE", StringComparison.Ordinal))
             {
@@ -321,25 +389,25 @@ namespace JSI
                 case "VERTSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.speedVertical; 
                     };
                 case "VERTSPEEDLOG10":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return JUtil.PseudoLog10(comp.speedVertical); 
                     };
                 case "VERTSPEEDROUNDED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.speedVerticalRounded; 
                     };
                 case "RADARALTVERTSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.radarAltitudeRate; 
                     };
                 case "TERMINALVELOCITY":
@@ -358,13 +426,13 @@ namespace JSI
                 case "TRGTSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.velocityRelativeTarget.magnitude; 
                     };
                 case "HORZVELOCITY":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.speedHorizontal; 
                     };
                 case "HORZVELOCITYFORWARD":
@@ -373,13 +441,13 @@ namespace JSI
                     // such that moving "forward" has a positive value.
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return -Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceForward); 
                     };
                 case "HORZVELOCITYRIGHT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceRight); 
                     };
                 case "EASPEED":
@@ -398,7 +466,7 @@ namespace JSI
                 case "APPROACHSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.approachSpeed; 
                     };
                 case "SELECTEDSPEED":
@@ -411,7 +479,7 @@ namespace JSI
                             case FlightGlobals.SpeedDisplayModes.Surface:
                                 return rpmComp.vessel.srfSpeed;
                             case FlightGlobals.SpeedDisplayModes.Target:
-                                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                                 return comp.velocityRelativeTarget.magnitude;
                         }
                         return double.NaN;
@@ -459,13 +527,13 @@ namespace JSI
                 case "SPEEDATIMPACT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.SpeedAtImpact(comp.totalCurrentThrust); 
                     };
                 case "BESTSPEEDATIMPACT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.SpeedAtImpact(comp.totalLimitedMaximumThrust); 
                     };
                 case "SUICIDEBURNSTARTSECS":
@@ -477,7 +545,7 @@ namespace JSI
                         }
                         else
                         {
-                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                             return comp.SuicideBurnCountdown();
                         }
                     };
@@ -486,7 +554,7 @@ namespace JSI
                     // (-(SHIP:SURFACESPEED)^2)/(2*(ship:maxthrust/ship:mass)) 
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.totalLimitedMaximumThrust <= 0.0)
                         {
                             // It should be impossible for wet mass to be zero.
@@ -499,31 +567,31 @@ namespace JSI
                 case "ALTITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.altitudeASL;
                     };
                 case "ALTITUDELOG10":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return JUtil.PseudoLog10(comp.altitudeASL);
                     };
                 case "RADARALT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.altitudeTrue;
                     };
                 case "RADARALTLOG10":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return JUtil.PseudoLog10(comp.altitudeTrue);
                     };
                 case "RADARALTOCEAN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.vessel.mainBody.ocean)
                         {
                             return Math.Min(comp.altitudeASL, comp.altitudeTrue);
@@ -533,7 +601,7 @@ namespace JSI
                 case "RADARALTOCEANLOG10":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.vessel.mainBody.ocean)
                         {
                             return JUtil.PseudoLog10(Math.Min(comp.altitudeASL,comp.altitudeTrue));
@@ -543,13 +611,13 @@ namespace JSI
                 case "ALTITUDEBOTTOM":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.altitudeBottom;
                     };
                 case "ALTITUDEBOTTOMLOG10":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return JUtil.PseudoLog10(comp.altitudeBottom);
                     };
                 case "TERRAINHEIGHT":
@@ -557,7 +625,7 @@ namespace JSI
                 case "TERRAINDELTA":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.terrainDelta;
                     };
                 case "TERRAINHEIGHTLOG10":
@@ -565,7 +633,7 @@ namespace JSI
                 case "DISTTOATMOSPHERETOP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return rpmComp.vessel.orbit.referenceBody.atmosphereDepth - comp.altitudeASL;
                     };
 
@@ -581,7 +649,7 @@ namespace JSI
                     {
                         if (rpmComp.vessel.mainBody.atmosphere)
                         {
-                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                             float depth;
                             try
                             {
@@ -605,31 +673,31 @@ namespace JSI
                 case "MASSDRY":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalShipDryMass; 
                     };
                 case "MASSWET":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalShipWetMass; 
                     };
                 case "MASSRESOURCES":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalShipWetMass - comp.totalShipDryMass; 
                     };
                 case "MASSPROPELLANT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.resources.PropellantMass(false); 
                     };
                 case "MASSPROPELLANTSTAGE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.resources.PropellantMass(true); 
                     };
 
@@ -643,49 +711,49 @@ namespace JSI
                 case "THRUST":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalCurrentThrust;
                     };
                 case "THRUSTMAX":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalLimitedMaximumThrust;
                     };
                 case "THRUSTMAXRAW":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalRawMaximumThrust;
                     };
                 case "THRUSTLIMIT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalRawMaximumThrust > 0.0f) ? comp.totalLimitedMaximumThrust / comp.totalRawMaximumThrust : 0.0f;
                     };
                 case "TWR":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalCurrentThrust / (comp.totalShipWetMass * comp.localGeeASL));
                     };
                 case "TWRMAX":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalLimitedMaximumThrust / (comp.totalShipWetMass * comp.localGeeASL));
                     };
                 case "ACCEL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalCurrentThrust / comp.totalShipWetMass);
                     };
                 case "MAXACCEL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalLimitedMaximumThrust / comp.totalShipWetMass);
                     };
                 case "GFORCE":
@@ -695,49 +763,49 @@ namespace JSI
                 case "REALISP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.actualAverageIsp;
                     };
                 case "MAXISP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.actualMaxIsp;
                     };
                 case "CURRENTENGINEFUELFLOW":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.currentEngineFuelFlow;
                     };
                 case "MAXENGINEFUELFLOW":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.maxEngineFuelFlow;
                     };
                 case "HOVERPOINT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.localGeeDirect / (comp.totalLimitedMaximumThrust / comp.totalShipWetMass)).Clamp(0.0f, 1.0f);
                     };
                 case "HOVERPOINTEXISTS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return ((comp.localGeeDirect / (comp.totalLimitedMaximumThrust / comp.totalShipWetMass)) > 1.0f) ? -1.0 : 1.0;
                     };
                 case "EFFECTIVERAWTHROTTLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalRawMaximumThrust > 0.0f) ? (comp.totalCurrentThrust / comp.totalRawMaximumThrust) : 0.0f;
                     };
                 case "EFFECTIVETHROTTLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.totalLimitedMaximumThrust > 0.0f) ? (comp.totalCurrentThrust / comp.totalLimitedMaximumThrust) : 0.0f;
                     };
                 case "DRAG":
@@ -751,19 +819,19 @@ namespace JSI
                 case "ACCELPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.prograde);
                     };
                 case "ACCELRADIAL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.radialOut);
                     };
                 case "ACCELNORMAL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.normalPlus);
                     };
                 case "ACCELSURFPROGRADE":
@@ -771,19 +839,19 @@ namespace JSI
                 case "ACCELFORWARD":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.forward);
                     };
                 case "ACCELRIGHT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.right);
                     };
                 case "ACCELTOP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.top);
                     };
 
@@ -809,7 +877,7 @@ namespace JSI
                 case "MNODEBURNTIMESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.node != null && comp.totalLimitedMaximumThrust > 0 && comp.actualAverageIsp > 0.0f)
                         {
                             return comp.actualAverageIsp * (1.0f - Math.Exp(-rpmComp.node.GetBurnVector(rpmComp.vessel.orbit).magnitude / comp.actualAverageIsp / gee)) / (comp.totalLimitedMaximumThrust / (comp.totalShipWetMass * gee));
@@ -894,7 +962,7 @@ namespace JSI
                 case "MNODETARGETCLOSESTAPPROACHTIME":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null || rpmComp.node == null || rpmComp.node.nextPatch == null)
                         {
                             return double.NaN;
@@ -909,7 +977,7 @@ namespace JSI
                 case "MNODETARGETCLOSESTAPPROACHDISTANCE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null || rpmComp.node == null || rpmComp.node.nextPatch == null)
                         {
                             return double.NaN;
@@ -924,7 +992,7 @@ namespace JSI
                     // MechJeb's targetables don't have orbits.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null || rpmComp.node == null || rpmComp.node.nextPatch == null)
                         {
                             return double.NaN;
@@ -1176,7 +1244,7 @@ namespace JSI
                 case "TARGETTYPE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null)
                         {
                             return comp.targetVessel.vesselType.ToString();
@@ -1196,20 +1264,20 @@ namespace JSI
                 case "LATITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return rpmComp.vessel.mainBody.GetLatitude(comp.CoM);
                     };
                 case "LONGITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return JUtil.ClampDegrees180(rpmComp.vessel.mainBody.GetLongitude(comp.CoM));
                     };
                 case "TARGETLATITUDE":
                 case "LATITUDETGT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     { // These targetables definitely don't have any coordinates.
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.target is CelestialBody)
                         {
                             return double.NaN;
@@ -1227,7 +1295,7 @@ namespace JSI
                 case "LONGITUDETGT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.target is CelestialBody)
                         {
                             return double.NaN;
@@ -1243,19 +1311,19 @@ namespace JSI
                 case "HEADING":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.rotationVesselSurface.eulerAngles.y;
                     };
                 case "PITCH":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.rotationVesselSurface.eulerAngles.x > 180.0f) ? (360.0f - comp.rotationVesselSurface.eulerAngles.x) : -comp.rotationVesselSurface.eulerAngles.x;
                     };
                 case "ROLL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.rotationVesselSurface.eulerAngles.z > 180.0f) ? (360.0f - comp.rotationVesselSurface.eulerAngles.z) : -comp.rotationVesselSurface.eulerAngles.z;
                     };
                 case "PITCHRATE":
@@ -1272,55 +1340,55 @@ namespace JSI
                 case "PITCHSURFPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(rpmComp.vessel.srf_velocity.normalized); 
                     };
                 case "PITCHSURFRETROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(-rpmComp.vessel.srf_velocity.normalized);
                     };
                 case "PITCHPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(comp.prograde);
                     };
                 case "PITCHRETROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(-comp.prograde);
                     };
                 case "PITCHRADIALIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(-comp.radialOut);
                     };
                 case "PITCHRADIALOUT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(comp.radialOut);
                     };
                 case "PITCHNORMALPLUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(comp.normalPlus);
                     };
                 case "PITCHNORMALMINUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativePitch(-comp.normalPlus);
                     };
                 case "PITCHNODE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.node != null)
                         {
                             return comp.GetRelativePitch(rpmComp.node.GetBurnVector(rpmComp.vessel.orbit).normalized);
@@ -1333,7 +1401,7 @@ namespace JSI
                 case "PITCHTARGET":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             return comp.GetRelativePitch(-comp.targetSeparation.normalized);
@@ -1346,7 +1414,7 @@ namespace JSI
                 case "PITCHTARGETRELPLUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.velocityRelativeTarget.sqrMagnitude > 0.0)
                         {
                             return comp.GetRelativePitch(comp.velocityRelativeTarget.normalized);
@@ -1359,7 +1427,7 @@ namespace JSI
                 case "PITCHTARGETRELMINUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.velocityRelativeTarget.sqrMagnitude > 0.0)
                         {
                             return comp.GetRelativePitch(-comp.velocityRelativeTarget.normalized);
@@ -1372,55 +1440,55 @@ namespace JSI
                 case "YAWSURFPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(rpmComp.vessel.srf_velocity.normalized);
                     };
                 case "YAWSURFRETROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(-rpmComp.vessel.srf_velocity.normalized);
                     };
                 case "YAWPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(comp.prograde);
                     };
                 case "YAWRETROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(-comp.prograde);
                     };
                 case "YAWRADIALIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(-comp.radialOut);
                     };
                 case "YAWRADIALOUT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(comp.radialOut);
                     };
                 case "YAWNORMALPLUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(comp.normalPlus);
                     };
                 case "YAWNORMALMINUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.GetRelativeYaw(-comp.normalPlus);
                     };
                 case "YAWNODE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.node != null)
                         {
                             return comp.GetRelativeYaw(rpmComp.node.GetBurnVector(rpmComp.vessel.orbit).normalized);
@@ -1433,7 +1501,7 @@ namespace JSI
                 case "YAWTARGET":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             return comp.GetRelativeYaw(-comp.targetSeparation.normalized);
@@ -1446,7 +1514,7 @@ namespace JSI
                 case "YAWTARGETRELPLUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.velocityRelativeTarget.sqrMagnitude > 0.0)
                         {
                             return comp.GetRelativeYaw(comp.velocityRelativeTarget.normalized);
@@ -1459,7 +1527,7 @@ namespace JSI
                 case "YAWTARGETRELMINUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.velocityRelativeTarget.sqrMagnitude > 0.0)
                         {
                             return comp.GetRelativeYaw(-comp.velocityRelativeTarget.normalized);
@@ -1475,7 +1543,7 @@ namespace JSI
                 case "TARGETNAME":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return string.Empty;
                         if (comp.target is Vessel || comp.target is CelestialBody || comp.target is ModuleDockingNode)
@@ -1487,7 +1555,7 @@ namespace JSI
                 case "TARGETDISTANCE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                             return comp.targetDistance;
                         return -1d;
@@ -1495,7 +1563,7 @@ namespace JSI
                 case "TARGETGROUNDDISTANCE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             Vector3d targetGroundPos = comp.target.ProjectPositionOntoSurface(rpmComp.vessel.mainBody);
@@ -1510,7 +1578,7 @@ namespace JSI
                     // MechJeb's comp.targetables don't have orbits.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbit != null)
                         {
                             return comp.targetOrbit.referenceBody != rpmComp.vessel.orbit.referenceBody ?
@@ -1522,7 +1590,7 @@ namespace JSI
                 case "TARGETORBITBODY":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbit != null)
                             return comp.targetOrbit.referenceBody.name;
                         return string.Empty;
@@ -1530,7 +1598,7 @@ namespace JSI
                 case "TARGETEXISTS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return -1d;
                         if (comp.target is Vessel)
@@ -1540,7 +1608,7 @@ namespace JSI
                 case "TARGETISDOCKINGPORT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return -1d;
                         if (comp.target is ModuleDockingNode)
@@ -1550,7 +1618,7 @@ namespace JSI
                 case "TARGETISVESSELORPORT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return -1d;
                         if (comp.target is ModuleDockingNode || comp.target is Vessel)
@@ -1560,7 +1628,7 @@ namespace JSI
                 case "TARGETISCELESTIAL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return -1d;
                         if (comp.target is CelestialBody)
@@ -1570,7 +1638,7 @@ namespace JSI
                 case "TARGETISPOSITION":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                         {
                             return -1d;
@@ -1587,7 +1655,7 @@ namespace JSI
                 case "TARGETSITUATION":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target is Vessel)
                             return SituationString(comp.target.GetVessel().situation);
                         return string.Empty;
@@ -1595,7 +1663,7 @@ namespace JSI
                 case "TARGETALTITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                         {
                             return -1d;
@@ -1629,7 +1697,7 @@ namespace JSI
                 case "TARGETSEMIMAJORAXIS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null)
                             return double.NaN;
                         if (comp.targetOrbit != null)
@@ -1639,7 +1707,7 @@ namespace JSI
                 case "TIMETOANWITHTARGETSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null)
                             return double.NaN;
                         return rpmComp.vessel.GetOrbit().TimeOfAscendingNode(comp.targetOrbit, Planetarium.GetUniversalTime()) - Planetarium.GetUniversalTime();
@@ -1647,7 +1715,7 @@ namespace JSI
                 case "TIMETODNWITHTARGETSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null)
                             return double.NaN;
                         return rpmComp.vessel.GetOrbit().TimeOfDescendingNode(comp.targetOrbit, Planetarium.GetUniversalTime()) - Planetarium.GetUniversalTime();
@@ -1655,7 +1723,7 @@ namespace JSI
                 case "TARGETCLOSESTAPPROACHTIME":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null || rpmComp.orbitSensibility == false)
                         {
                             return double.NaN;
@@ -1670,7 +1738,7 @@ namespace JSI
                 case "TARGETCLOSESTAPPROACHDISTANCE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target == null || comp.targetOrbit == null || rpmComp.orbitSensibility == false)
                         {
                             return double.NaN;
@@ -1693,7 +1761,7 @@ namespace JSI
                     // appropriate here.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && comp.targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                         {
                             return comp.targetVessel.DiscoveryInfo.GetSignalStrength(comp.targetVessel.DiscoveryInfo.lastObservedTime);
@@ -1707,7 +1775,7 @@ namespace JSI
                 case "TARGETSIGNALSTRENGTHCAPTION":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && comp.targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                         {
                             return DiscoveryInfo.GetSignalStrengthCaption(comp.targetVessel.DiscoveryInfo.GetSignalStrength(comp.targetVessel.DiscoveryInfo.lastObservedTime));
@@ -1721,7 +1789,7 @@ namespace JSI
                 case "TARGETLASTOBSERVEDTIMEUT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && comp.targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                         {
                             return comp.targetVessel.DiscoveryInfo.lastObservedTime;
@@ -1735,7 +1803,7 @@ namespace JSI
                 case "TARGETLASTOBSERVEDTIMESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && comp.targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                         {
                             return Math.Max(Planetarium.GetUniversalTime() - comp.targetVessel.DiscoveryInfo.lastObservedTime, 0.0);
@@ -1749,7 +1817,7 @@ namespace JSI
                 case "TARGETSIZECLASS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.DiscoveryInfo.Level != DiscoveryLevels.Owned && comp.targetVessel.DiscoveryInfo.HaveKnowledgeAbout(DiscoveryLevels.Presence))
                         {
                             return comp.targetVessel.DiscoveryInfo.objectSize;
@@ -1763,26 +1831,26 @@ namespace JSI
                 case "TARGETDISTANCEX":    //distance to comp.target along the yaw axis (j and l rcs keys)
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().right);
                     };
                 case "TARGETDISTANCEY":   //distance to comp.target along the pitch axis (i and k rcs keys)
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().forward);
                     };
                 case "TARGETDISTANCEZ":  //closure distance from comp.target - (h and n rcs keys)
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return -Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().up);
                     };
 
                 case "TARGETDISTANCESCALEDX":    //scaled and clamped version of comp.targetDISTANCEX.  Returns a number between 100 and -100, with precision increasing as distance decreases.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         double scaledX = Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().right);
                         double zdist = -Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().up);
                         if (zdist < .1)
@@ -1798,7 +1866,7 @@ namespace JSI
                 case "TARGETDISTANCESCALEDY":  //scaled and clamped version of comp.targetDISTANCEY.  These two numbers will control the position needles on a docking port alignment gauge.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         double scaledY = Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().forward);
                         double zdist2 = -Vector3d.Dot(comp.targetSeparation, rpmComp.vessel.GetTransform().up);
                         if (zdist2 < .1)
@@ -1814,7 +1882,7 @@ namespace JSI
                 case "TARGETANGLEX":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             if (comp.targetDockingNode != null)
@@ -1828,7 +1896,7 @@ namespace JSI
                 case "TARGETANGLEY":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             if (comp.targetDockingNode != null)
@@ -1844,7 +1912,7 @@ namespace JSI
                 case "TARGETANGLEZ":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             if (comp.targetDockingNode != null)
@@ -1860,7 +1928,7 @@ namespace JSI
                 case "TARGETANGLEDEV":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null)
                         {
                             return Vector3d.Angle(rpmComp.vessel.ReferenceTransform.up, FlightGlobals.fetch.vesselTargetDirection);
@@ -1871,7 +1939,7 @@ namespace JSI
                 case "TARGETAPOAPSIS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.ApA;
                         return double.NaN;
@@ -1879,7 +1947,7 @@ namespace JSI
                 case "TARGETPERIAPSIS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.PeA;
                         return double.NaN;
@@ -1887,7 +1955,7 @@ namespace JSI
                 case "TARGETINCLINATION":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.inclination;
                         return double.NaN;
@@ -1895,7 +1963,7 @@ namespace JSI
                 case "TARGETECCENTRICITY":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.eccentricity;
                         return double.NaN;
@@ -1903,7 +1971,7 @@ namespace JSI
                 case "TARGETORBITALVEL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.orbitalSpeed;
                         return double.NaN;
@@ -1911,7 +1979,7 @@ namespace JSI
                 case "TARGETTIMETOAPSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.timeToAp;
                         return double.NaN;
@@ -1919,7 +1987,7 @@ namespace JSI
                 case "TARGETORBPERIODSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbit != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.period;
                         return double.NaN;
@@ -1927,7 +1995,7 @@ namespace JSI
                 case "TARGETTIMETOPESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.target != null && comp.targetOrbitSensibility)
                             return comp.targetOrbit.eccentricity < 1 ?
                                 comp.targetOrbit.timeToPe :
@@ -1937,7 +2005,7 @@ namespace JSI
                 case "TARGETLAUNCHTIMESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.mainBody == rpmComp.vessel.mainBody && (rpmComp.vessel.situation == Vessel.Situations.LANDED || rpmComp.vessel.situation == Vessel.Situations.PRELAUNCH || rpmComp.vessel.situation == Vessel.Situations.SPLASHED))
                         {
                             // MOARdV TODO: Make phase angle a variable?
@@ -1951,7 +2019,7 @@ namespace JSI
                 case "TARGETPLANELAUNCHTIMESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetVessel != null && comp.targetVessel.mainBody == rpmComp.vessel.mainBody && (rpmComp.vessel.situation == Vessel.Situations.LANDED || rpmComp.vessel.situation == Vessel.Situations.PRELAUNCH || rpmComp.vessel.situation == Vessel.Situations.SPLASHED))
                         {
                             return TimeToPlane(rpmComp.vessel.mainBody, rpmComp.vessel.latitude, rpmComp.vessel.longitude, comp.target.GetOrbit());
@@ -1968,35 +2036,35 @@ namespace JSI
                     // so no need to test if the orbit makes sense.
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.PhaseAngle;
                     };
                 case "TARGETBODYPHASEANGLESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.TimeToPhaseAngle;
                     };
                 case "TARGETBODYEJECTIONANGLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.EjectionAngle;
                     };
                 case "TARGETBODYEJECTIONANGLESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.TimeToEjectionAngle;
                     };
                 case "TARGETBODYCLOSESTAPPROACH":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.orbitSensibility == true)
                         {
                             double approachTime;
@@ -2010,21 +2078,21 @@ namespace JSI
                 case "TARGETBODYMOONEJECTIONANGLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.MoonEjectionAngle;
                     };
                 case "TARGETBODYEJECTIONALTITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.EjectionAltitude;
                     };
                 case "TARGETBODYDELTAV":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         Protractor.Update(rpmComp.vessel, comp.altitudeASL, comp.targetOrbit);
                         return Protractor.TargetBodyDeltaV;
                     };
@@ -2111,67 +2179,67 @@ namespace JSI
                 case "HEATSHIELDTEMPERATURE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (double)comp.heatShieldTemperature + KelvinToCelsius;
                     };
                 case "HEATSHIELDTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.heatShieldTemperature;
                     };
                 case "HEATSHIELDTEMPERATUREFLUX":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.heatShieldFlux;
                     };
                 case "HOTTESTPARTTEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.hottestPartTemperature;
                     };
                 case "HOTTESTPARTMAXTEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.hottestPartMaxTemperature;
                     };
                 case "HOTTESTPARTTEMPRATIO":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.hottestPartMaxTemperature > 0.0f) ? (comp.hottestPartTemperature / comp.hottestPartMaxTemperature) : 0.0f;
                     };
                 case "HOTTESTPARTNAME":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.hottestPartName;
                     };
                 case "HOTTESTENGINETEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.hottestEngineTemperature;
                     };
                 case "HOTTESTENGINEMAXTEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.hottestEngineMaxTemperature;
                     };
                 case "HOTTESTENGINETEMPRATIO":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.hottestEngineMaxTemperature > 0.0f) ? (comp.hottestEngineTemperature / comp.hottestEngineMaxTemperature) : 0.0f; 
                     };
                 case "SLOPEANGLE":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.slopeAngle; 
                     };
                 case "SPEEDDISPLAYMODE":
@@ -2279,32 +2347,32 @@ namespace JSI
                     // Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.speedVerticalRounded < 0.0 && !rpmComp.vessel.ActionGroups.groups[RPMVesselComputer.gearGroupNumber] && comp.altitudeBottom < 100.0).GetHashCode(); 
                     };
                 case "GROUNDPROXIMITYALARM":
                     // Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.SpeedAtImpact(comp.totalLimitedMaximumThrust) < -10d).GetHashCode(); 
                     };
                 case "TUMBLEALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.speedHorizontal > 5.0).GetHashCode(); 
                     };
                 case "SLOPEALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.slopeAngle > 15.0f).GetHashCode(); 
                     };
                 case "DOCKINGANGLEALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.targetDockingNode != null && comp.targetDistance < 10.0 && comp.approachSpeed > 0.0f &&
                             (Math.Abs(JUtil.NormalAngle(-comp.targetDockingNode.GetFwdVector(), comp.forward, comp.up)) > 1.5 ||
                             Math.Abs(JUtil.NormalAngle(-comp.targetDockingNode.GetFwdVector(), comp.forward, -comp.right)) > 1.5)).GetHashCode();
@@ -2312,13 +2380,13 @@ namespace JSI
                 case "DOCKINGSPEEDALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.targetDockingNode != null && comp.approachSpeed > 2.5f && comp.targetDistance < 15.0).GetHashCode();
                     };
                 case "ALTITUDEALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 150.0).GetHashCode(); 
                     };
                 case "PODTEMPERATUREALARM":
@@ -2342,13 +2410,13 @@ namespace JSI
                 case "ENGINEOVERHEATALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.anyEnginesOverheating.GetHashCode(); 
                     };
                 case "ENGINEFLAMEOUTALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.anyEnginesFlameout.GetHashCode();
                     };
                 case "IMPACTALARM":
@@ -2361,13 +2429,13 @@ namespace JSI
                 case "SCIENCEDATA":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalDataAmount; 
                     };
                 case "SCIENCECOUNT":
                     return (string variable, RasterPropMonitorComputer rpmComp) => 
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         return comp.totalExperimentCount; 
                     };
                 case "BIOMENAME":
@@ -2467,7 +2535,7 @@ namespace JSI
                 case "TARGETBODYATMOSPHERE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.atmosphere ? 1d : -1d;
                         return 0d;
@@ -2477,7 +2545,7 @@ namespace JSI
                 case "TARGETBODYOXYGEN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.atmosphereContainsOxygen ? 1d : -1d;
                         return -1d;
@@ -2487,7 +2555,7 @@ namespace JSI
                 case "TARGETBODYSCALEHEIGHT":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.atmosphereDepth;
                         return -1d;
@@ -2497,7 +2565,7 @@ namespace JSI
                 case "TARGETBODYRADIUS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.Radius;
                         return -1d;
@@ -2507,7 +2575,7 @@ namespace JSI
                 case "TARGETBODYMASS":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.Mass;
                         return -1d;
@@ -2517,7 +2585,7 @@ namespace JSI
                 case "TARGETBODYROTATIONPERIOD":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.rotationPeriod;
                         return -1d;
@@ -2527,7 +2595,7 @@ namespace JSI
                 case "TARGETBODYSOI":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.sphereOfInfluence;
                         return -1d;
@@ -2537,7 +2605,7 @@ namespace JSI
                 case "TARGETBODYGEEASL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.GeeASL;
                         return -1d;
@@ -2547,7 +2615,7 @@ namespace JSI
                 case "TARGETBODYGM":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.gravParameter;
                         return -1d;
@@ -2557,7 +2625,7 @@ namespace JSI
                 case "TARGETBODYATMOSPHERETOP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return comp.targetBody.atmosphereDepth;
                         return -1d;
@@ -2567,7 +2635,7 @@ namespace JSI
                 case "TARGETBODYESCAPEVEL":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return Math.Sqrt(2 * comp.targetBody.gravParameter / comp.targetBody.Radius);
                         return -1d;
@@ -2577,7 +2645,7 @@ namespace JSI
                 case "TARGETBODYAREA":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                             return 4 * Math.PI * comp.targetBody.Radius * comp.targetBody.Radius;
                         return -1d;
@@ -2591,7 +2659,7 @@ namespace JSI
                 case "TARGETBODYSYNCORBITALTITUDE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
                             double syncRadiusT = Math.Pow(comp.targetBody.gravParameter / Math.Pow(2 * Math.PI / comp.targetBody.rotationPeriod, 2), 1 / 3d);
@@ -2608,7 +2676,7 @@ namespace JSI
                 case "TARGETBODYSYNCORBITVELOCITY":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
                             return (2 * Math.PI / comp.targetBody.rotationPeriod) *
@@ -2621,7 +2689,7 @@ namespace JSI
                 case "TARGETBODYSYNCORBICIRCUMFERENCE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
                             return 2 * Math.PI * Math.Pow(comp.targetBody.gravParameter / Math.Pow(2 * Math.PI / comp.targetBody.rotationPeriod, 2), 1 / 3d);
@@ -2633,7 +2701,7 @@ namespace JSI
                 case "TARGETBODYSURFACETEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
                             return comp.targetBody.atmosphereTemperatureSeaLevel + KelvinToCelsius;
@@ -2645,7 +2713,7 @@ namespace JSI
                 case "TARGETBODYSURFACETEMPKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
-                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
                             return comp.targetBody.atmosphereTemperatureSeaLevel;
@@ -2654,13 +2722,49 @@ namespace JSI
                     };
             }
 
-            // If we made it here, it's in the comp.
-            RPMVesselComputer vcomp = RPMVesselComputer.Instance(vessel);
-            return vcomp.GetEvaluator(input, out cacheable);
+            return null;
         }
 #endregion
 
         #region eval helpers
+        private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
+        {
+            bool exists = (crewList != null) && (seatID < crewList.Count);
+            bool valid = exists && crewList[seatID] != null;
+            switch (element)
+            {
+                case "PRESENT":
+                    return valid ? 1d : -1d;
+                case "EXISTS":
+                    return exists ? 1d : -1d;
+                case "FIRST":
+                    return valid ? crewList[seatID].name.Split()[0] : string.Empty;
+                case "LAST":
+                    return valid ? crewList[seatID].name.Split()[1] : string.Empty;
+                case "FULL":
+                    return valid ? crewList[seatID].name : string.Empty;
+                case "STUPIDITY":
+                    return valid ? crewList[seatID].stupidity : -1d;
+                case "COURAGE":
+                    return valid ? crewList[seatID].courage : -1d;
+                case "BADASS":
+                    return valid ? crewList[seatID].isBadass.GetHashCode() : -1d;
+                case "PANIC":
+                    return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].panicLevel : -1d;
+                case "WHEE":
+                    return (valid && crewMedical[seatID] != null) ? crewMedical[seatID].wheeLevel : -1d;
+                case "TITLE":
+                    return valid ? crewList[seatID].experienceTrait.Title : string.Empty;
+                case "LEVEL":
+                    return valid ? (float)crewList[seatID].experienceLevel : -1d;
+                case "EXPERIENCE":
+                    return valid ? crewList[seatID].experience : -1d;
+                default:
+                    return "???!";
+            }
+
+        }
+
         /// <summary>
         /// According to C# specification, switch-case is compiled to a constant hash table.
         /// So this is actually more efficient than a dictionary, who'd have thought.
@@ -3047,7 +3151,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateAngleOfAttack(); 
                 };
             }
@@ -3075,7 +3179,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return (comp.actualAverageIsp * gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false))); 
                 };
             }
@@ -3103,7 +3207,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return (comp.actualAverageIsp * gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true))); 
                 };
             }
@@ -3131,7 +3235,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateDragForce() / comp.totalShipWetMass; 
                 };
             }
@@ -3139,7 +3243,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return accessor() / comp.totalShipWetMass; 
                 };
             }
@@ -3163,7 +3267,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateDragForce(); 
                 };
             }
@@ -3211,7 +3315,7 @@ namespace JSI
             return (string variable, RasterPropMonitorComputer rpmComp) =>
             {
                 double est = accessor();
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                 return (est == 0.0) ? comp.estLandingAltitude : est;
             };
         }
@@ -3223,7 +3327,7 @@ namespace JSI
             return (string variable, RasterPropMonitorComputer rpmComp) =>
             {
                 double est = accessor();
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                 return (est == 0.0) ? comp.estLandingLatitude : est;
             };
         }
@@ -3235,7 +3339,7 @@ namespace JSI
             return (string variable, RasterPropMonitorComputer rpmComp) =>
             {
                 double est = accessor();
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                 return (est == 0.0) ? comp.estLandingLongitude : est;
             };
         }
@@ -3258,7 +3362,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateLiftForce() / comp.totalShipWetMass; 
                 };
             }
@@ -3266,7 +3370,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return accessor() / comp.totalShipWetMass; 
                 };
             }
@@ -3290,7 +3394,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateLiftForce(); 
                 };
             }
@@ -3362,7 +3466,7 @@ namespace JSI
             {
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                     return comp.FallbackEvaluateSideSlip(); 
                 };
             }
