@@ -557,7 +557,7 @@ namespace JSI
                 }
 
             }
-            else
+            else if(vid != Guid.Empty)
             {
                 JUtil.LogMessage(this, "OnSave vessel is null? expected for {0}", vid);
             }
