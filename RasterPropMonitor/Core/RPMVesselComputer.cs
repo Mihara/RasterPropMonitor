@@ -50,11 +50,11 @@ namespace JSI
          */
         private static Dictionary<Guid, RPMVesselComputer> instances;
 
-        private static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
-        private static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
-        private static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
-        private static readonly int lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
-        private static readonly int rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
+        internal static readonly int gearGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Gear);
+        internal static readonly int brakeGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Brakes);
+        internal static readonly int sasGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.SAS);
+        internal static readonly int lightGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.Light);
+        internal static readonly int rcsGroupNumber = BaseAction.GetGroupIndex(KSPActionGroup.RCS);
         internal static readonly int[] actionGroupID = {
             BaseAction.GetGroupIndex(KSPActionGroup.Custom10),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom01),
@@ -79,7 +79,7 @@ namespace JSI
             "AG8",
             "AG9"
         };
-        internal const float gee = 9.81f;
+        private const float gee = 9.81f;
         private readonly double upperAtmosphereLimit = Math.Log(100000.0);
         #endregion
 
@@ -97,7 +97,7 @@ namespace JSI
             }
         }
         private NavBall navBall;
-        private LinearAtmosphereGauge linearAtmosGauge;
+        internal LinearAtmosphereGauge linearAtmosGauge;
         private ManeuverNode node;
         private Part part;
         internal Part CurrentIVAPart
@@ -120,7 +120,7 @@ namespace JSI
         private uint masterSerialNumber = 0u;
 
         // Craft-relative basis vectors
-        private Vector3 forward;
+        internal Vector3 forward;
         public Vector3 Forward
         {
             get
@@ -128,7 +128,7 @@ namespace JSI
                 return forward;
             }
         }
-        private Vector3 right;
+        internal Vector3 right;
         //public Vector3 Right
         //{
         //    get
@@ -136,7 +136,7 @@ namespace JSI
         //        return right;
         //    }
         //}
-        private Vector3 top;
+        internal Vector3 top;
         //public Vector3 Top
         //{
         //    get
@@ -146,7 +146,7 @@ namespace JSI
         //}
 
         // Orbit-relative vectors
-        private Vector3 prograde;
+        internal Vector3 prograde;
         public Vector3 Prograde
         {
             get
@@ -154,7 +154,7 @@ namespace JSI
                 return prograde;
             }
         }
-        private Vector3 radialOut;
+        internal Vector3 radialOut;
         public Vector3 RadialOut
         {
             get
@@ -162,7 +162,7 @@ namespace JSI
                 return radialOut;
             }
         }
-        private Vector3 normalPlus;
+        internal Vector3 normalPlus;
         public Vector3 NormalPlus
         {
             get
@@ -172,7 +172,7 @@ namespace JSI
         }
 
         // Surface-relative vectors
-        private Vector3 up;
+        internal Vector3 up;
         public Vector3 Up
         {
             get
@@ -202,7 +202,7 @@ namespace JSI
             }
         }
 
-        private Quaternion rotationVesselSurface;
+        internal Quaternion rotationVesselSurface;
         public Quaternion RotationVesselSurface
         {
             get
@@ -231,8 +231,8 @@ namespace JSI
 
         // Tracked vessel variables
         internal float actualAverageIsp;
-        private float actualMaxIsp;
-        private double altitudeASL;
+        internal float actualMaxIsp;
+        internal double altitudeASL;
         //public double AltitudeASL
         //{
         //    get
@@ -240,35 +240,35 @@ namespace JSI
         //        return altitudeASL;
         //    }
         //}
-        private double altitudeBottom;
-        private double altitudeTrue;
-        private bool anyEnginesFlameout;
-        private bool anyEnginesOverheating;
-        private Vector3d CoM;
-        private float heatShieldTemperature;
-        private float heatShieldFlux;
-        private float hottestPartTemperature;
-        private float hottestPartMaxTemperature;
-        private string hottestPartName;
-        private float hottestEngineTemperature;
-        private float hottestEngineMaxTemperature;
-        private float localGeeASL;
-        private float localGeeDirect;
+        internal double altitudeBottom;
+        internal double altitudeTrue;
+        internal bool anyEnginesFlameout;
+        internal bool anyEnginesOverheating;
+        internal Vector3d CoM;
+        internal float heatShieldTemperature;
+        internal float heatShieldFlux;
+        internal float hottestPartTemperature;
+        internal float hottestPartMaxTemperature;
+        internal string hottestPartName;
+        internal float hottestEngineTemperature;
+        internal float hottestEngineMaxTemperature;
+        internal float localGeeASL;
+        internal float localGeeDirect;
         private bool orbitSensibility;
         internal ResourceDataStorage resources = new ResourceDataStorage();
-        private float slopeAngle;
+        internal float slopeAngle;
         internal double speedHorizontal;
         internal double speedVertical;
         internal double speedVerticalRounded;
         internal float totalCurrentThrust;
-        private float totalDataAmount;
-        private float totalExperimentCount;
+        internal float totalDataAmount;
+        internal float totalExperimentCount;
         internal float totalLimitedMaximumThrust;
-        private float totalRawMaximumThrust;
+        internal float totalRawMaximumThrust;
         internal float totalShipDryMass;
         internal float totalShipWetMass;
-        private float maxEngineFuelFlow;
-        private float currentEngineFuelFlow;
+        internal float maxEngineFuelFlow;
+        internal float currentEngineFuelFlow;
 
         private List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
         private List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
@@ -276,20 +276,21 @@ namespace JSI
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         private double lastAltitudeBottomSampleTime;
-        private double lastAltitudeBottom, terrainDelta;
+        private double lastAltitudeBottom;
+        internal double terrainDelta;
         // radarAltitudeRate as computed using a simple exponential smoothing.
         internal float radarAltitudeRate = 0.0f;
         private double lastRadarAltitudeTime;
 
         // Target values
-        private ITargetable target;
-        private CelestialBody targetBody;
-        private ModuleDockingNode targetDockingNode;
-        private Vessel targetVessel;
-        private Orbit targetOrbit;
-        private bool targetOrbitSensibility;
-        private double targetDistance;
-        private Vector3d targetSeparation;
+        internal ITargetable target;
+        internal CelestialBody targetBody;
+        internal ModuleDockingNode targetDockingNode;
+        internal Vessel targetVessel;
+        internal Orbit targetOrbit;
+        internal bool targetOrbitSensibility;
+        internal double targetDistance;
+        internal Vector3d targetSeparation;
         public Vector3d TargetSeparation
         {
             get
@@ -1686,7 +1687,7 @@ namespace JSI
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Pitch in degrees</returns>
-        private double GetRelativePitch(Vector3 normalizedVectorOfInterest)
+        internal double GetRelativePitch(Vector3 normalizedVectorOfInterest)
         {
             // vector projected onto a plane that divides the airplane into left and right halves
             Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, right);
@@ -1706,7 +1707,7 @@ namespace JSI
         /// </summary>
         /// <param name="normalizedVectorOfInterest">The normalized vector we want to measure</param>
         /// <returns>Yaw in degrees</returns>
-        private double GetRelativeYaw(Vector3 normalizedVectorOfInterest)
+        internal double GetRelativeYaw(Vector3 normalizedVectorOfInterest)
         {
             //velocity vector projected onto the vehicle-horizontal plane
             Vector3 tmpVec = Vector3.ProjectOnPlane(normalizedVectorOfInterest, top).normalized;
@@ -1853,84 +1854,84 @@ namespace JSI
             return impactTime - decelTime / 2.0 - Planetarium.GetUniversalTime();
         }
 
-        /// <summary>
-        /// Originally from MechJeb
-        /// Computes the time until the phase angle between the launchpad and the target equals the given angle.
-        /// The convention used is that phase angle is the angle measured starting at the target and going east until
-        /// you get to the launchpad. 
-        /// The time returned will not be exactly accurate unless the target is in an exactly circular orbit. However,
-        /// the time returned will go to exactly zero when the desired phase angle is reached.
-        /// </summary>
-        /// <param name="phaseAngle"></param>
-        /// <param name="launchBody"></param>
-        /// <param name="launchLongitude"></param>
-        /// <param name="target"></param>
-        /// <returns></returns>
-        private static double TimeToPhaseAngle(double phaseAngle, CelestialBody launchBody, double launchLongitude, Orbit target)
-        {
-            double launchpadAngularRate = 360 / launchBody.rotationPeriod;
-            double targetAngularRate = 360.0 / target.period;
-            if (Vector3d.Dot(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
+        ///// <summary>
+        ///// Originally from MechJeb
+        ///// Computes the time until the phase angle between the launchpad and the target equals the given angle.
+        ///// The convention used is that phase angle is the angle measured starting at the target and going east until
+        ///// you get to the launchpad. 
+        ///// The time returned will not be exactly accurate unless the target is in an exactly circular orbit. However,
+        ///// the time returned will go to exactly zero when the desired phase angle is reached.
+        ///// </summary>
+        ///// <param name="phaseAngle"></param>
+        ///// <param name="launchBody"></param>
+        ///// <param name="launchLongitude"></param>
+        ///// <param name="target"></param>
+        ///// <returns></returns>
+        //private static double TimeToPhaseAngle(double phaseAngle, CelestialBody launchBody, double launchLongitude, Orbit target)
+        //{
+        //    double launchpadAngularRate = 360 / launchBody.rotationPeriod;
+        //    double targetAngularRate = 360.0 / target.period;
+        //    if (Vector3d.Dot(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity) < 0) targetAngularRate *= -1; //retrograde target
 
-            Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
-            Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
-            currentTargetDirection = Vector3d.Exclude(launchBody.angularVelocity, currentTargetDirection);
+        //    Vector3d currentLaunchpadDirection = launchBody.GetSurfaceNVector(0, launchLongitude);
+        //    Vector3d currentTargetDirection = target.SwappedRelativePositionAtUT(Planetarium.GetUniversalTime());
+        //    currentTargetDirection = Vector3d.Exclude(launchBody.angularVelocity, currentTargetDirection);
 
-            double currentPhaseAngle = Math.Abs(Vector3d.Angle(currentLaunchpadDirection, currentTargetDirection));
-            if (Vector3d.Dot(Vector3d.Cross(currentTargetDirection, currentLaunchpadDirection), launchBody.angularVelocity) < 0)
-            {
-                currentPhaseAngle = 360 - currentPhaseAngle;
-            }
+        //    double currentPhaseAngle = Math.Abs(Vector3d.Angle(currentLaunchpadDirection, currentTargetDirection));
+        //    if (Vector3d.Dot(Vector3d.Cross(currentTargetDirection, currentLaunchpadDirection), launchBody.angularVelocity) < 0)
+        //    {
+        //        currentPhaseAngle = 360 - currentPhaseAngle;
+        //    }
 
-            double phaseAngleRate = launchpadAngularRate - targetAngularRate;
+        //    double phaseAngleRate = launchpadAngularRate - targetAngularRate;
 
-            double phaseAngleDifference = JUtil.ClampDegrees360(phaseAngle - currentPhaseAngle);
+        //    double phaseAngleDifference = JUtil.ClampDegrees360(phaseAngle - currentPhaseAngle);
 
-            if (phaseAngleRate < 0)
-            {
-                phaseAngleRate *= -1;
-                phaseAngleDifference = 360 - phaseAngleDifference;
-            }
-
-
-            return phaseAngleDifference / phaseAngleRate;
-        }
+        //    if (phaseAngleRate < 0)
+        //    {
+        //        phaseAngleRate *= -1;
+        //        phaseAngleDifference = 360 - phaseAngleDifference;
+        //    }
 
 
-        /// <summary>
-        /// Originally from MechJeb
-        /// Computes the time required for the given launch location to rotate under the target orbital plane. 
-        /// If the latitude is too high for the launch location to ever actually rotate under the target plane,
-        /// returns the time of closest approach to the target plane.
-        /// I have a wonderful proof of this formula which this comment is too short to contain.
-        /// </summary>
-        /// <param name="launchBody"></param>
-        /// <param name="launchLatitude"></param>
-        /// <param name="launchLongitude"></param>
-        /// <param name="target"></param>
-        /// <returns></returns>
-        private static double TimeToPlane(CelestialBody launchBody, double launchLatitude, double launchLongitude, Orbit target)
-        {
-            double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity));
-            Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().SwizzleXZY().normalized).normalized; // I don't understand the sign here, but this seems to work
-            b *= launchBody.Radius * Math.Sin(Math.PI / 180 * launchLatitude) / Math.Tan(Math.PI / 180 * inc);
-            Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity).normalized;
-            double cMagnitudeSquared = Math.Pow(launchBody.Radius * Math.Cos(Math.PI / 180 * launchLatitude), 2) - b.sqrMagnitude;
-            if (cMagnitudeSquared < 0) cMagnitudeSquared = 0;
-            c *= Math.Sqrt(cMagnitudeSquared);
-            Vector3d a1 = b + c;
-            Vector3d a2 = b - c;
+        //    return phaseAngleDifference / phaseAngleRate;
+        //}
 
-            Vector3d longitudeVector = launchBody.GetSurfaceNVector(0, launchLongitude);
 
-            double angle1 = Math.Abs(Vector3d.Angle(longitudeVector, a1));
-            if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a1), launchBody.angularVelocity) < 0) angle1 = 360 - angle1;
-            double angle2 = Math.Abs(Vector3d.Angle(longitudeVector, a2));
-            if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a2), launchBody.angularVelocity) < 0) angle2 = 360 - angle2;
+        ///// <summary>
+        ///// Originally from MechJeb
+        ///// Computes the time required for the given launch location to rotate under the target orbital plane. 
+        ///// If the latitude is too high for the launch location to ever actually rotate under the target plane,
+        ///// returns the time of closest approach to the target plane.
+        ///// I have a wonderful proof of this formula which this comment is too short to contain.
+        ///// </summary>
+        ///// <param name="launchBody"></param>
+        ///// <param name="launchLatitude"></param>
+        ///// <param name="launchLongitude"></param>
+        ///// <param name="target"></param>
+        ///// <returns></returns>
+        //private static double TimeToPlane(CelestialBody launchBody, double launchLatitude, double launchLongitude, Orbit target)
+        //{
+        //    double inc = Math.Abs(Vector3d.Angle(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity));
+        //    Vector3d b = Vector3d.Exclude(launchBody.angularVelocity, -target.GetOrbitNormal().SwizzleXZY().normalized).normalized; // I don't understand the sign here, but this seems to work
+        //    b *= launchBody.Radius * Math.Sin(Math.PI / 180 * launchLatitude) / Math.Tan(Math.PI / 180 * inc);
+        //    Vector3d c = Vector3d.Cross(-target.GetOrbitNormal().SwizzleXZY().normalized, launchBody.angularVelocity).normalized;
+        //    double cMagnitudeSquared = Math.Pow(launchBody.Radius * Math.Cos(Math.PI / 180 * launchLatitude), 2) - b.sqrMagnitude;
+        //    if (cMagnitudeSquared < 0) cMagnitudeSquared = 0;
+        //    c *= Math.Sqrt(cMagnitudeSquared);
+        //    Vector3d a1 = b + c;
+        //    Vector3d a2 = b - c;
 
-            double angle = Math.Min(angle1, angle2);
-            return (angle / 360) * launchBody.rotationPeriod;
-        }
+        //    Vector3d longitudeVector = launchBody.GetSurfaceNVector(0, launchLongitude);
+
+        //    double angle1 = Math.Abs(Vector3d.Angle(longitudeVector, a1));
+        //    if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a1), launchBody.angularVelocity) < 0) angle1 = 360 - angle1;
+        //    double angle2 = Math.Abs(Vector3d.Angle(longitudeVector, a2));
+        //    if (Vector3d.Dot(Vector3d.Cross(longitudeVector, a2), launchBody.angularVelocity) < 0) angle2 = 360 - angle2;
+
+        //    double angle = Math.Min(angle1, angle2);
+        //    return (angle / 360) * launchBody.rotationPeriod;
+        //}
 
         /// <summary>
         /// Determines if enough screen updates have passed to trigger another data update.

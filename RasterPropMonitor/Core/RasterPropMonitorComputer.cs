@@ -48,6 +48,10 @@ namespace JSI
 
         internal List<string> storedStringsArray = new List<string>();
 
+        // Local variables
+        private ManeuverNode node;
+        private bool orbitSensibility;
+
         // Processing cache!
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
@@ -163,7 +167,7 @@ namespace JSI
                     catch (Exception e)
                     {
                         JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                        variableCache.Clear();
+                        variableCache.Remove(input);
                     }
                 }
 
@@ -172,7 +176,7 @@ namespace JSI
             else
             {
                 bool cacheable;
-                RPMVesselComputer.VariableEvaluator evaluator = GetEvaluator(input, RPMVesselComputer.Instance(vessel), out cacheable);
+                RPMVesselComputer.VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
                 if (evaluator != null)
                 {
                     vc = new RPMVesselComputer.VariableCache(cacheable, evaluator);
@@ -398,13 +402,30 @@ namespace JSI
                         }
                     }
                 }
+
+                UpdateLocalVars();
             }
+        }
+
+        private void UpdateLocalVars()
+        {
+            if (vessel.patchedConicSolver != null)
+            {
+                node = vessel.patchedConicSolver.maneuverNodes.Count > 0 ? vessel.patchedConicSolver.maneuverNodes[0] : null;
+            }
+            else
+            {
+                node = null;
+            }
+            orbitSensibility = JUtil.OrbitMakesSense(vessel);
         }
 
         public void FixedUpdate()
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && timeToUpdate)
             {
+                UpdateLocalVars();
+
                 ++masterSerialNumber;
 
 #if SHOW_VARIABLE_QUERY_COUNTER
