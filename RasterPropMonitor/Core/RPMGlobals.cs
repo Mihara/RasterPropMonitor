@@ -28,8 +28,15 @@ namespace JSI
     /// These are generally loaded in by the RPMShaderLoader class in the main
     /// menu.
     /// </summary>
-    internal class RPMGlobals
+    internal static class RPMGlobals
     {
+        internal const float KelvinToCelsius = -273.15f;
+        internal const float MetersToFeet = 3.2808399f;
+        internal const float MetersPerSecondToKnots = 1.94384449f;
+        internal const float MetersPerSecondToFeetPerMinute = 196.850394f;
+        internal const float gee = 9.81f;
+        internal static readonly double upperAtmosphereLimit = Math.Log(100000.0);
+
         /// <summary>
         /// Should JUtil.LogMessage write to the log?
         /// </summary>

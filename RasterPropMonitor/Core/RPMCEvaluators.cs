@@ -30,13 +30,6 @@ namespace JSI
 {
     public partial class RasterPropMonitorComputer : PartModule
     {
-        private const float KelvinToCelsius = -273.15f;
-        internal const float MetersToFeet = 3.2808399f;
-        internal const float MetersPerSecondToKnots = 1.94384449f;
-        internal const float MetersPerSecondToFeetPerMinute = 196.850394f;
-        private const float gee = 9.81f;
-        private readonly double upperAtmosphereLimit = Math.Log(100000.0);
-
         private RPMVesselComputer.VariableEvaluator sideSlipEvaluator;
         internal float Sideslip
         {
@@ -657,8 +650,8 @@ namespace JSI
                             }
                             catch
                             {
-                                depth = (float)((upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(rpmComp.vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
-                                FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / upperAtmosphereLimit).Clamp(0.0f, 1.0f);
+                                depth = (float)((RPMGlobals.upperAtmosphereLimit + Math.Log(FlightGlobals.getAtmDensity(rpmComp.vessel.staticPressurekPa * PhysicsGlobals.KpaToAtmospheres, FlightGlobals.Bodies[1].atmosphereTemperatureSeaLevel) /
+                                FlightGlobals.getAtmDensity(FlightGlobals.currentMainBody.atmospherePressureSeaLevel, FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel))) / RPMGlobals.upperAtmosphereLimit).Clamp(0.0f, 1.0f);
                             }
 
                             return depth;
@@ -880,7 +873,7 @@ namespace JSI
                         RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (rpmComp.node != null && comp.totalLimitedMaximumThrust > 0 && comp.actualAverageIsp > 0.0f)
                         {
-                            return comp.actualAverageIsp * (1.0f - Math.Exp(-rpmComp.node.GetBurnVector(rpmComp.vessel.orbit).magnitude / comp.actualAverageIsp / gee)) / (comp.totalLimitedMaximumThrust / (comp.totalShipWetMass * gee));
+                            return comp.actualAverageIsp * (1.0f - Math.Exp(-rpmComp.node.GetBurnVector(rpmComp.vessel.orbit).magnitude / comp.actualAverageIsp / RPMGlobals.gee)) / (comp.totalLimitedMaximumThrust / (comp.totalShipWetMass * RPMGlobals.gee));
                         }
                         return double.NaN;
                     };
@@ -2151,36 +2144,36 @@ namespace JSI
                         return x;
                     };
                 case "PODTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.temperature + KelvinToCelsius) : 0.0; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.temperature + RPMGlobals.KelvinToCelsius) : 0.0; };
                 case "PODTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.temperature) : 0.0; };
                 case "PODSKINTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinTemperature + KelvinToCelsius) : 0.0; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinTemperature + RPMGlobals.KelvinToCelsius) : 0.0; };
                 case "PODSKINTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinTemperature) : 0.0; };
                 case "PODMAXSKINTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinMaxTemp + KelvinToCelsius) : 0.0; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinMaxTemp + RPMGlobals.KelvinToCelsius) : 0.0; };
                 case "PODMAXSKINTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.skinMaxTemp) : 0.0; };
                 case "PODMAXTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.maxTemp + KelvinToCelsius) : 0.0; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.maxTemp + RPMGlobals.KelvinToCelsius) : 0.0; };
                 case "PODMAXTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.maxTemp) : 0.0; };
                 case "PODNETFLUX":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.thermalConductionFlux + rpmComp.part.thermalConvectionFlux + rpmComp.part.thermalInternalFlux + rpmComp.part.thermalRadiationFlux) : 0.0; };
                 case "EXTERNALTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.externalTemperature + KelvinToCelsius; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.externalTemperature + RPMGlobals.KelvinToCelsius; };
                 case "EXTERNALTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.externalTemperature; };
                 case "AMBIENTTEMPERATURE":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.atmosphericTemperature + KelvinToCelsius; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.atmosphericTemperature + RPMGlobals.KelvinToCelsius; };
                 case "AMBIENTTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) => { return rpmComp.vessel.atmosphericTemperature; };
                 case "HEATSHIELDTEMPERATURE":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
                         RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
-                        return (double)comp.heatShieldTemperature + KelvinToCelsius;
+                        return (double)comp.heatShieldTemperature + RPMGlobals.KelvinToCelsius;
                     };
                 case "HEATSHIELDTEMPERATUREKELVIN":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
@@ -2697,14 +2690,14 @@ namespace JSI
                         return -1d;
                     };
                 case "ORBITBODYSURFACETEMP":
-                    return (string variable, RasterPropMonitorComputer rpmComp) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel + KelvinToCelsius; };
+                    return (string variable, RasterPropMonitorComputer rpmComp) => { return FlightGlobals.currentMainBody.atmosphereTemperatureSeaLevel + RPMGlobals.KelvinToCelsius; };
                 case "TARGETBODYSURFACETEMP":
                     return (string variable, RasterPropMonitorComputer rpmComp) =>
                     {
                         RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
                         if (comp.targetBody != null)
                         {
-                            return comp.targetBody.atmosphereTemperatureSeaLevel + KelvinToCelsius;
+                            return comp.targetBody.atmosphereTemperatureSeaLevel + RPMGlobals.KelvinToCelsius;
                         }
                         return -1d;
                     };
@@ -2722,7 +2715,7 @@ namespace JSI
                     };
             }
 
-            return null;
+            return (string variable, RasterPropMonitorComputer rpmComp) => { return variable; };
         }
 #endregion
 
@@ -3180,7 +3173,7 @@ namespace JSI
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
-                    return (comp.actualAverageIsp * gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false))); 
+                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false))); 
                 };
             }
             else
@@ -3208,7 +3201,7 @@ namespace JSI
                 return (string variable, RasterPropMonitorComputer rpmComp) => 
                 {
                     RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vid);
-                    return (comp.actualAverageIsp * gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true))); 
+                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true))); 
                 };
             }
             else

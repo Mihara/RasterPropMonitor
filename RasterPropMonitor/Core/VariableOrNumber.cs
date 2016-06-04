@@ -59,15 +59,15 @@ namespace JSI
 
             if (varName == "MetersToFeet")
             {
-                varName = RPMVesselComputer.MetersToFeet.ToString();
+                varName = RPMGlobals.MetersToFeet.ToString();
             }
             else if (varName == "MetersPerSecondToKnots")
             {
-                varName = RPMVesselComputer.MetersPerSecondToKnots.ToString();
+                varName = RPMGlobals.MetersPerSecondToKnots.ToString();
             }
             else if (varName == "MetersPerSecondToFeetPerMinute")
             {
-                varName = RPMVesselComputer.MetersPerSecondToFeetPerMinute.ToString();
+                varName = RPMGlobals.MetersPerSecondToFeetPerMinute.ToString();
             }
 
             if (!vars.ContainsKey(varName))

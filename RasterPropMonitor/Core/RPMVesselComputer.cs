@@ -588,6 +588,10 @@ namespace JSI
                 }
 
             }
+            else //if(vid!=Guid.Empty)
+            {
+                JUtil.LogMessage(this, "OnSave vessel is null? expected for {0}", vid);
+            }
         }
 
         public override void OnAwake()
@@ -634,6 +638,7 @@ namespace JSI
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
             GameEvents.onVesselDestroy.Add(onVesselDestroy);
+            GameEvents.onVesselCreate.Add(onVesselCreate);
         }
 
         public void Start()
@@ -710,6 +715,7 @@ namespace JSI
             GameEvents.onPartCouple.Remove(onPartCouple);
             GameEvents.onPartUndock.Remove(onPartUndock);
             GameEvents.onVesselDestroy.Remove(onVesselDestroy);
+            GameEvents.onVesselCreate.Remove(onVesselCreate);
 
             if (instances.ContainsKey(vessel.id))
             {
@@ -774,16 +780,16 @@ namespace JSI
                 // null Vessel.
                 // At some point, it is assigned a new vessel, but I don't know
                 // what the mechanism is for detecing that besides polling here.
-                Vessel avessel = GetComponent<Vessel>();
-                if(avessel != null)
-                {
-                    // We have a new craft!
-                    JUtil.LogMessage(this, "FixedUpdate with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
-                    vessel = avessel;
-                    vid = vessel.id;
-                    instances.Add(vid, this);
-                    timeToUpdate = true;
-                }
+                //Vessel avessel = GetComponent<Vessel>();
+                //if(avessel != null)
+                //{
+                //    // We have a new craft!
+                //    JUtil.LogMessage(this, "FixedUpdate with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
+                //    vessel = avessel;
+                //    vid = vessel.id;
+                //    instances.Add(vid, this);
+                //    timeToUpdate = true;
+                //}
 
                 return;
             }
@@ -2081,6 +2087,19 @@ namespace JSI
                 {
                     JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", v.id);
                     instances.Remove(v.id);
+                }
+            }
+        }
+        private void onVesselCreate(Vessel who)
+        {
+            if (vessel == null)
+            {
+                Vessel avessel = GetComponent<Vessel>();
+                if (avessel != null && avessel.id == who.id)
+                {
+                    JUtil.LogMessage(this, "onVesselCreate(): I am was zombie VesselModule now part of {0}", who.id);
+                    instances.Add(who.id, this);
+                    vid = who.id;
                 }
             }
         }
