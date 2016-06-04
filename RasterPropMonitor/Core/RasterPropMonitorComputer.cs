@@ -199,7 +199,7 @@ namespace JSI
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
 
-                        if (newValue == input && !unrecognizedVariables.Contains(input))
+                        if (newValue.ToString() == input && !unrecognizedVariables.Contains(input))
                         {
                             unrecognizedVariables.Add(input);
                             JUtil.LogMessage(this, "Unrecognized variable {0}", input);
