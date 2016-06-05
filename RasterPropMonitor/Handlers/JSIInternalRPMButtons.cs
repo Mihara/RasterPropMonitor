@@ -44,6 +44,11 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonActivateReserves(bool state)
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             foreach (Part thatPart in vessel.parts)
             {
                 foreach (PartResource resource in thatPart.Resources)
@@ -554,8 +559,8 @@ namespace JSI
         /// </summary>
         /// <param name="ignored">Ignored</param>
         public void RecoverVessel(bool ignored)
-        { 
-            if(vessel != null && vessel.IsRecoverable)
+        {
+            if (vessel != null && vessel.IsRecoverable)
             {
                 GameEvents.OnVesselRecoveryRequested.Fire(vessel);
             }
