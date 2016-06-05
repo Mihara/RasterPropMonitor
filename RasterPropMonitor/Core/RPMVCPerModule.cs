@@ -63,14 +63,18 @@ namespace JSI
         //--- Power production
         internal List<ModuleAlternator> availableAlternators = new List<ModuleAlternator>();
         internal List<float> availableAlternatorOutput = new List<float>();
-        internal List<ModuleGenerator> availableGenerators = new List<ModuleGenerator>();
-        internal List<float> availableGeneratorOutput = new List<float>();
         internal List<ModuleResourceConverter> availableFuelCells = new List<ModuleResourceConverter>();
         internal List<float> availableFuelCellOutput = new List<float>();
+        internal List<ModuleGenerator> availableGenerators = new List<ModuleGenerator>();
+        internal List<float> availableGeneratorOutput = new List<float>();
+        internal List<ModuleDeployableSolarPanel> availableSolarPanels = new List<ModuleDeployableSolarPanel>();
         internal bool generatorsActive; // Returns true if at least one generator or fuel cell is active that can be otherwise switched off
+        internal bool solarPanelsDeployable;
+        internal bool solarPanelsRetractable;
         internal float alternatorOutput;
         internal float fuelcellOutput;
         internal float generatorOutput;
+        internal float solarOutput;
 
         #region List Management
         internal void InvalidateModuleLists()
@@ -85,6 +89,7 @@ namespace JSI
             availableFuelCells.Clear();
             availableFuelCellOutput.Clear();
             availableGenerators.Clear();
+            availableSolarPanels.Clear();
         }
 
         internal void UpdateModuleLists()
@@ -106,7 +111,7 @@ namespace JSI
                             {
                                 availableAblators.Add(module as ModuleAblator);
                             }
-                            else if(module is ModuleResourceIntake)
+                            else if (module is ModuleResourceIntake)
                             {
                                 if ((module as ModuleResourceIntake).resourceName == "IntakeAir")
                                 {
@@ -117,7 +122,7 @@ namespace JSI
                                     JUtil.LogMessage(this, "intake resource is {0}?", (module as ModuleResourceIntake).resourceName);
                                 }
                             }
-                            else if(module is ModuleAlternator)
+                            else if (module is ModuleAlternator)
                             {
                                 ModuleAlternator alt = module as ModuleAlternator;
                                 for (int i = 0; i < alt.outputResources.Count; ++i)
@@ -130,7 +135,7 @@ namespace JSI
                                     }
                                 }
                             }
-                            else if(module is ModuleGenerator)
+                            else if (module is ModuleGenerator)
                             {
                                 ModuleGenerator gen = module as ModuleGenerator;
                                 for (int i = 0; i < gen.outputList.Count; ++i)
@@ -143,7 +148,7 @@ namespace JSI
                                     }
                                 }
                             }
-                            else if(module is ModuleResourceConverter)
+                            else if (module is ModuleResourceConverter)
                             {
                                 ModuleResourceConverter gen = module as ModuleResourceConverter;
                                 ConversionRecipe recipe = gen.Recipe;
@@ -155,6 +160,15 @@ namespace JSI
                                         availableFuelCellOutput.Add((float)recipe.Outputs[i].Ratio);
                                         break;
                                     }
+                                }
+                            }
+                            else if (module is ModuleDeployableSolarPanel)
+                            {
+                                ModuleDeployableSolarPanel sp = module as ModuleDeployableSolarPanel;
+
+                                if (sp.resourceName == "ElectricCharge")
+                                {
+                                    availableSolarPanels.Add(sp);
                                 }
                             }
                         }
@@ -207,31 +221,23 @@ namespace JSI
 
         private void FetchElectricData()
         {
-            fuelcellOutput = generatorOutput = alternatorOutput = 0.0f;
+            solarOutput = fuelcellOutput = generatorOutput = alternatorOutput = 0.0f;
             generatorsActive = false;
+            solarPanelsDeployable = solarPanelsRetractable = false;
 
-            JUtil.LogMessage(this, "FetchElectricData");
             for (int i = 0; i < availableGenerators.Count; ++i)
             {
                 generatorsActive |= (availableGenerators[i].generatorIsActive && !availableGenerators[i].isAlwaysActive);
-                //JUtil.LogMessage(this, "generator efficiency {0}, rate {1}, throttle {2}", availableGenerators[i].efficiency, availableGeneratorOutput[i], availableGenerators[i].throttle);
 
-                float output =availableGenerators[i].efficiency* availableGeneratorOutput[i];
+                float output = availableGenerators[i].efficiency * availableGeneratorOutput[i];
                 if (availableGenerators[i].isThrottleControlled)
                 {
                     output *= availableGenerators[i].throttle;
                 }
                 generatorOutput += output;
-                //for (int j = 0; j < availableGenerators[i].outputList.Count; ++j)
-                //{
-                //    if (availableGenerators[i].outputList[j].name == "ElectricCharge")
-                //    {
-                //        JUtil.LogMessage(this, "... amt {0}, currAmt {1}", availableGenerators[i].outputList[j].amount, availableGenerators[i].outputList[j].currentAmount);
-                //    }
-                //}
             }
 
-            for(int i=0;i<availableFuelCells.Count; ++i)
+            for (int i = 0; i < availableFuelCells.Count; ++i)
             {
                 generatorsActive |= (availableFuelCells[i].IsActivated && !availableFuelCells[i].AlwaysActive);
                 // TODO: Figure out how much energy is being generated (instantaneous rate)
@@ -240,17 +246,24 @@ namespace JSI
                 //JUtil.LogMessage(this, "fuelcell recipe: TakeAmount {0}, FillAmount {1}", recipe.TakeAmount, recipe.FillAmount);
                 //for (int j = 0; j < recipe.Outputs.Count; ++j)
                 //{
-                    //if (recipe.Outputs[j].ResourceName == "ElectricCharge")
-                    //{
-                    //    //JUtil.LogMessage(this, "fuelcell recipe: Ratio {0}", recipe.Outputs[j].Ratio);
-                    //}
+                //if (recipe.Outputs[j].ResourceName == "ElectricCharge")
+                //{
+                //    //JUtil.LogMessage(this, "fuelcell recipe: Ratio {0}", recipe.Outputs[j].Ratio);
+                //}
                 //}
             }
 
-            for(int i=0; i<availableAlternators.Count; ++i)
+            for (int i = 0; i < availableAlternators.Count; ++i)
             {
                 // I assume there's only one ElectricCharge output in a given ModuleAlternator
                 alternatorOutput += availableAlternatorOutput[i] * availableAlternators[i].outputRate;
+            }
+
+            for (int i = 0; i < availableSolarPanels.Count; ++i)
+            {
+                solarOutput += availableSolarPanels[i].flowRate;
+                solarPanelsRetractable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED);
+                solarPanelsDeployable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED);
             }
         }
 
@@ -412,7 +425,7 @@ namespace JSI
 
             for (int i = 0; i < availableFuelCells.Count; ++i)
             {
-                if(!availableFuelCells[i].AlwaysActive)
+                if (!availableFuelCells[i].AlwaysActive)
                 {
                     if (state)
                     {
@@ -421,6 +434,30 @@ namespace JSI
                     else
                     {
                         availableFuelCells[i].StopResourceConverter();
+                    }
+                }
+            }
+        }
+
+        internal void SetDeploySolarPanels(bool state)
+        {
+            if (state)
+            {
+                for (int i = 0; i < availableSolarPanels.Count; ++i)
+                {
+                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED)
+                    {
+                        availableSolarPanels[i].Extend();
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < availableSolarPanels.Count; ++i)
+                {
+                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED)
+                    {
+                        availableSolarPanels[i].Retract();
                     }
                 }
             }

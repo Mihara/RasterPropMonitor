@@ -806,6 +806,8 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.fuelcellOutput; };
                 case "ELECOUTPUTGENERATOR":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.generatorOutput; };
+                case "ELECOUTPUTSOLAR":
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.solarOutput; };
 
                 // Maneuvers
                 case "MNODETIMESECS":

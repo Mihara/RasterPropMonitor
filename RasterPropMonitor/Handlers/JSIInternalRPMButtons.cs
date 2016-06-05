@@ -784,6 +784,35 @@ namespace JSI
             return enabled;
         }
 
+        public bool SolarPanelsDeployable()
+        {
+            if(vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.solarPanelsDeployable;
+            }
+            return false;
+        }
+
+        public bool SolarPanelsRetractable()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.solarPanelsRetractable;
+            }
+            return false;
+        }
+
+        public void SetDeploySolarPanels(bool state)
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetDeploySolarPanels(state);
+            }
+        }
+
         public double GetSASMode()
         {
             if (vessel == null)
