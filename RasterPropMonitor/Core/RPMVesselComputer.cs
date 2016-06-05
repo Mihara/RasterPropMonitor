@@ -1,5 +1,6 @@
 ﻿//#define SHOW_FIXEDUPDATE_TIMING
 //#define SHOW_DOCKING_EVENTS
+//ENABLE_PROFILER
 /*****************************************************************************
  * RasterPropMonitor
  * =================

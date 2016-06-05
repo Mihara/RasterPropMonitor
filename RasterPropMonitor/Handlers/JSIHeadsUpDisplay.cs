@@ -425,11 +425,11 @@ namespace JSI
 
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(rpmComp);
+                verticalBars[i].Update(rpmComp, comp);
             }
             for (int i = 0; i < horizontalBars.Count; ++i)
             {
-                horizontalBars[i].Update(rpmComp);
+                horizontalBars[i].Update(rpmComp, comp);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -664,18 +664,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp)
+        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp))
+                if (!enablingVariable.IsInRange(rpmComp, comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, rpmComp))
+            if (variable.Get(out value, rpmComp, comp))
             {
                 if (useLog10)
                 {
@@ -803,18 +803,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp)
+        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp))
+                if (!enablingVariable.IsInRange(rpmComp, comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, rpmComp))
+            if (variable.Get(out value, rpmComp, comp))
             {
                 if (useLog10)
                 {

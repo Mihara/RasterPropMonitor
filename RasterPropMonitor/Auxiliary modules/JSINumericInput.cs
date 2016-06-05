@@ -103,9 +103,10 @@ namespace JSI
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
                     float value;
-                    if (von.Get(out value, rpmComp))
+                    if (von.Get(out value, rpmComp, comp))
                     {
                         if (stepSize > 0.0f)
                         {
@@ -180,16 +181,17 @@ namespace JSI
                     float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
                     val += change + remainder;
 
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     if (minRange != null)
                     {
                         float v;
-                        if (minRange.Get(out v, rpmComp))
+                        if (minRange.Get(out v, rpmComp, comp))
                         {
                             if (loopInput)
                             {
                                 if (val < v)
                                 {
-                                    if (maxRange.Get(out v, rpmComp))
+                                    if (maxRange.Get(out v, rpmComp, comp))
                                     {
                                         val = v;
                                     }
@@ -205,13 +207,13 @@ namespace JSI
                     if (maxRange != null)
                     {
                         float v;
-                        if (maxRange.Get(out v, rpmComp))
+                        if (maxRange.Get(out v, rpmComp, comp))
                         {
                             if (loopInput)
                             {
                                 if (val > v)
                                 {
-                                    if (minRange.Get(out v, rpmComp))
+                                    if (minRange.Get(out v, rpmComp, comp))
                                     {
                                         val = v;
                                     }

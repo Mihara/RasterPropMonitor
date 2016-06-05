@@ -98,7 +98,8 @@ namespace JSI
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
-                    float value = rpmComp.ProcessVariable(variableName).MassageToFloat();
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                    float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
                     if (value < 0.0f)
                     {
                         textObj.text.Color = negativeColorValue;

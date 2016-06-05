@@ -505,7 +505,8 @@ namespace JSI
                     {
                         try
                         {
-                            currentState = (rpmComp.ProcessVariable(stateVariable).MassageToInt()) > 0;
+                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                            currentState = (rpmComp.ProcessVariable(stateVariable, comp).MassageToInt()) > 0;
                         }
                         catch
                         {
@@ -643,6 +644,7 @@ namespace JSI
         public void Click()
         {
             bool switchEnabled = true;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
             if (!forcedShutdown)
             {
                 if (perPodMasterSwitchValid)
@@ -651,7 +653,7 @@ namespace JSI
                 }
                 if (masterVariable != null)
                 {
-                    switchEnabled = masterVariable.IsInRange(rpmComp);
+                    switchEnabled = masterVariable.IsInRange(rpmComp, comp);
                 }
             }
             if (!switchEnabled)
@@ -678,7 +680,7 @@ namespace JSI
                 }
                 else if (customAction == CustomActions.Plugin && stateVariableValid)
                 {
-                    int ivalue = rpmComp.ProcessVariable(stateVariable).MassageToInt();
+                    int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
                     customGroupState = (ivalue < 1) && !forcedShutdown;
                 }
                 else
@@ -714,20 +716,20 @@ namespace JSI
                     if (stateVariableValid)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable).MassageToInt();
+                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
                         }
                     }
-                    float getValue = rpmComp.ProcessVariable(transferGetter).MassageToFloat();
+                    float getValue = rpmComp.ProcessVariable(transferGetter, comp).MassageToFloat();
                     rpmComp.SetPersistentVariable(transferPersistentName, getValue);
                     break;
                 case CustomActions.TransferFromPersistent:
                     if (stateVariableValid)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable).MassageToInt();
+                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
@@ -742,13 +744,13 @@ namespace JSI
                     if (stateVariableValid)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable).MassageToInt();
+                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
                         }
                     }
-                    double xferValue = rpmComp.ProcessVariable(transferGetter).MassageToDouble();
+                    double xferValue = rpmComp.ProcessVariable(transferGetter, comp).MassageToDouble();
                     transferSetter(xferValue);
                     break;
                 case CustomActions.Transfer:
@@ -820,7 +822,8 @@ namespace JSI
             {
                 try
                 {
-                    newState = (rpmComp.ProcessVariable(stateVariable).MassageToInt()) > 0;
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    newState = (rpmComp.ProcessVariable(stateVariable, comp).MassageToInt()) > 0;
                 }
                 catch
                 {
@@ -877,7 +880,8 @@ namespace JSI
                 if (lightCheckCountdown <= 0)
                 {
                     lightCheckCountdown = refreshRate;
-                    forcedShutdown |= currentState && rpmComp.ProcessVariable(resourceName).MassageToFloat() < 0.01f;
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    forcedShutdown |= currentState && rpmComp.ProcessVariable(resourceName, comp).MassageToFloat() < 0.01f;
                 }
             }
 
@@ -894,7 +898,8 @@ namespace JSI
 
             if (masterVariable != null)
             {
-                if (!masterVariable.IsInRange(rpmComp))
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                if (!masterVariable.IsInRange(rpmComp, comp))
                 {
                     newState = false;
                     forcedShutdown = true;

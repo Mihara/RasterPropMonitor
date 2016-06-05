@@ -85,11 +85,13 @@ namespace JSI
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
                 bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false);
-                value = rpmComp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                value = rpmComp.ProcessVariable((state) ? altVariable : variable, comp).MassageToFloat();
             }
             else
             {
-                value = rpmComp.ProcessVariable(variable).MassageToFloat();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                value = rpmComp.ProcessVariable(variable, comp).MassageToFloat();
             }
             // Make sure the value isn't going to be a problem.
             if (float.IsNaN(value))

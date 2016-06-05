@@ -108,7 +108,7 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp)
+        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             if (type == VoNType.ConstantNumeric)
             {
@@ -120,7 +120,7 @@ namespace JSI
             }
             else if (type == VoNType.VariableValue)
             {
-                return rpmComp.ProcessVariable(variableName);
+                return rpmComp.ProcessVariable(variableName, comp);
             }
             else
             {
@@ -134,7 +134,7 @@ namespace JSI
         /// <param name="destination"></param>
         /// <param name="comp"></param>
         /// <returns></returns>
-        public bool Get(out float destination, RasterPropMonitorComputer rpmComp)
+        public bool Get(out float destination, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             if (type == VoNType.ConstantString)
             {
@@ -143,7 +143,7 @@ namespace JSI
             }
             else if (type == VoNType.VariableValue)
             {
-                numericValue = rpmComp.ProcessVariable(variableName).MassageToDouble();
+                numericValue = rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
                 if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
                 {
                     if (!warningMade)
@@ -166,7 +166,7 @@ namespace JSI
         /// <param name="destination"></param>
         /// <param name="comp"></param>
         /// <returns></returns>
-        public bool Get(out double destination, RasterPropMonitorComputer rpmComp)
+        public bool Get(out double destination, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             if (type == VoNType.ConstantString)
             {
@@ -175,7 +175,7 @@ namespace JSI
             }
             else if (type == VoNType.VariableValue)
             {
-                numericValue = rpmComp.ProcessVariable(variableName).MassageToDouble();
+                numericValue = rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
                 if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
                 {
                     if (!warningMade)
@@ -216,11 +216,11 @@ namespace JSI
             }
         }
 
-        public bool InverseLerp(RasterPropMonitorComputer rpmComp, out float scaledValue)
+        public bool InverseLerp(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, out float scaledValue)
         {
             float value;
             float low, high;
-            if (!(sourceValue.Get(out value, rpmComp) && lowerBound.Get(out low, rpmComp) && upperBound.Get(out high, rpmComp)))
+            if (!(sourceValue.Get(out value, rpmComp, comp) && lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
             {
                 scaledValue = 0.0f;
                 return false;
@@ -230,7 +230,7 @@ namespace JSI
                 if (modulo != null)
                 {
                     float mod;
-                    if (!modulo.Get(out mod, rpmComp) || mod <= 0.0f)
+                    if (!modulo.Get(out mod, rpmComp, comp) || mod <= 0.0f)
                     {
                         scaledValue = 0.0f;
                         return false;
@@ -262,12 +262,12 @@ namespace JSI
         /// </summary>
         /// <param name="comp"></param>
         /// <returns></returns>
-        public bool IsInRange(RasterPropMonitorComputer rpmComp)
+        public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float value;
             float low, high;
 
-            if (!(sourceValue.Get(out value, rpmComp) && lowerBound.Get(out low, rpmComp) && upperBound.Get(out high, rpmComp)))
+            if (!(sourceValue.Get(out value, rpmComp, comp) && lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
             {
                 return false;
             }
@@ -288,11 +288,11 @@ namespace JSI
         /// <param name="comp"></param>
         /// <param name="value">The value to test (provided externally)</param>
         /// <returns></returns>
-        public bool IsInRange(RasterPropMonitorComputer rpmComp, float value)
+        public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, float value)
         {
             float low, high;
 
-            if (!(lowerBound.Get(out low, rpmComp) && upperBound.Get(out high, rpmComp)))
+            if (!(lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
             {
                 return false;
             }

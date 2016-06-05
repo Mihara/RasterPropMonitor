@@ -155,7 +155,7 @@ namespace JSI
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public object ProcessVariable(string input)
+        public object ProcessVariable(string input, RPMVesselComputer comp)
         {
 #if SHOW_VARIABLE_QUERY_COUNTER
             ++debug_varsProcessed;
@@ -166,6 +166,10 @@ namespace JSI
                 debug_callCount[input] = debug_callCount[input] + 1;
             }
 
+            if (comp == null)
+            {
+                comp = RPMVesselComputer.Instance(vid);
+            }
             VariableCache vc = variableCache[input];
             if (vc != null)
             {
@@ -173,7 +177,7 @@ namespace JSI
                 {
                     try
                     {
-                        object newValue = vc.accessor(input, this);
+                        object newValue = vc.accessor(input, this, comp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
                     }
@@ -195,7 +199,7 @@ namespace JSI
                     vc = new VariableCache(cacheable, evaluator);
                     try
                     {
-                        object newValue = vc.accessor(input, this);
+                        object newValue = vc.accessor(input, this, comp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
 
@@ -500,10 +504,11 @@ namespace JSI
                 int debug_callbacksProcessed = 0;
                 int debug_callbackQueriesMade = 0;
 #endif
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
                 foreach (var cbVal in onChangeCallbacks)
                 {
                     float previousValue = onChangeValue[cbVal.Key];
-                    float newVal = ProcessVariable(cbVal.Key).MassageToFloat();
+                    float newVal = ProcessVariable(cbVal.Key, comp).MassageToFloat();
                     if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
                     {
                         for (int i = 0; i < cbVal.Value.Count; ++i)
@@ -533,7 +538,7 @@ namespace JSI
 
                 for (int i = 0; i < activeTriggeredEvents.Count; ++i)
                 {
-                    activeTriggeredEvents[i].Update(this);
+                    activeTriggeredEvents[i].Update(this, comp);
                 }
             }
         }
@@ -644,20 +649,5 @@ namespace JSI
             }
         }
         #endregion
-
-        internal delegate object VariableEvaluator(string s, RasterPropMonitorComputer rpmComp);
-        internal class VariableCache
-        {
-            internal object cachedValue = null;
-            internal readonly VariableEvaluator accessor;
-            internal uint serialNumber = 0;
-            internal readonly bool cacheable;
-
-            internal VariableCache(bool cacheable, VariableEvaluator accessor)
-            {
-                this.cacheable = cacheable;
-                this.accessor = accessor;
-            }
-        }
     }
 }

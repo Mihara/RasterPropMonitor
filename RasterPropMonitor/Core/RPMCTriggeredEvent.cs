@@ -182,9 +182,9 @@ namespace JSI
                 JUtil.LogMessage(this, "Triggered Event {0} created", eventName);
             }
 
-            internal void Update(RasterPropMonitorComputer rpmComp)
+            internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
             {
-                bool inRange = variable.IsInRange(rpmComp);
+                bool inRange = variable.IsInRange(rpmComp, comp);
                 if (armed)
                 {
                     if (inRange)

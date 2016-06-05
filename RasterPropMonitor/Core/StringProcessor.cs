@@ -76,9 +76,10 @@ namespace JSI
             {
                 try
                 {
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                     for (int i = 0; i < formatter.sourceVariables.Length; ++i)
                     {
-                        formatter.sourceValues[i] = rpmComp.ProcessVariable(formatter.sourceVariables[i]);
+                        formatter.sourceValues[i] = rpmComp.ProcessVariable(formatter.sourceVariables[i], comp);
                     }
 
                     return string.Format(fp, formatter.formatString, formatter.sourceValues);
@@ -105,12 +106,13 @@ namespace JSI
                     }
                     else
                     {
+                        RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                         string[] vars = tokens[1].Split(JUtil.VariableSeparator, StringSplitOptions.RemoveEmptyEntries);
 
                         var variables = new object[vars.Length];
                         for (int i = 0; i < vars.Length; i++)
                         {
-                            variables[i] = rpmComp.ProcessVariable(vars[i]);
+                            variables[i] = rpmComp.ProcessVariable(vars[i], comp);
                         }
                         string output = string.Format(fp, tokens[0], variables);
                         return output.TrimEnd();

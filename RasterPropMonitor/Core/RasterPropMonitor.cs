@@ -426,7 +426,8 @@ namespace JSI
         {
             if (needsElectricCharge)
             {
-                electricChargeReserve = rpmComp.ProcessVariable(resourceName).MassageToFloat();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                electricChargeReserve = rpmComp.ProcessVariable(resourceName, comp).MassageToFloat();
             }
         }
 

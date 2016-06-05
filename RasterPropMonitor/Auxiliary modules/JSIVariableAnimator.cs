@@ -124,7 +124,7 @@ namespace JSI
 
         public void Update()
         {
-            if (!JUtil.IsActiveVessel(vessel))
+            if (!JUtil.IsActiveVessel(vessel) || !startupComplete)
             {
                 return;
             }
@@ -154,21 +154,22 @@ namespace JSI
                 return;
             }
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(rpmComp, universalTime);
+                variableSets[unit].Update(rpmComp, comp, universalTime);
             }
         }
 
-        public void LateUpdate()
-        {
-            if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete)
-            {
-                JUtil.AnnoyUser(this);
-                enabled = false;
-            }
-        }
+        //public void LateUpdate()
+        //{
+        //    if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete)
+        //    {
+        //        JUtil.AnnoyUser(this);
+        //        enabled = false;
+        //    }
+        //}
     }
 
     public class VariableAnimationSet
@@ -707,10 +708,10 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        public void Update(RasterPropMonitorComputer rpmComp, double universalTime)
+        public void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, double universalTime)
         {
             float scaledValue;
-            if (!variable.InverseLerp(rpmComp, out scaledValue))
+            if (!variable.InverseLerp(rpmComp, comp, out scaledValue))
             {
                 return;
             }

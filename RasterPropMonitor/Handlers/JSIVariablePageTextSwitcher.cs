@@ -94,10 +94,11 @@ namespace JSI
                 return;
             }
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             if (legacyRange != null)
             {
                 float scaledValue;
-                if (!legacyRange.InverseLerp(rpmComp, out scaledValue))
+                if (!legacyRange.InverseLerp(rpmComp, comp, out scaledValue))
                 {
                     activePage = 1;
                     return;
@@ -110,7 +111,7 @@ namespace JSI
                 activePage = 0;
                 for (activePage = 0; activePage < range.Count; ++activePage)
                 {
-                    if (range[activePage].IsInRange(rpmComp))
+                    if (range[activePage].IsInRange(rpmComp, comp))
                     {
                         break;
                     }

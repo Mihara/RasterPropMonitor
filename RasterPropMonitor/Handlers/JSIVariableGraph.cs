@@ -152,9 +152,10 @@ namespace JSI
             double time = Planetarium.GetUniversalTime();
             if (lastDataPoint + (double)secondsBetweenSamples < time)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 foreach (GraphLine graph in graphs)
                 {
-                    graph.Update(time, rpmComp);
+                    graph.Update(time, rpmComp, comp);
                 }
                 lastDataPoint = time;
             }
@@ -229,9 +230,9 @@ namespace JSI
                 DrawVector(actualXY, lineColor);
             }
 
-            public void Update(double time, RasterPropMonitorComputer rpmComp)
+            public void Update(double time, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
             {
-                double value = isFlat ? flatValue : rpmComp.ProcessVariable(variableName).MassageToDouble();
+                double value = isFlat ? flatValue : rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
                 if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     return;
