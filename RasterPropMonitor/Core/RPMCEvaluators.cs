@@ -68,7 +68,7 @@ namespace JSI
             if (input.IndexOf("_", StringComparison.Ordinal) > -1)
             {
                 string[] tokens = input.Split('_');
-                
+
                 // MOARdV TODO: Restructure this as a switch statement on tokens[0]
 
                 // Is loaded?
@@ -93,9 +93,9 @@ namespace JSI
                     {
                         if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
                         {
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                             {
-                                return comp.resources.ListElement(variable); 
+                                return comp.resources.ListElement(variable);
                             };
                         }
                     }
@@ -378,29 +378,29 @@ namespace JSI
             {
                 // Speeds.
                 case "VERTSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.speedVertical; 
+                        return comp.speedVertical;
                     };
                 case "VERTSPEEDLOG10":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return JUtil.PseudoLog10(comp.speedVertical); 
+                        return JUtil.PseudoLog10(comp.speedVertical);
                     };
                 case "VERTSPEEDROUNDED":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.speedVerticalRounded; 
+                        return comp.speedVerticalRounded;
                     };
                 case "RADARALTVERTSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.radarAltitudeRate; 
+                        return comp.radarAltitudeRate;
                     };
                 case "TERMINALVELOCITY":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
-                    { 
-                        return rpmComp.TerminalVelocity(); 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                    {
+                        return rpmComp.TerminalVelocity();
                     };
                 case "SURFSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return rpmComp.vessel.srfSpeed; };
@@ -411,27 +411,27 @@ namespace JSI
                 case "ORBTSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return rpmComp.vessel.orbit.GetVel().magnitude; };
                 case "TRGTSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.velocityRelativeTarget.magnitude; 
+                        return comp.velocityRelativeTarget.magnitude;
                     };
                 case "HORZVELOCITY":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.speedHorizontal; 
+                        return comp.speedHorizontal;
                     };
                 case "HORZVELOCITYFORWARD":
                     // Negate it, since this is actually movement on the Z axis,
                     // and we want to treat it as a 2D projection on the surface
                     // such that moving "forward" has a positive value.
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return -Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceForward); 
+                        return -Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceForward);
                     };
                 case "HORZVELOCITYRIGHT":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceRight); 
+                        return Vector3d.Dot(rpmComp.vessel.srf_velocity, comp.SurfaceRight);
                     };
                 case "EASPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -447,9 +447,9 @@ namespace JSI
                         return rpmComp.vessel.srfSpeed * Math.Sqrt(densityRatio) * pressureRatio;
                     };
                 case "APPROACHSPEED":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.approachSpeed; 
+                        return comp.approachSpeed;
                     };
                 case "SELECTEDSPEED":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -502,18 +502,18 @@ namespace JSI
                             return 0.0;
                         }
                     };
-                
+
                 case "TIMETOIMPACTSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return rpmComp.TimeToImpact(); };
                 case "SPEEDATIMPACT":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.SpeedAtImpact(comp.totalCurrentThrust); 
+                        return comp.SpeedAtImpact(comp.totalCurrentThrust);
                     };
                 case "BESTSPEEDATIMPACT":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.SpeedAtImpact(comp.totalLimitedMaximumThrust); 
+                        return comp.SpeedAtImpact(comp.totalLimitedMaximumThrust);
                     };
                 case "SUICIDEBURNSTARTSECS":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -575,7 +575,7 @@ namespace JSI
                     {
                         if (rpmComp.vessel.mainBody.ocean)
                         {
-                            return JUtil.PseudoLog10(Math.Min(comp.altitudeASL,comp.altitudeTrue));
+                            return JUtil.PseudoLog10(Math.Min(comp.altitudeASL, comp.altitudeTrue));
                         }
                         return JUtil.PseudoLog10(comp.altitudeTrue);
                     };
@@ -637,29 +637,29 @@ namespace JSI
 
                 // Masses.
                 case "MASSDRY":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.totalShipDryMass; 
+                        return comp.totalShipDryMass;
                     };
                 case "MASSWET":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.totalShipWetMass; 
+                        return comp.totalShipWetMass;
                     };
                 case "MASSRESOURCES":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.totalShipWetMass - comp.totalShipDryMass; 
+                        return comp.totalShipWetMass - comp.totalShipDryMass;
                     };
                 case "MASSPROPELLANT":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.resources.PropellantMass(false); 
+                        return comp.resources.PropellantMass(false);
                     };
                 case "MASSPROPELLANTSTAGE":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.resources.PropellantMass(true); 
+                        return comp.resources.PropellantMass(true);
                     };
 
                 // The delta V calculation.
@@ -722,6 +722,11 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         return comp.actualMaxIsp;
+                    };
+                case "CURRENTINTAKEAIRFLOW":
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                    {
+                        return comp.currentAirFlow;
                     };
                 case "CURRENTENGINEFUELFLOW":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -1265,12 +1270,12 @@ namespace JSI
                     return SideSlip();
 
                 case "PITCHSURFPROGRADE":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.GetRelativePitch(rpmComp.vessel.srf_velocity.normalized); 
+                        return comp.GetRelativePitch(rpmComp.vessel.srf_velocity.normalized);
                     };
                 case "PITCHSURFRETROGRADE":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         return comp.GetRelativePitch(-rpmComp.vessel.srf_velocity.normalized);
                     };
@@ -2071,19 +2076,19 @@ namespace JSI
                         return comp.hottestEngineTemperature;
                     };
                 case "HOTTESTENGINEMAXTEMP":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         return comp.hottestEngineMaxTemperature;
                     };
                 case "HOTTESTENGINETEMPRATIO":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.hottestEngineMaxTemperature > 0.0f) ? (comp.hottestEngineTemperature / comp.hottestEngineMaxTemperature) : 0.0f; 
+                        return (comp.hottestEngineMaxTemperature > 0.0f) ? (comp.hottestEngineTemperature / comp.hottestEngineMaxTemperature) : 0.0f;
                     };
                 case "SLOPEANGLE":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.slopeAngle; 
+                        return comp.slopeAngle;
                     };
                 case "SPEEDDISPLAYMODE":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -2188,25 +2193,25 @@ namespace JSI
                 // Compound variables which exist to stave off the need to parse logical and arithmetic expressions. :)
                 case "GEARALARM":
                     // Returns 1 if vertical speed is negative, gear is not extended, and radar altitude is less than 50m.
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.speedVerticalRounded < 0.0 && !rpmComp.vessel.ActionGroups.groups[RPMVesselComputer.gearGroupNumber] && comp.altitudeBottom < 100.0).GetHashCode(); 
+                        return (comp.speedVerticalRounded < 0.0 && !rpmComp.vessel.ActionGroups.groups[RPMVesselComputer.gearGroupNumber] && comp.altitudeBottom < 100.0).GetHashCode();
                     };
                 case "GROUNDPROXIMITYALARM":
                     // Returns 1 if, at maximum acceleration, in the time remaining until ground impact, it is impossible to get a vertical speed higher than -10m/s.
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.SpeedAtImpact(comp.totalLimitedMaximumThrust) < -10d).GetHashCode(); 
+                        return (comp.SpeedAtImpact(comp.totalLimitedMaximumThrust) < -10d).GetHashCode();
                     };
                 case "TUMBLEALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.speedHorizontal > 5.0).GetHashCode(); 
+                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.speedHorizontal > 5.0).GetHashCode();
                     };
                 case "SLOPEALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.slopeAngle > 15.0f).GetHashCode(); 
+                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 100.0 && comp.slopeAngle > 15.0f).GetHashCode();
                     };
                 case "DOCKINGANGLEALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -2216,14 +2221,14 @@ namespace JSI
                             Math.Abs(JUtil.NormalAngle(-comp.targetDockingNode.GetFwdVector(), comp.forward, -comp.right)) > 1.5)).GetHashCode();
                     };
                 case "DOCKINGSPEEDALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         return (comp.targetDockingNode != null && comp.approachSpeed > 2.5f && comp.targetDistance < 15.0).GetHashCode();
                     };
                 case "ALTITUDEALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 150.0).GetHashCode(); 
+                        return (comp.speedVerticalRounded < 0.0 && comp.altitudeBottom < 150.0).GetHashCode();
                     };
                 case "PODTEMPERATUREALARM":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -2244,41 +2249,41 @@ namespace JSI
                     };
                 // Well, it's not a compound but it's an alarm...
                 case "ENGINEOVERHEATALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.anyEnginesOverheating.GetHashCode(); 
+                        return comp.anyEnginesOverheating.GetHashCode();
                     };
                 case "ENGINEFLAMEOUTALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         return comp.anyEnginesFlameout.GetHashCode();
                     };
                 case "IMPACTALARM":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
-                    { 
-                        return (rpmComp != null && rpmComp.part != null && rpmComp.vessel.srfSpeed > rpmComp.part.crashTolerance).GetHashCode(); 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                    {
+                        return (rpmComp != null && rpmComp.part != null && rpmComp.vessel.srfSpeed > rpmComp.part.crashTolerance).GetHashCode();
                     };
 
                 // SCIENCE!!
                 case "SCIENCEDATA":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.totalDataAmount; 
+                        return comp.totalDataAmount;
                     };
                 case "SCIENCECOUNT":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return comp.totalExperimentCount; 
+                        return comp.totalExperimentCount;
                     };
                 case "BIOMENAME":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
-                    { 
-                        return rpmComp.vessel.CurrentBiome(); 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                    {
+                        return rpmComp.vessel.CurrentBiome();
                     };
                 case "BIOMEID":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
-                        return ScienceUtil.GetExperimentBiome(rpmComp.vessel.mainBody, rpmComp.vessel.latitude, rpmComp.vessel.longitude); 
+                        return ScienceUtil.GetExperimentBiome(rpmComp.vessel.mainBody, rpmComp.vessel.latitude, rpmComp.vessel.longitude);
                     };
 
                 // Some of the new goodies in 0.24.
@@ -2302,13 +2307,13 @@ namespace JSI
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return rpmComp.vessel.ActionGroups.groups[RPMVesselComputer.rcsGroupNumber].GetHashCode(); };
                 // 0.90 SAS mode fields:
                 case "SASMODESTABILITY":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
-                    { 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                    {
                         //if(rpmComp.vessel.Autopilot == null)
                         //{
                         //    return 0.0;
                         //}
-                        return (rpmComp.vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist) ? 1.0 : 0.0; 
+                        return (rpmComp.vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.StabilityAssist) ? 1.0 : 0.0;
                     };
                 case "SASMODEPROGRADE":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -2351,13 +2356,13 @@ namespace JSI
                             (rpmComp.vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.AntiTarget) ? -1.0 : 0.0;
                     };
                 case "SASMODEMANEUVER":
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
                         //if (rpmComp.vessel.Autopilot == null)
                         //{
                         //    return 0.0;
                         //}
-                        return (rpmComp.vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver) ? 1.0 : 0.0; 
+                        return (rpmComp.vessel.Autopilot.Mode == VesselAutopilot.AutopilotMode.Maneuver) ? 1.0 : 0.0;
                     };
 
 
@@ -2539,7 +2544,7 @@ namespace JSI
 
             return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
         }
-#endregion
+        #endregion
 
         #region eval helpers
         private static object CrewListElement(string element, int seatID, IList<ProtoCrewMember> crewList, IList<kerbalExpressionSystem> crewMedical)
@@ -2933,9 +2938,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateAngleOfAttack(); 
+                    return comp.FallbackEvaluateAngleOfAttack();
                 };
             }
             else
@@ -2960,9 +2965,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false))); 
+                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(false)));
                 };
             }
             else
@@ -2987,9 +2992,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true))); 
+                    return (comp.actualAverageIsp * RPMGlobals.gee) * Math.Log(comp.totalShipWetMass / (comp.totalShipWetMass - comp.resources.PropellantMass(true)));
                 };
             }
             else
@@ -3014,16 +3019,16 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateDragForce() / comp.totalShipWetMass; 
+                    return comp.FallbackEvaluateDragForce() / comp.totalShipWetMass;
                 };
             }
             else
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return accessor() / comp.totalShipWetMass; 
+                    return accessor() / comp.totalShipWetMass;
                 };
             }
         }
@@ -3044,9 +3049,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateDragForce(); 
+                    return comp.FallbackEvaluateDragForce();
                 };
             }
             else
@@ -3135,16 +3140,16 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateLiftForce() / comp.totalShipWetMass; 
+                    return comp.FallbackEvaluateLiftForce() / comp.totalShipWetMass;
                 };
             }
             else
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return accessor() / comp.totalShipWetMass; 
+                    return accessor() / comp.totalShipWetMass;
                 };
             }
         }
@@ -3165,9 +3170,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateLiftForce(); 
+                    return comp.FallbackEvaluateLiftForce();
                 };
             }
             else
@@ -3207,9 +3212,9 @@ namespace JSI
 
             if (accessor == null)
             {
-                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => 
+                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                 {
-                    return comp.FallbackEvaluateSideSlip(); 
+                    return comp.FallbackEvaluateSideSlip();
                 };
             }
             else

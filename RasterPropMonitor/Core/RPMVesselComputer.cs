@@ -242,6 +242,7 @@ namespace JSI
         internal float totalShipWetMass;
         internal float maxEngineFuelFlow;
         internal float currentEngineFuelFlow;
+        internal float currentAirFlow;
 
         internal List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
         internal List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
@@ -558,7 +559,7 @@ namespace JSI
                 }
 
             }
-            else if(vid != Guid.Empty)
+            else if (vid != Guid.Empty)
             {
                 JUtil.LogMessage(this, "OnSave vessel is null? expected for {0}", vid);
             }
@@ -979,6 +980,7 @@ namespace JSI
             heatShieldTemperature = heatShieldFlux = 0.0f;
             hottestPartTemperature = hottestEngineTemperature = 0.0f;
             hottestPartMaxTemperature = hottestEngineMaxTemperature = 0.0f;
+            currentAirFlow = 0.0f;
             hottestPartName = string.Empty;
             float hottestPart = float.MaxValue;
             float hottestEngine = float.MaxValue;
@@ -1085,6 +1087,14 @@ namespace JSI
                                 heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
                             }
                         }
+                        else if (thatPart.Modules[moduleIdx] is ModuleResourceIntake)
+                        {
+                            var thatIntake = thatPart.Modules[moduleIdx] as ModuleResourceIntake;
+                            if (thatIntake.enabled)
+                            {
+                                currentAirFlow += thatIntake.airFlow;
+                            }
+                        }
                         //else if (pm is ModuleScienceExperiment)
                         //{
                         //    var thatExperiment = pm as ModuleScienceExperiment;
@@ -1113,6 +1123,9 @@ namespace JSI
                     }
                 }
             }
+
+            // Convert airflow from U to g/s, same as fuel flow.
+            currentAirFlow *= 1000000.0f * PartResourceLibrary.Instance.GetDefinition("IntakeAir").density;
 
             totalShipWetMass = vessel.GetTotalMass();
             totalShipDryMass = totalShipWetMass - totalResourceMass;
