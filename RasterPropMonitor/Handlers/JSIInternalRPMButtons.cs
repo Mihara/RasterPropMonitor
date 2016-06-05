@@ -62,18 +62,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (Part thatPart in vessel.parts)
-                {
-                    foreach (PartResource resource in thatPart.Resources)
-                    {
-                        if (!resource.flowState)
-                        {
-                            // Early return: At least one resource is flagged as a
-                            // reserve.
-                            return true;
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.resourcesLocked;
             }
             return false;
         }
@@ -97,12 +87,7 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonClearNodesState()
         {
-            if (vessel == null)
-            {
-                return false;
-            }
-
-            if (vessel.patchedConicSolver == null)
+            if (vessel == null || vessel.patchedConicSolver == null)
             {
                 // patchedConicSolver can be null in early career mode.
                 return false;
@@ -137,30 +122,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                for (int i = 0; i < vessel.parts.Count; ++i)
-                {
-                    // We accept "state == false" to allow engines that are
-                    // activated outside of the current staging to be shut off by
-                    // this function.
-                    if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
-                    {
-                        for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
-                        {
-                            var engine = vessel.parts[i].Modules[j] as ModuleEngines;
-                            if (engine != null && engine.EngineIgnited != state)
-                            {
-                                if (state && engine.allowRestart)
-                                {
-                                    engine.Activate();
-                                }
-                                else if (engine.allowShutdown)
-                                {
-                                    engine.Shutdown();
-                                }
-                            }
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetEnableEngines(state);
             }
         }
 
@@ -172,18 +135,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                for (int i = 0; i < vessel.parts.Count; ++i)
-                {
-                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
-                    {
-                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
-                        if (engine != null && engine.allowShutdown && engine.getIgnitionState)
-                        {
-                            // early out: at least one engine is enabled.
-                            return true;
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.anyEnginesEnabled;
             }
             return false;
         }
@@ -196,33 +149,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (PartModule pm in ElectricGenerators(vessel))
-                {
-                    if (pm is ModuleGenerator)
-                    {
-                        ModuleGenerator gen = pm as ModuleGenerator;
-                        if (state)
-                        {
-                            gen.Activate();
-                        }
-                        else
-                        {
-                            gen.Shutdown();
-                        }
-                    }
-                    else if (pm is ModuleResourceConverter)
-                    {
-                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
-                        if (state)
-                        {
-                            gen.StartResourceConverter();
-                        }
-                        else
-                        {
-                            gen.StopResourceConverter();
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetEnableGenerators(state);
             }
         }
 
@@ -234,17 +162,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (PartModule pm in ElectricGenerators(vessel))
-                {
-                    if (pm is ModuleGenerator && (pm as ModuleGenerator).generatorIsActive == true)
-                    {
-                        return true;
-                    }
-                    else if (pm is ModuleResourceConverter && (pm as ModuleResourceConverter).IsActivated == true)
-                    {
-                        return true;
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.generatorsActive;
             }
 
             return false;
@@ -1072,52 +991,6 @@ namespace JSI
 
             // We did not find a docking node.
             return null;
-        }
-
-        /// <summary>
-        /// Iterate over the modules in the craft and return all of them that
-        /// implement a ModuleGenerator or ModuleResourceConverter that generates 
-        /// electricity that can also be shut down.
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static System.Collections.Generic.IEnumerable<PartModule> ElectricGenerators(Vessel vessel)
-        {
-            for (int partID = 0; partID < vessel.Parts.Count; ++partID)
-            {
-                for (int moduleID = 0; moduleID < vessel.Parts[partID].Modules.Count; ++moduleID)
-                {
-                    if (vessel.Parts[partID].Modules[moduleID] is ModuleGenerator)
-                    {
-                        ModuleGenerator gen = vessel.Parts[partID].Modules[moduleID] as ModuleGenerator;
-                        if (gen.isAlwaysActive == false)
-                        {
-                            for (int i = 0; i < gen.outputList.Count; ++i)
-                            {
-                                if (gen.outputList[i].name == "ElectricCharge")
-                                {
-                                    yield return vessel.Parts[partID].Modules[moduleID];
-                                }
-                            }
-                        }
-                    }
-                    else if (vessel.Parts[partID].Modules[moduleID] is ModuleResourceConverter)
-                    {
-                        ModuleResourceConverter gen = vessel.Parts[partID].Modules[moduleID] as ModuleResourceConverter;
-                        if (gen.AlwaysActive == false)
-                        {
-                            ConversionRecipe recipe = gen.Recipe;
-                            for (int i = 0; i < recipe.Outputs.Count; ++i)
-                            {
-                                if (recipe.Outputs[i].ResourceName == "ElectricCharge")
-                                {
-                                    yield return vessel.Parts[partID].Modules[moduleID];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
 
         /// <summary>

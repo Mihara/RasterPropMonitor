@@ -1,5 +1,4 @@
-﻿//#define SHOW_FIXEDUPDATE_TIMING
-//#define SHOW_DOCKING_EVENTS
+﻿//#define SHOW_DOCKING_EVENTS
 //ENABLE_PROFILER
 /*****************************************************************************
  * RasterPropMonitor
@@ -215,11 +214,7 @@ namespace JSI
         internal double altitudeASL;
         internal double altitudeBottom;
         internal double altitudeTrue;
-        internal bool anyEnginesFlameout;
-        internal bool anyEnginesOverheating;
         internal Vector3d CoM;
-        internal float heatShieldTemperature;
-        internal float heatShieldFlux;
         internal float hottestPartTemperature;
         internal float hottestPartMaxTemperature;
         internal string hottestPartName;
@@ -229,20 +224,15 @@ namespace JSI
         internal float localGeeDirect;
         private bool orbitSensibility;
         internal ResourceDataStorage resources = new ResourceDataStorage();
+        internal bool resourcesLocked; // true if any resource flow is disabled.
         internal float slopeAngle;
         internal double speedHorizontal;
         internal double speedVertical;
         internal double speedVerticalRounded;
-        internal float totalCurrentThrust;
         internal float totalDataAmount;
         internal float totalExperimentCount;
-        internal float totalLimitedMaximumThrust;
-        internal float totalRawMaximumThrust;
         internal float totalShipDryMass;
         internal float totalShipWetMass;
-        internal float maxEngineFuelFlow;
-        internal float currentEngineFuelFlow;
-        internal float currentAirFlow;
 
         internal List<ProtoCrewMember> vesselCrew = new List<ProtoCrewMember>();
         internal List<kerbalExpressionSystem> vesselCrewMedical = new List<kerbalExpressionSystem>();
@@ -277,9 +267,6 @@ namespace JSI
         // Diagnostics
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
-#if SHOW_FIXEDUPDATE_TIMING
-        private Stopwatch stopwatch = new Stopwatch();
-#endif
         #endregion
 
         /// <summary>
@@ -642,12 +629,12 @@ namespace JSI
                 linearAtmosGauge = new LinearAtmosphereGauge();
             }
 
+            IntakeAir_U_to_grams = 1000000.0f * PartResourceLibrary.Instance.GetDefinition("IntakeAir").density;
+
             if (JUtil.IsActiveVessel(vessel))
             {
-                FetchPerPartData();
-                FetchAltitudes();
-                FetchVesselData();
-                FetchTargetData();
+                timeToUpdate = true;
+                UpdateVariables();
             }
         }
 
@@ -755,44 +742,22 @@ namespace JSI
             // Update values related to the vessel (position, CoM, etc)
             if (timeToUpdate)
             {
-#if SHOW_FIXEDUPDATE_TIMING
-                stopwatch.Reset();
-                stopwatch.Start();
-#endif
                 Protractor.OnFixedUpdate();
 
-#if SHOW_FIXEDUPDATE_TIMING
-                long newPart = stopwatch.ElapsedMilliseconds;
-#endif
                 timeToUpdate = false;
-
-#if SHOW_FIXEDUPDATE_TIMING
-                long invalidate = stopwatch.ElapsedMilliseconds;
-#endif
 
                 //DebugFunction();
 
+                // Sorta messy: resources.StartLoop must come before
+                // FetchPerPartData.  FetchPerPartData must come before
+                // FetchPerModuleData.
+                resources.StartLoop();
                 FetchPerPartData();
-#if SHOW_FIXEDUPDATE_TIMING
-                long perpart = stopwatch.ElapsedMilliseconds;
-#endif
+                FetchPerModuleData();
+
                 FetchAltitudes();
-#if SHOW_FIXEDUPDATE_TIMING
-                long altitudes = stopwatch.ElapsedMilliseconds;
-#endif
                 FetchVesselData();
-#if SHOW_FIXEDUPDATE_TIMING
-                long vesseldata = stopwatch.ElapsedMilliseconds;
-#endif
                 FetchTargetData();
-
-#if SHOW_FIXEDUPDATE_TIMING
-                long targetdata = stopwatch.ElapsedMilliseconds;
-                stopwatch.Stop();
-
-                JUtil.LogMessage(this, "FixedUpdate net ms: deduceNewPart = {0}, invalidate = {1}, FetchPerPart = {2}, FetchAlt = {3}, FetchVessel = {4}, FetchTarget = {5}",
-                    newPart, invalidate, perpart, altitudes, vesseldata, targetdata);
-#endif
             }
         }
 
@@ -974,31 +939,23 @@ namespace JSI
         /// </summary>
         private void FetchPerPartData()
         {
-            totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
-            maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
+            resourcesLocked = false;
             totalDataAmount = totalExperimentCount = 0.0f;
-            heatShieldTemperature = heatShieldFlux = 0.0f;
-            hottestPartTemperature = hottestEngineTemperature = 0.0f;
-            hottestPartMaxTemperature = hottestEngineMaxTemperature = 0.0f;
-            currentAirFlow = 0.0f;
+            hottestPartTemperature = hottestPartMaxTemperature = 0.0f;
             hottestPartName = string.Empty;
             float hottestPart = float.MaxValue;
-            float hottestEngine = float.MaxValue;
-            float hottestShield = float.MinValue;
             float totalResourceMass = 0.0f;
-
-            float averageIspContribution = 0.0f;
-            float maxIspContribution = 0.0f;
-
-            anyEnginesOverheating = anyEnginesFlameout = false;
-
-            resources.StartLoop();
 
             foreach (Part thatPart in vessel.parts)
             {
                 foreach (PartResource resource in thatPart.Resources)
                 {
                     resources.Add(resource);
+
+                    if (!resource.flowState)
+                    {
+                        resourcesLocked = true;
+                    }
                 }
 
                 if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestPart)
@@ -1017,100 +974,6 @@ namespace JSI
                 }
                 totalResourceMass += thatPart.GetResourceMass();
 
-                for (int moduleIdx = 0; moduleIdx < thatPart.Modules.Count; ++moduleIdx)
-                {
-                    if (thatPart.Modules[moduleIdx].isEnabled)
-                    {
-                        if (thatPart.Modules[moduleIdx] is ModuleEngines || thatPart.Modules[moduleIdx] is ModuleEnginesFX)
-                        {
-                            var thatEngineModule = thatPart.Modules[moduleIdx] as ModuleEngines;
-                            anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
-                            anyEnginesFlameout |= (thatEngineModule.isActiveAndEnabled && thatEngineModule.flameout);
-
-                            float currentThrust = GetCurrentThrust(thatEngineModule);
-                            totalCurrentThrust += currentThrust;
-                            float rawMaxThrust = GetMaximumThrust(thatEngineModule);
-                            totalRawMaximumThrust += rawMaxThrust;
-                            float maxThrust = rawMaxThrust * thatEngineModule.thrustPercentage * 0.01f;
-                            totalLimitedMaximumThrust += maxThrust;
-                            float realIsp = GetRealIsp(thatEngineModule);
-                            if (realIsp > 0.0f)
-                            {
-                                averageIspContribution += maxThrust / realIsp;
-
-                                // Compute specific fuel consumption and
-                                // multiply by thrust to get grams/sec fuel flow
-                                float specificFuelConsumption = 101972f / realIsp;
-                                maxEngineFuelFlow += specificFuelConsumption * rawMaxThrust;
-                                currentEngineFuelFlow += specificFuelConsumption * currentThrust;
-                            }
-
-                            foreach (Propellant thatResource in thatEngineModule.propellants)
-                            {
-                                resources.MarkPropellant(thatResource);
-                            }
-
-                            float minIsp, maxIsp;
-                            thatEngineModule.atmosphereCurve.FindMinMaxValue(out minIsp, out maxIsp);
-                            if (maxIsp > 0.0f)
-                            {
-                                maxIspContribution += maxThrust / maxIsp;
-                            }
-
-                            if (thatPart.skinMaxTemp - thatPart.skinTemperature < hottestEngine)
-                            {
-                                hottestEngineTemperature = (float)thatPart.skinTemperature;
-                                hottestEngineMaxTemperature = (float)thatPart.skinMaxTemp;
-                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                            }
-                            if (thatPart.maxTemp - thatPart.temperature < hottestEngine)
-                            {
-                                hottestEngineTemperature = (float)thatPart.temperature;
-                                hottestEngineMaxTemperature = (float)thatPart.maxTemp;
-                                hottestEngine = hottestEngineMaxTemperature - hottestEngineTemperature;
-                            }
-                        }
-                        else if (thatPart.Modules[moduleIdx] is ModuleAblator)
-                        {
-                            var thatAblator = thatPart.Modules[moduleIdx] as ModuleAblator;
-
-                            // Even though the interior contains a lot of heat, I think ablation is based on skin temp.
-                            // Although it seems odd that the skin temp quickly cools off after re-entry, while the
-                            // interior temp doesn't move cool much (for instance, I saw a peak ablator skin temp
-                            // of 950K, while the interior eventually reached 345K after the ablator had cooled below
-                            // 390K.  By the time the capsule landed, skin temp matched exterior temp (304K) but the
-                            // interior still held 323K.
-                            if (thatPart.skinTemperature - thatAblator.ablationTempThresh > hottestShield)
-                            {
-                                hottestShield = (float)(thatPart.skinTemperature - thatAblator.ablationTempThresh);
-                                heatShieldTemperature = (float)(thatPart.skinTemperature);
-                                heatShieldFlux = (float)(thatPart.thermalConvectionFlux + thatPart.thermalRadiationFlux);
-                            }
-                        }
-                        else if (thatPart.Modules[moduleIdx] is ModuleResourceIntake)
-                        {
-                            var thatIntake = thatPart.Modules[moduleIdx] as ModuleResourceIntake;
-                            if (thatIntake.enabled)
-                            {
-                                currentAirFlow += thatIntake.airFlow;
-                            }
-                        }
-                        //else if (pm is ModuleScienceExperiment)
-                        //{
-                        //    var thatExperiment = pm as ModuleScienceExperiment;
-                        //    JUtil.LogMessage(this, "Experiment: {0} in {1} (action name {2}):", thatExperiment.experiment.experimentTitle, thatPart.partInfo.name, thatExperiment.experimentActionName);
-                        //    JUtil.LogMessage(this, " - collection action {0}, collect warning {1}, is collectable {2}", thatExperiment.collectActionName, thatExperiment.collectWarningText, thatExperiment.dataIsCollectable);
-                        //    JUtil.LogMessage(this, " - Inoperable {0}, resetActionName {1}, resettable {2}, reset on EVA {3}, review {4}", thatExperiment.Inoperable, thatExperiment.resetActionName, thatExperiment.resettable, thatExperiment.resettableOnEVA, thatExperiment.reviewActionName);
-                        //}
-                        //else if (pm is ModuleScienceContainer)
-                        //{
-                        //    var thatContainer = pm as ModuleScienceContainer;
-                        //    JUtil.LogMessage(this, "Container: in {0}: allow repeats {1}, isCollectable {2}, isRecoverable {3}, isStorable {4}, evaOnlyStorage {5}", thatPart.partInfo.name,
-                        //        thatContainer.allowRepeatedSubjects, thatContainer.dataIsCollectable, thatContainer.dataIsRecoverable, thatContainer.dataIsStorable, thatContainer.evaOnlyStorage);
-                        //}
-                    }
-                }
-
                 foreach (IScienceDataContainer container in thatPart.FindModulesImplementing<IScienceDataContainer>())
                 {
                     foreach (ScienceData datapoint in container.GetData())
@@ -1124,45 +987,8 @@ namespace JSI
                 }
             }
 
-            // Convert airflow from U to g/s, same as fuel flow.
-            currentAirFlow *= 1000000.0f * PartResourceLibrary.Instance.GetDefinition("IntakeAir").density;
-
             totalShipWetMass = vessel.GetTotalMass();
             totalShipDryMass = totalShipWetMass - totalResourceMass;
-
-            if (averageIspContribution > 0.0f)
-            {
-                actualAverageIsp = totalLimitedMaximumThrust / averageIspContribution;
-            }
-            else
-            {
-                actualAverageIsp = 0.0f;
-            }
-
-            if (maxIspContribution > 0.0f)
-            {
-                actualMaxIsp = totalLimitedMaximumThrust / maxIspContribution;
-            }
-            else
-            {
-                actualMaxIsp = 0.0f;
-            }
-
-            // We can use the stock routines to get at the per-stage resources.
-            // Except KSP 1.1.1 broke GetActiveResources() and GetActiveResource(resource).
-            // Like exception-throwing broke.  It was fixed in 1.1.2, but I
-            // already put together a work-around.
-            try
-            {
-                var activeResources = vessel.GetActiveResources();
-                for (int i = 0; i < activeResources.Count; ++i)
-                {
-                    resources.SetActive(activeResources[i]);
-                }
-            }
-            catch { }
-
-            resources.EndLoop(Planetarium.GetUniversalTime());
 
             // MOARdV TODO: Migrate this to a callback system:
             // I seriously hope you don't have crew jumping in and out more than once per second.
@@ -1716,6 +1542,7 @@ namespace JSI
                 {
                     timeToUpdate = true;
                 }
+                InvalidateModuleLists();
             }
         }
 
@@ -1732,6 +1559,7 @@ namespace JSI
                 {
                     JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", who.id);
                     instances.Remove(who.id);
+                    InvalidateModuleLists();
                 }
             }
         }
@@ -1752,6 +1580,7 @@ namespace JSI
                     JUtil.LogMessage(this, "onVesselCreate(): I am was zombie VesselModule now part of {0}", who.id);
                     instances.Add(who.id, this);
                     vid = who.id;
+                    InvalidateModuleLists();
                 }
             }
         }

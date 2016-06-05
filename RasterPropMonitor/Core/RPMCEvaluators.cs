@@ -799,6 +799,14 @@ namespace JSI
                         return Vector3.Dot(rpmComp.vessel.acceleration, comp.top);
                     };
 
+                // Power production rates
+                case "ELECOUTPUTALTERNATOR":
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.alternatorOutput; };
+                case "ELECOUTPUTFUELCELL":
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.fuelcellOutput; };
+                case "ELECOUTPUTGENERATOR":
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return comp.generatorOutput; };
+
                 // Maneuvers
                 case "MNODETIMESECS":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
@@ -1964,7 +1972,7 @@ namespace JSI
                 case "PREDICTEDLANDINGERROR":
                     return LandingError();
 
-                // FLight control status
+                // Flight control status
                 case "THROTTLE":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return rpmComp.vessel.ctrlState.mainThrottle; };
                 case "STICKPITCH":
@@ -2009,6 +2017,8 @@ namespace JSI
                         // TODO: verify the stddev - I believe it is 1; mean is 0.
                         return x;
                     };
+
+                // Thermals
                 case "PODTEMPERATURE":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return (rpmComp != null && rpmComp.part != null) ? (rpmComp.part.temperature + RPMGlobals.KelvinToCelsius) : 0.0; };
                 case "PODTEMPERATUREKELVIN":
@@ -2085,6 +2095,7 @@ namespace JSI
                     {
                         return (comp.hottestEngineMaxTemperature > 0.0f) ? (comp.hottestEngineTemperature / comp.hottestEngineMaxTemperature) : 0.0f;
                     };
+
                 case "SLOPEANGLE":
                     return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                     {
