@@ -784,6 +784,10 @@ namespace JSI
             return enabled;
         }
 
+        /// <summary>
+        /// Returns true if at least one solar panel may be deployed.
+        /// </summary>
+        /// <returns></returns>
         public bool SolarPanelsDeployable()
         {
             if(vessel != null)
@@ -794,6 +798,10 @@ namespace JSI
             return false;
         }
 
+        /// <summary>
+        /// Returns true if at least one solar panel may be retracted.
+        /// </summary>
+        /// <returns></returns>
         public bool SolarPanelsRetractable()
         {
             if (vessel != null)
@@ -804,6 +812,10 @@ namespace JSI
             return false;
         }
 
+        /// <summary>
+        /// Toggles the state of deployable solar panels.
+        /// </summary>
+        /// <param name="state"></param>
         public void SetDeploySolarPanels(bool state)
         {
             if (vessel != null)
@@ -811,6 +823,20 @@ namespace JSI
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 comp.SetDeploySolarPanels(state);
             }
+        }
+
+        /// <summary>
+        /// Inverse of SolarPanelsDeployable for use with SetDeploySolarPanels
+        /// </summary>
+        /// <returns></returns>
+        public bool GetDeploySolarPanels()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return !comp.solarPanelsDeployable;
+            }
+            return true;
         }
 
         public double GetSASMode()
