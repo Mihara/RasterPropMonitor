@@ -501,7 +501,7 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonCutThrottle(bool state)
         {
-            if (state)
+            if (state && vessel != null)
             {
                 float throttle = vessel.ctrlState.mainThrottle;
                 try
@@ -530,7 +530,7 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonFullThrottle(bool state)
         {
-            if (state)
+            if (state && vessel!=null)
             {
                 float throttle = vessel.ctrlState.mainThrottle;
                 try
@@ -673,9 +673,15 @@ namespace JSI
         /// <param name="state"></param>
         public void GimbalLock(bool state)
         {
-            foreach (ModuleGimbal gimbal in FindActiveStageGimbals(vessel))
+            if(vessel == null)
             {
-                gimbal.gimbalLock = state;
+                return;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            for(int i=0; i<comp.availableGimbals.Count; ++i)
+            {
+                comp.availableGimbals[i].gimbalLock = state;
             }
         }
 
@@ -685,23 +691,13 @@ namespace JSI
         /// <returns></returns>
         public bool GimbalLockState()
         {
-            bool gimbalLockState = false;
-
             if (vessel == null)
             {
-                return gimbalLockState; // early
+                return false; // early
             }
 
-            foreach (ModuleGimbal gimbal in FindActiveStageGimbals(vessel))
-            {
-                if (gimbal.gimbalLock)
-                {
-                    gimbalLockState = true;
-                    break;
-                }
-            }
-
-            return gimbalLockState;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.gimbalsLocked;
         }
 
         public void RadarEnable(bool enabled)
@@ -956,30 +952,6 @@ namespace JSI
         public void SetYawTrim(double trimPercent)
         {
             FlightInputHandler.state.yawTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
-        }
-
-        /// <summary>
-        /// Iterator to find gimbals on active stages
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static IEnumerable<ModuleGimbal> FindActiveStageGimbals(Vessel vessel)
-        {
-            foreach (Part thatPart in vessel.parts)
-            {
-                // MOARdV: I'm not sure inverseStage is ever > CurrentStage,
-                // but there's no harm in >= vs ==.
-                if (thatPart.inverseStage >= StageManager.CurrentStage)
-                {
-                    foreach (PartModule pm in thatPart.Modules)
-                    {
-                        if (pm is ModuleGimbal)
-                        {
-                            yield return pm as ModuleGimbal;
-                        }
-                    }
-                }
-            }
         }
     }
 }

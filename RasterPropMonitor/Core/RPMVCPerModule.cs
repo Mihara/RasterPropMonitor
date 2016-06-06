@@ -66,6 +66,10 @@ namespace JSI
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
 
+        //--- Gimbals
+        internal List<ModuleGimbal> availableGimbals = new List<ModuleGimbal>();
+        internal bool gimbalsLocked;
+
         //--- Heat shields
         internal List<ModuleAblator> availableAblators = new List<ModuleAblator>();
         internal float heatShieldTemperature;
@@ -109,6 +113,7 @@ namespace JSI
             availableFuelCellOutput.Clear();
             availableGenerators.Clear();
             availableGeneratorOutput.Clear();
+            availableGimbals.Clear();
             availableSolarPanels.Clear();
 
             mainDockingNode = null;
@@ -198,6 +203,10 @@ namespace JSI
                                 {
                                     availableSolarPanels.Add(sp);
                                 }
+                            }
+                            else if (module is ModuleGimbal)
+                            {
+                                availableGimbals.Add(module as ModuleGimbal);
                             }
                         }
                     }
@@ -358,7 +367,7 @@ namespace JSI
             if (mainDockingNode == null)
             {
                 uint launchId;
-                Part currentPart = DeduceCurrentPart();
+                Part currentPart = JUtil.DeduceCurrentPart(vessel);
                 if (currentPart == null)
                 {
                     launchId = 0u;
@@ -490,6 +499,19 @@ namespace JSI
             catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
+        }
+
+        /// <summary>
+        /// Refresh gimbal data: any gimbals locked.
+        /// </summary>
+        private void FetchGimbalData()
+        {
+            gimbalsLocked = false;
+
+            for(int i=0; i<availableGimbals.Count; ++i)
+            {
+                gimbalsLocked |= availableGimbals[i].gimbalLock;
+            }
         }
 
         /// <summary>
