@@ -75,6 +75,8 @@ namespace JSI
         // Callback system
         private Dictionary<string, List<Action<float>>> onChangeCallbacks = new Dictionary<string, List<Action<float>>>();
         private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
+        private Dictionary<string, List<Action<bool>>> onResourceCallbacks = new Dictionary<string, List<Action<bool>>>();
+        private Dictionary<string, bool> onResourceValue = new Dictionary<string, bool>();
         private bool forceCallbackRefresh = false;
 
         // Diagnostics
@@ -291,6 +293,53 @@ namespace JSI
                 try
                 {
                     onChangeCallbacks[variableName].Remove(cb);
+                }
+                catch
+                {
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Register for a resource callback.  Resource callbacks provide a boolean that is
+        /// updated when the named resource drops above or below 0.01f.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void RegisterResourceCallback(string variableName, Action<bool> cb)
+        {
+            if (onResourceCallbacks.ContainsKey(variableName))
+            {
+                onResourceCallbacks[variableName].Add(cb);
+            }
+            else
+            {
+                var callbackList = new List<Action<bool>>();
+                callbackList.Add(cb);
+                onResourceCallbacks[variableName] = callbackList;
+
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                bool initValue = (ProcessVariable(variableName, comp).MassageToFloat() < 0.01f);
+                onResourceValue[variableName] = initValue;
+            }
+            cb(onResourceValue[variableName]);
+
+            forceCallbackRefresh = true;
+        }
+
+        /// <summary>
+        /// Remove a previously-registered resource change callback
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <param name="cb"></param>
+        public void UnregisterResourceCallback(string variableName, Action<bool> cb)
+        {
+            if (onResourceCallbacks.ContainsKey(variableName))
+            {
+                try
+                {
+                    onResourceCallbacks[variableName].Remove(cb);
                 }
                 catch
                 {
@@ -524,6 +573,22 @@ namespace JSI
 #if SHOW_VARIABLE_QUERY_COUNTER
                     ++debug_callbackQueriesMade;
 #endif
+                }
+
+                foreach (var cbrVal in onResourceCallbacks)
+                {
+                    float newVal = ProcessVariable(cbrVal.Key, comp).MassageToFloat();
+                    bool newDepleted = (newVal < 0.01f);
+                    JUtil.LogMessage(this, "Checking {0} depletion: now {1}, was {2}", cbrVal.Key, newDepleted, onResourceValue[cbrVal.Key]);
+                    if (newDepleted != onResourceValue[cbrVal.Key])
+                    {
+                        for (int i = 0; i < cbrVal.Value.Count; ++i)
+                        {
+                            cbrVal.Value[i](newDepleted);
+                        }
+
+                        onResourceValue[cbrVal.Key] = newDepleted;
+                    }
                 }
 
                 ++debug_fixedUpdates;

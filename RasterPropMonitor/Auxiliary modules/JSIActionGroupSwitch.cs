@@ -61,6 +61,9 @@ namespace JSI
         private bool needsElectricChargeValue;
         [KSPField]
         public string resourceName = "SYSR_ELECTRICCHARGE";
+        private bool resourceDepleted = false; // Managed by rpmComp callback
+        private Action<bool> del;
+
         [KSPField]
         public string switchSound = "Squad/Sounds/sound_click_flick";
         [KSPField]
@@ -141,7 +144,6 @@ namespace JSI
         private Light[] lightObjects;
         private FXGroup audioOutput;
         private FXGroup loopingOutput;
-        private int lightCheckCountdown;
         private bool startupComplete;
         private Material colorShiftMaterial;
         private string stateVariable = string.Empty;
@@ -372,13 +374,13 @@ namespace JSI
                                                 {
                                                     JUtil.LogErrorMessage(this, "Failed to instantiate transfer handler {0}", pluginConfig.GetValue("name"));
                                                 }
-                                                else if(pluginConfig.HasValue("perPodPersistenceName"))
+                                                else if (pluginConfig.HasValue("perPodPersistenceName"))
                                                 {
                                                     transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                                     actionName = "transferFromPersistent";
                                                     customAction = CustomActions.TransferFromPersistent;
                                                 }
-                                                else if(pluginConfig.HasValue("getVariable"))
+                                                else if (pluginConfig.HasValue("getVariable"))
                                                 {
                                                     transferGetter = pluginConfig.GetValue("getVariable").Trim();
                                                     actionName = "transferFromVariable";
@@ -419,7 +421,7 @@ namespace JSI
                                             }
                                             else if (pluginConfig.HasValue("getVariable"))
                                             {
-                                                if (pluginConfig.HasValue("perPodPersistenceName"))                                       
+                                                if (pluginConfig.HasValue("perPodPersistenceName"))
                                                 {
                                                     transferGetter = pluginConfig.GetValue("getVariable").Trim();
                                                     transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
@@ -484,6 +486,12 @@ namespace JSI
                             masterVariable = null;
                         }
                     }
+                }
+
+                if (needsElectricChargeValue)
+                {
+                    del = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), this, "ResourceDepletedCallback");
+                    rpmComp.RegisterResourceCallback(resourceName, del);
                 }
 
                 // set up the toggle switch
@@ -610,9 +618,9 @@ namespace JSI
 
                 startupComplete = true;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                JUtil.LogErrorMessage(this, "Exception configuring prop {0} ({1}): {2}", internalProp.propID, internalProp.propName, e); 
+                JUtil.LogErrorMessage(this, "Exception configuring prop {0} ({1}): {2}", internalProp.propID, internalProp.propName, e);
                 JUtil.AnnoyUser(this);
                 enabled = false;
             }
@@ -631,6 +639,11 @@ namespace JSI
             transferSetter = null;
             audioOutput = null;
             loopingOutput = null;
+
+            if (del != null)
+            {
+                rpmComp.UnregisterResourceCallback(resourceName, del);
+            }
         }
 
         private void SetInternalLights(bool value)
@@ -876,13 +889,7 @@ namespace JSI
             // If needsElectricCharge is true and there is no charge, the state value is overridden to false and the click action is reexecuted.
             if (needsElectricChargeValue)
             {
-                lightCheckCountdown--;
-                if (lightCheckCountdown <= 0)
-                {
-                    lightCheckCountdown = refreshRate;
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    forcedShutdown |= currentState && rpmComp.ProcessVariable(resourceName, comp).MassageToFloat() < 0.01f;
-                }
+                forcedShutdown |= resourceDepleted;
             }
 
             if (perPodMasterSwitchValid)
@@ -972,5 +979,16 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// This little callback allows RasterPropMonitorComputer to notify
+        /// this module when its required resource has gone above or below the
+        /// arbitrary and hard-coded threshold of 0.01, so that each switch is
+        /// not forced to query every update "How much power is there?".
+        /// </summary>
+        /// <param name="newValue"></param>
+        void ResourceDepletedCallback(bool newValue)
+        {
+            resourceDepleted = newValue;
+        }
     }
 }
