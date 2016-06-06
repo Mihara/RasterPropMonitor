@@ -100,7 +100,6 @@ namespace JSI
         }
         private NavBall navBall;
         internal LinearAtmosphereGauge linearAtmosGauge;
-        private Part part;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -678,7 +677,6 @@ namespace JSI
 
             vessel = null;
             navBall = null;
-            part = null;
 
             target = null;
             targetDockingNode = null;
@@ -793,76 +791,6 @@ namespace JSI
         #endregion
 
         #region Internal Methods
-        /// <summary>
-        /// Try to figure out which part on the craft is the current part.
-        /// </summary>
-        /// <returns></returns>
-        private Part DeduceCurrentPart()
-        {
-            Part currentPart = null;
-
-            if (JUtil.VesselIsInIVA(vessel))
-            {
-                Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
-                if (thatKerbal != null)
-                {
-                    // This should be a drastically faster way to determine
-                    // where we are.  I hope.
-                    currentPart = thatKerbal.InPart;
-                }
-
-                if (currentPart == null)
-                {
-                    Transform internalCameraTransform = InternalCamera.Instance.transform;
-                    foreach (Part thisPart in InternalModelParts(vessel))
-                    {
-                        for (int seatIdx = 0; seatIdx < thisPart.internalModel.seats.Count; ++seatIdx)
-                        {
-                            if (thisPart.internalModel.seats[seatIdx].kerbalRef != null)
-                            {
-                                if (thisPart.internalModel.seats[seatIdx].kerbalRef.eyeTransform == internalCameraTransform.parent)
-                                {
-                                    currentPart = thisPart;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
-                        {
-                            Transform[] modelTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
-                            for (int xformIdx = 0; xformIdx < modelTransforms.Length; ++xformIdx)
-                            {
-                                if (modelTransforms[xformIdx] == InternalCamera.Instance.transform.parent)
-                                {
-                                    currentPart = thisPart;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return currentPart;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static IEnumerable<Part> InternalModelParts(Vessel vessel)
-        {
-            foreach (Part thatPart in vessel.parts)
-            {
-                if (thatPart.internalModel != null)
-                {
-                    yield return thatPart;
-                }
-            }
-        }
-
         /// <summary>
         /// Fetch altitude-related values
         /// </summary>
@@ -1429,15 +1357,6 @@ namespace JSI
         /// <returns>true if it's time to update things</returns>
         private bool UpdateCheck()
         {
-            Part newpart = DeduceCurrentPart();
-            if (part != newpart)
-            {
-                dataUpdateCountdown = refreshDataRate;
-                part = newpart;
-
-                return true;
-            }
-
             if (--dataUpdateCountdown < 0)
             {
                 dataUpdateCountdown = refreshDataRate;
