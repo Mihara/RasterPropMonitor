@@ -254,9 +254,6 @@ namespace JSI
         internal float approachSpeed;
         private Quaternion targetOrientation;
 
-        // Diagnostics
-        private int debug_fixedUpdates = 0;
-        private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
         #endregion
 
         /// <summary>
@@ -630,32 +627,14 @@ namespace JSI
 
         public void OnDestroy()
         {
-            if (vessel == null)
+            if (vessel == null && vid == Guid.Empty)
             {
-                Vessel avessel = GetComponent<Vessel>();
-                if (avessel == null)
-                {
-                    JUtil.LogMessage(this, "OnDestroy with GetComponent<Vessel> null, expected vid {0}", vid);
-                }
-                else
-                {
-                    JUtil.LogMessage(this, "OnDestroy with GetComponent<Vessel> {0}, expected vid {1}", avessel.id, vid);
-                }
                 return;
             }
 
-            if (RPMGlobals.debugShowVariableCallCount)
+            if (vid != vessel.id)
             {
-                List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
-                l.AddRange(debug_callCount);
-                l.Sort(delegate(KeyValuePair<string, int> a, KeyValuePair<string, int> b)
-                    {
-                        return a.Value - b.Value;
-                    });
-                for (int i = 0; i < l.Count; ++i)
-                {
-                    JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
-                }
+                JUtil.LogErrorMessage(this, "OnDestroy() called for vessel {0}, but I think I am vessel {1}", vessel.id, vid);
             }
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
@@ -669,13 +648,16 @@ namespace JSI
             GameEvents.onVesselDestroy.Remove(onVesselDestroy);
             GameEvents.onVesselCreate.Remove(onVesselCreate);
 
-            if (instances.ContainsKey(vessel.id))
+            // This very likely was handled in the OnVesselDestroy callback,
+            // but there is no harm trying again here.
+            if (instances.ContainsKey(vid))
             {
-                instances.Remove(vessel.id);
-                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
+                instances.Remove(vid);
+                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vid);
             }
 
             vessel = null;
+            vid = Guid.Empty;
             navBall = null;
 
             target = null;
@@ -1470,6 +1452,15 @@ namespace JSI
                     JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", who.id);
                     instances.Remove(who.id);
                     InvalidateModuleLists();
+
+                    target = null;
+                    targetDockingNode = null;
+                    targetVessel = null;
+                    targetOrbit = null;
+                    targetBody = null;
+
+                    vesselCrew.Clear();
+                    vesselCrewMedical.Clear();
                 }
             }
         }
@@ -1487,7 +1478,7 @@ namespace JSI
                 Vessel avessel = GetComponent<Vessel>();
                 if (avessel != null && avessel.id == who.id)
                 {
-                    JUtil.LogMessage(this, "onVesselCreate(): I am was zombie VesselModule now part of {0}", who.id);
+                    JUtil.LogMessage(this, "onVesselCreate(): I was zombie VesselModule; now part of {0}", who.id);
                     instances.Add(who.id, this);
                     vid = who.id;
                     InvalidateModuleLists();
