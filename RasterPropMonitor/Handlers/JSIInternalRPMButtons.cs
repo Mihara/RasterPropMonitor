@@ -530,7 +530,7 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonFullThrottle(bool state)
         {
-            if (state && vessel!=null)
+            if (state && vessel != null)
             {
                 float throttle = vessel.ctrlState.mainThrottle;
                 try
@@ -673,13 +673,13 @@ namespace JSI
         /// <param name="state"></param>
         public void GimbalLock(bool state)
         {
-            if(vessel == null)
+            if (vessel == null)
             {
                 return;
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            for(int i=0; i<comp.availableGimbals.Count; ++i)
+            for (int i = 0; i < comp.availableGimbals.Count; ++i)
             {
                 comp.availableGimbals[i].gimbalLock = state;
             }
@@ -700,38 +700,37 @@ namespace JSI
             return comp.gimbalsLocked;
         }
 
+        /// <summary>
+        /// Toggle the state of any radar units installed on the craft.
+        /// </summary>
+        /// <param name="enabled"></param>
         public void RadarEnable(bool enabled)
         {
-            try
+            if (vessel == null)
             {
-                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
-                for (int i = 0; i < radars.Count; ++i)
-                {
-                    radars[i].radarEnabled = enabled;
-                }
+                return;
             }
-            catch { }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            for (int i = 0; i < comp.availableRadars.Count; ++i)
+            {
+                comp.availableRadars[i].radarEnabled = enabled;
+            }
         }
 
+        /// <summary>
+        /// Returns true if at least one radar is active.
+        /// </summary>
+        /// <returns></returns>
         public bool RadarEnableState()
         {
-            bool enabled = false;
-
-            try
+            if (vessel == null)
             {
-                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
-                for (int i = 0; i < radars.Count; ++i)
-                {
-                    if (radars[i].radarEnabled)
-                    {
-                        enabled = true;
-                        break;
-                    }
-                }
+                return false;
             }
-            catch { }
 
-            return enabled;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.radarActive;
         }
 
         /// <summary>
@@ -789,6 +788,10 @@ namespace JSI
             return true;
         }
 
+        /// <summary>
+        /// Returns a single numeric value indicating what mode the autopilot is in.
+        /// </summary>
+        /// <returns></returns>
         public double GetSASMode()
         {
             if (vessel == null)

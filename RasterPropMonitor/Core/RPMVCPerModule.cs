@@ -96,6 +96,10 @@ namespace JSI
         internal float generatorOutput;
         internal float solarOutput;
 
+        //--- Radar
+        internal List<JSIRadar> availableRadars = new List<JSIRadar>();
+        internal bool radarActive;
+
         #region List Management
         /// <summary>
         /// Flag the lists as invalid due to craft changes / destruction.
@@ -114,6 +118,7 @@ namespace JSI
             availableGenerators.Clear();
             availableGeneratorOutput.Clear();
             availableGimbals.Clear();
+            availableRadars.Clear();
             availableSolarPanels.Clear();
 
             mainDockingNode = null;
@@ -207,6 +212,10 @@ namespace JSI
                             else if (module is ModuleGimbal)
                             {
                                 availableGimbals.Add(module as ModuleGimbal);
+                            }
+                            else if (module is JSIRadar)
+                            {
+                                availableRadars.Add(module as JSIRadar);
                             }
                         }
                     }
@@ -508,9 +517,22 @@ namespace JSI
         {
             gimbalsLocked = false;
 
-            for(int i=0; i<availableGimbals.Count; ++i)
+            for (int i = 0; i < availableGimbals.Count; ++i)
             {
                 gimbalsLocked |= availableGimbals[i].gimbalLock;
+            }
+        }
+
+        /// <summary>
+        /// Refresh radar data: any radar active.
+        /// </summary>
+        private void FetchRadarData()
+        {
+            radarActive = false;
+
+            for (int i = 0; i < availableRadars.Count; ++i)
+            {
+                radarActive |= availableRadars[i].radarEnabled;
             }
         }
 
@@ -531,6 +553,8 @@ namespace JSI
             FetchDockingNodeData();
             FetchElectricData();
             FetchEngineData();
+            FetchGimbalData();
+            FetchRadarData();
         }
         #endregion
 
