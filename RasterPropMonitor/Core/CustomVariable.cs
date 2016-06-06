@@ -30,7 +30,7 @@ namespace JSI
     /// </summary>
     interface IComplexVariable
     {
-        object Evaluate(RPMVesselComputer comp);
+        object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp);
     }
 
     // A CustomVariable defines a user-defined variable that consists of one or
@@ -110,10 +110,10 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].IsInRange(comp) ^ reverse[0];
+            bool evaluation = sourceVariables[0].IsInRange(rpmComp, comp) ^ reverse[0];
 
             // Use an optimization on evaluation to speed things up
             bool earlyExit;
@@ -139,7 +139,7 @@ namespace JSI
 
             for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
-                bool nextValue = sourceVariables[i].IsInRange(comp) ^ reverse[i];
+                bool nextValue = sourceVariables[i].IsInRange(rpmComp, comp) ^ reverse[i];
 
                 switch (op)
                 {

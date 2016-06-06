@@ -36,6 +36,7 @@ namespace JSI
         private double xGraphSpan, interval;
         private readonly List<Vector2> borderVertices = new List<Vector2>();
         private bool startupComplete;
+        private RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
@@ -47,6 +48,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (!string.IsNullOrEmpty(borderColor))
                 {
                     borderColorValue = ConfigNode.ParseColor32(borderColor);
@@ -149,10 +152,10 @@ namespace JSI
             double time = Planetarium.GetUniversalTime();
             if (lastDataPoint + (double)secondsBetweenSamples < time)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 foreach (GraphLine graph in graphs)
                 {
-                    graph.Update(time, comp);
+                    graph.Update(time, rpmComp, comp);
                 }
                 lastDataPoint = time;
             }
@@ -227,9 +230,9 @@ namespace JSI
                 DrawVector(actualXY, lineColor);
             }
 
-            public void Update(double time, RPMVesselComputer comp)
+            public void Update(double time, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
             {
-                double value = isFlat ? flatValue : comp.ProcessVariable(variableName).MassageToDouble();
+                double value = isFlat ? flatValue : rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
                 if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     return;

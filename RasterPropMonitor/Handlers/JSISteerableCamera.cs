@@ -142,6 +142,7 @@ namespace JSI
         private Material iconMaterial;
 
         private Material cameraEffectMaterial;
+        private RasterPropMonitorComputer rpmComp;
 
         private int currentCamera = 0;
         private List<SteerableCameraParameters> cameras = new List<SteerableCameraParameters>();
@@ -244,11 +245,12 @@ namespace JSI
                 if (cameraEffectMaterial != null)
                 {
                     cameraEffectMaterial.SetVector("_ImageDims", new Vector4((float)renderTex.width, (float)renderTex.height, 1.0f / (float)renderTex.width, 1.0f / (float)renderTex.height));
+
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     for (int i = 0; i < ceVariables.Count; ++i)
                     {
                         float value;
-                        if (ceVariables[i].value.Get(out value, comp))
+                        if (ceVariables[i].value.Get(out value, rpmComp, comp))
                         {
                             cameraEffectMaterial.SetFloat(ceVariables[i].variable, value);
                         }
@@ -566,6 +568,8 @@ namespace JSI
         {
             if (HighLogic.LoadedSceneIsEditor)
                 return;
+
+            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
             if (string.IsNullOrEmpty(cameraTransform))
             {

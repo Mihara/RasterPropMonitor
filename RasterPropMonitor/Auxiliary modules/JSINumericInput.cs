@@ -47,6 +47,8 @@ namespace JSI
 
         private List<NumericInput> numericInputs = new List<NumericInput>();
 
+        private RasterPropMonitorComputer rpmComp;
+
         private VariableOrNumber minRange;
         private VariableOrNumber maxRange;
 
@@ -61,6 +63,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (string.IsNullOrEmpty(perPodPersistenceName))
                 {
                     JUtil.LogErrorMessage(this, "perPodPersistenceName must be defined");
@@ -95,21 +99,21 @@ namespace JSI
                     loopInput = false;
                 }
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                if (!comp.HasPersistentVariable(perPodPersistenceName))
+                if (!rpmComp.HasPersistentVariable(perPodPersistenceName))
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
                     float value;
-                    if (von.Get(out value, comp))
+                    if (von.Get(out value, rpmComp, comp))
                     {
                         if (stepSize > 0.0f)
                         {
                             float remainder = value % stepSize;
                             value -= remainder;
                         }
-                        comp.SetPersistentVariable(perPodPersistenceName, value);
+                        rpmComp.SetPersistentVariable(perPodPersistenceName, value);
                     }
                     else
                     {
@@ -174,21 +178,20 @@ namespace JSI
 
                 if (change < 0.0f || change > 0.0f)
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-
-                    float val = comp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
+                    float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
                     val += change + remainder;
 
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     if (minRange != null)
                     {
                         float v;
-                        if (minRange.Get(out v, comp))
+                        if (minRange.Get(out v, rpmComp, comp))
                         {
                             if (loopInput)
                             {
                                 if (val < v)
                                 {
-                                    if (maxRange.Get(out v, comp))
+                                    if (maxRange.Get(out v, rpmComp, comp))
                                     {
                                         val = v;
                                     }
@@ -204,13 +207,13 @@ namespace JSI
                     if (maxRange != null)
                     {
                         float v;
-                        if (maxRange.Get(out v, comp))
+                        if (maxRange.Get(out v, rpmComp, comp))
                         {
                             if (loopInput)
                             {
                                 if (val > v)
                                 {
-                                    if (minRange.Get(out v, comp))
+                                    if (minRange.Get(out v, rpmComp, comp))
                                     {
                                         val = v;
                                     }
@@ -231,7 +234,7 @@ namespace JSI
                         val -= remainder;
                     }
 
-                    comp.SetPersistentVariable(perPodPersistenceName, val);
+                    rpmComp.SetPersistentVariable(perPodPersistenceName, val);
                 }
                 else
                 {

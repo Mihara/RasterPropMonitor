@@ -221,32 +221,31 @@ namespace JSI
             }
         }
 
-        private void UpdateMethods()
+        private void UpdateMethods(RasterPropMonitorComputer rpmComp)
         {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            GetSmartassMode = (Func<int>)comp.GetMethod("JSIMechJeb:GetSmartassMode", internalProp, typeof(Func<int>));
-            SetSmartassMode = (Action<JSIMechJeb.Target>)comp.GetMethod("JSIMechJeb:SetSmartassMode", internalProp, typeof(Action<JSIMechJeb.Target>));
-            SetForceRoll = (Action<bool, double>)comp.GetMethod("JSIMechJeb:ForceRoll", internalProp, typeof(Action<bool, double>));
-            GetModuleExists = (Func<string, bool>)comp.GetMethod("JSIMechJeb:GetModuleExists", internalProp, typeof(Func<string, bool>));
-            CircularizeAt = (Action<double>)comp.GetMethod("JSIMechJeb:CircularizeAt", internalProp, typeof(Action<double>));
-            PositionTargetExists = (Func<bool>)comp.GetMethod("JSIMechJeb:PositionTargetExists", internalProp, typeof(Func<bool>));
-            AutopilotEnabled = (Func<bool>)comp.GetMethod("JSIMechJeb:AutopilotEnabled", internalProp, typeof(Func<bool>));
-            GetForceRollAngle = (Func<double>)comp.GetMethod("JSIMechJeb:GetForceRollAngle", internalProp, typeof(Func<double>));
+            GetSmartassMode = (Func<int>)rpmComp.GetMethod("JSIMechJeb:GetSmartassMode", internalProp, typeof(Func<int>));
+            SetSmartassMode = (Action<JSIMechJeb.Target>)rpmComp.GetMethod("JSIMechJeb:SetSmartassMode", internalProp, typeof(Action<JSIMechJeb.Target>));
+            SetForceRoll = (Action<bool, double>)rpmComp.GetMethod("JSIMechJeb:ForceRoll", internalProp, typeof(Action<bool, double>));
+            GetModuleExists = (Func<string, bool>)rpmComp.GetMethod("JSIMechJeb:GetModuleExists", internalProp, typeof(Func<string, bool>));
+            CircularizeAt = (Action<double>)rpmComp.GetMethod("JSIMechJeb:CircularizeAt", internalProp, typeof(Action<double>));
+            PositionTargetExists = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:PositionTargetExists", internalProp, typeof(Func<bool>));
+            AutopilotEnabled = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:AutopilotEnabled", internalProp, typeof(Func<bool>));
+            GetForceRollAngle = (Func<double>)rpmComp.GetMethod("JSIMechJeb:GetForceRollAngle", internalProp, typeof(Func<double>));
 
-            AscentAP = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonAscentGuidance", internalProp, typeof(Action<bool>));
-            AscentAPState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonAscentGuidanceState", internalProp, typeof(Func<bool>));
+            AscentAP = (Action<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonAscentGuidance", internalProp, typeof(Action<bool>));
+            AscentAPState = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonAscentGuidanceState", internalProp, typeof(Func<bool>));
 
-            LandingAP = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonLandingGuidance", internalProp, typeof(Action<bool>));
-            LandingAPState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonLandingGuidanceState", internalProp, typeof(Func<bool>));
+            LandingAP = (Action<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonLandingGuidance", internalProp, typeof(Action<bool>));
+            LandingAPState = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonLandingGuidanceState", internalProp, typeof(Func<bool>));
 
-            DockingAP = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonDockingGuidance", internalProp, typeof(Action<bool>));
-            DockingAPState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonDockingGuidanceState", internalProp, typeof(Func<bool>));
+            DockingAP = (Action<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonDockingGuidance", internalProp, typeof(Action<bool>));
+            DockingAPState = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonDockingGuidanceState", internalProp, typeof(Func<bool>));
 
-            ForceRoll = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonForceRoll", internalProp, typeof(Action<bool>));
-            ForceRollState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonForceRollState", internalProp, typeof(Func<bool>));
+            ForceRoll = (Action<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonForceRoll", internalProp, typeof(Action<bool>));
+            ForceRollState = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonForceRollState", internalProp, typeof(Func<bool>));
 
-            ExecuteNextNode = (Action<bool>)comp.GetMethod("JSIMechJeb:ButtonNodeExecute", internalProp, typeof(Action<bool>));
-            ExecuteNextNodeState = (Func<bool>)comp.GetMethod("JSIMechJeb:ButtonNodeExecuteState", internalProp, typeof(Func<bool>));
+            ExecuteNextNode = (Action<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonNodeExecute", internalProp, typeof(Action<bool>));
+            ExecuteNextNodeState = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:ButtonNodeExecuteState", internalProp, typeof(Func<bool>));
         }
 
         public void Start()
@@ -282,13 +281,13 @@ namespace JSI
             topMenu.selectedColor = JUtil.ColorToColorTag(selectedColorValue);
             topMenu.disabledColor = JUtil.ColorToColorTag(unavailableColorValue);
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            Func<bool> isMjAvailable = (Func<bool>)comp.GetMethod("JSIMechJeb:GetMechJebAvailable", internalProp, typeof(Func<bool>));
+            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+            Func<bool> isMjAvailable = (Func<bool>)rpmComp.GetMethod("JSIMechJeb:GetMechJebAvailable", internalProp, typeof(Func<bool>));
             if (isMjAvailable == null)
             {
                 throw new NotImplementedException("isMjAvailable");
             }
-            UpdateMethods();
+            UpdateMethods(rpmComp);
 
             // If MechJeb is installed, but not found on the craft, menu options can't be populated correctly.
             if (isMjAvailable())
@@ -330,7 +329,8 @@ namespace JSI
         {
             if (JUtil.IsActiveVessel(vessel))
             {
-                UpdateMethods();
+                RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+                UpdateMethods(rpmComp);
             }
         }
         //--- ROOT MENU methods

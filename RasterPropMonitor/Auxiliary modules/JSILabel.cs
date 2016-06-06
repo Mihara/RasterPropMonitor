@@ -90,7 +90,7 @@ namespace JSI
         private FXGroup audioOutput;
 
         private int updateCountdown;
-        private Action<RPMVesselComputer, float> del;
+        private Action<float> del;
         /// <summary>
         /// The Guid of the vessel we belonged to at Start.  When undocking,
         /// KSP will change the vessel member variable before calling OnDestroy,
@@ -98,12 +98,13 @@ namespace JSI
         /// with.  So we have to store the Guid separately.
         /// </summary>
         private Guid registeredVessel = Guid.Empty;
+        RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
             try
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
                 Vector3 localScale = internalProp.transform.localScale;
@@ -209,7 +210,7 @@ namespace JSI
 
                     if (!oneshot)
                     {
-                        comp.UpdateDataRefreshRate(refreshRate);
+                        rpmComp.UpdateDataRefreshRate(refreshRate);
                     }
                 }
                 else // Switchable mode
@@ -241,7 +242,7 @@ namespace JSI
                                         labels.Add(new JSILabelSet(sourceString, lOneshot));
                                         if (!lOneshot)
                                         {
-                                            comp.UpdateDataRefreshRate(refreshRate);
+                                            rpmComp.UpdateDataRefreshRate(refreshRate);
                                         }
                                     }
                                 }
@@ -256,7 +257,6 @@ namespace JSI
 
                 }
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (!string.IsNullOrEmpty(zeroColor))
                 {
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
@@ -269,12 +269,13 @@ namespace JSI
                     usesMultiColor = true;
                     positiveColorValue = JUtil.ParseColor32(positiveColor, part, ref rpmComp);
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
-                    del = (Action<RPMVesselComputer, float>)Delegate.CreateDelegate(typeof(Action<RPMVesselComputer, float>), this, "OnCallback");
-                    comp.RegisterCallback(variableName, del);
+                    del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
+                    rpmComp.RegisterCallback(variableName, del);
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
-                    float value = comp.ProcessVariable(variableName).MassageToFloat();
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                    float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
                     if (value < 0.0f)
                     {
                         textObj.color = negativeColorValue;
@@ -343,8 +344,7 @@ namespace JSI
                 activeLabel = 0;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+            textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, rpmComp);
 
             // Force an update.
             updateCountdown = 0;
@@ -386,11 +386,7 @@ namespace JSI
             {
                 try
                 {
-                    RPMVesselComputer comp = null;
-                    if (RPMVesselComputer.TryGetInstance(registeredVessel, ref comp))
-                    {
-                        comp.UnregisterCallback(variableName, del);
-                    }
+                    rpmComp.UnregisterCallback(variableName, del);
                 }
                 catch
                 {
@@ -401,13 +397,13 @@ namespace JSI
             textObj = null;
         }
 
-        private void OnCallback(RPMVesselComputer comp, float value)
+        private void OnCallback(float value)
         {
             // Sanity checks:
-            if (vessel == null || vessel.id != comp.id)
+            if (vessel == null)
             {
                 // We're not attached to a ship?
-                comp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
@@ -420,7 +416,7 @@ namespace JSI
                 // before textObj is created.
                 if (del != null && !string.IsNullOrEmpty(variableName))
                 {
-                    comp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterCallback(variableName, del);
                 }
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;
@@ -473,8 +469,7 @@ namespace JSI
 
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, comp);
+                textObj.text = StringProcessor.ProcessString(labels[activeLabel].spf, rpmComp);
                 labels[activeLabel].oneshotComplete = true;
             }
         }

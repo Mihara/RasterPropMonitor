@@ -35,6 +35,7 @@ namespace JSI
         private List<DataSet> dataSets = new List<DataSet>();
         private bool startupComplete = false;
         private Material lineMaterial = JUtil.DrawLineMaterial();
+        private RasterPropMonitorComputer rpmComp;
 
         public bool RenderBackground(RenderTexture screen, float cameraAspect)
         {
@@ -51,17 +52,17 @@ namespace JSI
 
             try
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 // Render background - eventually, squirrel this away onto a render tex
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
                     dataSets[i].RenderBackground(screen);
                 }
 
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 // Render data
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
-                    dataSets[i].RenderData(screen, comp);
+                    dataSets[i].RenderData(screen, rpmComp, comp);
                 }
             }
             catch
@@ -98,6 +99,8 @@ namespace JSI
             }
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (string.IsNullOrEmpty(layout))
                 {
                     throw new ArgumentNullException("layout");
@@ -292,15 +295,15 @@ namespace JSI
             }
         }
 
-        public void RenderData(RenderTexture screen, RPMVesselComputer comp)
+        public void RenderData(RenderTexture screen, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float leftVal, rightVal;
-            if (!scale[0].Get(out leftVal, comp) || !scale[1].Get(out rightVal, comp))
+            if (!scale[0].Get(out leftVal, rpmComp, comp) || !scale[1].Get(out rightVal, rpmComp, comp))
             {
                 return; // bad values - can't render
             }
 
-            float eval = comp.ProcessVariable(variableName).MassageToFloat();
+            float eval = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))
             {
                 return; // bad value - can't render

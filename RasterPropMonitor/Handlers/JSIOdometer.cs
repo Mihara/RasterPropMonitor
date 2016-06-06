@@ -61,6 +61,7 @@ namespace JSI
         private Material screenMat;
         private int refreshDrawCountdown;
         private bool startupComplete;
+        private RasterPropMonitorComputer rpmComp;
 
         private readonly Dictionary<string, OdometerMode> modeList = new Dictionary<string, OdometerMode> {
 			{ "LINEAR", OdometerMode.LINEAR },
@@ -80,16 +81,17 @@ namespace JSI
             double thisUpdate = Planetarium.GetUniversalTime();
             float dT = (float)(thisUpdate - lastUpdate) * odometerRotationScalar;
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             float value;
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
-                bool state = comp.GetPersistentVariable(perPodPersistenceName, false);
-                value = comp.ProcessVariable((state) ? altVariable : variable).MassageToFloat();
+                bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                value = rpmComp.ProcessVariable((state) ? altVariable : variable, comp).MassageToFloat();
             }
             else
             {
-                value = comp.ProcessVariable(variable).MassageToFloat();
+                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+                value = rpmComp.ProcessVariable(variable, comp).MassageToFloat();
             }
             // Make sure the value isn't going to be a problem.
             if (float.IsNaN(value))
@@ -397,6 +399,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 if (!string.IsNullOrEmpty(odometerMode) && modeList.ContainsKey(odometerMode))
                 {
                     oMode = modeList[odometerMode];

@@ -56,10 +56,10 @@ namespace JSI
             mappedExtent2 = VariableOrNumber.Instantiate(destinations[1]);
         }
 
-        public object Evaluate(RPMVesselComputer comp)
+        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float lerp, extent1, extent2;
-            if (sourceVariable.InverseLerp(comp, out lerp) && mappedExtent1.Get(out extent1, comp) && mappedExtent2.Get(out extent2, comp))
+            if (sourceVariable.InverseLerp(rpmComp, comp, out lerp) && mappedExtent1.Get(out extent1, rpmComp, comp) && mappedExtent2.Get(out extent2, rpmComp, comp))
             {
                 return Mathf.Lerp(extent1, extent2, lerp);
             }

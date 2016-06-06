@@ -51,6 +51,7 @@ namespace JSI
         private int updateCountdown;
         private Renderer colorShiftRenderer;
         private FXGroup audioOutput;
+        private RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
@@ -61,6 +62,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 textObjTransform = internalProp.FindModelTransform(labelTransform);
                 textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
                 activeLabel = 0;
@@ -180,8 +183,7 @@ namespace JSI
         {
             if (JUtil.RasterPropMonitorShouldUpdate(vessel) && UpdateCheck())
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].label, comp);
+                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].label, rpmComp);
             }
         }
 
@@ -201,8 +203,7 @@ namespace JSI
 
             if (labelsEx[activeLabel].hasText)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].label, comp);
+                textObj.text.Text = StringProcessor.ProcessString(labelsEx[activeLabel].label, rpmComp);
             }
 
             // Force an update.

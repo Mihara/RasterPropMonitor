@@ -45,7 +45,6 @@ namespace JSI
             if (kacFound)
             {
                 var alarms = KACWrapper.KAC.Alarms;
-                //alarms.Sort(SortDates);
 
                 string id = vessel.id.ToString();
                 int vesselAlarmCount = 0;
@@ -124,11 +123,6 @@ namespace JSI
             }
 
             return name;
-        }
-
-        private int SortDates(KACWrapper.KACAPI.KACAlarm x, KACWrapper.KACAPI.KACAlarm y)
-        {
-            return x.AlarmTime.CompareTo(y.AlarmTime);
         }
     }
 }

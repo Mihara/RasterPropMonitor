@@ -108,7 +108,7 @@ namespace JSI
             public Action<MonoBehaviour, MonoBehaviour> getHandlerReferences;
         }
 
-        public void UpdateText(RPMVesselComputer comp)
+        public void UpdateText(RasterPropMonitorComputer rpmComp)
         {
             // If there's a handler references method, it gets called before each text call.
             if (pageHandlerS.getHandlerReferences != null)
@@ -127,7 +127,7 @@ namespace JSI
                     linesArray = processedText.Split(JUtil.LineSeparator, StringSplitOptions.None);
                     for (int i = 0; i < linesArray.Length; i++)
                     {
-                        bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
+                        bf.AppendLine(StringProcessor.ProcessString(linesArray[i], rpmComp));
                     }
                     processedText = bf.ToString();
                 }
@@ -144,7 +144,7 @@ namespace JSI
                     StringBuilder bf = new StringBuilder();
                     for (int i = 0; i < linesArray.Length; i++)
                     {
-                        bf.AppendLine(StringProcessor.ProcessString(linesArray[i], comp));
+                        bf.AppendLine(StringProcessor.ProcessString(linesArray[i], rpmComp));
                     }
 
                     processedText = bf.ToString();

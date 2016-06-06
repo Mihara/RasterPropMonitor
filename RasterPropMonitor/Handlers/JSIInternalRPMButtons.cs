@@ -1033,7 +1033,7 @@ namespace JSI
         private static ModuleDockingNode InferDockingNode(Vessel vessel)
         {
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            Part compPart = comp.ReferencePart;
+            Part compPart = comp.CurrentIVAPart;
             uint launchId;
             if (compPart == null)
             {

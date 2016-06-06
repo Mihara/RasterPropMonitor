@@ -33,6 +33,7 @@ namespace JSI
         private readonly List<VariableAnimationSet> variableSets = new List<VariableAnimationSet>();
         private bool alwaysActive;
         private bool muted = false;
+        private RasterPropMonitorComputer rpmComp;
 
         private bool UpdateCheck()
         {
@@ -54,6 +55,8 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 ConfigNode moduleConfig = null;
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
                 {
@@ -67,7 +70,7 @@ namespace JSI
                         {
                             try
                             {
-                                variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp));
+                                variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp, rpmComp));
                             }
                             catch (ArgumentException e)
                             {
@@ -83,7 +86,7 @@ namespace JSI
                 {
                     try
                     {
-                        variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp));
+                        variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp, rpmComp));
                     }
                     catch (ArgumentException e)
                     {
@@ -97,8 +100,8 @@ namespace JSI
                 {
                     alwaysActive |= thatSet.alwaysActive;
                 }
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(refreshRate);
+
+                rpmComp.UpdateDataRefreshRate(refreshRate);
                 startupComplete = true;
             }
             catch
@@ -121,7 +124,7 @@ namespace JSI
 
         public void Update()
         {
-            if (!JUtil.IsActiveVessel(vessel))
+            if (!JUtil.IsActiveVessel(vessel) || !startupComplete)
             {
                 return;
             }
@@ -155,18 +158,18 @@ namespace JSI
             double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(comp, universalTime);
+                variableSets[unit].Update(rpmComp, comp, universalTime);
             }
         }
 
-        public void LateUpdate()
-        {
-            if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete)
-            {
-                JUtil.AnnoyUser(this);
-                enabled = false;
-            }
-        }
+        //public void LateUpdate()
+        //{
+        //    if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete)
+        //    {
+        //        JUtil.AnnoyUser(this);
+        //        enabled = false;
+        //    }
+        //}
     }
 
     public class VariableAnimationSet
@@ -226,7 +229,7 @@ namespace JSI
         // I haven't seen conclusive signs of destructors working in child
         // objects like this, so do I need a manual method?  Or make it a MonoBehavior
         // with only the OnDestroy implemented?
-        public VariableAnimationSet(ConfigNode node, InternalProp thisProp)
+        public VariableAnimationSet(ConfigNode node, InternalProp thisProp, RasterPropMonitorComputer rpmComp)
         {
             part = thisProp.part;
 
@@ -254,10 +257,9 @@ namespace JSI
             }
             else if (node.HasValue("stateMethod"))
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(part.vessel);
                 string stateMethod = node.GetValue("stateMethod").Trim();
                 // Verify the state method actually exists
-                Func<bool> stateFunction = (Func<bool>)comp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
+                Func<bool> stateFunction = (Func<bool>)rpmComp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
                 if (stateFunction != null)
                 {
                     variableName = "PLUGIN_" + stateMethod;
@@ -370,7 +372,6 @@ namespace JSI
                 }
                 colorName = Shader.PropertyToID(colorNameString);
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
                     activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
@@ -707,10 +708,10 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        public void Update(RPMVesselComputer comp, double universalTime)
+        public void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, double universalTime)
         {
             float scaledValue;
-            if (!variable.InverseLerp(comp, out scaledValue))
+            if (!variable.InverseLerp(rpmComp, comp, out scaledValue))
             {
                 return;
             }

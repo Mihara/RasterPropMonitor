@@ -99,6 +99,7 @@ namespace JSI
         private Material screenMat;
         private bool startupComplete;
         private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
+        private RasterPropMonitorComputer rpmComp;
 
         private int loopsWithoutInitCounter = 0;
         private bool startupFailed = false;
@@ -138,9 +139,11 @@ namespace JSI
 
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+                JUtil.LogMessage(this, "Attaching monitor {2}-{1} to {0}", rpmComp.RPMCid, internalProp.propID, internalProp.internalModel.internalName);
+
                 // Install the calculator module.
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(refreshDataRate);
+                rpmComp.UpdateDataRefreshRate(refreshDataRate);
 
                 // Loading the font...
                 List<Texture2D> fontTexture = new List<Texture2D>();
@@ -229,7 +232,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = comp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
+                int activePageID = rpmComp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -340,11 +343,10 @@ namespace JSI
             triggeredPage = FindPageByName(activePage.ContextRedirect(triggeredPage.name)) ?? triggeredPage;
             if (triggeredPage != activePage && (activePage.SwitchingPermitted(triggeredPage.name) || triggeredPage.unlocker))
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                comp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
+                rpmComp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
@@ -417,8 +419,7 @@ namespace JSI
 
         private void FillScreenBuffer()
         {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            activePage.UpdateText(comp);
+            activePage.UpdateText(rpmComp);
         }
 
         private void CheckForElectricCharge()
@@ -426,7 +427,7 @@ namespace JSI
             if (needsElectricCharge)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = comp.ProcessVariable(resourceName).MassageToFloat();
+                electricChargeReserve = rpmComp.ProcessVariable(resourceName, comp).MassageToFloat();
             }
         }
 

@@ -17,9 +17,11 @@ namespace JSI
         private bool isPlaying;
         private const int soundCheckRate = 60;
         private int soundCheckCountdown;
+        private RasterPropMonitorComputer rpmComp;
 
         public void Start()
         {
+            rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
             if (string.IsNullOrEmpty(soundURL))
             {
                 JUtil.LogMessage(this, "JSIInternalBackgroundNoise called with no soundURL");
@@ -29,9 +31,9 @@ namespace JSI
 
             if (needsElectricCharge)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                comp.UpdateDataRefreshRate(soundCheckRate);
-                electricChargeReserve = comp.ProcessVariable(resourceName).MassageToFloat();
+                rpmComp.UpdateDataRefreshRate(soundCheckRate);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel.id);
+                electricChargeReserve = rpmComp.ProcessVariable(resourceName, comp).MassageToFloat();
             }
             audioOutput = new FXGroup("RPM" + internalModel.internalName + vessel.id);
             audioOutput.audio = internalModel.gameObject.AddComponent<AudioSource>();
@@ -80,9 +82,9 @@ namespace JSI
                 soundCheckCountdown--;
                 if (soundCheckCountdown <= 0)
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     soundCheckCountdown = soundCheckRate;
-                    electricChargeReserve = comp.ProcessVariable(resourceName).MassageToFloat();
+                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel.id);
+                    electricChargeReserve = rpmComp.ProcessVariable(resourceName, comp).MassageToFloat();
                     if (electricChargeReserve < 0.01f)
                     {
                         StopPlaying();

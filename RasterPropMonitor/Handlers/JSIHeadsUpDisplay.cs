@@ -104,6 +104,7 @@ namespace JSI
         private GameObject headingMesh;
         private GameObject progradeHeadingIcon;
         private float progradeHeadingIconOrigin;
+        private RasterPropMonitorComputer rpmComp;
 
         private float lastRoll = 0.0f;
 
@@ -339,7 +340,7 @@ namespace JSI
 
             if (progradeLadderIcon != null)
             {
-                float AoA = comp.AbsoluteAoA;
+                float AoA = rpmComp.AbsoluteAoA;
                 AoA = (float)JUtil.ClampDegrees180(AoA);
                 if (float.IsNaN(AoA))
                 {
@@ -377,7 +378,7 @@ namespace JSI
         /// <summary>
         /// Update the compass / heading bar
         /// </summary>
-        private void UpdateHeading(Quaternion rotationVesselSurface, RPMVesselComputer comp)
+        private void UpdateHeading(Quaternion rotationVesselSurface)
         {
             float heading = rotationVesselSurface.eulerAngles.y / 360.0f;
 
@@ -393,7 +394,7 @@ namespace JSI
 
             if (progradeHeadingIcon != null)
             {
-                float slipAngle = comp.Sideslip;
+                float slipAngle = rpmComp.Sideslip;
                 float slipTC = JUtil.DualLerp(0f, 1f, 0f, 360f, rotationVesselSurface.eulerAngles.y + slipAngle);
                 float slipIconX = JUtil.DualLerp(progradeHeadingIconOrigin - 0.5f * headingBarPosition.z, progradeHeadingIconOrigin + 0.5f * headingBarPosition.z, heading - headingBarTextureWidth, heading + headingBarTextureWidth, slipTC);
 
@@ -424,11 +425,11 @@ namespace JSI
 
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(comp);
+                verticalBars[i].Update(rpmComp, comp);
             }
             for (int i = 0; i < horizontalBars.Count; ++i)
             {
-                horizontalBars[i].Update(comp);
+                horizontalBars[i].Update(rpmComp, comp);
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -447,7 +448,7 @@ namespace JSI
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             if (headingMesh != null)
             {
-                UpdateHeading(rotationVesselSurface, comp);
+                UpdateHeading(rotationVesselSurface);
                 JUtil.ShowHide(true, headingMesh);
             }
 
@@ -498,6 +499,8 @@ namespace JSI
             }
             try
             {
+                rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+
                 backgroundColorValue = ConfigNode.ParseColor32(backgroundColor);
 
                 cameraBody = new GameObject();
@@ -661,18 +664,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp)
+        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp))
+                if (!enablingVariable.IsInRange(rpmComp, comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp))
+            if (variable.Get(out value, rpmComp, comp))
             {
                 if (useLog10)
                 {
@@ -800,18 +803,18 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RPMVesselComputer comp)
+        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(comp))
+                if (!enablingVariable.IsInRange(rpmComp, comp))
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, comp))
+            if (variable.Get(out value, rpmComp, comp))
             {
                 if (useLog10)
                 {
