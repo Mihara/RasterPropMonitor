@@ -80,6 +80,12 @@ namespace JSI
         internal float currentAirFlow;
         private static float IntakeAir_U_to_grams;
 
+        //--- Parachutes
+        internal List<ModuleParachute> availableParachutes = new List<ModuleParachute>();
+        internal List<PartModule> availableRealChutes = new List<PartModule>();
+        internal bool anyParachutesDeployed;
+        internal bool allParachutesSafe;
+
         //--- Power production
         internal List<ModuleAlternator> availableAlternators = new List<ModuleAlternator>();
         internal List<float> availableAlternatorOutput = new List<float>();
@@ -118,7 +124,9 @@ namespace JSI
             availableGenerators.Clear();
             availableGeneratorOutput.Clear();
             availableGimbals.Clear();
+            availableParachutes.Clear();
             availableRadars.Clear();
+            availableRealChutes.Clear();
             availableSolarPanels.Clear();
 
             mainDockingNode = null;
@@ -216,6 +224,14 @@ namespace JSI
                             else if (module is JSIRadar)
                             {
                                 availableRadars.Add(module as JSIRadar);
+                            }
+                            else if (module is ModuleParachute)
+                            {
+                                availableParachutes.Add(module as ModuleParachute);
+                            }
+                            else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
+                            {
+                                availableRealChutes.Add(module);
                             }
                         }
                     }
@@ -524,6 +540,28 @@ namespace JSI
         }
 
         /// <summary>
+        /// Refresh parachute data
+        /// </summary>
+        private void FetchParachuteData()
+        {
+            anyParachutesDeployed = false;
+            allParachutesSafe = true;
+
+            for(int i=0; i<availableParachutes.Count; ++i)
+            {
+                if (availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED || availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
+                {
+                    anyParachutesDeployed = true;
+                }
+
+                if (availableParachutes[i].deploySafe != "Safe")
+                {
+                    allParachutesSafe = false;
+                }
+            }
+        }
+
+        /// <summary>
         /// Refresh radar data: any radar active.
         /// </summary>
         private void FetchRadarData()
@@ -554,6 +592,7 @@ namespace JSI
             FetchElectricData();
             FetchEngineData();
             FetchGimbalData();
+            FetchParachuteData();
             FetchRadarData();
         }
         #endregion

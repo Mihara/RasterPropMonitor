@@ -35,7 +35,7 @@ namespace JSI
     /// </summary>
     public class JSIParachute : IJSIModule
     {
-        static private readonly Type rcModuleRealChute;
+        static internal readonly Type rcModuleRealChute;
         static private readonly DynamicFuncBool getAnyDeployed;
         static private readonly DynamicAction armChute;
         static private readonly DynamicAction disarmChute;
@@ -43,7 +43,7 @@ namespace JSI
         static private readonly DynamicAction cutChute;
         static private readonly FieldInfo rcArmed;
         static private readonly FieldInfo rcSafeState;
-        static private readonly bool rcFound;
+        static internal readonly bool rcFound;
 
         // From RealChute:
         public enum SafeState
@@ -158,20 +158,21 @@ namespace JSI
 
         public void ArmParachutes(bool state)
         {
-            if (rcFound)
+            if (rcFound && vessel != null)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 if (state)
                 {
-                    foreach (PartModule module in FindRealChuteIn(vessel))
+                    for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                     {
-                        armChute(module);
+                        armChute(comp.availableRealChutes[i]);
                     }
                 }
                 else
                 {
-                    foreach (PartModule module in FindRealChuteIn(vessel))
+                    for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                     {
-                        disarmChute(module);
+                        disarmChute(comp.availableRealChutes[i]);
                     }
                 }
             }
@@ -187,9 +188,10 @@ namespace JSI
             bool anyArmed = false;
             if (rcFound)
             {
-                foreach (PartModule module in FindRealChuteIn(vessel))
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                 {
-                    if ((bool)rcArmed.GetValue(module) == true)
+                    if ((bool)rcArmed.GetValue(comp.availableRealChutes[i]) == true)
                     {
                         anyArmed = true;
                         break;
@@ -200,51 +202,67 @@ namespace JSI
             return anyArmed;
         }
 
-        // Just to avoid accidental cuts, CutParachutes is a separate method from DeployParachutes
+        /// <summary>
+        /// Cuts any deployed parachutes.  To avoid accidental cuts,
+        /// CutParachutes is a separate method from DeployParachutes.
+        /// </summary>
+        /// <param name="state"></param>
         public void CutParachutes(bool state)
         {
-            if (!state)
+            if (!state && vessel != null)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
                 if (rcFound)
                 {
-                    foreach (PartModule module in FindRealChuteIn(vessel))
+                    for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                     {
-                        cutChute(module);
+                        cutChute(comp.availableRealChutes[i]);
                     }
                 }
 
-                foreach (ModuleParachute module in FindStockChuteIn(vessel))
+                for(int i=0; i<comp.availableParachutes.Count; ++i)
                 {
-                    if (module.deploymentState == ModuleParachute.deploymentStates.DEPLOYED || module.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
+                    if (comp.availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.DEPLOYED || comp.availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED)
                     {
-                        module.CutParachute();
+                        comp.availableParachutes[i].CutParachute();
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Deploys stowed parachutes.
+        /// </summary>
+        /// <param name="state"></param>
         public void DeployParachutes(bool state)
         {
-            if (state)
+            if (state && vessel!=null)
             {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
                 if (rcFound)
                 {
-                    foreach (PartModule module in FindRealChuteIn(vessel))
+                    for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                     {
-                        deployChute(module);
+                        deployChute(comp.availableRealChutes[i]);
                     }
                 }
 
-                foreach (ModuleParachute module in FindStockChuteIn(vessel))
+                for (int i = 0; i < comp.availableParachutes.Count; ++i)
                 {
-                    if (module.deploymentState == ModuleParachute.deploymentStates.STOWED)
+                    if (comp.availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.STOWED)
                     {
-                        module.Deploy();
+                        comp.availableParachutes[i].Deploy();
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Returns true if any parachutes have deployed.
+        /// </summary>
+        /// <returns></returns>
         public bool DeployParachutesState()
         {
             if (vessel == null)
@@ -252,25 +270,14 @@ namespace JSI
                 return false; // early
             }
 
-            bool anyDeployed = false;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            bool anyDeployed = comp.anyParachutesDeployed;
 
-            if (rcFound)
+            if (rcFound && !anyDeployed)
             {
-                foreach (PartModule module in FindRealChuteIn(vessel))
+                for (int i = 0; i < comp.availableRealChutes.Count; ++i)
                 {
-                    if (getAnyDeployed(module) == true)
-                    {
-                        anyDeployed = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!anyDeployed)
-            {
-                foreach (ModuleParachute module in FindStockChuteIn(vessel))
-                {
-                    if (module.deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED || module.deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
+                    if (getAnyDeployed(comp.availableRealChutes[i]) == true)
                     {
                         anyDeployed = true;
                         break;
@@ -281,6 +288,10 @@ namespace JSI
             return anyDeployed;
         }
 
+        /// <summary>
+        /// Returns true if all parachutes are within their safe-to-deploy envelope.
+        /// </summary>
+        /// <returns></returns>
         public bool ParachutesSafeState()
         {
             if (vessel == null)
@@ -288,18 +299,11 @@ namespace JSI
                 return false; // early
             }
 
-            bool allSafe = true;
-            foreach (ModuleParachute module in FindStockChuteIn(vessel))
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            bool allSafe = comp.allParachutesSafe;
+            for (int i = 0; i < comp.availableRealChutes.Count; ++i)
             {
-                if (module.deploySafe != "Safe")
-                {
-                    allSafe = false;
-                    break;
-                }
-            }
-            foreach (PartModule module in FindRealChuteIn(vessel))
-            {
-                object state = rcSafeState.GetValue(module);
+                object state = rcSafeState.GetValue(comp.availableRealChutes[i]);
                 if ((int)state != (int)SafeState.SAFE)
                 {
                     allSafe = false;
@@ -310,13 +314,21 @@ namespace JSI
             return allSafe;
         }
 
+        /// <summary>
+        /// Returns a numeric value indicating the degree of safety in deploying.
+        /// </summary>
+        /// <returns>1 if all parachutes are safe, -1 if no parachute is safe,
+        /// and 0 if it is a mix.</returns>
         public double ParachuteSafetyValue()
         {
             bool allSafe = true;
             bool allDangerous = true;
-            foreach (ModuleParachute module in FindStockChuteIn(vessel))
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+
+            for (int i = 0; i < comp.availableParachutes.Count; ++i)
             {
-                if (module.deploySafe != "Safe")
+                if (comp.availableParachutes[i].deploySafe != "Safe")
                 {
                     allSafe = false;
                 }
@@ -326,9 +338,9 @@ namespace JSI
                 }
             }
 
-            foreach (PartModule module in FindRealChuteIn(vessel))
+            for (int i = 0; i < comp.availableRealChutes.Count; ++i)
             {
-                object state = rcSafeState.GetValue(module);
+                object state = rcSafeState.GetValue(comp.availableRealChutes[i]);
                 if ((int)state != (int)SafeState.SAFE)
                 {
                     allSafe = false;
@@ -350,34 +362,6 @@ namespace JSI
             else
             {
                 return 0.0;
-            }
-        }
-
-        private static IEnumerable<PartModule> FindRealChuteIn(Vessel vessel)
-        {
-            foreach (Part part in vessel.Parts)
-            {
-                foreach (PartModule module in part.Modules)
-                {
-                    if (module.GetType() == rcModuleRealChute)
-                    {
-                        yield return module;
-                    }
-                }
-            }
-        }
-
-        private static IEnumerable<ModuleParachute> FindStockChuteIn(Vessel vessel)
-        {
-            foreach (Part part in vessel.Parts)
-            {
-                foreach (PartModule module in part.Modules)
-                {
-                    if (module is ModuleParachute)
-                    {
-                        yield return (module as ModuleParachute);
-                    }
-                }
             }
         }
     }
