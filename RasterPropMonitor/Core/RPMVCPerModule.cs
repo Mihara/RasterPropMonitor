@@ -39,6 +39,22 @@ namespace JSI
 
         private bool listsInvalid = true;
 
+        //--- Docking Nodes
+        internal ModuleDockingNode mainDockingNode;
+        /// <summary>
+        /// Contains the state of the mainDockingNode in a queriable numeric
+        /// instead of the string in ModuleDockingNode.  If mainDockingNode is
+        /// null, this state is UNKNOWN.
+        /// </summary>
+        internal DockingNodeState mainDockingNodeState;
+        internal enum DockingNodeState
+        {
+            UNKNOWN,
+            DOCKED,
+            PREATTACHED,
+            READY
+        };
+
         //--- Engines
         internal List<ModuleEngines> availableEngines = new List<ModuleEngines>();
         internal float totalCurrentThrust;
@@ -77,6 +93,9 @@ namespace JSI
         internal float solarOutput;
 
         #region List Management
+        /// <summary>
+        /// Flag the lists as invalid due to craft changes / destruction.
+        /// </summary>
         internal void InvalidateModuleLists()
         {
             listsInvalid = true;
@@ -89,9 +108,18 @@ namespace JSI
             availableFuelCells.Clear();
             availableFuelCellOutput.Clear();
             availableGenerators.Clear();
+            availableGeneratorOutput.Clear();
             availableSolarPanels.Clear();
+
+            mainDockingNode = null;
         }
 
+        /// <summary>
+        /// Iterate over all of the modules in all of the parts and filter then
+        /// into the myriad lists we keep, so when we do the FixedUpdate refresh
+        /// of values, we only iterate over the modules we know we care about,
+        /// instead of every module on every part.
+        /// </summary>
         internal void UpdateModuleLists()
         {
             if (listsInvalid && vessel != null)
@@ -179,6 +207,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Refresh ablator-specific fields (hottest ablator and flux).
+        /// </summary>
         private void FetchAblatorData()
         {
             heatShieldTemperature = heatShieldFlux = 0.0f;
@@ -203,6 +234,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Refresh airflow rate (g/s).
+        /// </summary>
         private void FetchAirIntakeData()
         {
             currentAirFlow = 0.0f;
@@ -219,6 +253,11 @@ namespace JSI
             currentAirFlow *= IntakeAir_U_to_grams;
         }
 
+        /// <summary>
+        /// Refresh electric data - generators active, solar panels deployable
+        /// and retractable, output of each category of power production
+        /// (generator, fuel cell/resource converter, alternator, and solar).
+        /// </summary>
         private void FetchElectricData()
         {
             solarOutput = fuelcellOutput = generatorOutput = alternatorOutput = 0.0f;
@@ -267,6 +306,94 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Convert the textual docking node state into an enum, so we don't
+        /// need to do string compares.
+        /// </summary>
+        /// <param name="whichNode"></param>
+        /// <returns></returns>
+        internal static DockingNodeState GetNodeState(ModuleDockingNode whichNode)
+        {
+            if (whichNode == null)
+            {
+                return DockingNodeState.UNKNOWN;
+            }
+
+            switch (whichNode.state)
+            {
+                case "PreAttached":
+                    return DockingNodeState.PREATTACHED;
+                case "Docked (docker)":
+                    return DockingNodeState.DOCKED;
+                case "Docked (dockee)":
+                    return DockingNodeState.DOCKED;
+                case "Ready":
+                    return DockingNodeState.READY;
+                default:
+                    return DockingNodeState.UNKNOWN;
+            }
+        }
+
+        /// <summary>
+        /// Refresh docking node data, including selecting the "reference"
+        /// docking node (for docking node control).
+        /// </summary>
+        private void FetchDockingNodeData()
+        {
+            mainDockingNode = null;
+            mainDockingNodeState = DockingNodeState.UNKNOWN;
+
+            Part referencePart = vessel.GetReferenceTransformPart();
+            if (referencePart != null)
+            {
+                ModuleDockingNode node = referencePart.FindModuleImplementing<ModuleDockingNode>();
+                if (node != null)
+                {
+                    // The current reference part is a docking node, so we
+                    // choose it.
+                    mainDockingNode = node;
+                }
+            }
+
+            if (mainDockingNode == null)
+            {
+                uint launchId;
+                Part currentPart = DeduceCurrentPart();
+                if (currentPart == null)
+                {
+                    launchId = 0u;
+                }
+                else
+                {
+                    launchId = currentPart.launchID;
+                }
+
+                for (int i = 0; i < vessel.parts.Count; ++i)
+                {
+                    if (vessel.parts[i].launchID == launchId)
+                    {
+                        ModuleDockingNode node = vessel.parts[i].FindModuleImplementing<ModuleDockingNode>();
+                        if (node != null)
+                        {
+                            // We found a docking node that has the same launch
+                            // ID as the current IVA part, so we consider it our
+                            // main docking node.
+                            mainDockingNode = node;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            mainDockingNodeState = GetNodeState(mainDockingNode);
+        }
+
+        /// <summary>
+        /// Refresh engine data: current thrust, max thrust, max raw
+        /// thrust (without throttle limits), current and max fuel flow,
+        /// hottest engine temperature and limit, current and max ISP,
+        /// boolean flags of engine states.
+        /// </summary>
         private void FetchEngineData()
         {
             // Per-engine values
@@ -365,6 +492,9 @@ namespace JSI
             resources.EndLoop(Planetarium.GetUniversalTime());
         }
 
+        /// <summary>
+        /// Master update method.
+        /// </summary>
         internal void FetchPerModuleData()
         {
             if (vessel == null)
@@ -376,6 +506,7 @@ namespace JSI
 
             FetchAblatorData();
             FetchAirIntakeData();
+            FetchDockingNodeData();
             FetchElectricData();
             FetchEngineData();
         }
@@ -383,6 +514,11 @@ namespace JSI
 
         #region Interface
 
+        /// <summary>
+        /// Toggle the state of any engines that we can control (currently-staged
+        /// engines, or engines that are on if we are turning them off).
+        /// </summary>
+        /// <param name="state"></param>
         internal void SetEnableEngines(bool state)
         {
             for (int i = 0; i < availableEngines.Count; ++i)
@@ -406,6 +542,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Toggle the state of any generators or resource converters that can
+        /// be toggled.
+        /// </summary>
+        /// <param name="state"></param>
         internal void SetEnableGenerators(bool state)
         {
             for (int i = 0; i < availableGenerators.Count; ++i)
@@ -439,6 +580,10 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Deploy and retract (where applicable) deployable solar panels.
+        /// </summary>
+        /// <param name="state"></param>
         internal void SetDeploySolarPanels(bool state)
         {
             if (state)

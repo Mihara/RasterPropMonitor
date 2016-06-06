@@ -101,15 +101,6 @@ namespace JSI
         private NavBall navBall;
         internal LinearAtmosphereGauge linearAtmosGauge;
         private Part part;
-        internal Part CurrentIVAPart
-        {
-            // Return the part that RPMVesselComputer considers the reference
-            // part (the part we're "in" during IVA).
-            get
-            {
-                return part;
-            }
-        }
 
         // Data refresh
         private int dataUpdateCountdown;

@@ -597,13 +597,10 @@ namespace JSI
                 return;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            if (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.DOCKED)
             {
-                if ((node.state == "Docked (docker)") || (node.state == "Docked (dockee)"))
-                {
-                    node.Undock();
-                }
+                comp.mainDockingNode.Undock();
             }
         }
 
@@ -618,13 +615,10 @@ namespace JSI
                 return;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            if (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.PREATTACHED)
             {
-                if (node.state == "PreAttached")
-                {
-                    node.Decouple();
-                }
+                comp.mainDockingNode.Decouple();
             }
         }
 
@@ -639,16 +633,8 @@ namespace JSI
                 return false;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (node.state == "PreAttached");
-            }
-            else
-            {
-                return false;
-            }
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.PREATTACHED);
         }
 
         /// <summary>
@@ -657,29 +643,13 @@ namespace JSI
         /// <returns></returns>
         public bool DockDocked()
         {
-            try
+            if (vessel == null)
             {
-                if (vessel == null)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                ModuleDockingNode node = InferDockingNode(vessel);
-                if (node != null)
-                {
-                    // Urk.  No enums or numerics to test state...
-                    return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
-            }
-            return false;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.DOCKED);
         }
 
         /// <summary>
@@ -688,29 +658,13 @@ namespace JSI
         /// <returns></returns>
         public bool DockReady()
         {
-            try
+            if (vessel == null)
             {
-                if (vessel == null)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                ModuleDockingNode node = InferDockingNode(vessel);
-                if (node != null)
-                {
-                    // Urk.  No enums or numerics to test state...
-                    return (node.state == "Ready");
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
-            }
-            return false;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.READY);
         }
 
         /// <summary>
@@ -790,7 +744,7 @@ namespace JSI
         /// <returns></returns>
         public bool SolarPanelsDeployable()
         {
-            if(vessel != null)
+            if (vessel != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 return comp.solarPanelsDeployable;
@@ -1002,55 +956,6 @@ namespace JSI
         public void SetYawTrim(double trimPercent)
         {
             FlightInputHandler.state.yawTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
-        }
-
-        /// <summary>
-        /// Infers the docking node this vessel controls
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static ModuleDockingNode InferDockingNode(Vessel vessel)
-        {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            Part compPart = comp.CurrentIVAPart;
-            uint launchId;
-            if (compPart == null)
-            {
-                launchId = 0u;
-            }
-            else
-            {
-                launchId = compPart.launchID;
-            }
-
-            ModuleDockingNode node = null;
-            Part referencePart = vessel.GetReferenceTransformPart();
-            if (referencePart != null)
-            {
-                node = referencePart.FindModuleImplementing<ModuleDockingNode>();
-                if (node != null)
-                {
-                    //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
-                    // The current reference part is a docking node.
-                    return node;
-                }
-            }
-
-            for (int i = 0; i < vessel.parts.Count; ++i)
-            {
-                if (vessel.parts[i].launchID == launchId)
-                {
-                    node = vessel.parts[i].FindModuleImplementing<ModuleDockingNode>();
-                    if (node != null)
-                    {
-                        //JUtil.LogMessage(vessel, "InferDockingNode: found a node on {0}", vessel.parts[i].name);
-                        return node;
-                    }
-                }
-            }
-
-            // We did not find a docking node.
-            return null;
         }
 
         /// <summary>
