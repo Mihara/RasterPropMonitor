@@ -559,6 +559,77 @@ namespace JSI
             ScreenMessages.PostScreenMessage(string.Format("{0}: INITIALIZATION ERROR, CHECK CONFIGURATION.", caller.GetType().Name), 120, ScreenMessageStyle.UPPER_CENTER);
         }
 
+        /// <summary>
+        /// Try to figure out which part on the craft is the current part.
+        /// </summary>
+        /// <returns></returns>
+        public static Part DeduceCurrentPart(Vessel vessel)
+        {
+            Part currentPart = null;
+
+            if (JUtil.VesselIsInIVA(vessel))
+            {
+                Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
+                if (thatKerbal != null)
+                {
+                    // This should be a drastically faster way to determine
+                    // where we are.  I hope.
+                    currentPart = thatKerbal.InPart;
+                }
+
+                if (currentPart == null)
+                {
+                    Transform internalCameraTransform = InternalCamera.Instance.transform;
+                    foreach (Part thisPart in InternalModelParts(vessel))
+                    {
+                        for (int seatIdx = 0; seatIdx < thisPart.internalModel.seats.Count; ++seatIdx)
+                        {
+                            if (thisPart.internalModel.seats[seatIdx].kerbalRef != null)
+                            {
+                                if (thisPart.internalModel.seats[seatIdx].kerbalRef.eyeTransform == internalCameraTransform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal)
+                        {
+                            Transform[] modelTransforms = thisPart.internalModel.GetComponentsInChildren<Transform>();
+                            for (int xformIdx = 0; xformIdx < modelTransforms.Length; ++xformIdx)
+                            {
+                                if (modelTransforms[xformIdx] == InternalCamera.Instance.transform.parent)
+                                {
+                                    currentPart = thisPart;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return currentPart;
+        }
+
+        /// <summary>
+        /// Iterate over the parts of a vessel and return only those that
+        /// contain an internal model that has been instantiated.
+        /// </summary>
+        /// <param name="vessel"></param>
+        /// <returns></returns>
+        private static IEnumerable<Part> InternalModelParts(Vessel vessel)
+        {
+            for (int i = 0; i < vessel.parts.Count; ++i)
+            {
+                if (vessel.parts[i].internalModel != null)
+                {
+                    yield return vessel.parts[i];
+                }
+            }
+        }
+
         public static bool RasterPropMonitorShouldUpdate(Vessel thatVessel)
         {
             if (HighLogic.LoadedSceneIsFlight)

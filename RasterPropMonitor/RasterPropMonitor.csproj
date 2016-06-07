@@ -80,6 +80,7 @@
     <Compile Include="Core\RPMGlobals.cs" />
     <Compile Include="Core\RPMVCEvaluators.cs" />
     <Compile Include="Core\RPMCTriggeredEvent.cs" />
+    <Compile Include="Core\RPMVCPerModule.cs" />
     <Compile Include="Core\RPMVesselComputer.cs" />
     <Compile Include="Core\MappedVariable.cs" />
     <Compile Include="Core\Protractor.cs" />

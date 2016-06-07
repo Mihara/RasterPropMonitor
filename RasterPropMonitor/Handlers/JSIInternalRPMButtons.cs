@@ -44,6 +44,11 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonActivateReserves(bool state)
         {
+            if (vessel == null)
+            {
+                return;
+            }
+
             foreach (Part thatPart in vessel.parts)
             {
                 foreach (PartResource resource in thatPart.Resources)
@@ -62,18 +67,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (Part thatPart in vessel.parts)
-                {
-                    foreach (PartResource resource in thatPart.Resources)
-                    {
-                        if (!resource.flowState)
-                        {
-                            // Early return: At least one resource is flagged as a
-                            // reserve.
-                            return true;
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.resourcesLocked;
             }
             return false;
         }
@@ -97,12 +92,7 @@ namespace JSI
         /// <returns></returns>
         public bool ButtonClearNodesState()
         {
-            if (vessel == null)
-            {
-                return false;
-            }
-
-            if (vessel.patchedConicSolver == null)
+            if (vessel == null || vessel.patchedConicSolver == null)
             {
                 // patchedConicSolver can be null in early career mode.
                 return false;
@@ -137,30 +127,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                for (int i = 0; i < vessel.parts.Count; ++i)
-                {
-                    // We accept "state == false" to allow engines that are
-                    // activated outside of the current staging to be shut off by
-                    // this function.
-                    if (vessel.parts[i].inverseStage == StageManager.CurrentStage || !state)
-                    {
-                        for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
-                        {
-                            var engine = vessel.parts[i].Modules[j] as ModuleEngines;
-                            if (engine != null && engine.EngineIgnited != state)
-                            {
-                                if (state && engine.allowRestart)
-                                {
-                                    engine.Activate();
-                                }
-                                else if (engine.allowShutdown)
-                                {
-                                    engine.Shutdown();
-                                }
-                            }
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetEnableEngines(state);
             }
         }
 
@@ -172,18 +140,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                for (int i = 0; i < vessel.parts.Count; ++i)
-                {
-                    for (int j = 0; j < vessel.parts[i].Modules.Count; ++j)
-                    {
-                        var engine = vessel.parts[i].Modules[j] as ModuleEngines;
-                        if (engine != null && engine.allowShutdown && engine.getIgnitionState)
-                        {
-                            // early out: at least one engine is enabled.
-                            return true;
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.anyEnginesEnabled;
             }
             return false;
         }
@@ -196,33 +154,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (PartModule pm in ElectricGenerators(vessel))
-                {
-                    if (pm is ModuleGenerator)
-                    {
-                        ModuleGenerator gen = pm as ModuleGenerator;
-                        if (state)
-                        {
-                            gen.Activate();
-                        }
-                        else
-                        {
-                            gen.Shutdown();
-                        }
-                    }
-                    else if (pm is ModuleResourceConverter)
-                    {
-                        ModuleResourceConverter gen = pm as ModuleResourceConverter;
-                        if (state)
-                        {
-                            gen.StartResourceConverter();
-                        }
-                        else
-                        {
-                            gen.StopResourceConverter();
-                        }
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetEnableGenerators(state);
             }
         }
 
@@ -234,17 +167,8 @@ namespace JSI
         {
             if (vessel != null)
             {
-                foreach (PartModule pm in ElectricGenerators(vessel))
-                {
-                    if (pm is ModuleGenerator && (pm as ModuleGenerator).generatorIsActive == true)
-                    {
-                        return true;
-                    }
-                    else if (pm is ModuleResourceConverter && (pm as ModuleResourceConverter).IsActivated == true)
-                    {
-                        return true;
-                    }
-                }
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.generatorsActive;
             }
 
             return false;
@@ -577,7 +501,7 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonCutThrottle(bool state)
         {
-            if (state)
+            if (state && vessel != null)
             {
                 float throttle = vessel.ctrlState.mainThrottle;
                 try
@@ -606,7 +530,7 @@ namespace JSI
         /// <param name="state"></param>
         public void ButtonFullThrottle(bool state)
         {
-            if (state)
+            if (state && vessel != null)
             {
                 float throttle = vessel.ctrlState.mainThrottle;
                 try
@@ -635,8 +559,8 @@ namespace JSI
         /// </summary>
         /// <param name="ignored">Ignored</param>
         public void RecoverVessel(bool ignored)
-        { 
-            if(vessel != null && vessel.IsRecoverable)
+        {
+            if (vessel != null && vessel.IsRecoverable)
             {
                 GameEvents.OnVesselRecoveryRequested.Fire(vessel);
             }
@@ -673,13 +597,10 @@ namespace JSI
                 return;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            if (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.DOCKED)
             {
-                if ((node.state == "Docked (docker)") || (node.state == "Docked (dockee)"))
-                {
-                    node.Undock();
-                }
+                comp.mainDockingNode.Undock();
             }
         }
 
@@ -694,13 +615,10 @@ namespace JSI
                 return;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            if (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.PREATTACHED)
             {
-                if (node.state == "PreAttached")
-                {
-                    node.Decouple();
-                }
+                comp.mainDockingNode.Decouple();
             }
         }
 
@@ -715,16 +633,8 @@ namespace JSI
                 return false;
             }
 
-            ModuleDockingNode node = InferDockingNode(vessel);
-            if (node != null)
-            {
-                // Urk.  No enums or numerics to test state...
-                return (node.state == "PreAttached");
-            }
-            else
-            {
-                return false;
-            }
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.PREATTACHED);
         }
 
         /// <summary>
@@ -733,29 +643,13 @@ namespace JSI
         /// <returns></returns>
         public bool DockDocked()
         {
-            try
+            if (vessel == null)
             {
-                if (vessel == null)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                ModuleDockingNode node = InferDockingNode(vessel);
-                if (node != null)
-                {
-                    // Urk.  No enums or numerics to test state...
-                    return (!string.IsNullOrEmpty(node.state) && (node.state == "Docked (docker)") || (node.state == "Docked (dockee)"));
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
-            }
-            return false;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.DOCKED);
         }
 
         /// <summary>
@@ -764,29 +658,13 @@ namespace JSI
         /// <returns></returns>
         public bool DockReady()
         {
-            try
+            if (vessel == null)
             {
-                if (vessel == null)
-                {
-                    return false;
-                }
+                return false;
+            }
 
-                ModuleDockingNode node = InferDockingNode(vessel);
-                if (node != null)
-                {
-                    // Urk.  No enums or numerics to test state...
-                    return (node.state == "Ready");
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Exception in DockDocked: {0}", e);
-            }
-            return false;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.READY);
         }
 
         /// <summary>
@@ -795,9 +673,15 @@ namespace JSI
         /// <param name="state"></param>
         public void GimbalLock(bool state)
         {
-            foreach (ModuleGimbal gimbal in FindActiveStageGimbals(vessel))
+            if (vessel == null)
             {
-                gimbal.gimbalLock = state;
+                return;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            for (int i = 0; i < comp.availableGimbals.Count; ++i)
+            {
+                comp.availableGimbals[i].gimbalLock = state;
             }
         }
 
@@ -807,59 +691,107 @@ namespace JSI
         /// <returns></returns>
         public bool GimbalLockState()
         {
-            bool gimbalLockState = false;
-
             if (vessel == null)
             {
-                return gimbalLockState; // early
+                return false; // early
             }
 
-            foreach (ModuleGimbal gimbal in FindActiveStageGimbals(vessel))
-            {
-                if (gimbal.gimbalLock)
-                {
-                    gimbalLockState = true;
-                    break;
-                }
-            }
-
-            return gimbalLockState;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.gimbalsLocked;
         }
 
+        /// <summary>
+        /// Toggle the state of any radar units installed on the craft.
+        /// </summary>
+        /// <param name="enabled"></param>
         public void RadarEnable(bool enabled)
         {
-            try
+            if (vessel == null)
             {
-                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
-                for (int i = 0; i < radars.Count; ++i)
-                {
-                    radars[i].radarEnabled = enabled;
-                }
+                return;
             }
-            catch { }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            for (int i = 0; i < comp.availableRadars.Count; ++i)
+            {
+                comp.availableRadars[i].radarEnabled = enabled;
+            }
         }
 
+        /// <summary>
+        /// Returns true if at least one radar is active.
+        /// </summary>
+        /// <returns></returns>
         public bool RadarEnableState()
         {
-            bool enabled = false;
-
-            try
+            if (vessel == null)
             {
-                List<JSIRadar> radars = vessel.FindPartModulesImplementing<JSIRadar>();
-                for (int i = 0; i < radars.Count; ++i)
-                {
-                    if (radars[i].radarEnabled)
-                    {
-                        enabled = true;
-                        break;
-                    }
-                }
+                return false;
             }
-            catch { }
 
-            return enabled;
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.radarActive;
         }
 
+        /// <summary>
+        /// Returns true if at least one solar panel may be deployed.
+        /// </summary>
+        /// <returns></returns>
+        public bool SolarPanelsDeployable()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.solarPanelsDeployable;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true if at least one solar panel may be retracted.
+        /// </summary>
+        /// <returns></returns>
+        public bool SolarPanelsRetractable()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.solarPanelsRetractable;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Toggles the state of deployable solar panels.
+        /// </summary>
+        /// <param name="state"></param>
+        public void SetDeploySolarPanels(bool state)
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetDeploySolarPanels(state);
+            }
+        }
+
+        /// <summary>
+        /// Inverse of SolarPanelsDeployable for use with SetDeploySolarPanels
+        /// </summary>
+        /// <returns></returns>
+        public bool GetDeploySolarPanels()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return !comp.solarPanelsDeployable;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Returns a single numeric value indicating what mode the autopilot is in.
+        /// </summary>
+        /// <returns></returns>
         public double GetSASMode()
         {
             if (vessel == null)
@@ -1023,125 +955,6 @@ namespace JSI
         public void SetYawTrim(double trimPercent)
         {
             FlightInputHandler.state.yawTrim = (float)(trimPercent.Clamp(-100.0, 100.0)) / 100.0f;
-        }
-
-        /// <summary>
-        /// Infers the docking node this vessel controls
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static ModuleDockingNode InferDockingNode(Vessel vessel)
-        {
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            Part compPart = comp.CurrentIVAPart;
-            uint launchId;
-            if (compPart == null)
-            {
-                launchId = 0u;
-            }
-            else
-            {
-                launchId = compPart.launchID;
-            }
-
-            ModuleDockingNode node = null;
-            Part referencePart = vessel.GetReferenceTransformPart();
-            if (referencePart != null)
-            {
-                node = referencePart.FindModuleImplementing<ModuleDockingNode>();
-                if (node != null)
-                {
-                    //JUtil.LogMessage(vessel, "InferDockingNode: using reference part {0}", referencePart.name);
-                    // The current reference part is a docking node.
-                    return node;
-                }
-            }
-
-            for (int i = 0; i < vessel.parts.Count; ++i)
-            {
-                if (vessel.parts[i].launchID == launchId)
-                {
-                    node = vessel.parts[i].FindModuleImplementing<ModuleDockingNode>();
-                    if (node != null)
-                    {
-                        //JUtil.LogMessage(vessel, "InferDockingNode: found a node on {0}", vessel.parts[i].name);
-                        return node;
-                    }
-                }
-            }
-
-            // We did not find a docking node.
-            return null;
-        }
-
-        /// <summary>
-        /// Iterate over the modules in the craft and return all of them that
-        /// implement a ModuleGenerator or ModuleResourceConverter that generates 
-        /// electricity that can also be shut down.
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static System.Collections.Generic.IEnumerable<PartModule> ElectricGenerators(Vessel vessel)
-        {
-            for (int partID = 0; partID < vessel.Parts.Count; ++partID)
-            {
-                for (int moduleID = 0; moduleID < vessel.Parts[partID].Modules.Count; ++moduleID)
-                {
-                    if (vessel.Parts[partID].Modules[moduleID] is ModuleGenerator)
-                    {
-                        ModuleGenerator gen = vessel.Parts[partID].Modules[moduleID] as ModuleGenerator;
-                        if (gen.isAlwaysActive == false)
-                        {
-                            for (int i = 0; i < gen.outputList.Count; ++i)
-                            {
-                                if (gen.outputList[i].name == "ElectricCharge")
-                                {
-                                    yield return vessel.Parts[partID].Modules[moduleID];
-                                }
-                            }
-                        }
-                    }
-                    else if (vessel.Parts[partID].Modules[moduleID] is ModuleResourceConverter)
-                    {
-                        ModuleResourceConverter gen = vessel.Parts[partID].Modules[moduleID] as ModuleResourceConverter;
-                        if (gen.AlwaysActive == false)
-                        {
-                            ConversionRecipe recipe = gen.Recipe;
-                            for (int i = 0; i < recipe.Outputs.Count; ++i)
-                            {
-                                if (recipe.Outputs[i].ResourceName == "ElectricCharge")
-                                {
-                                    yield return vessel.Parts[partID].Modules[moduleID];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Iterator to find gimbals on active stages
-        /// </summary>
-        /// <param name="vessel"></param>
-        /// <returns></returns>
-        private static IEnumerable<ModuleGimbal> FindActiveStageGimbals(Vessel vessel)
-        {
-            foreach (Part thatPart in vessel.parts)
-            {
-                // MOARdV: I'm not sure inverseStage is ever > CurrentStage,
-                // but there's no harm in >= vs ==.
-                if (thatPart.inverseStage >= StageManager.CurrentStage)
-                {
-                    foreach (PartModule pm in thatPart.Modules)
-                    {
-                        if (pm is ModuleGimbal)
-                        {
-                            yield return pm as ModuleGimbal;
-                        }
-                    }
-                }
-            }
         }
     }
 }

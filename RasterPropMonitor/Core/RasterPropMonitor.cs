@@ -67,6 +67,8 @@ namespace JSI
         public bool needsElectricCharge = true;
         [KSPField]
         public string resourceName = "SYSR_ELECTRICCHARGE";
+        private bool resourceDepleted = false; // Managed by rpmComp callback
+        private Action<bool> del;
         [KSPField]
         public string defaultFontTint = string.Empty;
         public Color defaultFontTintValue = Color.white;
@@ -94,7 +96,6 @@ namespace JSI
         private MonitorPage activePage;
         private string persistentVarName;
         private FXGroup audioOutput;
-        private float electricChargeReserve;
         public Texture2D noSignalTexture;
         private Material screenMat;
         private bool startupComplete;
@@ -254,6 +255,12 @@ namespace JSI
 
                 audioOutput = JUtil.SetupIVASound(internalProp, buttonClickSound, buttonClickVolume, false);
 
+                if (needsElectricCharge)
+                {
+                    del = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), this, "ResourceDepletedCallback");
+                    rpmComp.RegisterResourceCallback(resourceName, del);
+                }
+
                 // And if the try block never completed, startupComplete will never be true.
                 startupComplete = true;
             }
@@ -286,6 +293,10 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
+            if (del != null)
+            {
+                rpmComp.UnregisterResourceCallback(resourceName, del);
+            }
         }
 
         private static void PlayClickSound(FXGroup audioOutput)
@@ -298,7 +309,7 @@ namespace JSI
 
         public void GlobalButtonClick(int buttonID)
         {
-            if (needsElectricCharge && electricChargeReserve < 0.01f)
+            if (resourceDepleted)
             {
                 return;
             }
@@ -334,7 +345,7 @@ namespace JSI
 
         public void PageButtonClick(MonitorPage triggeredPage)
         {
-            if (needsElectricCharge && electricChargeReserve < 0.01f)
+            if (resourceDepleted)
             {
                 return;
             }
@@ -390,7 +401,7 @@ namespace JSI
             screenTexture.DiscardContents();
             RenderTexture.active = screenTexture;
 
-            if (needsElectricCharge && electricChargeReserve < 0.01f)
+            if (resourceDepleted)
             {
                 // If we're out of electric charge, we're drawing a blank screen.
                 GL.Clear(true, true, emptyColorValue);
@@ -420,15 +431,6 @@ namespace JSI
         private void FillScreenBuffer()
         {
             activePage.UpdateText(rpmComp);
-        }
-
-        private void CheckForElectricCharge()
-        {
-            if (needsElectricCharge)
-            {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                electricChargeReserve = rpmComp.ProcessVariable(resourceName, comp).MassageToFloat();
-            }
         }
 
         public override void OnUpdate()
@@ -488,8 +490,7 @@ namespace JSI
                 }
                 else
                 {
-                    CheckForElectricCharge();
-                    if (!needsElectricCharge || electricChargeReserve > 0.01f)
+                    if (!resourceDepleted)
                     {
                         RenderScreen();
                     }
@@ -501,11 +502,8 @@ namespace JSI
                 {
                     FillScreenBuffer();
                     textRefreshRequired = false;
-
-                    // This is where we request electric charge reserve. And if we don't have any, well... :)
-                    CheckForElectricCharge();
                 }
-                if (!needsElectricCharge || electricChargeReserve > 0.01f)
+                if (!resourceDepleted)
                 {
                     RenderScreen();
                 }
@@ -534,22 +532,33 @@ namespace JSI
             firstRenderComplete &= pause;
         }
 
-        public void LateUpdate()
+        //public void LateUpdate()
+        //{
+
+        //    if (HighLogic.LoadedSceneIsEditor)
+        //        return;
+
+        //    // If we reached a set number of update loops and startup still didn't happen, we're getting killed by a third party module.
+        //    // We might STILL be getting killed by a third party module even during update, but I hope this will catch at least some cases.
+        //    if (!startupFailed && loopsWithoutInitCounter > 600)
+        //    {
+        //        ScreenMessages.PostScreenMessage("RasterPropMonitor cannot complete initialization.", 120, ScreenMessageStyle.UPPER_CENTER);
+        //        ScreenMessages.PostScreenMessage("The cause is usually some OTHER broken mod.", 120, ScreenMessageStyle.UPPER_CENTER);
+        //        loopsWithoutInitCounter = 0;
+        //    }
+        //}
+
+        /// <summary>
+        /// This little callback allows RasterPropMonitorComputer to notify
+        /// this module when its required resource has gone above or below the
+        /// arbitrary and hard-coded threshold of 0.01, so that each monitor is
+        /// not forced to query every update "How much power is there?".
+        /// </summary>
+        /// <param name="newValue"></param>
+        void ResourceDepletedCallback(bool newValue)
         {
-
-            if (HighLogic.LoadedSceneIsEditor)
-                return;
-
-            // If we reached a set number of update loops and startup still didn't happen, we're getting killed by a third party module.
-            // We might STILL be getting killed by a third party module even during update, but I hope this will catch at least some cases.
-            if (!startupFailed && loopsWithoutInitCounter > 600)
-            {
-                ScreenMessages.PostScreenMessage("RasterPropMonitor cannot complete initialization.", 120, ScreenMessageStyle.UPPER_CENTER);
-                ScreenMessages.PostScreenMessage("The cause is usually some OTHER broken mod.", 120, ScreenMessageStyle.UPPER_CENTER);
-                loopsWithoutInitCounter = 0;
-            }
+            resourceDepleted = newValue;
         }
-
     }
 }
 
