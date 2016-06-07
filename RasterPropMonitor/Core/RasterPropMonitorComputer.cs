@@ -579,7 +579,7 @@ namespace JSI
                 {
                     float newVal = ProcessVariable(cbrVal.Key, comp).MassageToFloat();
                     bool newDepleted = (newVal < 0.01f);
-                    JUtil.LogMessage(this, "Checking {0} depletion: now {1}, was {2}", cbrVal.Key, newDepleted, onResourceValue[cbrVal.Key]);
+
                     if (newDepleted != onResourceValue[cbrVal.Key])
                     {
                         for (int i = 0; i < cbrVal.Value.Count; ++i)
