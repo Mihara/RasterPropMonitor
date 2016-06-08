@@ -82,6 +82,7 @@ namespace JSI
         };
 
         private readonly Dictionary<string, VariableCache> variableCache = new Dictionary<string, VariableCache>();
+        private readonly List<VariableCache> updatableVariables = new List<VariableCache>();
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
         private readonly DefaultableDictionary<string, OldVariableCache> oldVariableCache = new DefaultableDictionary<string, OldVariableCache>(null);
@@ -372,6 +373,13 @@ namespace JSI
             }
 
             variableCache.Add(variableName, vc);
+
+            if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
+            {
+                // Only variables that are really variable need to be checked
+                // during FixedUpdate.
+                updatableVariables.Add(vc);
+            }
         }
 
         /// <summary>
@@ -577,32 +585,29 @@ namespace JSI
 
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
 
-                foreach (var vcPair in variableCache)
+                for (int i = 0; i < updatableVariables.Count; ++i)
                 {
-                    if (vcPair.Value.value.type == VariableOrNumber.VoNType.VariableValue)
+                    VariableCache vc = updatableVariables[i];
+                    float oldVal = vc.value.AsFloat();
+                    double newVal;
+
+                    object evaluant = vc.evaluator(vc.value.variableName, this, comp);
+                    if (evaluant is string)
                     {
-                        VariableCache vc = vcPair.Value;
-                        double oldVal = vc.value.numericValue;
-                        double newVal;
+                        vc.value.isNumeric = false;
+                        vc.value.stringValue = evaluant as string;
+                        newVal = 0.0;
+                    }
+                    else
+                    {
+                        newVal = evaluant.MassageToDouble();
+                        vc.value.isNumeric = true;
+                    }
+                    vc.value.numericValue = newVal;
 
-                        object evaluant = vc.evaluator(vcPair.Key, this, comp);
-                        if (evaluant is string)
-                        {
-                            vc.value.isNumeric = false;
-                            vc.value.stringValue = evaluant as string;
-                            newVal = 0.0;
-                        }
-                        else
-                        {
-                            newVal = evaluant.MassageToDouble();
-                            vc.value.isNumeric = true;
-                        }
-                        vc.value.numericValue = newVal;
-
-                        if (!Mathf.Approximately((float)oldVal, (float)newVal) || forceCallbackRefresh == true)
-                        {
-                            vc.FireCallbacks((float)newVal);
-                        }
+                    if (!Mathf.Approximately(oldVal, (float)newVal) || forceCallbackRefresh == true)
+                    {
+                        vc.FireCallbacks((float)newVal);
                     }
                 }
 
@@ -647,6 +652,9 @@ namespace JSI
             if (!string.IsNullOrEmpty(RPMCid))
             {
                 JUtil.LogMessage(this, "OnDestroy: GUID {0}", RPMCid);
+                JUtil.LogMessage(this, "Tracked variables: ({0})", variableCache.Count);
+                JUtil.LogMessage(this, "Updatable variables: ({0})", updatableVariables.Count);
+                JUtil.LogMessage(this, "Cached variables: ({0})", oldVariableCache.Count);
             }
 
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
@@ -669,6 +677,7 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
+            variableCache.Clear();
             oldVariableCache.Clear();
             resultCache.Clear();
         }

@@ -24,12 +24,12 @@ namespace JSI
 {
     public class VariableOrNumber
     {
-        private readonly string variableName;
+        internal readonly string variableName;
         internal double numericValue;
         internal string stringValue;
         internal bool isNumeric;
         private readonly RasterPropMonitorComputer rpmComp;
-        internal readonly VoNType type = VoNType.Invalid;
+        internal readonly VoNType variableType = VoNType.Invalid;
         internal enum VoNType
         {
             Invalid,
@@ -68,17 +68,17 @@ namespace JSI
                 // same value (eg, 1.0, 1, 1.00, etc).
                 varName = realValue.ToString();
                 numericValue = realValue;
-                type = VoNType.ConstantNumeric;
+                variableType = VoNType.ConstantNumeric;
             }
             else if (input[0] == '$')
             {
                 stringValue = input.Substring(1);
-                type = VoNType.ConstantString;
+                variableType = VoNType.ConstantString;
             }
             else
             {
                 variableName = varName;
-                type = VoNType.VariableValue;
+                variableType = VoNType.VariableValue;
 
                 if (!cacheable)
                 {
