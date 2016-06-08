@@ -69,7 +69,7 @@ namespace JSI
             {
                 string[] tokens = input.Split('_');
 
-                switch(tokens[0])
+                switch (tokens[0])
                 {
                     case "ISLOADED":
                         string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
@@ -2541,6 +2541,25 @@ namespace JSI
                         return -1d;
                     };
             }
+
+            // If we've made it clear down here, maybe it's one of the plugin variables ... ?
+            try
+            {
+                object result;
+                if (plugins.ProcessVariable(input, out result, out cacheable))
+                {
+                    // It's a plugin variable.
+                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                        {
+                            object o;
+                            bool b;
+                            // Ignore return value - we already checked it
+                            plugins.ProcessVariable(variable, out o, out b);
+                            return o;
+                        };
+                }
+            }
+            catch { }
 
             return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
         }
