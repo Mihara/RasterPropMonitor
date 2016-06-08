@@ -97,21 +97,7 @@ namespace JSI
                     rpmComp.RegisterVariableCallback(variableName, del);
                     registeredVessel = vessel.id;
 
-                    // Initialize the text color.
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
-                    float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-                    if (value < 0.0f)
-                    {
-                        textObj.text.Color = negativeColorValue;
-                    }
-                    else if (value > 0.0f)
-                    {
-                        textObj.text.Color = positiveColorValue;
-                    }
-                    else
-                    {
-                        textObj.text.Color = zeroColorValue;
-                    }
+                    // Initialize the text color. Actually, callback registration took care of that
                 }
             }
             catch(Exception e)

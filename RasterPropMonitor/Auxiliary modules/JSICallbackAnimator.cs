@@ -82,13 +82,6 @@ namespace JSI
 
 
                 del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
-                float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-                for (int i = 0; i < variableSets.Count; ++i)
-                {
-                    variableSets[i].Update(value);
-                }
-
                 rpmComp.RegisterVariableCallback(variableName, del);
                 registeredVessel = vessel.id;
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
