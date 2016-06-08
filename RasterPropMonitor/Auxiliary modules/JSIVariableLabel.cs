@@ -94,7 +94,7 @@ namespace JSI
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
                     del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
-                    rpmComp.RegisterCallback(variableName, del);
+                    rpmComp.RegisterVariableCallback(variableName, del);
                     registeredVessel = vessel.id;
 
                     // Initialize the text color.
@@ -127,7 +127,7 @@ namespace JSI
             {
                 try
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 catch
                 {
@@ -145,7 +145,7 @@ namespace JSI
             if (vessel == null)
             {
                 // We're not attached to a ship?
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
@@ -158,7 +158,7 @@ namespace JSI
                 // before textObj is created.
                 if (del != null && !string.IsNullOrEmpty(variableName))
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;

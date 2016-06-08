@@ -89,7 +89,7 @@ namespace JSI
                     variableSets[i].Update(rpmComp, comp, value);
                 }
 
-                rpmComp.RegisterCallback(variableName, del);
+                rpmComp.RegisterVariableCallback(variableName, del);
                 registeredVessel = vessel.id;
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
             }
@@ -111,7 +111,7 @@ namespace JSI
 
             try
             {
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
             }
             catch
             {
@@ -127,7 +127,7 @@ namespace JSI
                 // Stop getting callbacks if for some reason a different
                 // computer is talking to us.
                 //JUtil.LogMessage(this, "OnCallback - unregistering del {0}, vessel null is {1}, comp.id = {2}", del.GetHashCode(), (vessel == null), comp.id);
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
             }
             else

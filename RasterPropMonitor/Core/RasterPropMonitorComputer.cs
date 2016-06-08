@@ -96,8 +96,6 @@ namespace JSI
         private bool timeToUpdate = false;
 
         // Callback system
-        private Dictionary<string, List<Action<float>>> onChangeCallbacks = new Dictionary<string, List<Action<float>>>();
-        private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
         private Dictionary<string, List<Action<bool>>> onResourceCallbacks = new Dictionary<string, List<Action<bool>>>();
         private Dictionary<string, bool> onResourceValue = new Dictionary<string, bool>();
         private bool forceCallbackRefresh = false;
@@ -290,20 +288,15 @@ namespace JSI
         /// </summary>
         /// <param name="variableName"></param>
         /// <param name="cb"></param>
-        public void RegisterCallback(string variableName, Action<float> cb)
+        public void RegisterVariableCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "RegisterCallback with {1} for {0}", variableName, RPMCid);
-            if (onChangeCallbacks.ContainsKey(variableName))
+            if (!variableCache.ContainsKey(variableName))
             {
-                onChangeCallbacks[variableName].Add(cb);
+                AddVariable(variableName);
             }
-            else
-            {
-                var callbackList = new List<Action<float>>();
-                callbackList.Add(cb);
-                onChangeCallbacks[variableName] = callbackList;
-                onChangeValue[variableName] = float.MaxValue;
-            }
+
+            variableCache[variableName].onChangeCallbacks += cb;
+
             forceCallbackRefresh = true;
         }
 
@@ -312,19 +305,11 @@ namespace JSI
         /// </summary>
         /// <param name="variableName"></param>
         /// <param name="cb"></param>
-        public void UnregisterCallback(string variableName, Action<float> cb)
+        public void UnregisterVariableCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "UnregisterCallback with {1} for {0}", variableName, RPMCid);
-            if (onChangeCallbacks.ContainsKey(variableName))
+            if (variableCache.ContainsKey(variableName))
             {
-                try
-                {
-                    onChangeCallbacks[variableName].Remove(cb);
-                }
-                catch
-                {
-
-                }
+                variableCache[variableName].onChangeCallbacks -= cb;
             }
         }
 
@@ -383,30 +368,39 @@ namespace JSI
         /// <returns>The VariableOrNumber</returns>
         public VariableOrNumber InstantiateVariableOrNumber(string variableName)
         {
-            if(!variableCache.ContainsKey(variableName))
+            if (!variableCache.ContainsKey(variableName))
             {
-                VariableCache vc = new VariableCache();
-                bool cacheable;
-                vc.evaluator = GetEvaluator(variableName, out cacheable);
-                vc.value = new VariableOrNumber(variableName, cacheable, this);
-
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                object value = vc.evaluator(variableName, this, comp);
-                if(value is string)
-                {
-                    vc.value.stringValue = value as string;
-                    vc.value.isNumeric = false;
-                }
-                else
-                {
-                    vc.value.numericValue = value.MassageToDouble();
-                    vc.value.isNumeric = true;
-                }
-
-                variableCache.Add(variableName, vc);
+                AddVariable(variableName);
             }
 
             return variableCache[variableName].value;
+        }
+
+        /// <summary>
+        /// Add a variable to the variableCache
+        /// </summary>
+        /// <param name="variableName"></param>
+        private void AddVariable(string variableName)
+        {
+            VariableCache vc = new VariableCache();
+            bool cacheable;
+            vc.evaluator = GetEvaluator(variableName, out cacheable);
+            vc.value = new VariableOrNumber(variableName, cacheable, this);
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            object value = vc.evaluator(variableName, this, comp);
+            if (value is string)
+            {
+                vc.value.stringValue = value as string;
+                vc.value.isNumeric = false;
+            }
+            else
+            {
+                vc.value.numericValue = value.MassageToDouble();
+                vc.value.isNumeric = true;
+            }
+
+            variableCache.Add(variableName, vc);
         }
 
         /// <summary>
@@ -645,27 +639,6 @@ namespace JSI
                     }
                 }
 
-                foreach (var cbVal in onChangeCallbacks)
-                {
-                    float previousValue = onChangeValue[cbVal.Key];
-                    float newVal = ProcessVariable(cbVal.Key, comp).MassageToFloat();
-                    if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
-                    {
-                        for (int i = 0; i < cbVal.Value.Count; ++i)
-                        {
-#if SHOW_VARIABLE_QUERY_COUNTER
-                            ++debug_callbacksProcessed;
-#endif
-                            cbVal.Value[i](newVal);
-                        }
-
-                        onChangeValue[cbVal.Key] = newVal;
-                    }
-#if SHOW_VARIABLE_QUERY_COUNTER
-                    ++debug_callbackQueriesMade;
-#endif
-                }
-
                 foreach (var cbrVal in onResourceCallbacks)
                 {
                     float newVal = ProcessVariable(cbrVal.Key, comp).MassageToFloat();
@@ -768,6 +741,7 @@ namespace JSI
                 forceCallbackRefresh = true;
                 oldVariableCache.Clear();
                 resultCache.Clear();
+                timeToUpdate = true;
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
@@ -791,6 +765,7 @@ namespace JSI
                 forceCallbackRefresh = true;
                 oldVariableCache.Clear();
                 resultCache.Clear();
+                timeToUpdate = true;
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
