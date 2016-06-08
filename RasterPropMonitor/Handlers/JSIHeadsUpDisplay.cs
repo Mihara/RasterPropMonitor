@@ -464,7 +464,7 @@ namespace JSI
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder(rotationVesselSurface, comp);
-                ladderMaterial.SetVector("_CropBound", cropBound); 
+                ladderMaterial.SetVector("_CropBound", cropBound);
                 JUtil.ShowHide(true, ladderMesh);
                 //hudCamera.Render();
                 //JUtil.ShowHide(false, ladderMesh);
@@ -666,7 +666,6 @@ namespace JSI
 
         internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
-            float value;
             if (enablingVariable != null)
             {
                 if (!enablingVariable.IsInRange(rpmComp, comp))
@@ -675,17 +674,16 @@ namespace JSI
                 }
             }
 
-            if (variable.Get(out value, rpmComp, comp))
+            float value = variable.AsFloat();
+            if (useLog10)
             {
-                if (useLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
-                float yOffset = JUtil.DualLerp(textureLimit, scale, value);
+                value = JUtil.PseudoLog10(value);
+            }
+            float yOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+            MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
-                meshFilter.mesh.uv = new[] 
+            meshFilter.mesh.uv = new[] 
                 {
                     new Vector2(0.0f, yOffset - textureSize),
                     new Vector2(1.0f, yOffset - textureSize),
@@ -693,8 +691,8 @@ namespace JSI
                     new Vector2(1.0f, yOffset + textureSize)
                 };
 
-                JUtil.ShowHide(true, barObject);
-            }
+            JUtil.ShowHide(true, barObject);
+
         }
     }
 
@@ -805,7 +803,6 @@ namespace JSI
 
         internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
-            float value;
             if (enablingVariable != null)
             {
                 if (!enablingVariable.IsInRange(rpmComp, comp))
@@ -814,17 +811,16 @@ namespace JSI
                 }
             }
 
-            if (variable.Get(out value, rpmComp, comp))
+            float value = variable.AsFloat();
+            if (useLog10)
             {
-                if (useLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
-                float xOffset = JUtil.DualLerp(textureLimit, scale, value);
+                value = JUtil.PseudoLog10(value);
+            }
+            float xOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+            MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
-                meshFilter.mesh.uv = new[] 
+            meshFilter.mesh.uv = new[] 
                 {
                     new Vector2(xOffset - textureSize, 0.0f),
                     new Vector2(xOffset + textureSize, 0.0f),
@@ -832,8 +828,8 @@ namespace JSI
                     new Vector2(xOffset + textureSize, 1.0f)
                 };
 
-                JUtil.ShowHide(true, barObject);
-            }
+            JUtil.ShowHide(true, barObject);
+
         }
     }
 }

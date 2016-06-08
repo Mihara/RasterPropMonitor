@@ -79,7 +79,7 @@ namespace JSI
                 }
             }
 
-            return result[i].Evaluate(rpmComp, comp);
+            return result[i].Get();
         }
 
         private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, RasterPropMonitorComputer rpmComp, out bool reverse)

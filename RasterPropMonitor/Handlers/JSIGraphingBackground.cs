@@ -297,11 +297,8 @@ namespace JSI
 
         public void RenderData(RenderTexture screen, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
-            float leftVal, rightVal;
-            if (!scale[0].Get(out leftVal, rpmComp, comp) || !scale[1].Get(out rightVal, rpmComp, comp))
-            {
-                return; // bad values - can't render
-            }
+            float leftVal = scale[0].AsFloat();
+            float rightVal = scale[1].AsFloat();
 
             float eval = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
             if (float.IsInfinity(eval) || float.IsNaN(eval))

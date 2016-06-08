@@ -58,8 +58,10 @@ namespace JSI
 
         public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
-            float lerp, extent1, extent2;
-            if (sourceVariable.InverseLerp(rpmComp, comp, out lerp) && mappedExtent1.Get(out extent1, rpmComp, comp) && mappedExtent2.Get(out extent2, rpmComp, comp))
+            float lerp;
+            float extent1 = mappedExtent1.AsFloat();
+            float extent2 = mappedExtent2.AsFloat();
+            if (sourceVariable.InverseLerp(rpmComp, comp, out lerp))
             {
                 return Mathf.Lerp(extent1, extent2, lerp);
             }

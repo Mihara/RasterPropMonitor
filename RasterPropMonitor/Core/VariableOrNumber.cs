@@ -28,8 +28,7 @@ namespace JSI
         internal double numericValue;
         internal string stringValue;
         internal bool isNumeric;
-        internal readonly bool isCacheable;
-        private bool warningMade;
+        private readonly RasterPropMonitorComputer rpmComp;
         internal readonly VoNType type = VoNType.Invalid;
         internal enum VoNType
         {
@@ -45,7 +44,7 @@ namespace JSI
         /// <param name="input">The name of the variable</param>
         /// <param name="cacheable">Whether the variable is cacheable</param>
         /// <param name="rpmComp">The RasterPropMonitorComputer that owns the variable</param>
-        internal VariableOrNumber(string input, bool cacheable, RasterPropMonitorComputer rpmComp)
+        internal VariableOrNumber(string input, bool cacheable, RasterPropMonitorComputer rpmComp_)
         {
             string varName = input.Trim();
             if (varName == "MetersToFeet")
@@ -70,124 +69,74 @@ namespace JSI
                 varName = realValue.ToString();
                 numericValue = realValue;
                 type = VoNType.ConstantNumeric;
-                isCacheable = true;
             }
             else if (input[0] == '$')
             {
                 stringValue = input.Substring(1);
                 type = VoNType.ConstantString;
-                isCacheable = true;
             }
             else
             {
                 variableName = varName;
                 type = VoNType.VariableValue;
-                isCacheable = cacheable;
+
+                if (!cacheable)
+                {
+                    rpmComp = rpmComp_;
+                }
             }
         }
 
-        private VariableOrNumber(string input)
+        /// <summary>
+        /// Return the value as a float.
+        /// </summary>
+        /// <returns></returns>
+        public float AsFloat()
         {
-            float realValue;
-            if (float.TryParse(input, out realValue))
+            if (rpmComp != null)
             {
-                numericValue = realValue;
-                type = VoNType.ConstantNumeric;
-            }
-            else if (input[0] == '$')
-            {
-                stringValue = input.Substring(1);
-                type = VoNType.ConstantString;
+                return rpmComp.ProcessVariable(variableName, null).MassageToFloat();
             }
             else
             {
-                variableName = input.Trim();
-                type = VoNType.VariableValue;
+                return (float)numericValue;
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        /// <summary>
+        /// Returns the value as a double.
+        /// </summary>
+        /// <returns></returns>
+        public double AsDouble()
         {
-            if (type == VoNType.ConstantNumeric)
+            if (rpmComp != null)
+            {
+                return rpmComp.ProcessVariable(variableName, null).MassageToDouble();
+            }
+            else
             {
                 return numericValue;
             }
-            else if (type == VoNType.ConstantString)
+        }
+
+        /// <summary>
+        /// Return the value boxed as an object
+        /// </summary>
+        /// <returns></returns>
+        public object Get()
+        {
+            if (rpmComp != null)
             {
-                return stringValue;
+                return rpmComp.ProcessVariable(variableName, null);
             }
-            else if (type == VoNType.VariableValue)
+            else if (isNumeric)
             {
-                return rpmComp.ProcessVariable(variableName, comp);
+                return numericValue;
             }
             else
             {
-                return null;
+                return stringValue;
             }
-        }
-
-        /// <summary>
-        /// Evaluate the variable, returning it in destination.
-        /// </summary>
-        /// <param name="destination"></param>
-        /// <param name="comp"></param>
-        /// <returns></returns>
-        public bool Get(out float destination, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
-        {
-            if (type == VoNType.ConstantString)
-            {
-                destination = 0.0f;
-                return false;
-            }
-            else if (type == VoNType.VariableValue)
-            {
-                numericValue = rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
-                if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
-                {
-                    if (!warningMade)
-                    {
-                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
-                        warningMade = true;
-                    }
-                    destination = (float)numericValue;
-                    return false;
-                }
-            }
-
-            destination = (float)numericValue;
-            return true;
-        }
-
-        /// <summary>
-        /// Evaluate the variable, returning it in destination.
-        /// </summary>
-        /// <param name="destination"></param>
-        /// <param name="comp"></param>
-        /// <returns></returns>
-        public bool Get(out double destination, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
-        {
-            if (type == VoNType.ConstantString)
-            {
-                destination = 0.0;
-                return false;
-            }
-            else if (type == VoNType.VariableValue)
-            {
-                numericValue = rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
-                if (double.IsNaN(numericValue) || double.IsInfinity(numericValue))
-                {
-                    if (!warningMade)
-                    {
-                        JUtil.LogMessage(this, "Warning: {0} can fail to produce a usable number.", variableName);
-                        warningMade = true;
-                    }
-                    destination = numericValue;
-                    return false;
-                }
-            }
-
-            destination = numericValue;
-            return true;
         }
     }
 
@@ -216,41 +165,28 @@ namespace JSI
 
         public bool InverseLerp(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, out float scaledValue)
         {
-            float value;
-            float low, high;
-            if (!(sourceValue.Get(out value, rpmComp, comp) && lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
+            float value = sourceValue.AsFloat();
+            float low = lowerBound.AsFloat();
+            float high = upperBound.AsFloat();
+
+            if (modulo != null)
             {
-                scaledValue = 0.0f;
-                return false;
+                float mod = modulo.AsFloat();
+
+                scaledValue = Mathf.InverseLerp(low, high, value);
+                float range = Mathf.Abs(high - low);
+                if (range > 0.0f)
+                {
+                    float modDivRange = mod / range;
+                    scaledValue = (scaledValue % (modDivRange)) / modDivRange;
+                }
+                //value = value % mod;
+                return true;
             }
             else
             {
-                if (modulo != null)
-                {
-                    float mod;
-                    if (!modulo.Get(out mod, rpmComp, comp) || mod <= 0.0f)
-                    {
-                        scaledValue = 0.0f;
-                        return false;
-                    }
-                    else
-                    {
-                        scaledValue = Mathf.InverseLerp(low, high, value);
-                        float range = Mathf.Abs(high - low);
-                        if (range > 0.0f)
-                        {
-                            float modDivRange = mod / range;
-                            scaledValue = (scaledValue % (modDivRange)) / modDivRange;
-                        }
-                        //value = value % mod;
-                        return true;
-                    }
-                }
-                else
-                {
-                    scaledValue = Mathf.InverseLerp(low, high, value);
-                    return true;
-                }
+                scaledValue = Mathf.InverseLerp(low, high, value);
+                return true;
             }
         }
 
@@ -262,14 +198,11 @@ namespace JSI
         /// <returns></returns>
         public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
-            float value;
-            float low, high;
+            float value = sourceValue.AsFloat();
+            float low = lowerBound.AsFloat();
+            float high = upperBound.AsFloat();
 
-            if (!(sourceValue.Get(out value, rpmComp, comp) && lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
-            {
-                return false;
-            }
-            else if (high < low)
+            if (high < low)
             {
                 return (value >= high && value <= low);
             }
@@ -288,13 +221,10 @@ namespace JSI
         /// <returns></returns>
         public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, float value)
         {
-            float low, high;
+            float low = lowerBound.AsFloat();
+            float high = upperBound.AsFloat();
 
-            if (!(lowerBound.Get(out low, rpmComp, comp) && upperBound.Get(out high, rpmComp, comp)))
-            {
-                return false;
-            }
-            else if (high < low)
+            if (high < low)
             {
                 return (value >= high && value <= low);
             }
