@@ -1,4 +1,3 @@
-//#define SHOW_VARIABLE_QUERY_COUNTER
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -94,19 +93,11 @@ namespace JSI
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
-
-        // Callback system
-        private Dictionary<string, List<Action<bool>>> onResourceCallbacks = new Dictionary<string, List<Action<bool>>>();
-        private Dictionary<string, bool> onResourceValue = new Dictionary<string, bool>();
         private bool forceCallbackRefresh = false;
 
         // Diagnostics
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
-#if SHOW_VARIABLE_QUERY_COUNTER
-        private int debug_varsProcessed = 0;
-        private long debug_totalVars = 0;
-#endif
 
         [KSPField(isPersistant = true)]
         public string RPMCid = string.Empty;
@@ -184,10 +175,6 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input, RPMVesselComputer comp)
         {
-#if SHOW_VARIABLE_QUERY_COUNTER
-            ++debug_varsProcessed;
-#endif
-
             if (RPMGlobals.debugShowVariableCallCount)
             {
                 debug_callCount[input] = debug_callCount[input] + 1;
@@ -295,9 +282,9 @@ namespace JSI
                 AddVariable(variableName);
             }
 
-            variableCache[variableName].onChangeCallbacks += cb;
-
-            forceCallbackRefresh = true;
+            VariableCache vc = variableCache[variableName];
+            vc.onChangeCallbacks += cb;
+            cb((float)vc.value.numericValue);
         }
 
         /// <summary>
@@ -321,23 +308,14 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterResourceCallback(string variableName, Action<bool> cb)
         {
-            if (onResourceCallbacks.ContainsKey(variableName))
+            if (!variableCache.ContainsKey(variableName))
             {
-                onResourceCallbacks[variableName].Add(cb);
+                AddVariable(variableName);
             }
-            else
-            {
-                var callbackList = new List<Action<bool>>();
-                callbackList.Add(cb);
-                onResourceCallbacks[variableName] = callbackList;
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                bool initValue = (ProcessVariable(variableName, comp).MassageToFloat() < 0.01f);
-                onResourceValue[variableName] = initValue;
-            }
-            cb(onResourceValue[variableName]);
-
-            forceCallbackRefresh = true;
+            VariableCache vc = variableCache[variableName];
+            vc.onResourceDepletedCallbacks += cb;
+            cb(vc.value.numericValue < 0.01);
         }
 
         /// <summary>
@@ -347,16 +325,9 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterResourceCallback(string variableName, Action<bool> cb)
         {
-            if (onResourceCallbacks.ContainsKey(variableName))
+            if (variableCache.ContainsKey(variableName))
             {
-                try
-                {
-                    onResourceCallbacks[variableName].Remove(cb);
-                }
-                catch
-                {
-
-                }
+                variableCache[variableName].onResourceDepletedCallbacks -= cb;
             }
         }
 
@@ -604,10 +575,6 @@ namespace JSI
 
                 ++masterSerialNumber;
 
-#if SHOW_VARIABLE_QUERY_COUNTER
-                int debug_callbacksProcessed = 0;
-                int debug_callbackQueriesMade = 0;
-#endif
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
 
                 foreach (var vcPair in variableCache)
@@ -639,31 +606,10 @@ namespace JSI
                     }
                 }
 
-                foreach (var cbrVal in onResourceCallbacks)
-                {
-                    float newVal = ProcessVariable(cbrVal.Key, comp).MassageToFloat();
-                    bool newDepleted = (newVal < 0.01f);
-
-                    if (newDepleted != onResourceValue[cbrVal.Key])
-                    {
-                        for (int i = 0; i < cbrVal.Value.Count; ++i)
-                        {
-                            cbrVal.Value[i](newDepleted);
-                        }
-
-                        onResourceValue[cbrVal.Key] = newDepleted;
-                    }
-                }
-
                 ++debug_fixedUpdates;
 
                 forceCallbackRefresh = false;
                 timeToUpdate = false;
-#if SHOW_VARIABLE_QUERY_COUNTER
-                debug_totalVars += debug_varsProcessed;
-                JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
-                debug_varsProcessed = 0;
-#endif
 
                 for (int i = 0; i < activeTriggeredEvents.Count; ++i)
                 {
@@ -702,12 +648,6 @@ namespace JSI
                 JUtil.LogMessage(this, "OnDestroy: GUID {0}", RPMCid);
             }
 
-#if SHOW_VARIABLE_QUERY_COUNTER
-            debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
-            JUtil.LogMessage(this, "{3}: {0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
-                debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates), RPMCid);
-#endif
-
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onVesselChange.Remove(onVesselChange);
 
@@ -732,6 +672,11 @@ namespace JSI
             resultCache.Clear();
         }
 
+        /// <summary>
+        /// Callback to tell us our vessel was modified (and we thus need to
+        /// refresh some values.
+        /// </summary>
+        /// <param name="who"></param>
         private void onVesselChange(Vessel who)
         {
             if (who.id == vessel.id)
@@ -756,6 +701,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback to tell us our vessel was modified (and we thus need to
+        /// re-examine some values.
+        /// </summary>
+        /// <param name="who"></param>
         private void onVesselWasModified(Vessel who)
         {
             if (who.id == vessel.id)
