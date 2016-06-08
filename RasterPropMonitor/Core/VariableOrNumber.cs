@@ -25,11 +25,13 @@ namespace JSI
     public class VariableOrNumber
     {
         private readonly string variableName;
-        private double numericValue;
-        private readonly string stringValue;
+        internal double numericValue;
+        internal string stringValue;
+        internal bool isNumeric;
+        internal readonly bool isCacheable;
         private bool warningMade;
-        private readonly VoNType type = VoNType.Invalid;
-        enum VoNType
+        internal readonly VoNType type = VoNType.Invalid;
+        internal enum VoNType
         {
             Invalid,
             ConstantNumeric,
@@ -86,6 +88,47 @@ namespace JSI
         internal static void Clear()
         {
             vars.Clear();
+        }
+
+        internal VariableOrNumber(string input, bool cacheable, RasterPropMonitorComputer rpmComp)
+        {
+            string varName = input.Trim();
+            if (varName == "MetersToFeet")
+            {
+                varName = RPMGlobals.MetersToFeet.ToString();
+            }
+            else if (varName == "MetersPerSecondToKnots")
+            {
+                varName = RPMGlobals.MetersPerSecondToKnots.ToString();
+            }
+            else if (varName == "MetersPerSecondToFeetPerMinute")
+            {
+                varName = RPMGlobals.MetersPerSecondToFeetPerMinute.ToString();
+            }
+
+            float realValue;
+            if (float.TryParse(varName, out realValue))
+            {
+                // If it's a numeric value, let's canonicalize it using
+                // ToString, so we don't have duplicates that evaluate to the
+                // same value (eg, 1.0, 1, 1.00, etc).
+                varName = realValue.ToString();
+                numericValue = realValue;
+                type = VoNType.ConstantNumeric;
+                isCacheable = true;
+            }
+            else if (input[0] == '$')
+            {
+                stringValue = input.Substring(1);
+                type = VoNType.ConstantString;
+                isCacheable = true;
+            }
+            else
+            {
+                variableName = varName;
+                type = VoNType.VariableValue;
+                isCacheable = cacheable;
+            }
         }
 
         private VariableOrNumber(string input)

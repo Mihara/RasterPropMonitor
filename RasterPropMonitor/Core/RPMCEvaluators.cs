@@ -180,8 +180,10 @@ namespace JSI
                 {
                     if (RPMGlobals.customVariables.ContainsKey(input))
                     {
-                        var o = RPMGlobals.customVariables[input];
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return o.Evaluate(rpmComp, comp); };
+                        ConfigNode cn = RPMGlobals.customVariables[input];
+                        IComplexVariable var = JUtil.InstantiateComplexVariable(cn, this);
+                        customVariables.Add(input, var);
+                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(rpmComp, comp); };
                     }
                     else
                     {
@@ -3323,14 +3325,14 @@ namespace JSI
         #endregion
 
         internal delegate object VariableEvaluator(string s, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp);
-        internal class VariableCache
+        internal class OldVariableCache
         {
             internal object cachedValue = null;
             internal readonly VariableEvaluator accessor;
             internal uint serialNumber = 0;
             internal readonly bool cacheable;
 
-            internal VariableCache(bool cacheable, VariableEvaluator accessor)
+            internal OldVariableCache(bool cacheable, VariableEvaluator accessor)
             {
                 this.cacheable = cacheable;
                 this.accessor = accessor;

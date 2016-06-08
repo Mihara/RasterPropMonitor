@@ -61,10 +61,26 @@ namespace JSI
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         // Processing cache!
+        private class VariableCache
+        {
+            internal VariableEvaluator evaluator;
+            internal VariableOrNumber value;
+            internal event Action<float> onChangeCallbacks;
+            internal event Action<bool> onResourceDepletedCallbacks;
+
+            internal void FireCallbacks(float newValue)
+            {
+                onChangeCallbacks(newValue);
+                onResourceDepletedCallbacks(newValue < 0.01f);
+            }
+        };
+
+        private readonly Dictionary<string, VariableCache> variableCache = new Dictionary<string, VariableCache>();
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
         private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
-        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
+        private readonly DefaultableDictionary<string, OldVariableCache> oldVariableCache = new DefaultableDictionary<string, OldVariableCache>(null);
         private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
+        private Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
         private uint masterSerialNumber = 0u;
 
         // Data refresh
@@ -99,8 +115,12 @@ namespace JSI
         private ExternalVariableHandlers plugins = null;
         internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
 
-        // Public functions:
-        // Request the instance, create it if one doesn't exist:
+        /// <summary>
+        /// Request the instance, create it if one doesn't exist.
+        /// </summary>
+        /// <param name="referenceLocation">Prop or part where the RPMC should be.</param>
+        /// <param name="createIfMissing">Create the RPMC if it's not already present.</param>
+        /// <returns>The RPMC, or null if it can't be or wasn't created.</returns>
         public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation, bool createIfMissing)
         {
             var thatProp = referenceLocation as InternalProp;
@@ -172,7 +192,7 @@ namespace JSI
             {
                 comp = RPMVesselComputer.Instance(vid);
             }
-            VariableCache vc = variableCache[input];
+            OldVariableCache vc = oldVariableCache[input];
             if (vc != null)
             {
                 if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
@@ -186,7 +206,7 @@ namespace JSI
                     catch (Exception e)
                     {
                         JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                        variableCache.Remove(input);
+                        oldVariableCache.Remove(input);
                     }
                 }
 
@@ -198,7 +218,7 @@ namespace JSI
                 VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
                 if (evaluator != null)
                 {
-                    vc = new VariableCache(cacheable, evaluator);
+                    vc = new OldVariableCache(cacheable, evaluator);
                     try
                     {
                         object newValue = vc.accessor(input, this, comp);
@@ -218,7 +238,7 @@ namespace JSI
                         return -1;
                     }
 
-                    variableCache[input] = vc;
+                    oldVariableCache[input] = vc;
                     return vc.cachedValue;
                 }
             }
@@ -346,6 +366,40 @@ namespace JSI
 
                 }
             }
+        }
+
+        /// <summary>
+        /// Instantiate a VariableOrNumber object attached to this computer, or
+        /// return a reference to an existing one.
+        /// </summary>
+        /// <param name="variableName">Name of the variable</param>
+        /// <returns>The VariableOrNumber</returns>
+        public VariableOrNumber InstantiateVariableOrNumber(string variableName)
+        {
+            if(!variableCache.ContainsKey(variableName))
+            {
+                VariableCache vc = new VariableCache();
+                bool cacheable;
+                vc.evaluator = GetEvaluator(variableName, out cacheable);
+                vc.value = new VariableOrNumber(variableName, cacheable, this);
+
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                object value = vc.evaluator(variableName, this, comp);
+                if(value is string)
+                {
+                    vc.value.stringValue = value as string;
+                    vc.value.isNumeric = false;
+                }
+                else
+                {
+                    vc.value.numericValue = value.MassageToDouble();
+                    vc.value.isNumeric = true;
+                }
+
+                variableCache.Add(variableName, vc);
+            }
+
+            return variableCache[variableName].value;
         }
 
         /// <summary>
@@ -554,6 +608,36 @@ namespace JSI
                 int debug_callbackQueriesMade = 0;
 #endif
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
+
+                foreach (var vcPair in variableCache)
+                {
+                    if (vcPair.Value.value.type == VariableOrNumber.VoNType.VariableValue)
+                    {
+                        VariableCache vc = vcPair.Value;
+                        double oldVal = vc.value.numericValue;
+                        double newVal;
+
+                        object evaluant = vc.evaluator(vcPair.Key, this, comp);
+                        if (evaluant is string)
+                        {
+                            vc.value.isNumeric = false;
+                            vc.value.stringValue = evaluant as string;
+                            newVal = 0.0;
+                        }
+                        else
+                        {
+                            newVal = evaluant.MassageToDouble();
+                            vc.value.isNumeric = true;
+                        }
+                        vc.value.numericValue = newVal;
+
+                        if (!Mathf.Approximately((float)oldVal, (float)newVal) || forceCallbackRefresh == true)
+                        {
+                            vc.FireCallbacks((float)newVal);
+                        }
+                    }
+                }
+
                 foreach (var cbVal in onChangeCallbacks)
                 {
                     float previousValue = onChangeValue[cbVal.Key];
@@ -664,7 +748,7 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
-            variableCache.Clear();
+            oldVariableCache.Clear();
             resultCache.Clear();
         }
 
@@ -675,7 +759,7 @@ namespace JSI
                 vid = vessel.id;
                 //JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 forceCallbackRefresh = true;
-                variableCache.Clear();
+                oldVariableCache.Clear();
                 resultCache.Clear();
 
                 for (int i = 0; i < installedModules.Count; ++i)
@@ -698,7 +782,7 @@ namespace JSI
                 vid = vessel.id;
                 JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 forceCallbackRefresh = true;
-                variableCache.Clear();
+                oldVariableCache.Clear();
                 resultCache.Clear();
 
                 for (int i = 0; i < installedModules.Count; ++i)

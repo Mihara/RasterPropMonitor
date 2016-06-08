@@ -1301,6 +1301,39 @@ namespace JSI
             return val.CompareTo(max) > 0 ? max : val;
         }
 
+        /// <summary>
+        /// Method to instantiate one of the IComplexVariable objects on an rpmComp.
+        /// </summary>
+        /// <param name="node">The config node fetched from RPMGlobals</param>
+        /// <param name="rpmComp">The RasterPropMonitorComputer that is hosting the variable</param>
+        /// <returns>The complex variable, or null</returns>
+        internal static IComplexVariable InstantiateComplexVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
+        {
+            if(node == null)
+            {
+                throw new ArgumentNullException("node was null. how did that happen?");
+            }
+
+            switch(node.name)
+            {
+                case "RPM_CUSTOM_VARIABLE":
+                    return new CustomVariable(node);
+                case "RPM_MAPPED_VARIABLE":
+                    return new MappedVariable(node);
+                case "RPM_MATH_VARIABLE":
+                    return new MathVariable(node);
+                case "RPM_SELECT_VARIABLE":
+                    return new SelectVariable(node);
+            }
+
+            throw new ArgumentException("Unrecognized complex variable "+node.name);
+        }
+
+        /// <summary>
+        /// Convert a numeric object to a float where.
+        /// </summary>
+        /// <param name="thatValue"></param>
+        /// <returns></returns>
         public static float MassageToFloat(this object thatValue)
         {
             // RPMC only produces doubles, floats, ints, bools, and strings.
@@ -1315,6 +1348,11 @@ namespace JSI
             return float.NaN;
         }
 
+        /// <summary>
+        /// Convert a numeric object to an integer.
+        /// </summary>
+        /// <param name="thatValue"></param>
+        /// <returns></returns>
         public static int MassageToInt(this object thatValue)
         {
             // RPMC only produces doubles, floats, ints, bools, and strings.
@@ -1329,6 +1367,11 @@ namespace JSI
             return 0;
         }
 
+        /// <summary>
+        /// Convert a numeric object to a double.
+        /// </summary>
+        /// <param name="thatValue"></param>
+        /// <returns></returns>
         public static double MassageToDouble(this object thatValue)
         {
             // RPMC only produces doubles, floats, ints, bools, and strings.
@@ -1343,10 +1386,10 @@ namespace JSI
             return double.NaN;
         }
 
-        public static bool ReturnFalse()
-        {
-            return false;
-        }
+        //public static bool ReturnFalse()
+        //{
+        //    return false;
+        //}
 
         internal static Delegate GetMethod(string packedMethod, InternalProp internalProp, Type delegateType)
         {
@@ -1666,16 +1709,15 @@ namespace JSI
             ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE");
             for (int i=0; i<nodes.Length; ++i)
             {
-                string varName = nodes[i].GetValue("name");
 
                 try
                 {
-                    CustomVariable customVar = new CustomVariable(nodes[i]);
+                    string varName = nodes[i].GetValue("name");
 
-                    if (!string.IsNullOrEmpty(varName) && customVar != null)
+                    if (!string.IsNullOrEmpty(varName))
                     {
                         string completeVarName = "CUSTOM_" + varName;
-                        RPMGlobals.customVariables.Add(completeVarName, customVar);
+                        RPMGlobals.customVariables.Add(completeVarName, nodes[i]);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1694,16 +1736,14 @@ namespace JSI
             nodes = GameDatabase.Instance.GetConfigNodes("RPM_MAPPED_VARIABLE");
             for (int i = 0; i < nodes.Length; ++i)
             {
-                string varName = nodes[i].GetValue("mappedVariable");
-
                 try
                 {
-                    MappedVariable mappedVar = new MappedVariable(nodes[i]);
+                    string varName = nodes[i].GetValue("mappedVariable");
 
-                    if (!string.IsNullOrEmpty(varName) && mappedVar != null)
+                    if (!string.IsNullOrEmpty(varName))
                     {
                         string completeVarName = "MAPPED_" + varName;
-                        RPMGlobals.customVariables.Add(completeVarName, mappedVar);
+                        RPMGlobals.customVariables.Add(completeVarName, nodes[i]);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1721,16 +1761,14 @@ namespace JSI
             nodes = GameDatabase.Instance.GetConfigNodes("RPM_MATH_VARIABLE");
             for (int i = 0; i < nodes.Length; ++i)
             {
-                string varName = nodes[i].GetValue("name");
-
                 try
                 {
-                    MathVariable mathVar = new MathVariable(nodes[i]);
+                    string varName = nodes[i].GetValue("name");
 
-                    if (!string.IsNullOrEmpty(varName) && mathVar != null)
+                    if (!string.IsNullOrEmpty(varName))
                     {
                         string completeVarName = "MATH_" + varName;
-                        RPMGlobals.customVariables.Add(completeVarName, mathVar);
+                        RPMGlobals.customVariables.Add(completeVarName, nodes[i]);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
@@ -1748,16 +1786,14 @@ namespace JSI
             nodes = GameDatabase.Instance.GetConfigNodes("RPM_SELECT_VARIABLE");
             for (int i = 0; i < nodes.Length; ++i)
             {
-                string varName = nodes[i].GetValue("name");
-
                 try
                 {
-                    SelectVariable selectVar = new SelectVariable(nodes[i]);
+                    string varName = nodes[i].GetValue("name");
 
-                    if (!string.IsNullOrEmpty(varName) && selectVar != null)
+                    if (!string.IsNullOrEmpty(varName))
                     {
                         string completeVarName = "SELECT_" + varName;
-                        RPMGlobals.customVariables.Add(completeVarName, selectVar);
+                        RPMGlobals.customVariables.Add(completeVarName, nodes[i]);
                         JUtil.LogMessage(this, "I know about {0}", completeVarName);
                     }
                 }
