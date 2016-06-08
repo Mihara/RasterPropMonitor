@@ -175,7 +175,7 @@ namespace JSI
                             {
                                 var = customVariables[input];
                             }
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(rpmComp, comp); };
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(); };
                         }
                         else
                         {

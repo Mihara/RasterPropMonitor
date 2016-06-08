@@ -56,19 +56,13 @@ namespace JSI
             mappedExtent2 = rpmComp.InstantiateVariableOrNumber(destinations[1]);
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
-            float lerp;
+            float lerp = sourceVariable.InverseLerp();
             float extent1 = mappedExtent1.AsFloat();
             float extent2 = mappedExtent2.AsFloat();
-            if (sourceVariable.InverseLerp(out lerp))
-            {
-                return Mathf.Lerp(extent1, extent2, lerp);
-            }
-            else
-            {
-                return 0.0f;
-            }
+
+            return Mathf.Lerp(extent1, extent2, lerp);
         }
     }
 }

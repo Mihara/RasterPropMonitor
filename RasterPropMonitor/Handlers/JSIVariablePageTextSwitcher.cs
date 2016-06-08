@@ -96,12 +96,7 @@ namespace JSI
 
             if (legacyRange != null)
             {
-                float scaledValue;
-                if (!legacyRange.InverseLerp(out scaledValue))
-                {
-                    activePage = 1;
-                    return;
-                }
+                float scaledValue = legacyRange.InverseLerp();
 
                 activePage = (scaledValue >= threshold.x && scaledValue <= threshold.y) ? 0 : 1;
             }

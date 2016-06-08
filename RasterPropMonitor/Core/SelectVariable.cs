@@ -68,7 +68,7 @@ namespace JSI
 
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
             int i = 0;
             for (; i < sourceVariables.Count; ++i)

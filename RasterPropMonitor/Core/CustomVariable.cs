@@ -30,7 +30,7 @@ namespace JSI
     /// </summary>
     interface IComplexVariable
     {
-        object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp);
+        object Evaluate();
     }
 
     /// <summary>
@@ -112,9 +112,8 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
-            // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
             bool evaluation = sourceVariables[0].IsInRange() ^ reverse[0];
 
             // Use an optimization on evaluation to speed things up

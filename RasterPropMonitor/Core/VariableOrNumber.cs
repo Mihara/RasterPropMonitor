@@ -167,9 +167,8 @@ namespace JSI
         /// Return a value in the range of 0 to 1 representing where the current variable
         /// evaluates within its range.
         /// </summary>
-        /// <param name="scaledValue"></param>
         /// <returns></returns>
-        public bool InverseLerp(out float scaledValue)
+        public float InverseLerp()
         {
             float value = sourceValue.AsFloat();
             float low = lowerBound.AsFloat();
@@ -179,7 +178,7 @@ namespace JSI
             {
                 float mod = modulo.AsFloat();
 
-                scaledValue = Mathf.InverseLerp(low, high, value);
+                float scaledValue = Mathf.InverseLerp(low, high, value);
                 float range = Mathf.Abs(high - low);
                 if (range > 0.0f)
                 {
@@ -187,12 +186,11 @@ namespace JSI
                     scaledValue = (scaledValue % (modDivRange)) / modDivRange;
                 }
                 //value = value % mod;
-                return true;
+                return scaledValue;
             }
             else
             {
-                scaledValue = Mathf.InverseLerp(low, high, value);
-                return true;
+                return Mathf.InverseLerp(low, high, value);
             }
         }
 

@@ -157,7 +157,7 @@ namespace JSI
             double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(rpmComp, universalTime);
+                variableSets[unit].Update(universalTime);
             }
         }
 
@@ -707,13 +707,9 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        public void Update(RasterPropMonitorComputer rpmComp, double universalTime)
+        public void Update(double universalTime)
         {
-            float scaledValue;
-            if (!variable.InverseLerp(out scaledValue))
-            {
-                return;
-            }
+            float scaledValue = variable.InverseLerp();
 
             float delta = Mathf.Abs(scaledValue - lastScaledValue);
             if (delta < float.Epsilon)
