@@ -342,22 +342,39 @@ namespace JSI
         /// <param name="variableName"></param>
         private void AddVariable(string variableName)
         {
+            variableName = variableName.Trim();
+
             VariableCache vc = new VariableCache();
             bool cacheable;
             vc.evaluator = GetEvaluator(variableName, out cacheable);
             vc.value = new VariableOrNumber(variableName, cacheable, this);
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            object value = vc.evaluator(variableName, this, comp);
-            if (value is string)
+            if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
             {
-                vc.value.stringValue = value as string;
-                vc.value.isNumeric = false;
-            }
-            else
-            {
-                vc.value.numericValue = value.MassageToDouble();
-                vc.value.isNumeric = true;
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                object value = vc.evaluator(variableName, this, comp);
+                if (value is string)
+                {
+                    vc.value.stringValue = value as string;
+                    vc.value.isNumeric = false;
+                    vc.value.numericValue = 0.0;
+
+                    // If the evaluator returns the variableName, then we
+                    // have an unknown variable.  Change the VoN type to
+                    // ConstantString so we don't waste cycles on update to
+                    // reevaluate it.
+                    if (vc.value.stringValue == variableName && !unrecognizedVariables.Contains(variableName))
+                    {
+                        vc.value.variableType = VariableOrNumber.VoNType.ConstantString;
+                        unrecognizedVariables.Add(variableName);
+                        JUtil.LogInfo(this, "Unrecognized variable {0}", variableName);
+                    }
+                }
+                else
+                {
+                    vc.value.numericValue = value.MassageToDouble();
+                    vc.value.isNumeric = true;
+                }
             }
 
             variableCache.Add(variableName, vc);

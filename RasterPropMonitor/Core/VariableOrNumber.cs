@@ -29,7 +29,7 @@ namespace JSI
         internal string stringValue;
         internal bool isNumeric;
         private readonly RasterPropMonitorComputer rpmComp;
-        internal readonly VoNType variableType = VoNType.Invalid;
+        internal VoNType variableType = VoNType.Invalid;
         internal enum VoNType
         {
             Invalid,
