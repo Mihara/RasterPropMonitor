@@ -26,8 +26,8 @@ namespace JSI
     {
         // The formatString or plain text (if usesComp is false).
         public readonly string formatString;
-        // An array of source variable names
-        public readonly string[] sourceVariables;
+        // An array of source variables
+        public readonly VariableOrNumber[] sourceVariables;
         // An array holding evaluants
         public readonly object[] sourceValues;
 
@@ -35,7 +35,7 @@ namespace JSI
         public readonly bool usesComp;
 
         // TODO: Add support for multi-line processed support.
-        public StringProcessorFormatter(string input)
+        public StringProcessorFormatter(string input, RasterPropMonitorComputer rpmComp)
         {
             if(string.IsNullOrEmpty(input))
             {
@@ -51,7 +51,12 @@ namespace JSI
                 }
                 else
                 {
-                    sourceVariables = tokens[1].Split(JUtil.VariableSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    string[] sourceVarStrings = tokens[1].Split(JUtil.VariableSeparator, StringSplitOptions.RemoveEmptyEntries);
+                    sourceVariables = new VariableOrNumber[sourceVarStrings.Length];
+                    for (int i = 0; i < sourceVarStrings.Length; ++i )
+                    {
+                        sourceVariables[i] = rpmComp.InstantiateVariableOrNumber(sourceVarStrings[i]);
+                    }
                     sourceValues = new object[sourceVariables.Length];
                     formatString = tokens[0].TrimEnd();
 
@@ -79,7 +84,7 @@ namespace JSI
                     RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                     for (int i = 0; i < formatter.sourceVariables.Length; ++i)
                     {
-                        formatter.sourceValues[i] = rpmComp.ProcessVariable(formatter.sourceVariables[i], comp);
+                        formatter.sourceValues[i] = formatter.sourceVariables[i].Get();
                     }
 
                     return string.Format(fp, formatter.formatString, formatter.sourceValues);

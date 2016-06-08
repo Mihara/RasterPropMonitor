@@ -227,12 +227,14 @@ namespace JSI
 
         public VariableLabelSet(ConfigNode node, Part part)
         {
+            RasterPropMonitorComputer rpmComp = null;
             if (node.HasValue("labelText"))
             {
                 string labelText = node.GetValue("labelText").Trim().UnMangleConfigText();
                 hasText = true;
                 oneShot = !labelText.Contains("$&$");
-                label = new StringProcessorFormatter(labelText);
+                rpmComp = RasterPropMonitorComputer.Instantiate(part, true);
+                label = new StringProcessorFormatter(labelText, rpmComp);
             }
             else
             {
@@ -242,7 +244,6 @@ namespace JSI
 
             if (node.HasValue("color"))
             {
-                RasterPropMonitorComputer rpmComp = null;
                 color = JUtil.ParseColor32(node.GetValue("color").Trim(), part, ref rpmComp);
                 hasColor = true;
             }

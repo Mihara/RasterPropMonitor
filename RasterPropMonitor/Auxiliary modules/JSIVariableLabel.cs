@@ -81,7 +81,7 @@ namespace JSI
                         sourceString = sourceString.Substring(1);
                     }
                 }
-                spf = new StringProcessorFormatter(sourceString);
+                spf = new StringProcessorFormatter(sourceString, rpmComp);
 
                 if (!oneshot)
                 {
@@ -117,7 +117,7 @@ namespace JSI
             catch(Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed with exception {0}", e);
-                spf = new StringProcessorFormatter(string.Empty);
+                spf = new StringProcessorFormatter("x", rpmComp);
             }
         }
 

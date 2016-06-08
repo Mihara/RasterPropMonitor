@@ -206,7 +206,7 @@ namespace JSI
                             sourceString = sourceString.Substring(1);
                         }
                     }
-                    labels.Add(new JSILabelSet(sourceString, oneshot));
+                    labels.Add(new JSILabelSet(sourceString, rpmComp, oneshot));
 
                     if (!oneshot)
                     {
@@ -239,7 +239,7 @@ namespace JSI
                                         string lText = variableNodes[i].GetValue("labelText");
                                         string sourceString = lText.UnMangleConfigText();
                                         lOneshot |= !lText.Contains("$&$");
-                                        labels.Add(new JSILabelSet(sourceString, lOneshot));
+                                        labels.Add(new JSILabelSet(sourceString, rpmComp, lOneshot));
                                         if (!lOneshot)
                                         {
                                             rpmComp.UpdateDataRefreshRate(refreshRate);
@@ -331,7 +331,7 @@ namespace JSI
             catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
-                labels.Add(new JSILabelSet("ERR", true));
+                labels.Add(new JSILabelSet("ERR", rpmComp, true));
             }
         }
 
@@ -481,11 +481,11 @@ namespace JSI
         public bool oneshotComplete;
         public readonly bool oneshot;
 
-        internal JSILabelSet(string labelText, bool isOneshot)
+        internal JSILabelSet(string labelText, RasterPropMonitorComputer rpmComp, bool isOneshot)
         {
             oneshot = isOneshot;
             oneshotComplete = false;
-            spf = new StringProcessorFormatter(labelText);
+            spf = new StringProcessorFormatter(labelText, rpmComp);
         }
     }
 
