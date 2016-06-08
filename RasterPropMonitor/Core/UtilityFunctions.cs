@@ -1317,13 +1317,13 @@ namespace JSI
             switch(node.name)
             {
                 case "RPM_CUSTOM_VARIABLE":
-                    return new CustomVariable(node);
+                    return new CustomVariable(node, rpmComp);
                 case "RPM_MAPPED_VARIABLE":
-                    return new MappedVariable(node);
+                    return new MappedVariable(node, rpmComp);
                 case "RPM_MATH_VARIABLE":
-                    return new MathVariable(node);
+                    return new MathVariable(node, rpmComp);
                 case "RPM_SELECT_VARIABLE":
-                    return new SelectVariable(node);
+                    return new SelectVariable(node, rpmComp);
             }
 
             throw new ArgumentException("Unrecognized complex variable "+node.name);

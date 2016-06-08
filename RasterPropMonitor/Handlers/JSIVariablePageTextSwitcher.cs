@@ -162,7 +162,7 @@ namespace JSI
                 for (int i = 0; i < definitions.Length; ++i)
                 {
                     string[] varrange = definitions[i].range.Split(',');
-                    range.Add(new VariableOrNumberRange(definitions[i].variableName, varrange[0], varrange[1]));
+                    range.Add(new VariableOrNumberRange(rpmComp, definitions[i].variableName, varrange[0], varrange[1]));
                     text.Add(JUtil.LoadPageDefinition(definitions[i].page));
                 }
                 definitions = null;
@@ -174,7 +174,7 @@ namespace JSI
 
                 if (tokens.Length == 2)
                 {
-                    legacyRange = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+                    legacyRange = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
 
                     float min = Mathf.Min(threshold.x, threshold.y);
                     float max = Mathf.Max(threshold.x, threshold.y);

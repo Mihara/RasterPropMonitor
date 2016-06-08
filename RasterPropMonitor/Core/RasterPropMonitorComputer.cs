@@ -70,8 +70,15 @@ namespace JSI
 
             internal void FireCallbacks(float newValue)
             {
-                onChangeCallbacks(newValue);
-                onResourceDepletedCallbacks(newValue < 0.01f);
+                if (onChangeCallbacks != null)
+                {
+                    onChangeCallbacks(newValue);
+                }
+
+                if (onResourceDepletedCallbacks != null)
+                {
+                    onResourceDepletedCallbacks.Invoke(newValue < 0.01f);
+                }
             }
         };
 

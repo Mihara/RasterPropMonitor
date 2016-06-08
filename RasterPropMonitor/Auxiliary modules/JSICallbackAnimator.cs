@@ -197,7 +197,8 @@ namespace JSI
                 throw new ArgumentException("Could not parse 'scale' parameter.");
             }
 
-            variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(thisProp, true);
+            variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
 
             // That takes care of the scale, now what to do about that scale:
             if (node.HasValue("reverse"))
@@ -286,7 +287,6 @@ namespace JSI
                 }
                 colorName = Shader.PropertyToID(colorNameString);
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
                     activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);

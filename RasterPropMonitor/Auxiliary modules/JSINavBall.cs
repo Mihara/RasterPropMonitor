@@ -66,7 +66,7 @@ namespace JSI
                 return;
             }
 
-            enablingVariable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+            enablingVariable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
         }
 
         public override void OnUpdate()

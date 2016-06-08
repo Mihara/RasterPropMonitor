@@ -479,7 +479,7 @@ namespace JSI
                         string[] range = masterVariableRange.Split(',');
                         if (range.Length == 2)
                         {
-                            masterVariable = new VariableOrNumberRange(masterVariableName, range[0], range[1]);
+                            masterVariable = new VariableOrNumberRange(rpmComp, masterVariableName, range[0], range[1]);
                         }
                         else
                         {

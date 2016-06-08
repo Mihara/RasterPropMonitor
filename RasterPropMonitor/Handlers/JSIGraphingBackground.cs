@@ -127,7 +127,7 @@ namespace JSI
                         {
                             try
                             {
-                                dataSets.Add(new DataSet(dataNodes[i]));
+                                dataSets.Add(new DataSet(dataNodes[i], rpmComp));
                             }
                             catch (ArgumentException e)
                             {
@@ -190,7 +190,7 @@ namespace JSI
             Lamp,
         };
 
-        public DataSet(ConfigNode node)
+        public DataSet(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             Vector4 packedPosition = ConfigNode.ParseVector4(node.GetValue("borderPosition"));
             position.x = packedPosition.x;
@@ -251,8 +251,8 @@ namespace JSI
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
             }
             string[] token = node.GetValue("scale").Split(',');
-            scale[0] = VariableOrNumber.Instantiate(token[0]);
-            scale[1] = VariableOrNumber.Instantiate(token[1]);
+            scale[0] = rpmComp.InstantiateVariableOrNumber(token[0]);
+            scale[1] = rpmComp.InstantiateVariableOrNumber(token[1]);
             variableName = node.GetValue("variableName").Trim();
 
             if (node.HasValue("reverse"))

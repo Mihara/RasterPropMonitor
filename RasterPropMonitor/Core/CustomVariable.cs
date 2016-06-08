@@ -61,14 +61,14 @@ namespace JSI
         private List<bool> reverse = new List<bool>();
         private Operator op;
 
-        internal CustomVariable(ConfigNode node)
+        internal CustomVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
             foreach (ConfigNode sourceVarNode in node.GetNodes("SOURCE_VARIABLE"))
             {
                 bool reverseVal;
-                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, out reverseVal);
+                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, rpmComp, out reverseVal);
 
                 sourceVariables.Add(vonr);
                 reverse.Add(reverseVal);
@@ -169,7 +169,7 @@ namespace JSI
             return evaluation.GetHashCode();
         }
 
-        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)
+        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, RasterPropMonitorComputer rpmComp, out bool reverse)
         {
             VariableOrNumberRange range;
             if (node.HasValue("range"))
@@ -180,11 +180,11 @@ namespace JSI
                 {
                     throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
                 }
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
             }
             else
             {
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
             }
 
             if (node.HasValue("reverse"))

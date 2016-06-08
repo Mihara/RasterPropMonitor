@@ -276,12 +276,12 @@ namespace JSI
 
             if (node.HasValue("modulo"))
             {
-                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1], node.GetValue("modulo"));
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1], node.GetValue("modulo"));
                 usesModulo = true;
             }
             else
             {
-                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
                 usesModulo = false;
             }
 

@@ -180,9 +180,17 @@ namespace JSI
                 {
                     if (RPMGlobals.customVariables.ContainsKey(input))
                     {
-                        ConfigNode cn = RPMGlobals.customVariables[input];
-                        IComplexVariable var = JUtil.InstantiateComplexVariable(cn, this);
-                        customVariables.Add(input, var);
+                        IComplexVariable var;
+                        if (!customVariables.ContainsKey(input))
+                        {
+                            ConfigNode cn = RPMGlobals.customVariables[input];
+                            var = JUtil.InstantiateComplexVariable(cn, this);
+                            customVariables.Add(input, var);
+                        }
+                        else
+                        {
+                            var = customVariables[input];
+                        }
                         return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(rpmComp, comp); };
                     }
                     else

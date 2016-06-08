@@ -39,57 +39,12 @@ namespace JSI
             VariableValue,
         }
 
-        static private Dictionary<string, VariableOrNumber> vars = new Dictionary<string, VariableOrNumber>();
-
         /// <summary>
-        /// Create a new VariableOrNumber, or return an existing one that
-        /// tracks the same value.
+        /// Initialize a VariableOrNumber
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
-        public static VariableOrNumber Instantiate(string input)
-        {
-            string varName = input.Trim();
-            float floatval;
-            if (float.TryParse(varName, out floatval))
-            {
-                // If it's a numeric value, let's canonicalize it using
-                // ToString, so we don't have duplicates that evaluate to the
-                // same value (eg, 1.0, 1, 1.00, etc).
-                varName = floatval.ToString();
-            }
-
-            if (varName == "MetersToFeet")
-            {
-                varName = RPMGlobals.MetersToFeet.ToString();
-            }
-            else if (varName == "MetersPerSecondToKnots")
-            {
-                varName = RPMGlobals.MetersPerSecondToKnots.ToString();
-            }
-            else if (varName == "MetersPerSecondToFeetPerMinute")
-            {
-                varName = RPMGlobals.MetersPerSecondToFeetPerMinute.ToString();
-            }
-
-            if (!vars.ContainsKey(varName))
-            {
-                VariableOrNumber VoN = new VariableOrNumber(varName);
-                vars.Add(varName, VoN);
-                //JUtil.LogMessage(null, "Adding VoN {0}", varName);
-            }
-            return vars[varName];
-        }
-
-        /// <summary>
-        /// Used by RPMVesselComputer to signal that we no longer need the
-        /// cache of variables.
-        /// </summary>
-        internal static void Clear()
-        {
-            vars.Clear();
-        }
-
+        /// <param name="input">The name of the variable</param>
+        /// <param name="cacheable">Whether the variable is cacheable</param>
+        /// <param name="rpmComp">The RasterPropMonitorComputer that owns the variable</param>
         internal VariableOrNumber(string input, bool cacheable, RasterPropMonitorComputer rpmComp)
         {
             string varName = input.Trim();
@@ -248,14 +203,14 @@ namespace JSI
         VariableOrNumber upperBound;
         VariableOrNumber modulo;
 
-        public VariableOrNumberRange(string sourceVariable, string range1, string range2, string moduloVariable = null)
+        public VariableOrNumberRange(RasterPropMonitorComputer rpmComp, string sourceVariable, string range1, string range2, string moduloVariable = null)
         {
-            sourceValue = VariableOrNumber.Instantiate(sourceVariable);
-            lowerBound = VariableOrNumber.Instantiate(range1);
-            upperBound = VariableOrNumber.Instantiate(range2);
+            sourceValue = rpmComp.InstantiateVariableOrNumber(sourceVariable);
+            lowerBound = rpmComp.InstantiateVariableOrNumber(range1);
+            upperBound = rpmComp.InstantiateVariableOrNumber(range2);
             if (!string.IsNullOrEmpty(moduloVariable))
             {
-                modulo = VariableOrNumber.Instantiate(moduloVariable);
+                modulo = rpmComp.InstantiateVariableOrNumber(moduloVariable);
             }
         }
 

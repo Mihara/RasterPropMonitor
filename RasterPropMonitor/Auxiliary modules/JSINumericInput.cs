@@ -85,12 +85,12 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(minValue))
                 {
-                    minRange = VariableOrNumber.Instantiate(minValue);
+                    minRange = rpmComp.InstantiateVariableOrNumber(minValue);
                     //JUtil.LogMessage(this, "Created lower bound variable");
                 }
                 if (!string.IsNullOrEmpty(maxValue))
                 {
-                    maxRange = VariableOrNumber.Instantiate(maxValue);
+                    maxRange = rpmComp.InstantiateVariableOrNumber(maxValue);
                     //JUtil.LogMessage(this, "Created upper bound variable");
                 }
                 if ((minRange == null || maxRange == null) && loopInput == true)
@@ -104,7 +104,7 @@ namespace JSI
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
                     RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
+                    VariableOrNumber von = rpmComp.InstantiateVariableOrNumber(defaultValue);
                     float value;
                     if (von.Get(out value, rpmComp, comp))
                     {

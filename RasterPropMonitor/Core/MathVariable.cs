@@ -48,7 +48,7 @@ namespace JSI
         private readonly Operator op;
         private readonly bool indexOperator;
 
-        internal MathVariable(ConfigNode node)
+        internal MathVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
@@ -126,7 +126,7 @@ namespace JSI
             int numIndices = Math.Min(sources.Length, maxParameters);
             for (int i = 0; i < numIndices; ++i)
             {
-                VariableOrNumber sv = VariableOrNumber.Instantiate(sources[i]);
+                VariableOrNumber sv = rpmComp.InstantiateVariableOrNumber(sources[i]);
                 sourceVariables.Add(sv);
             }
 

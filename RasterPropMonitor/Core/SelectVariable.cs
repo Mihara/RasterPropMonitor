@@ -35,25 +35,25 @@ namespace JSI
         private List<bool> reverse = new List<bool>();
         private List<VariableOrNumber> result = new List<VariableOrNumber>();
 
-        internal SelectVariable(ConfigNode node)
+        internal SelectVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
             foreach (ConfigNode sourceVarNode in node.GetNodes("VARIABLE_DEFINITION"))
             {
                 bool reverseVal;
-                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, out reverseVal);
+                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, rpmComp, out reverseVal);
 
                 sourceVariables.Add(vonr);
                 reverse.Add(reverseVal);
 
-                VariableOrNumber val = VariableOrNumber.Instantiate(sourceVarNode.GetValue("value"));
+                VariableOrNumber val = rpmComp.InstantiateVariableOrNumber(sourceVarNode.GetValue("value"));
                 result.Add(val);
             }
 
             if (node.HasValue("defaultValue"))
             {
-                VariableOrNumber val = VariableOrNumber.Instantiate(node.GetValue("defaultValue"));
+                VariableOrNumber val = rpmComp.InstantiateVariableOrNumber(node.GetValue("defaultValue"));
                 result.Add(val);
             }
             else
@@ -82,7 +82,7 @@ namespace JSI
             return result[i].Evaluate(rpmComp, comp);
         }
 
-        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)
+        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, RasterPropMonitorComputer rpmComp, out bool reverse)
         {
             VariableOrNumberRange range;
             if (node.HasValue("range"))
@@ -93,11 +93,11 @@ namespace JSI
                 {
                     throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
                 }
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
             }
             else
             {
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
             }
 
             if (node.HasValue("reverse"))

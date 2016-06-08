@@ -123,7 +123,7 @@ namespace JSI
                 {
                     throw new Exception("TriggeredEvent: tokens not valid");
                 }
-                variable = new VariableOrNumberRange(template.variableName, tokens[0], tokens[1]);
+                variable = new VariableOrNumberRange(rpmComp, template.variableName, tokens[0], tokens[1]);
 
                 if (JSIActionGroupSwitch.groupList.ContainsKey(template.triggerEvent))
                 {

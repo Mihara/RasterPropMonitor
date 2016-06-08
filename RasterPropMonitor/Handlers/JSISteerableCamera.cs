@@ -650,7 +650,7 @@ namespace JSI
                             {
                                 ShaderEffectVariable sev = new ShaderEffectVariable();
                                 sev.variable = Shader.PropertyToID(components[0].Trim());
-                                sev.value = VariableOrNumber.Instantiate(components[1]);
+                                sev.value = rpmComp.InstantiateVariableOrNumber(components[1]);
                                 ceVariables.Add(sev);
                             }
                         }
