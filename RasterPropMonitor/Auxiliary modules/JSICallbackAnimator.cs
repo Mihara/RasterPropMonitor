@@ -86,7 +86,7 @@ namespace JSI
                 float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
-                    variableSets[i].Update(rpmComp, comp, value);
+                    variableSets[i].Update(value);
                 }
 
                 rpmComp.RegisterVariableCallback(variableName, del);
@@ -132,10 +132,9 @@ namespace JSI
             }
             else
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
-                    variableSets[i].Update(rpmComp, comp, value);
+                    variableSets[i].Update(value);
                 }
             }
         }
@@ -519,9 +518,9 @@ namespace JSI
             }
         }
 
-        public void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, float value)
+        public void Update(float value)
         {
-            bool newState = variable.IsInRange(rpmComp, comp, value);
+            bool newState = variable.IsInRange(value);
 
             if (newState ^ currentState)
             {

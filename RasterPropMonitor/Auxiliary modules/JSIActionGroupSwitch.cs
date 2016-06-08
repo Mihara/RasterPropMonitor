@@ -666,7 +666,7 @@ namespace JSI
                 }
                 if (masterVariable != null)
                 {
-                    switchEnabled = masterVariable.IsInRange(rpmComp, comp);
+                    switchEnabled = masterVariable.IsInRange();
                 }
             }
             if (!switchEnabled)
@@ -905,8 +905,7 @@ namespace JSI
 
             if (masterVariable != null)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                if (!masterVariable.IsInRange(rpmComp, comp))
+                if (!masterVariable.IsInRange())
                 {
                     newState = false;
                     forcedShutdown = true;

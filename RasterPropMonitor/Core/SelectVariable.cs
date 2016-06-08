@@ -73,7 +73,7 @@ namespace JSI
             int i = 0;
             for (; i < sourceVariables.Count; ++i)
             {
-                if (sourceVariables[i].IsInRange(rpmComp, comp) ^ reverse[i])
+                if (sourceVariables[i].IsInRange() ^ reverse[i])
                 {
                     break;
                 }

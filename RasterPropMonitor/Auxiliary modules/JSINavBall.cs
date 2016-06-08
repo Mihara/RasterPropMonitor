@@ -76,8 +76,7 @@ namespace JSI
                 return;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-            if (enablingVariable.IsInRange(rpmComp, comp))
+            if (enablingVariable.IsInRange())
             {
                 base.OnUpdate();
                 Quaternion post = navBall.rotation;

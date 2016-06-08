@@ -421,15 +421,13 @@ namespace JSI
                 InitializeRenderables(screen);
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(rpmComp, comp);
+                verticalBars[i].Update();
             }
             for (int i = 0; i < horizontalBars.Count; ++i)
             {
-                horizontalBars[i].Update(rpmComp, comp);
+                horizontalBars[i].Update();
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -445,6 +443,7 @@ namespace JSI
             // MOARdV TODO: I don't think this does anything...
             GL.Color(Color.white);
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             if (headingMesh != null)
             {
@@ -664,11 +663,11 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        internal void Update()
         {
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp, comp))
+                if (!enablingVariable.IsInRange())
                 {
                     return;
                 }
@@ -801,11 +800,11 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        internal void Update()
         {
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp, comp))
+                if (!enablingVariable.IsInRange())
                 {
                     return;
                 }

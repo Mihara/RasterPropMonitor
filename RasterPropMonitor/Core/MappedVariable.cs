@@ -61,7 +61,7 @@ namespace JSI
             float lerp;
             float extent1 = mappedExtent1.AsFloat();
             float extent2 = mappedExtent2.AsFloat();
-            if (sourceVariable.InverseLerp(rpmComp, comp, out lerp))
+            if (sourceVariable.InverseLerp(out lerp))
             {
                 return Mathf.Lerp(extent1, extent2, lerp);
             }

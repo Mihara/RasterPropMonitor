@@ -611,9 +611,10 @@ namespace JSI
                 forceCallbackRefresh = false;
                 timeToUpdate = false;
 
+                Vessel v = vessel;
                 for (int i = 0; i < activeTriggeredEvents.Count; ++i)
                 {
-                    activeTriggeredEvents[i].Update(this, comp);
+                    activeTriggeredEvents[i].Update(v);
                 }
             }
         }

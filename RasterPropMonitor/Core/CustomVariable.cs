@@ -33,9 +33,11 @@ namespace JSI
         object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp);
     }
 
-    // A CustomVariable defines a user-defined variable that consists of one or
-    // more RPM variables.  The CustomVariable applies a single logical operator
-    // across all the variables.
+    /// <summary>
+    /// A CustomVariable defines a user-defined variable that consists of one or
+    /// more RPM variables.  The CustomVariable applies a single logical operator
+    /// across all the variables.
+    /// </summary>
     class CustomVariable : IComplexVariable
     {
         enum Operator
@@ -113,7 +115,7 @@ namespace JSI
         public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
         {
             // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].IsInRange(rpmComp, comp) ^ reverse[0];
+            bool evaluation = sourceVariables[0].IsInRange() ^ reverse[0];
 
             // Use an optimization on evaluation to speed things up
             bool earlyExit;
@@ -139,7 +141,7 @@ namespace JSI
 
             for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
-                bool nextValue = sourceVariables[i].IsInRange(rpmComp, comp) ^ reverse[i];
+                bool nextValue = sourceVariables[i].IsInRange() ^ reverse[i];
 
                 switch (op)
                 {

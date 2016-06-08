@@ -182,9 +182,9 @@ namespace JSI
                 JUtil.LogMessage(this, "Triggered Event {0} created", eventName);
             }
 
-            internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+            internal void Update(Vessel vessel)
             {
-                bool inRange = variable.IsInRange(rpmComp, comp);
+                bool inRange = variable.IsInRange();
                 if (armed)
                 {
                     if (inRange)
@@ -194,7 +194,7 @@ namespace JSI
                             JUtil.LogMessage(this, "Event {0} triggered", eventName);
                             triggered = true;
                             armed = oneShot;
-                            DoEvent(rpmComp.vessel);
+                            DoEvent(vessel);
                         }
                     }
                 }

@@ -163,7 +163,13 @@ namespace JSI
             }
         }
 
-        public bool InverseLerp(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, out float scaledValue)
+        /// <summary>
+        /// Return a value in the range of 0 to 1 representing where the current variable
+        /// evaluates within its range.
+        /// </summary>
+        /// <param name="scaledValue"></param>
+        /// <returns></returns>
+        public bool InverseLerp(out float scaledValue)
         {
             float value = sourceValue.AsFloat();
             float low = lowerBound.AsFloat();
@@ -196,7 +202,7 @@ namespace JSI
         /// </summary>
         /// <param name="comp"></param>
         /// <returns></returns>
-        public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public bool IsInRange()
         {
             float value = sourceValue.AsFloat();
             float low = lowerBound.AsFloat();
@@ -219,7 +225,7 @@ namespace JSI
         /// <param name="comp"></param>
         /// <param name="value">The value to test (provided externally)</param>
         /// <returns></returns>
-        public bool IsInRange(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, float value)
+        public bool IsInRange(float value)
         {
             float low = lowerBound.AsFloat();
             float high = upperBound.AsFloat();
