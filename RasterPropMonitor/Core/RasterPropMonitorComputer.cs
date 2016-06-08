@@ -141,18 +141,6 @@ namespace JSI
             return (createIfMissing) ? thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer : null;
         }
 
-        /// <summary>
-        /// Wrapper for ExternalVariablesHandler.ProcessVariable.
-        /// </summary>
-        /// <param name="variable"></param>
-        /// <param name="result"></param>
-        /// <param name="cacheable"></param>
-        /// <returns></returns>
-        internal bool ProcessVariable(string variable, out object result, out bool cacheable)
-        {
-            return plugins.ProcessVariable(variable, out result, out cacheable);
-        }
-
         // Page handler interface for vessel description page.
         // Analysis disable UnusedParameter
         public string VesselDescriptionRaw(int screenWidth, int screenHeight)
@@ -242,7 +230,7 @@ namespace JSI
                 bool cacheable = true;
                 try
                 {
-                    if (!ProcessVariable(input, out returnValue, out cacheable))
+                    if (!plugins.ProcessVariable(input, out returnValue, out cacheable))
                     {
                         cacheable = false;
                         returnValue = input;
