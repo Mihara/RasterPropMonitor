@@ -146,13 +146,12 @@ namespace JSI
         private FXGroup loopingOutput;
         private bool startupComplete;
         private Material colorShiftMaterial;
-        private string stateVariable = string.Empty;
-        private bool stateVariableValid = false;
+        private VariableOrNumber stateVariable;
         private Action<bool> actionHandler;
         private bool isPluginAction;
         private RasterPropMonitorComputer rpmComp;
 
-        private string transferGetter = string.Empty;
+        private VariableOrNumber transferGetter;
         private Action<double> transferSetter;
         private string transferPersistentName;
 
@@ -321,13 +320,11 @@ namespace JSI
                                                 if (pluginConfig.HasValue("stateMethod"))
                                                 {
                                                     string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
-                                                    stateVariable = "PLUGIN_" + state;
-                                                    stateVariableValid = true;
+                                                    stateVariable = rpmComp.InstantiateVariableOrNumber("PLUGIN_" + state);
                                                 }
                                                 else if (pluginConfig.HasValue("stateVariable"))
                                                 {
-                                                    stateVariable = pluginConfig.GetValue("stateVariable").Trim();
-                                                    stateVariableValid = true;
+                                                    stateVariable = rpmComp.InstantiateVariableOrNumber(pluginConfig.GetValue("stateVariable").Trim());
                                                 }
                                                 isPluginAction = true;
                                                 break;
@@ -357,13 +354,11 @@ namespace JSI
                                             if (pluginConfig.HasValue("stateMethod"))
                                             {
                                                 string state = pluginConfig.GetValue("name").Trim() + ":" + pluginConfig.GetValue("stateMethod").Trim();
-                                                stateVariable = "PLUGIN_" + state;
-                                                stateVariableValid = true;
+                                                stateVariable = rpmComp.InstantiateVariableOrNumber("PLUGIN_" + state);
                                             }
                                             else if (pluginConfig.HasValue("stateVariable"))
                                             {
-                                                stateVariable = pluginConfig.GetValue("stateVariable").Trim();
-                                                stateVariableValid = true;
+                                                stateVariable = rpmComp.InstantiateVariableOrNumber(pluginConfig.GetValue("stateVariable").Trim());
                                             }
                                             if (pluginConfig.HasValue("setMethod"))
                                             {
@@ -382,7 +377,7 @@ namespace JSI
                                                 }
                                                 else if (pluginConfig.HasValue("getVariable"))
                                                 {
-                                                    transferGetter = pluginConfig.GetValue("getVariable").Trim();
+                                                    transferGetter = rpmComp.InstantiateVariableOrNumber(pluginConfig.GetValue("getVariable").Trim());
                                                     actionName = "transferFromVariable";
                                                     customAction = CustomActions.TransferFromVariable;
                                                 }
@@ -406,7 +401,7 @@ namespace JSI
                                                     }
                                                     else
                                                     {
-                                                        transferGetter = "PLUGIN_" + action;
+                                                        transferGetter = rpmComp.InstantiateVariableOrNumber("PLUGIN_" + action);
                                                         transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                                         actionName = "transferToPersistent";
                                                         customAction = CustomActions.TransferToPersistent;
@@ -423,7 +418,7 @@ namespace JSI
                                             {
                                                 if (pluginConfig.HasValue("perPodPersistenceName"))
                                                 {
-                                                    transferGetter = pluginConfig.GetValue("getVariable").Trim();
+                                                    transferGetter = rpmComp.InstantiateVariableOrNumber(pluginConfig.GetValue("getVariable").Trim());
                                                     transferPersistentName = pluginConfig.GetValue("perPodPersistenceName").Trim();
                                                     actionName = "transferToPersistent";
                                                     customAction = CustomActions.TransferToPersistent;
@@ -437,11 +432,10 @@ namespace JSI
                                     }
                                 }
                             }
-                            if (string.IsNullOrEmpty(transferGetter) && transferSetter == null)
+                            if (transferGetter == null && transferSetter == null)
                             {
                                 actionName = "dummy";
-                                stateVariable = string.Empty;
-                                stateVariableValid = false;
+                                stateVariable = null;
                                 JUtil.LogMessage(this, "Transfer handlers did not start, reverting to dummy mode.");
                             }
                             break;
@@ -470,7 +464,7 @@ namespace JSI
                 }
 
                 if (needsElectricChargeValue || persistentVarValid || !string.IsNullOrEmpty(perPodMasterSwitchName) || !string.IsNullOrEmpty(masterVariableName) ||
-                    !string.IsNullOrEmpty(transferGetter) || transferSetter != null)
+                    transferGetter != null || transferSetter != null)
                 {
                     rpmComp.UpdateDataRefreshRate(refreshRate);
 
@@ -509,17 +503,9 @@ namespace JSI
 
                 if (isCustomAction)
                 {
-                    if (isPluginAction && stateVariableValid)
+                    if (isPluginAction && stateVariable != null)
                     {
-                        try
-                        {
-                            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
-                            currentState = (rpmComp.ProcessVariable(stateVariable, comp).MassageToInt()) > 0;
-                        }
-                        catch
-                        {
-                            // no-op
-                        }
+                        currentState = stateVariable.AsInt() > 0;
                     }
                     else
                     {
@@ -657,7 +643,7 @@ namespace JSI
         public void Click()
         {
             bool switchEnabled = true;
-            RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
+
             if (!forcedShutdown)
             {
                 if (perPodMasterSwitchValid)
@@ -691,9 +677,9 @@ namespace JSI
                     }
                     // else: can't turn off a radio group switch.
                 }
-                else if (customAction == CustomActions.Plugin && stateVariableValid)
+                else if (customAction == CustomActions.Plugin && stateVariable != null)
                 {
-                    int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
+                    int ivalue = stateVariable.AsInt();
                     customGroupState = (ivalue < 1) && !forcedShutdown;
                 }
                 else
@@ -726,23 +712,23 @@ namespace JSI
                     }
                     break;
                 case CustomActions.TransferToPersistent:
-                    if (stateVariableValid)
+                    if (stateVariable != null)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
+                        int ivalue = stateVariable.AsInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
                         }
                     }
-                    float getValue = rpmComp.ProcessVariable(transferGetter, comp).MassageToFloat();
+                    float getValue = transferGetter.AsFloat();
                     rpmComp.SetPersistentVariable(transferPersistentName, getValue);
                     break;
                 case CustomActions.TransferFromPersistent:
-                    if (stateVariableValid)
+                    if (stateVariable != null)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
+                        int ivalue = stateVariable.AsInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
@@ -754,38 +740,17 @@ namespace JSI
                     }
                     break;
                 case CustomActions.TransferFromVariable:
-                    if (stateVariableValid)
+                    if (stateVariable != null)
                     {
                         // stateVariable can disable the button functionality.
-                        int ivalue = rpmComp.ProcessVariable(stateVariable, comp).MassageToInt();
+                        int ivalue = stateVariable.AsInt();
                         if (ivalue < 1)
                         {
                             return; // early - button disabled
                         }
                     }
-                    double xferValue = rpmComp.ProcessVariable(transferGetter, comp).MassageToDouble();
+                    double xferValue = transferGetter.AsDouble();
                     transferSetter(xferValue);
-                    break;
-                case CustomActions.Transfer:
-                    JUtil.LogInfo(this, "The deprecated CustomActions.Transfer path was executed");
-                    /*if (stateVariableValid)
-                    {
-                        // stateVariable can disable the button functionality.
-                        int ivalue = comp.ProcessVariable(stateVariable).MassageToInt();
-                        if (ivalue < 1)
-                        {
-                            return; // early - button disabled
-                        }
-                    }
-                    if (!string.IsNullOrEmpty(transferGetter))
-                    {
-                        float value = comp.ProcessVariable(transferGetter).MassageToFloat();
-                        rpmComp.SetPersistentVariable(transferPersistentName, value);
-                    }
-                    else if (rpmComp.HasPersistentVariable(transferPersistentName))
-                    {
-                        transferSetter(rpmComp.GetPersistentVariable(transferPersistentName, 0.0).MassageToDouble());
-                    }*/
                     break;
             }
         }
@@ -831,12 +796,11 @@ namespace JSI
             // So there's no check for internal cameras.
 
             bool newState;
-            if (isPluginAction && stateVariableValid)
+            if (isPluginAction && stateVariable != null)
             {
                 try
                 {
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    newState = (rpmComp.ProcessVariable(stateVariable, comp).MassageToInt()) > 0;
+                    newState = (stateVariable.AsInt()) > 0;
                 }
                 catch
                 {

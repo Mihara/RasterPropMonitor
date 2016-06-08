@@ -120,6 +120,22 @@ namespace JSI
         }
 
         /// <summary>
+        /// Returns the value as an int.
+        /// </summary>
+        /// <returns></returns>
+        public int AsInt()
+        {
+            if (rpmComp != null)
+            {
+                return rpmComp.ProcessVariable(variableName, null).MassageToInt();
+            }
+            else
+            {
+                return (int)numericValue;
+            }
+        }
+
+        /// <summary>
         /// Return the value boxed as an object
         /// </summary>
         /// <returns></returns>
