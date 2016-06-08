@@ -69,283 +69,260 @@ namespace JSI
             {
                 string[] tokens = input.Split('_');
 
-                // MOARdV TODO: Restructure this as a switch statement on tokens[0]
-
-                // Is loaded?
-                if (tokens.Length >= 2 && tokens[0] == "ISLOADED")
+                switch(tokens[0])
                 {
-                    string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
+                    case "ISLOADED":
+                        string assemblyname = input.Substring(input.IndexOf("_", StringComparison.Ordinal) + 1);
 
-                    if (RPMGlobals.knownLoadedAssemblies.Contains(assemblyname))
-                    {
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return 1.0f; };
-                    }
-                    else
-                    {
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return 0.0f; };
-                    }
-                }
-
-
-                if (tokens.Length == 2 && tokens[0] == "SYSR")
-                {
-                    foreach (KeyValuePair<string, string> resourceType in RPMGlobals.systemNamedResources)
-                    {
-                        if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
+                        if (RPMGlobals.knownLoadedAssemblies.Contains(assemblyname))
                         {
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
-                            {
-                                return comp.resources.ListElement(variable);
-                            };
-                        }
-                    }
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
-                }
-
-                // If input starts with "LISTR" we're handling it specially -- it's a list of all resources.
-                // The variables are named like LISTR_<number>_<NAME|VAL|MAX>
-                if (tokens.Length == 3 && tokens[0] == "LISTR")
-                {
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
-                    {
-                        string[] toks = variable.Split('_');
-                        ushort resourceID = Convert.ToUInt16(toks[1]);
-                        string resourceName = comp.resources.GetActiveResourceByIndex(resourceID);
-                        if (toks[2] == "NAME")
-                        {
-                            return resourceName;
-                        }
-                        if (string.IsNullOrEmpty(resourceName))
-                        {
-                            return 0d;
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return 1.0f; };
                         }
                         else
                         {
-                            return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
-                                comp.resources.ListElement(resourceName, toks[2].Substring("STAGE".Length), true) :
-                                comp.resources.ListElement(resourceName, toks[2], false);
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return 0.0f; };
                         }
-                    };
-                }
 
-                // We do similar things for crew rosters.
-                // The syntax is therefore CREW_<index>_<FIRST|LAST|FULL>
-                // Part-local crew list is identical but CREWLOCAL_.
-                if (tokens.Length == 3 && (tokens[0] == "CREW" || tokens[0] == "CREWLOCAL"))
-                {
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
-                    {
-                        string[] toks = variable.Split('_');
-                        ushort crewSeatID = Convert.ToUInt16(toks[1]);
-                        switch (toks[0])
+                    case "SYSR":
+                        foreach (KeyValuePair<string, string> resourceType in RPMGlobals.systemNamedResources)
                         {
-                            case "CREW":
-                                return CrewListElement(toks[2], crewSeatID, comp.vesselCrew, comp.vesselCrewMedical);
-                            case "CREWLOCAL":
-                                return CrewListElement(toks[2], crewSeatID, rpmComp.localCrew, rpmComp.localCrewMedical);
-                        }
-                        return variable;
-                    };
-                }
-
-                // Periodic variables - A value that toggles between 0 and 1 with
-                // the specified (game clock) period.
-                if (tokens.Length > 1 && tokens[0] == "PERIOD")
-                {
-                    if (tokens[1].Substring(tokens[1].Length - 2) == "HZ")
-                    {
-                        double period;
-                        if (double.TryParse(tokens[1].Substring(0, tokens[1].Length - 2), out period) && period > 0.0)
-                        {
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                            if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
                             {
-                                string[] toks = variable.Split('_');
-                                double pd;
-                                double.TryParse(toks[1].Substring(0, toks[1].Length - 2), out pd);
-                                double invPeriod = 1.0 / pd;
-
-                                double remainder = Planetarium.GetUniversalTime() % invPeriod;
-
-                                return (remainder > invPeriod * 0.5).GetHashCode();
-                            };
-
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                                {
+                                    return comp.resources.ListElement(variable);
+                                };
+                            }
                         }
-                    }
-
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
-                }
-
-                // Custom variables - if the first token is CUSTOM, MAPPED, MATH, or SELECT, we'll evaluate it here
-                if (tokens.Length > 1 && (tokens[0] == "CUSTOM" || tokens[0] == "MAPPED" || tokens[0] == "MATH" || tokens[0] == "SELECT"))
-                {
-                    if (RPMGlobals.customVariables.ContainsKey(input))
-                    {
-                        IComplexVariable var;
-                        if (!customVariables.ContainsKey(input))
-                        {
-                            ConfigNode cn = RPMGlobals.customVariables[input];
-                            var = JUtil.InstantiateComplexVariable(cn, this);
-                            customVariables.Add(input, var);
-                        }
-                        else
-                        {
-                            var = customVariables[input];
-                        }
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(rpmComp, comp); };
-                    }
-                    else
-                    {
                         return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
-                    }
-                }
 
-                // Strings stored in module configuration.
-                if (tokens.Length == 2 && tokens[0] == "STOREDSTRING")
-                {
-                    int storedStringNumber;
-                    if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
-                    {
+                    case "LISTR":
                         return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                         {
-                            if (rpmComp == null)
-                            {
-                                return "";
-                            }
-
                             string[] toks = variable.Split('_');
-                            int storedNumber;
-                            int.TryParse(toks[1], out storedNumber);
-                            if (storedNumber < rpmComp.storedStringsArray.Count)
+                            ushort resourceID = Convert.ToUInt16(toks[1]);
+                            string resourceName = comp.resources.GetActiveResourceByIndex(resourceID);
+                            if (toks[2] == "NAME")
                             {
-                                return rpmComp.storedStringsArray[storedNumber];
+                                return resourceName;
+                            }
+                            if (string.IsNullOrEmpty(resourceName))
+                            {
+                                return 0d;
                             }
                             else
                             {
-                                return "";
+                                return toks[2].StartsWith("STAGE", StringComparison.Ordinal) ?
+                                    comp.resources.ListElement(resourceName, toks[2].Substring("STAGE".Length), true) :
+                                    comp.resources.ListElement(resourceName, toks[2], false);
                             }
                         };
-                    }
-                    else
-                    {
+
+                    case "CREW":
+                    case "CREWLOCAL":
                         return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                         {
-                            if (rpmComp == null)
-                            {
-                                return "";
-                            }
-
+                            // Do I really need to split this here?
                             string[] toks = variable.Split('_');
-                            int stringNumber;
-                            if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < rpmComp.storedStringsArray.Count)
+                            ushort crewSeatID = Convert.ToUInt16(toks[1]);
+                            switch (toks[0])
                             {
-                                return rpmComp.storedStrings[stringNumber];
+                                case "CREW":
+                                    return CrewListElement(toks[2], crewSeatID, comp.vesselCrew, comp.vesselCrewMedical);
+                                case "CREWLOCAL":
+                                    return CrewListElement(toks[2], crewSeatID, rpmComp.localCrew, rpmComp.localCrewMedical);
+                            }
+                            return variable;
+                        };
+
+                    case "PERIOD":
+                        if (tokens[1].Substring(tokens[1].Length - 2) == "HZ")
+                        {
+                            double period;
+                            if (double.TryParse(tokens[1].Substring(0, tokens[1].Length - 2), out period) && period > 0.0)
+                            {
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                                {
+                                    string[] toks = variable.Split('_');
+                                    double pd;
+                                    double.TryParse(toks[1].Substring(0, toks[1].Length - 2), out pd);
+                                    double invPeriod = 1.0 / pd;
+
+                                    double remainder = Planetarium.GetUniversalTime() % invPeriod;
+
+                                    return (remainder > invPeriod * 0.5).GetHashCode();
+                                };
+
+                            }
+                        }
+
+                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
+
+                    case "CUSTOM":
+                    case "MAPPED":
+                    case "MATH":
+                    case "SELECT":
+                        if (RPMGlobals.customVariables.ContainsKey(input))
+                        {
+                            IComplexVariable var;
+                            if (!customVariables.ContainsKey(input))
+                            {
+                                ConfigNode cn = RPMGlobals.customVariables[input];
+                                var = JUtil.InstantiateComplexVariable(cn, this);
+                                customVariables.Add(input, var);
                             }
                             else
                             {
-                                return "";
+                                var = customVariables[input];
                             }
-                        };
-                    }
-                }
-
-                if (tokens.Length > 1 && tokens[0] == "PERSISTENT")
-                {
-                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
-                    {
-                        string substring = variable.Substring("PERSISTENT".Length + 1);
-                        if (rpmComp != null)
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return var.Evaluate(rpmComp, comp); };
+                        }
+                        else
                         {
-                            if (rpmComp.HasPersistentVariable(substring))
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
+                        }
+
+                    case "STOREDSTRING":
+                        int storedStringNumber;
+                        if (int.TryParse(tokens[1], out storedStringNumber) && storedStringNumber >= 0)
+                        {
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
                             {
-                                return rpmComp.GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                if (rpmComp == null)
+                                {
+                                    return "";
+                                }
+
+                                string[] toks = variable.Split('_');
+                                int storedNumber;
+                                int.TryParse(toks[1], out storedNumber);
+                                if (storedNumber < rpmComp.storedStringsArray.Count)
+                                {
+                                    return rpmComp.storedStringsArray[storedNumber];
+                                }
+                                else
+                                {
+                                    return "";
+                                }
+                            };
+                        }
+                        else
+                        {
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                            {
+                                if (rpmComp == null)
+                                {
+                                    return "";
+                                }
+
+                                string[] toks = variable.Split('_');
+                                int stringNumber;
+                                if (int.TryParse(toks[1], out stringNumber) && stringNumber >= 0 && stringNumber < rpmComp.storedStringsArray.Count)
+                                {
+                                    return rpmComp.storedStrings[stringNumber];
+                                }
+                                else
+                                {
+                                    return "";
+                                }
+                            };
+                        }
+
+                    case "PERSISTENT":
+                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) =>
+                        {
+                            string substring = variable.Substring("PERSISTENT".Length + 1);
+                            if (rpmComp != null)
+                            {
+                                if (rpmComp.HasPersistentVariable(substring))
+                                {
+                                    return rpmComp.GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                }
+                                else
+                                {
+                                    return -1.0f;
+                                }
                             }
                             else
                             {
                                 return -1.0f;
                             }
-                        }
-                        else
-                        {
-                            return -1.0f;
-                        }
-                    };
-                }
+                        };
 
-                if (tokens.Length == 2 && tokens[0] == "PLUGIN")
-                {
-                    Delegate pluginMethod = GetInternalMethod(tokens[1]);
-                    if (pluginMethod != null)
-                    {
-                        MethodInfo mi = pluginMethod.Method;
-                        if (mi.ReturnType == typeof(bool))
+                    case "PLUGIN":
+                        Delegate pluginMethod = GetInternalMethod(tokens[1]);
+                        if (pluginMethod != null)
                         {
-                            Func<bool> method = (Func<bool>)pluginMethod;
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method().GetHashCode(); };
-                        }
-                        else if (mi.ReturnType == typeof(double))
-                        {
-                            Func<double> method = (Func<double>)pluginMethod;
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method(); };
-                        }
-                        else if (mi.ReturnType == typeof(string))
-                        {
-                            Func<string> method = (Func<string>)pluginMethod;
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method(); };
-                        }
-                        else
-                        {
-                            JUtil.LogErrorMessage(this, "Unable to create a plugin handler for return type {0}", mi.ReturnType);
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
-
-                        }
-                    }
-
-                    string[] internalModule = tokens[1].Split(':');
-                    if (internalModule.Length != 2)
-                    {
-                        JUtil.LogErrorMessage(this, "Badly-formed plugin name in {0}", input);
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
-                    }
-
-                    InternalProp propToUse = null;
-                    foreach (InternalProp thisProp in part.internalModel.props)
-                    {
-                        foreach (InternalModule module in thisProp.internalModules)
-                        {
-                            if (module != null && module.ClassName == internalModule[0])
+                            MethodInfo mi = pluginMethod.Method;
+                            if (mi.ReturnType == typeof(bool))
                             {
-                                propToUse = thisProp;
-                                break;
+                                Func<bool> method = (Func<bool>)pluginMethod;
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method().GetHashCode(); };
                             }
-                        }
-                    }
-
-                    if (propToUse == null)
-                    {
-                        JUtil.LogErrorMessage(this, "Tried to look for method with propToUse still null?");
-                        return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return -1; };
-                    }
-                    else
-                    {
-                        Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<bool>));
-                        if (pluginCall == null)
-                        {
-                            Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<double>));
-                            if (pluginNumericCall != null)
+                            else if (mi.ReturnType == typeof(double))
                             {
-                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return pluginNumericCall(); };
+                                Func<double> method = (Func<double>)pluginMethod;
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method(); };
+                            }
+                            else if (mi.ReturnType == typeof(string))
+                            {
+                                Func<string> method = (Func<string>)pluginMethod;
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return method(); };
                             }
                             else
                             {
-                                // Doesn't exist -- return nothing
-                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return -1; };
+                                JUtil.LogErrorMessage(this, "Unable to create a plugin handler for return type {0}", mi.ReturnType);
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
+
                             }
+                        }
+
+                        string[] internalModule = tokens[1].Split(':');
+                        if (internalModule.Length != 2)
+                        {
+                            JUtil.LogErrorMessage(this, "Badly-formed plugin name in {0}", input);
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return variable; };
+                        }
+
+                        InternalProp propToUse = null;
+                        foreach (InternalProp thisProp in part.internalModel.props)
+                        {
+                            foreach (InternalModule module in thisProp.internalModules)
+                            {
+                                if (module != null && module.ClassName == internalModule[0])
+                                {
+                                    propToUse = thisProp;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (propToUse == null)
+                        {
+                            JUtil.LogErrorMessage(this, "Tried to look for method with propToUse still null?");
+                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return -1; };
                         }
                         else
                         {
-                            return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return pluginCall().GetHashCode(); };
+                            Func<bool> pluginCall = (Func<bool>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<bool>));
+                            if (pluginCall == null)
+                            {
+                                Func<double> pluginNumericCall = (Func<double>)JUtil.GetMethod(tokens[1], propToUse, typeof(Func<double>));
+                                if (pluginNumericCall != null)
+                                {
+                                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return pluginNumericCall(); };
+                                }
+                                else
+                                {
+                                    // Doesn't exist -- return nothing
+                                    return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return -1; };
+                                }
+                            }
+                            else
+                            {
+                                return (string variable, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp) => { return pluginCall().GetHashCode(); };
+                            }
                         }
-                    }
                 }
             }
 
