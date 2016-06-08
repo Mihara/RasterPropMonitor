@@ -1,3 +1,23 @@
+/*****************************************************************************
+ * RasterPropMonitor
+ * =================
+ * Plugin for Kerbal Space Program
+ *
+ *  by Mihara (Eugene Medvedev), MOARdV, and other contributors
+ * 
+ * RasterPropMonitor is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, revision
+ * date 29 June 2007, or (at your option) any later version.
+ * 
+ * RasterPropMonitor is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
+ ****************************************************************************/
 using System;
 using UnityEngine;
 using System.Collections.Generic;
@@ -100,7 +120,7 @@ namespace JSI
                     {
                         foreach (ConfigNode graphNode in node.GetNodes("GRAPH"))
                         {
-                            graphs.Add(new GraphLine(graphNode, xGraphSpan, ySpan, interval));
+                            graphs.Add(new GraphLine(graphNode, rpmComp, xGraphSpan, ySpan, interval));
                         }
                     }
                 }
@@ -152,10 +172,9 @@ namespace JSI
             double time = Planetarium.GetUniversalTime();
             if (lastDataPoint + (double)secondsBetweenSamples < time)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 foreach (GraphLine graph in graphs)
                 {
-                    graph.Update(time, rpmComp, comp);
+                    graph.Update(time);
                 }
                 lastDataPoint = time;
             }
@@ -166,28 +185,29 @@ namespace JSI
             private readonly Color32 lineColor;
             private readonly List<Vector2d> points = new List<Vector2d>();
             private readonly int maxPoints;
-            private readonly string variableName;
-            private readonly double flatValue;
-            private readonly bool isFlat;
+            private readonly VariableOrNumber variable;
             private readonly double horizontalSpan;
             // Analysis disable once FieldCanBeMadeReadOnly.Local
             private Vector2 verticalSpan;
             private bool floatingMax, floatingMin;
 
-            public GraphLine(ConfigNode node, double xSpan, Vector2 ySpan, double secondsBetweenSamples)
+            public GraphLine(ConfigNode node, RasterPropMonitorComputer rpmComp, double xSpan, Vector2 ySpan, double secondsBetweenSamples)
             {
                 maxPoints = (int)(xSpan / secondsBetweenSamples);
                 horizontalSpan = xSpan;
                 verticalSpan = ySpan;
                 if (!node.HasData)
                     throw new ArgumentException("Graph block with no data?");
+                string variableName = string.Empty;
                 if (node.HasValue("variableName"))
                 {
                     variableName = node.GetValue("variableName").Trim();
-                    isFlat = double.TryParse(variableName, NumberStyles.Any, CultureInfo.InvariantCulture, out flatValue);
+                    variable = rpmComp.InstantiateVariableOrNumber(variableName);
                 }
                 else
+                {
                     throw new ArgumentException("Draw a graph of what?");
+                }
 
                 lineColor = Color.white;
                 if (node.HasValue("color"))
@@ -230,9 +250,9 @@ namespace JSI
                 DrawVector(actualXY, lineColor);
             }
 
-            public void Update(double time, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+            public void Update(double time)
             {
-                double value = isFlat ? flatValue : rpmComp.ProcessVariable(variableName, comp).MassageToDouble();
+                double value = variable.AsDouble();
                 if (double.IsNaN(value) || double.IsInfinity(value))
                 {
                     return;
