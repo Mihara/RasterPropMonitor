@@ -68,7 +68,7 @@ namespace JSI
             BaseAction.GetGroupIndex(KSPActionGroup.Custom08),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom09)
         };
-        internal static readonly string[] actionGroupMemo = {
+        internal readonly string[] actionGroupMemo = {
             "AG0",
             "AG1",
             "AG2",

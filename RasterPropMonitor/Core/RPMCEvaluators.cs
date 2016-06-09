@@ -317,13 +317,13 @@ namespace JSI
                     if (uint.TryParse(variable.Substring(6), out groupID) && groupID < 10)
                     {
                         string[] tokens;
-                        if (RPMVesselComputer.actionGroupMemo[groupID].IndexOf('|') > 1 && (tokens = RPMVesselComputer.actionGroupMemo[groupID].Split('|')).Length == 2)
+                        if (comp.actionGroupMemo[groupID].IndexOf('|') > 1 && (tokens = comp.actionGroupMemo[groupID].Split('|')).Length == 2)
                         {
                             if (vessel.ActionGroups.groups[RPMVesselComputer.actionGroupID[groupID]])
                                 return tokens[0];
                             return tokens[1];
                         }
-                        return RPMVesselComputer.actionGroupMemo[groupID];
+                        return comp.actionGroupMemo[groupID];
                     }
                     return input;
                 };
