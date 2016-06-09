@@ -19,20 +19,32 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace JSI
 {
+    /// <summary>
+    /// JSICallbackAnimator is an alternative for JSIVariableAnimator that handles
+    /// thresholded behavior (switching on/off, not interpolating between two
+    /// states).
+    /// </summary>
     public class JSICallbackAnimator : InternalModule
     {
         [KSPField]
         public string variableName = string.Empty;
+        [KSPField]
+        public float flashRate = 0.0f;
 
         private readonly List<CallbackAnimationSet> variableSets = new List<CallbackAnimationSet>();
         private Action<float> del;
         private RasterPropMonitorComputer rpmComp;
+        private bool flashToggle;
 
+        /// <summary>
+        /// Start and initialize all the things!
+        /// </summary>
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -73,7 +85,10 @@ namespace JSI
                     }
                 }
 
-
+                if (flashRate > 0.0f)
+                {
+                    StartCoroutine(FlashToggle());
+                }
                 del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
                 rpmComp.RegisterVariableCallback(variableName, del);
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
@@ -86,8 +101,40 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Coroutine used when flashToggle is positive.
+        /// </summary>
+        /// <returns></returns>
+        private IEnumerator FlashToggle()
+        {
+            while(flashRate > 0.0f)
+            {
+                flashToggle = !flashToggle;
+                for (int i = 0; i < variableSets.Count; ++i)
+                {
+                    variableSets[i].FlashState(flashToggle);
+                }
+
+                float delay = flashRate / TimeWarp.CurrentRate;
+                if (delay < TimeWarp.fixedDeltaTime)
+                {
+                    yield return new WaitForFixedUpdate();
+                }
+                else
+                {
+                    yield return new WaitForSeconds(delay);
+                }
+            }
+
+                yield return null;
+        }
+
+        /// <summary>
+        /// Tear down the object.
+        /// </summary>
         public void OnDestroy()
         {
+            flashRate = 0.0f;
             for (int i = 0; i < variableSets.Count; ++i)
             {
                 variableSets[i].TearDown();
@@ -104,6 +151,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback RasterPropMonitorComputer calls when the variable of interest
+        /// changes.
+        /// </summary>
+        /// <param name="value"></param>
         void OnCallback(float value)
         {
             // Sanity checks:
@@ -125,6 +177,12 @@ namespace JSI
         }
     }
 
+    /// <summary>
+    /// CallbackAnimationSet tracks one particular animation (color change,
+    /// rotation, transformation, texture coordinate change).  It has an
+    /// independent range of enabling values, but it depends on the parent
+    /// JSICallback class to control what variable is tracked.
+    /// </summary>
     public class CallbackAnimationSet
     {
         private readonly VariableOrNumberRange variable;
@@ -145,6 +203,7 @@ namespace JSI
         private List<string> textureLayer = new List<string>();
         private readonly Mode mode;
         private readonly bool looping;
+        private readonly bool flash;
         // runtime values:
         private bool currentState;
 
@@ -160,6 +219,12 @@ namespace JSI
             TextureScale,
         }
 
+        /// <summary>
+        /// Initialize and configure the callback handler.
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="variableName"></param>
+        /// <param name="thisProp"></param>
         public CallbackAnimationSet(ConfigNode node, string variableName, InternalProp thisProp)
         {
             currentState = false;
@@ -191,6 +256,18 @@ namespace JSI
                 {
                     throw new ArgumentException("So is 'reverse' true or false?");
                 }
+            }
+
+            if (node.HasValue("flash"))
+            {
+                if(!bool.TryParse(node.GetValue("flash"), out flash))
+                {
+                    throw new ArgumentException("So is 'reverse' true or false?");
+                }
+            }
+            else
+            {
+                flash = false;
             }
 
             if (node.HasValue("animationName"))
@@ -401,7 +478,28 @@ namespace JSI
             TurnOff();
         }
 
-        // Some things need to be explicitly destroyed due to Unity quirks.
+        /// <summary>
+        /// Callback method to notify animators that flash that it's time to flash.
+        /// </summary>
+        /// <param name="toggleState"></param>
+        internal void FlashState(bool toggleState)
+        {
+            if (flash && currentState)
+            {
+                if (toggleState)
+                {
+                    TurnOn();
+                }
+                else
+                {
+                    TurnOff();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Some things need to be explicitly destroyed due to Unity quirks. 
+        /// </summary>
         internal void TearDown()
         {
             if (affectedMaterial != null)
@@ -413,6 +511,9 @@ namespace JSI
             controlledTransform = null;
         }
 
+        /// <summary>
+        /// Switch the animator to the ON state.
+        /// </summary>
         private void TurnOn()
         {
             switch (mode)
@@ -454,6 +555,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Switch the animator to the OFF state
+        /// </summary>
         private void TurnOff()
         {
             switch (mode)
@@ -503,6 +607,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Receive an update on the value; test if it is in the range we care
+        /// about, do what's appropriate if it is.
+        /// </summary>
+        /// <param name="value"></param>
         public void Update(float value)
         {
             bool newState = variable.IsInRange(value);
