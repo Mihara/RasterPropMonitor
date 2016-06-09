@@ -66,6 +66,7 @@ namespace JSI
             internal VariableOrNumber value;
             internal event Action<float> onChangeCallbacks;
             internal event Action<bool> onResourceDepletedCallbacks;
+            internal bool cacheable;
 
             internal void FireCallbacks(float newValue)
             {
@@ -164,6 +165,8 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input, RPMVesselComputer comp)
         {
+            input = input.Trim();
+
             if (RPMGlobals.debugShowVariableCallCount)
             {
                 debug_callCount[input] = debug_callCount[input] + 1;
@@ -173,16 +176,33 @@ namespace JSI
             {
                 comp = RPMVesselComputer.Instance(vid);
             }
-            OldVariableCache vc = oldVariableCache[input];
-            if (vc != null)
+
+            if (!variableCache.ContainsKey(input))
             {
-                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
+                AddVariable(input);
+            }
+
+            VariableCache vc = variableCache[input];
+            if (vc.cacheable)
+            {
+                return vc.value.Get();
+            }
+            else
+            {
+                return vc.evaluator(input, comp);
+            }
+            //return variableCache[input].value.Get();
+#if OLDTHISWAY
+            OldVariableCache ovc = oldVariableCache[input];
+            if (ovc != null)
+            {
+                if (!(ovc.cacheable && ovc.serialNumber == masterSerialNumber))
                 {
                     try
                     {
-                        object newValue = vc.accessor(input, comp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
+                        object newValue = ovc.accessor(input, comp);
+                        ovc.serialNumber = masterSerialNumber;
+                        ovc.cachedValue = newValue;
                     }
                     catch (Exception e)
                     {
@@ -191,7 +211,7 @@ namespace JSI
                     }
                 }
 
-                return vc.cachedValue;
+                return ovc.cachedValue;
             }
             else
             {
@@ -199,12 +219,12 @@ namespace JSI
                 VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
                 if (evaluator != null)
                 {
-                    vc = new OldVariableCache(cacheable, evaluator);
+                    ovc = new OldVariableCache(cacheable, evaluator);
                     try
                     {
-                        object newValue = vc.accessor(input, comp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
+                        object newValue = ovc.accessor(input, comp);
+                        ovc.serialNumber = masterSerialNumber;
+                        ovc.cachedValue = newValue;
 
                         if (newValue.ToString() == input && !unrecognizedVariables.Contains(input))
                         {
@@ -219,8 +239,8 @@ namespace JSI
                         return -1;
                     }
 
-                    oldVariableCache[input] = vc;
-                    return vc.cachedValue;
+                    oldVariableCache[input] = ovc;
+                    return ovc.cachedValue;
                 }
             }
 
@@ -256,6 +276,7 @@ namespace JSI
             }
 
             return returnValue;
+#endif
         }
 
         /// <summary>
@@ -351,6 +372,7 @@ namespace JSI
             bool cacheable;
             vc.evaluator = GetEvaluator(variableName, out cacheable);
             vc.value = new VariableOrNumber(variableName, cacheable, this);
+            vc.cacheable = cacheable;
 
             if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
             {
@@ -660,15 +682,12 @@ namespace JSI
             if (!string.IsNullOrEmpty(RPMCid))
             {
                 JUtil.LogMessage(this, "OnDestroy: GUID {0}", RPMCid);
-                JUtil.LogMessage(this, "Tracked variables: ({0})", variableCache.Count);
-                JUtil.LogMessage(this, "Updatable variables: ({0})", updatableVariables.Count);
-                JUtil.LogMessage(this, "Cached variables: ({0})", oldVariableCache.Count);
             }
 
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onVesselChange.Remove(onVesselChange);
 
-            if (RPMGlobals.debugShowVariableCallCount)
+            if (RPMGlobals.debugShowVariableCallCount && !string.IsNullOrEmpty(RPMCid))
             {
                 List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
                 l.AddRange(debug_callCount);
@@ -680,6 +699,9 @@ namespace JSI
                 {
                     JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
                 }
+
+                JUtil.LogMessage(this, "{0} total variables were instantiated in this part", variableCache.Count);
+                JUtil.LogMessage(this, "{0} variables were polled every {1} updates in the VariableCache", updatableVariables.Count, refreshDataRate);
             }
 
             localCrew.Clear();
