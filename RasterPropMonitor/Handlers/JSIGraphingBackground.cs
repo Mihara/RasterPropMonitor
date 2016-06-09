@@ -58,11 +58,10 @@ namespace JSI
                     dataSets[i].RenderBackground(screen);
                 }
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 // Render data
                 for (int i = 0; i < dataSets.Count; ++i)
                 {
-                    dataSets[i].RenderData(screen, rpmComp, comp);
+                    dataSets[i].RenderData(screen);
                 }
             }
             catch
@@ -168,10 +167,9 @@ namespace JSI
 
         //--- Graphing data
         private readonly GraphType graphType;
-        private readonly string variableName;
+        private readonly VariableOrNumberRange variable;
         private readonly Color passiveColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         private readonly Color activeColor = new Color(0.0f, 0.0f, 0.0f, 0.0f);
-        private readonly VariableOrNumber[] scale = new VariableOrNumber[2];
         private readonly Vector2 threshold;
         private double lastStateChange = 0.0;
         private float lastState = 0.0f;
@@ -251,9 +249,12 @@ namespace JSI
                 activeColor = ConfigNode.ParseColor32(node.GetValue("activeColor"));
             }
             string[] token = node.GetValue("scale").Split(',');
-            scale[0] = rpmComp.InstantiateVariableOrNumber(token[0]);
-            scale[1] = rpmComp.InstantiateVariableOrNumber(token[1]);
-            variableName = node.GetValue("variableName").Trim();
+            if(token.Length != 2)
+            {
+                throw new ArgumentException("Background scale did not contain two values");
+            }
+
+            variable = new VariableOrNumberRange(rpmComp, node.GetValue("variableName").Trim(), token[0].Trim(), token[1].Trim());
 
             if (node.HasValue("reverse"))
             {
@@ -295,18 +296,9 @@ namespace JSI
             }
         }
 
-        public void RenderData(RenderTexture screen, RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public void RenderData(RenderTexture screen)
         {
-            float leftVal = scale[0].AsFloat();
-            float rightVal = scale[1].AsFloat();
-
-            float eval = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-            if (float.IsInfinity(eval) || float.IsNaN(eval))
-            {
-                return; // bad value - can't render
-            }
-
-            float ratio = Mathf.InverseLerp(leftVal, rightVal, eval);
+            float ratio = variable.InverseLerp();
 
             if (thresholdMode)
             {
