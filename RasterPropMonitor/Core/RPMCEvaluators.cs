@@ -30,6 +30,8 @@ namespace JSI
 {
     public partial class RasterPropMonitorComputer : PartModule
     {
+        internal delegate object VariableEvaluator(string s, RPMVesselComputer comp);
+
         private VariableEvaluator sideSlipEvaluator;
         internal float Sideslip
         {
@@ -3310,20 +3312,5 @@ namespace JSI
             return timeToImpact;
         }
         #endregion
-
-        internal delegate object VariableEvaluator(string s, RPMVesselComputer comp);
-        internal class OldVariableCache
-        {
-            internal object cachedValue = null;
-            internal readonly VariableEvaluator accessor;
-            internal uint serialNumber = 0;
-            internal readonly bool cacheable;
-
-            internal OldVariableCache(bool cacheable, VariableEvaluator accessor)
-            {
-                this.cacheable = cacheable;
-                this.accessor = accessor;
-            }
-        }
     }
 }

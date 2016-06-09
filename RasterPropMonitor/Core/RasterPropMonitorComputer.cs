@@ -85,11 +85,8 @@ namespace JSI
         private readonly Dictionary<string, VariableCache> variableCache = new Dictionary<string, VariableCache>();
         private readonly List<VariableCache> updatableVariables = new List<VariableCache>();
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
-        private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
-        private readonly DefaultableDictionary<string, OldVariableCache> oldVariableCache = new DefaultableDictionary<string, OldVariableCache>(null);
         private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
         private Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
-        private uint masterSerialNumber = 0u;
 
         // Data refresh
         private int dataUpdateCountdown;
@@ -191,92 +188,6 @@ namespace JSI
             {
                 return vc.evaluator(input, comp);
             }
-            //return variableCache[input].value.Get();
-#if OLDTHISWAY
-            OldVariableCache ovc = oldVariableCache[input];
-            if (ovc != null)
-            {
-                if (!(ovc.cacheable && ovc.serialNumber == masterSerialNumber))
-                {
-                    try
-                    {
-                        object newValue = ovc.accessor(input, comp);
-                        ovc.serialNumber = masterSerialNumber;
-                        ovc.cachedValue = newValue;
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                        oldVariableCache.Remove(input);
-                    }
-                }
-
-                return ovc.cachedValue;
-            }
-            else
-            {
-                bool cacheable;
-                VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
-                if (evaluator != null)
-                {
-                    ovc = new OldVariableCache(cacheable, evaluator);
-                    try
-                    {
-                        object newValue = ovc.accessor(input, comp);
-                        ovc.serialNumber = masterSerialNumber;
-                        ovc.cachedValue = newValue;
-
-                        if (newValue.ToString() == input && !unrecognizedVariables.Contains(input))
-                        {
-                            unrecognizedVariables.Add(input);
-                            JUtil.LogInfo(this, "Unrecognized variable {0}", input);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while adding {0}: {1}", input, e.Message);
-                        //variableCache.Clear();
-                        return -1;
-                    }
-
-                    oldVariableCache[input] = ovc;
-                    return ovc.cachedValue;
-                }
-            }
-
-            object returnValue = resultCache[input];
-            if (returnValue == null)
-            {
-                bool cacheable = true;
-                try
-                {
-                    if (!plugins.ProcessVariable(input, out returnValue, out cacheable))
-                    {
-                        cacheable = false;
-                        returnValue = input;
-                        if (!unrecognizedVariables.Contains(input))
-                        {
-                            unrecognizedVariables.Add(input);
-                            JUtil.LogMessage(this, "Unrecognized variable {0}", input);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                    // Most of the variables are doubles...
-                    return double.NaN;
-                }
-
-                if (cacheable && returnValue != null)
-                {
-                    //JUtil.LogMessage(this, "Found variable \"{0}\"!  It was {1}", input, returnValue);
-                    resultCache.Add(input, returnValue);
-                }
-            }
-
-            return returnValue;
-#endif
         }
 
         /// <summary>
@@ -428,7 +339,24 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Clear out variables to force them to be re-evaluated.  TODO: Do
+        /// I clear out the variableCache?
+        /// </summary>
+        private void ClearVariables()
+        {
+            sideSlipEvaluator = null;
+            angleOfAttackEvaluator = null;
+
+            forceCallbackRefresh = true;
+            //variableCache.Clear();
+            timeToUpdate = true;
+        }
+
         #region Monobehaviour
+        /// <summary>
+        /// Configure this computer for operation.
+        /// </summary>
         public void Start()
         {
             if (!HighLogic.LoadedSceneIsEditor)
@@ -611,8 +539,6 @@ namespace JSI
             {
                 UpdateLocalVars();
 
-                ++masterSerialNumber;
-
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
 
                 for (int i = 0; i < updatableVariables.Count; ++i)
@@ -677,6 +603,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Tear down this computer.
+        /// </summary>
         public void OnDestroy()
         {
             if (!string.IsNullOrEmpty(RPMCid))
@@ -707,9 +636,13 @@ namespace JSI
             localCrew.Clear();
             localCrewMedical.Clear();
 
+            for (int i = 0; i < installedModules.Count; ++i)
+            {
+                installedModules[i].vessel = null;
+            }
+
             variableCache.Clear();
-            oldVariableCache.Clear();
-            resultCache.Clear();
+            ClearVariables();
         }
 
         /// <summary>
@@ -723,10 +656,7 @@ namespace JSI
             {
                 vid = vessel.id;
                 //JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
-                forceCallbackRefresh = true;
-                oldVariableCache.Clear();
-                resultCache.Clear();
-                timeToUpdate = true;
+                ClearVariables();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
@@ -752,10 +682,7 @@ namespace JSI
             {
                 vid = vessel.id;
                 JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid);
-                forceCallbackRefresh = true;
-                oldVariableCache.Clear();
-                resultCache.Clear();
-                timeToUpdate = true;
+                ClearVariables();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
