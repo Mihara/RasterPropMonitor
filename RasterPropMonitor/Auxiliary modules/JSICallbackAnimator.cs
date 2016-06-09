@@ -204,8 +204,14 @@ namespace JSI
         private readonly Mode mode;
         private readonly bool looping;
         private readonly bool flash;
+        private FXGroup audioOutput;
+        private readonly float alarmSoundVolume;
+        private readonly bool alarmMustPlayOnce;
+        private readonly bool alarmSoundLooping;
         // runtime values:
+        private bool alarmActive; 
         private bool currentState;
+        private bool inIVA = false;
 
         private enum Mode
         {
@@ -268,6 +274,39 @@ namespace JSI
             else
             {
                 flash = false;
+            }
+
+            if (node.HasValue("alarmSound"))
+            {
+                alarmSoundVolume = 0.5f;
+                if (node.HasValue("alarmSoundVolume"))
+                {
+                    alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
+                }
+                audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
+                if (node.HasValue("alarmMustPlayOnce"))
+                {
+                    if (!bool.TryParse(node.GetValue("alarmMustPlayOnce"), out alarmMustPlayOnce))
+                    {
+                        throw new ArgumentException("So is 'alarmMustPlayOnce' true or false?");
+                    }
+                }
+                if (node.HasValue("alarmShutdownButton"))
+                {
+                    SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
+                }
+                if (node.HasValue("alarmSoundLooping"))
+                {
+                    if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
+                    {
+                        throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+                    }
+                    audioOutput.audio.loop = alarmSoundLooping;
+                }
+
+                inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+                GameEvents.OnCameraChange.Add(CameraChangeCallback);
             }
 
             if (node.HasValue("animationName"))
@@ -502,6 +541,10 @@ namespace JSI
         /// </summary>
         internal void TearDown()
         {
+            if (audioOutput != null)
+            {
+                GameEvents.OnCameraChange.Remove(CameraChangeCallback);
+            }
             if (affectedMaterial != null)
             {
                 UnityEngine.Object.Destroy(affectedMaterial);
@@ -622,13 +665,65 @@ namespace JSI
                 if (newState)
                 {
                     TurnOn();
+
+                    if (audioOutput != null && !alarmActive)
+                    {
+                        audioOutput.audio.volume = (inIVA) ? alarmSoundVolume * GameSettings.SHIP_VOLUME : 0.0f;
+                        audioOutput.audio.Play();
+                        alarmActive = true;
+                    }
                 }
                 else
                 {
                     TurnOff();
+
+                    if (audioOutput != null && alarmActive)
+                    {
+                        if (!alarmMustPlayOnce)
+                        {
+                            audioOutput.audio.Stop();
+                        }
+                        alarmActive = false;
+                    }
                 }
 
                 currentState = newState;
+            }
+        }
+
+        /// <summary>
+        /// Callback to handle when the camera is switched from IVA to flight
+        /// </summary>
+        /// <param name="newMode"></param>
+        public void CameraChangeCallback(CameraManager.CameraMode newMode)
+        {
+            JUtil.LogMessage(this, "CameraChangeCallback({0})", newMode);
+            inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+            if(inIVA)
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                }
+            }
+            else
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = 0.0f;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Callback to turn off an alarm in response to a button hit on the prop.
+        /// </summary>
+        public void AlarmShutdown()
+        {
+            if (audioOutput != null && alarmActive && audioOutput.audio.isPlaying)
+            {
+                audioOutput.audio.Stop();
             }
         }
     }
