@@ -117,7 +117,7 @@ namespace JSI
                         var variables = new object[vars.Length];
                         for (int i = 0; i < vars.Length; i++)
                         {
-                            variables[i] = rpmComp.ProcessVariable(vars[i], comp);
+                            variables[i] = rpmComp.ProcessVariable(vars[i].Trim(), comp);
                         }
                         string output = string.Format(fp, tokens[0], variables);
                         return output.TrimEnd();

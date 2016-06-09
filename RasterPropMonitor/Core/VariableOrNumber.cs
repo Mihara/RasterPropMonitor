@@ -74,7 +74,7 @@ namespace JSI
             else if (input[0] == '$')
             {
                 variableName = input;
-                stringValue = input.Substring(1);
+                stringValue = input.Substring(1).Trim();
                 isNumeric = false;
                 variableType = VoNType.ConstantString;
             }
