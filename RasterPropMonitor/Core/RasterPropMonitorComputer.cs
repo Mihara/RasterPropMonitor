@@ -180,7 +180,7 @@ namespace JSI
                 {
                     try
                     {
-                        object newValue = vc.accessor(input, this, comp);
+                        object newValue = vc.accessor(input, comp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
                     }
@@ -202,7 +202,7 @@ namespace JSI
                     vc = new OldVariableCache(cacheable, evaluator);
                     try
                     {
-                        object newValue = vc.accessor(input, this, comp);
+                        object newValue = vc.accessor(input, comp);
                         vc.serialNumber = masterSerialNumber;
                         vc.cachedValue = newValue;
 
@@ -266,6 +266,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterVariableCallback(string variableName, Action<float> cb)
         {
+            variableName = variableName.Trim();
             if (!variableCache.ContainsKey(variableName))
             {
                 AddVariable(variableName);
@@ -283,6 +284,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterVariableCallback(string variableName, Action<float> cb)
         {
+            variableName = variableName.Trim();
             if (variableCache.ContainsKey(variableName))
             {
                 variableCache[variableName].onChangeCallbacks -= cb;
@@ -297,6 +299,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterResourceCallback(string variableName, Action<bool> cb)
         {
+            variableName = variableName.Trim();
             if (!variableCache.ContainsKey(variableName))
             {
                 AddVariable(variableName);
@@ -314,6 +317,7 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterResourceCallback(string variableName, Action<bool> cb)
         {
+            variableName = variableName.Trim();
             if (variableCache.ContainsKey(variableName))
             {
                 variableCache[variableName].onResourceDepletedCallbacks -= cb;
@@ -328,6 +332,7 @@ namespace JSI
         /// <returns>The VariableOrNumber</returns>
         public VariableOrNumber InstantiateVariableOrNumber(string variableName)
         {
+            variableName = variableName.Trim();
             if (!variableCache.ContainsKey(variableName))
             {
                 AddVariable(variableName);
@@ -342,8 +347,6 @@ namespace JSI
         /// <param name="variableName"></param>
         private void AddVariable(string variableName)
         {
-            variableName = variableName.Trim();
-
             VariableCache vc = new VariableCache();
             bool cacheable;
             vc.evaluator = GetEvaluator(variableName, out cacheable);
@@ -352,7 +355,7 @@ namespace JSI
             if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                object value = vc.evaluator(variableName, this, comp);
+                object value = vc.evaluator(variableName, comp);
                 if (value is string)
                 {
                     vc.value.stringValue = value as string;
@@ -596,7 +599,7 @@ namespace JSI
                     float oldVal = vc.value.AsFloat();
                     double newVal;
 
-                    object evaluant = vc.evaluator(vc.value.variableName, this, comp);
+                    object evaluant = vc.evaluator(vc.value.variableName, comp);
                     if (evaluant is string)
                     {
                         vc.value.isNumeric = false;
