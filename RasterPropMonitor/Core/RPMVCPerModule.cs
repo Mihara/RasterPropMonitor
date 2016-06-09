@@ -302,28 +302,25 @@ namespace JSI
             {
                 generatorsActive |= (availableGenerators[i].generatorIsActive && !availableGenerators[i].isAlwaysActive);
 
-                float output = availableGenerators[i].efficiency * availableGeneratorOutput[i];
-                if (availableGenerators[i].isThrottleControlled)
+                if (availableGenerators[i].generatorIsActive)
                 {
-                    output *= availableGenerators[i].throttle;
+                    float output = availableGenerators[i].efficiency * availableGeneratorOutput[i];
+                    if (availableGenerators[i].isThrottleControlled)
+                    {
+                        output *= availableGenerators[i].throttle;
+                    }
+                    generatorOutput += output;
                 }
-                generatorOutput += output;
             }
 
             for (int i = 0; i < availableFuelCells.Count; ++i)
             {
                 generatorsActive |= (availableFuelCells[i].IsActivated && !availableFuelCells[i].AlwaysActive);
-                // TODO: Figure out how much energy is being generated (instantaneous rate)
-                //var recipe = availableFuelCells[i].Recipe;
-                //JUtil.LogMessage(this, "fuelcell efficiency {0}, out {1}", availableFuelCells[i].Efficiency, availableFuelCellOutput[i]);
-                //JUtil.LogMessage(this, "fuelcell recipe: TakeAmount {0}, FillAmount {1}", recipe.TakeAmount, recipe.FillAmount);
-                //for (int j = 0; j < recipe.Outputs.Count; ++j)
-                //{
-                //if (recipe.Outputs[j].ResourceName == "ElectricCharge")
-                //{
-                //    //JUtil.LogMessage(this, "fuelcell recipe: Ratio {0}", recipe.Outputs[j].Ratio);
-                //}
-                //}
+
+                if (availableFuelCells[i].IsActivated)
+                {
+                    fuelcellOutput += (float)availableFuelCells[i].lastTimeFactor * availableFuelCellOutput[i];
+                }
             }
 
             for (int i = 0; i < availableAlternators.Count; ++i)
