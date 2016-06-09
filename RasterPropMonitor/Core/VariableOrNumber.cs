@@ -66,13 +66,16 @@ namespace JSI
                 // If it's a numeric value, let's canonicalize it using
                 // ToString, so we don't have duplicates that evaluate to the
                 // same value (eg, 1.0, 1, 1.00, etc).
-                varName = realValue.ToString();
+                variableName = realValue.ToString();
                 numericValue = realValue;
+                isNumeric = true;
                 variableType = VoNType.ConstantNumeric;
             }
             else if (input[0] == '$')
             {
+                variableName = input;
                 stringValue = input.Substring(1);
+                isNumeric = false;
                 variableType = VoNType.ConstantString;
             }
             else
