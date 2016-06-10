@@ -350,6 +350,11 @@ namespace JSI
         {
             flashOn = newFlashState;
             UpdateShader();
+
+            if(variablePositive)
+            {
+                textObj.color = (flashOn) ? positiveColorValue : negativeColorValue;
+            }
         }
 
         /// <summary>
@@ -468,7 +473,7 @@ namespace JSI
             }
             else if (value > 0.0f)
             {
-                textObj.color = positiveColorValue;
+                textObj.color = (flashOn) ? positiveColorValue : negativeColorValue;
                 variablePositive = true;
             }
             else
