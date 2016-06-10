@@ -41,8 +41,11 @@ namespace JSI
             always,
             never,
             active,
-            passive
+            passive,
+            flash
         };
+        [KSPField]
+        public float flashRate = 0.0f;
 
         [KSPField]
         public float fontSize = 8.0f;
@@ -80,6 +83,7 @@ namespace JSI
         public string zeroColor = string.Empty;
         private Color zeroColorValue = XKCDColors.White;
         private bool variablePositive = false;
+        private bool flashOn = true;
 
         private JSITextMesh textObj;
         private Font font;
@@ -99,7 +103,11 @@ namespace JSI
         /// </summary>
         private Guid registeredVessel = Guid.Empty;
         RasterPropMonitorComputer rpmComp;
+        private JSIFlashModule fm;
 
+        /// <summary>
+        /// Start everything up and get it configured.
+        /// </summary>
         public void Start()
         {
             try
@@ -303,6 +311,22 @@ namespace JSI
                 {
                     emissiveMode = EmissiveMode.passive;
                 }
+                else if (emissive.ToLower() == EmissiveMode.flash.ToString())
+                {
+                    if (flashRate > 0.0f)
+                    {
+                        emissiveMode = EmissiveMode.flash;
+                        fm = JUtil.InstallFlashModule(part, flashRate);
+                        if (fm != null)
+                        {
+                            fm.flashSubscribers += FlashToggle;
+                        }
+                    }
+                    else
+                    {
+                        emissiveMode = EmissiveMode.active;
+                    }
+                }
                 else
                 {
                     JUtil.LogErrorMessage(this, "Unrecognized emissive mode '{0}' in config for {1} ({2})", emissive, internalProp.propID, internalProp.propName);
@@ -318,6 +342,19 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback to manage toggling the flash state, where applicable.
+        /// </summary>
+        /// <param name="newFlashState"></param>
+        private void FlashToggle(bool newFlashState)
+        {
+            flashOn = newFlashState;
+            UpdateShader();
+        }
+
+        /// <summary>
+        /// Respond to a click event: update the text object
+        /// </summary>
         public void Click()
         {
             activeLabel++;
@@ -339,9 +376,12 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Update the emissive value in the shader.
+        /// </summary>
         private void UpdateShader()
         {
-            float emissiveValue = 1.0f;
+            float emissiveValue;
             if (emissiveMode == EmissiveMode.always)
             {
                 emissiveValue = 1.0f;
@@ -349,6 +389,10 @@ namespace JSI
             else if (emissiveMode == EmissiveMode.never)
             {
                 emissiveValue = 0.0f;
+            }
+            else if (emissiveMode == EmissiveMode.flash)
+            {
+                emissiveValue = (variablePositive && flashOn) ? 1.0f : 0.0f;
             }
             else if (variablePositive ^ (emissiveMode == EmissiveMode.passive))
             {
@@ -362,8 +406,16 @@ namespace JSI
             textObj.material.SetFloat(emissiveFactorIndex, emissiveValue);
         }
 
+        /// <summary>
+        /// Tear down
+        /// </summary>
         public void OnDestroy()
         {
+            if (fm != null)
+            {
+                fm.flashSubscribers -= FlashToggle;
+            }
+
             //JUtil.LogMessage(this, "OnDestroy() for {0}", GetHashCode());
             if (del != null)
             {
@@ -380,6 +432,10 @@ namespace JSI
             textObj = null;
         }
 
+        /// <summary>
+        /// Handle callbacks to update our color.
+        /// </summary>
+        /// <param name="value"></param>
         private void OnCallback(float value)
         {
             // Sanity checks:
@@ -422,6 +478,10 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Time to update?
+        /// </summary>
+        /// <returns></returns>
         private bool UpdateCheck()
         {
             if (updateCountdown <= 0)
@@ -433,9 +493,12 @@ namespace JSI
             return false;
         }
 
+        /// <summary>
+        /// Do we need to update our text and shader?
+        /// </summary>
         public override void OnUpdate()
         {
-            if(textObj == null)
+            if (textObj == null)
             {
                 // Shouldn't happen ... but it does, thanks to the quirks of
                 // docking and undocking.
