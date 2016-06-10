@@ -148,7 +148,7 @@ namespace JSI
                 ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
-                cropBound = new Vector4((horizonOffset.x * 0.5f - horizonSize.x) / screenWidth, (horizonOffset.y * 0.5f - horizonSize.y) / screenHeight, (horizonOffset.x * 0.5f + horizonSize.x) / screenWidth, (horizonOffset.y * 0.5f + horizonSize.y) / screenHeight);
+                cropBound = new Vector4((2.0f * horizonOffset.x - horizonSize.x) / screenWidth, (2.0f * horizonOffset.y - horizonSize.y) / screenHeight, (2.0f * horizonOffset.x + horizonSize.x) / screenWidth, (2.0f * horizonOffset.y + horizonSize.y) / screenHeight);
                 ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
@@ -162,7 +162,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(horizonOffset.x, horizonOffset.y, 1.45f);
+                    ladderMesh.transform.position = new Vector3(horizonOffset.x, -horizonOffset.y, 1.45f);
                     ladderMesh.GetComponent<Renderer>().material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
