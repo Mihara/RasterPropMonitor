@@ -560,6 +560,31 @@ namespace JSI
         }
 
         /// <summary>
+        /// Utility function to find a JSIFlashModule configured for a particular
+        /// refresh rate on a given part, and to create one if it doesn't already
+        /// exist.
+        /// </summary>
+        /// <param name="part">The part where the module will be installed</param>
+        /// <param name="flashRate">The flash rate for the module.</param>
+        /// <returns></returns>
+        public static JSIFlashModule InstallFlashModule(Part part, float flashRate)
+        {
+            JSIFlashModule[] loadedModules = part.GetComponents<JSIFlashModule>();
+            for(int i=0; i<loadedModules.Length; ++i)
+            {
+                if(loadedModules[i].flashRate == flashRate)
+                {
+                    return loadedModules[i];
+                }
+            }
+
+            JSIFlashModule newModule = part.AddModule("JSIFlashModule") as JSIFlashModule;
+            newModule.flashRate = flashRate;
+
+            return newModule;
+        }
+
+        /// <summary>
         /// Try to figure out which part on the craft is the current part.
         /// </summary>
         /// <returns></returns>
