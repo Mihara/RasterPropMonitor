@@ -148,7 +148,7 @@ namespace JSI
                 ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
-                cropBound = new Vector4((horizonOffset.x - horizonSize.x) / screenWidth, (horizonOffset.y - horizonSize.y) / screenHeight, (horizonOffset.x + horizonSize.x) / screenWidth, (horizonOffset.y + horizonSize.y) / screenHeight);
+                cropBound = new Vector4((horizonOffset.x * 0.5f - horizonSize.x) / screenWidth, (horizonOffset.y * 0.5f - horizonSize.y) / screenHeight, (horizonOffset.x * 0.5f + horizonSize.x) / screenWidth, (horizonOffset.y * 0.5f + horizonSize.y) / screenHeight);
                 ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
