@@ -28,7 +28,6 @@ namespace JSI
         private readonly VariableOrNumberRange sourceVariable;
         public readonly string mappedVariable;
         private readonly VariableOrNumber mappedExtent1, mappedExtent2;
-        private readonly bool cacheable;
 
         public MappedVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
@@ -46,7 +45,6 @@ namespace JSI
             }
 
             sourceVariable = new VariableOrNumberRange(rpmComp, sourceVariableStr, sources[0], sources[1]);
-            cacheable = sourceVariable.cacheable;
 
             mappedVariable = node.GetValue("mappedVariable");
             string[] destinations = node.GetValue("mappedRange").Split(',');
@@ -56,12 +54,6 @@ namespace JSI
             }
             mappedExtent1 = rpmComp.InstantiateVariableOrNumber(destinations[0]);
             mappedExtent2 = rpmComp.InstantiateVariableOrNumber(destinations[1]);
-            cacheable = cacheable && mappedExtent1.cacheable && mappedExtent2.cacheable;
-        }
-
-        public bool Cacheable()
-        {
-            return cacheable;
         }
 
         public object Evaluate()

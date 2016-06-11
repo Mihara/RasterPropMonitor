@@ -177,7 +177,6 @@ namespace JSI
                             {
                                 var = customVariables[input];
                             }
-                            cacheable = var.Cacheable();
                             return (string variable, RPMVesselComputer comp) => { return var.Evaluate(); };
                         }
                         else

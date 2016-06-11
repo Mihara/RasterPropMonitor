@@ -34,24 +34,20 @@ namespace JSI
         private List<VariableOrNumberRange> sourceVariables = new List<VariableOrNumberRange>();
         private List<bool> reverse = new List<bool>();
         private List<VariableOrNumber> result = new List<VariableOrNumber>();
-        private readonly bool cacheable;
 
         internal SelectVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
-            cacheable = true;
             foreach (ConfigNode sourceVarNode in node.GetNodes("VARIABLE_DEFINITION"))
             {
                 bool reverseVal;
                 VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, rpmComp, out reverseVal);
-                cacheable = cacheable && vonr.cacheable;
 
                 sourceVariables.Add(vonr);
                 reverse.Add(reverseVal);
 
                 VariableOrNumber val = rpmComp.InstantiateVariableOrNumber(sourceVarNode.GetValue("value"));
-                cacheable = cacheable && val.cacheable;
                 result.Add(val);
             }
 
@@ -70,11 +66,6 @@ namespace JSI
                 throw new ArgumentException("Did not find any VARIABLE_DEFINITION nodes in RPM_SELECT_VARIABLE", name);
             }
 
-        }
-
-        public bool Cacheable()
-        {
-            return cacheable;
         }
 
         public object Evaluate()
