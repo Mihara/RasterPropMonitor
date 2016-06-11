@@ -194,14 +194,32 @@ namespace JSI
             return targetDisp;
         }
 
+        /// <summary>
+        /// Notify this page that it's now active or inactive.  If it's
+        /// becoming inactive, release its render texture.
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="pageID"></param>
         public void PageActive(bool state, int pageID)
         {
+            if (state == false && renderTex != null)
+            {
+                UnityEngine.Object.Destroy(renderTex);
+                renderTex = null;
+            }
+
             if (cameraObject == null)
+            {
                 return;
+            }
             if (state)
+            {
                 cameraObject.SetFlicker(flickerChance, flickerRange);
+            }
             else
+            {
                 cameraObject.SetFlicker(0, 0);
+            }
         }
 
         public bool RenderCamera(RenderTexture screen, float cameraAspect)
@@ -238,7 +256,7 @@ namespace JSI
 
                 // Note to self: when rentex dims != screen dims, the FOV seems to be wrong (like FOV is smaller).
             }
-            if(renderTex == null)
+            if (renderTex == null)
             {
                 renderTex = new RenderTexture(rentexWidth, rentexHeight, screen.depth);
                 renderTex.Create();
