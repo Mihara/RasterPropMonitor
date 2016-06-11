@@ -148,7 +148,7 @@ namespace JSI
                 ladderMaterial = new Material(ladderShader);
 
                 // _CropBound is in device normalized coordinates (-1 - +1)
-                cropBound = new Vector4((horizonOffset.x - horizonSize.x) / screenWidth, (horizonOffset.y - horizonSize.y) / screenHeight, (horizonOffset.x + horizonSize.x) / screenWidth, (horizonOffset.y + horizonSize.y) / screenHeight);
+                cropBound = new Vector4((2.0f * horizonOffset.x - horizonSize.x) / screenWidth, (2.0f * horizonOffset.y - horizonSize.y) / screenHeight, (2.0f * horizonOffset.x + horizonSize.x) / screenWidth, (2.0f * horizonOffset.y + horizonSize.y) / screenHeight);
                 ladderMaterial.SetVector("_CropBound", cropBound);
                 ladderMaterial.color = Color.white;
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
@@ -162,7 +162,7 @@ namespace JSI
                     ladderMaterial.mainTexture.wrapMode = TextureWrapMode.Clamp;
 
                     ladderMesh = JUtil.CreateSimplePlane("JSIHeadsUpDisplayLadder" + hudCamera.GetInstanceID(), horizonDrawSize, new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
-                    ladderMesh.transform.position = new Vector3(horizonOffset.x, horizonOffset.y, 1.45f);
+                    ladderMesh.transform.position = new Vector3(horizonOffset.x, -horizonOffset.y, 1.45f);
                     ladderMesh.GetComponent<Renderer>().material = ladderMaterial;
                     ladderMesh.transform.parent = cameraBody.transform;
 
@@ -260,7 +260,7 @@ namespace JSI
                         {
                             try
                             {
-                                VerticalBar vb = new VerticalBar(nodes[j], screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
+                                VerticalBar vb = new VerticalBar(nodes[j], rpmComp, screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
                                 verticalBars.Add(vb);
                             }
                             catch (Exception e)
@@ -285,7 +285,7 @@ namespace JSI
                         {
                             try
                             {
-                                HorizontalBar hb = new HorizontalBar(nodes[j], screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
+                                HorizontalBar hb = new HorizontalBar(nodes[j], rpmComp, screenWidth, screenHeight, drawingLayer, displayShader, cameraBody);
                                 horizontalBars.Add(hb);
                             }
                             catch (Exception e)
@@ -421,15 +421,13 @@ namespace JSI
                 InitializeRenderables(screen);
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-
             for (int i = 0; i < verticalBars.Count; ++i)
             {
-                verticalBars[i].Update(rpmComp, comp);
+                verticalBars[i].Update();
             }
             for (int i = 0; i < horizontalBars.Count; ++i)
             {
-                horizontalBars[i].Update(rpmComp, comp);
+                horizontalBars[i].Update();
             }
 
             GL.Clear(true, true, backgroundColorValue);
@@ -445,6 +443,7 @@ namespace JSI
             // MOARdV TODO: I don't think this does anything...
             GL.Color(Color.white);
 
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             Quaternion rotationVesselSurface = comp.RotationVesselSurface;
             if (headingMesh != null)
             {
@@ -464,7 +463,7 @@ namespace JSI
                 //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder(rotationVesselSurface, comp);
-                ladderMaterial.SetVector("_CropBound", cropBound); 
+                ladderMaterial.SetVector("_CropBound", cropBound);
                 JUtil.ShowHide(true, ladderMesh);
                 //hudCamera.Render();
                 //JUtil.ShowHide(false, ladderMesh);
@@ -570,14 +569,14 @@ namespace JSI
 
         private VariableOrNumberRange enablingVariable;
 
-        internal VerticalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
+        internal VerticalBar(ConfigNode node, RasterPropMonitorComputer rpmComp, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
         {
             JUtil.LogMessage(this, "Configuring for {0}", node.GetValue("name"));
             if (!node.HasValue("variableName"))
             {
                 throw new Exception("VerticalBar " + node.GetValue("name") + " missing variableName");
             }
-            variable = VariableOrNumber.Instantiate(node.GetValue("variableName"));
+            variable = rpmComp.InstantiateVariableOrNumber(node.GetValue("variableName"));
 
             if (!node.HasValue("texture"))
             {
@@ -645,7 +644,7 @@ namespace JSI
                     throw new Exception("VerticalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
                 }
 
-                enablingVariable = new VariableOrNumberRange(node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
+                enablingVariable = new VariableOrNumberRange(rpmComp, node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
             }
 
             barObject = JUtil.CreateSimplePlane("VerticalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
@@ -664,28 +663,26 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        internal void Update()
         {
-            float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp, comp))
+                if (!enablingVariable.IsInRange())
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, rpmComp, comp))
+            float value = variable.AsFloat();
+            if (useLog10)
             {
-                if (useLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
-                float yOffset = JUtil.DualLerp(textureLimit, scale, value);
+                value = JUtil.PseudoLog10(value);
+            }
+            float yOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+            MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
-                meshFilter.mesh.uv = new[] 
+            meshFilter.mesh.uv = new[] 
                 {
                     new Vector2(0.0f, yOffset - textureSize),
                     new Vector2(1.0f, yOffset - textureSize),
@@ -693,8 +690,8 @@ namespace JSI
                     new Vector2(1.0f, yOffset + textureSize)
                 };
 
-                JUtil.ShowHide(true, barObject);
-            }
+            JUtil.ShowHide(true, barObject);
+
         }
     }
 
@@ -709,14 +706,14 @@ namespace JSI
 
         private VariableOrNumberRange enablingVariable;
 
-        internal HorizontalBar(ConfigNode node, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
+        internal HorizontalBar(ConfigNode node, RasterPropMonitorComputer rpmComp, float screenWidth, float screenHeight, int drawingLayer, Shader displayShader, GameObject cameraBody)
         {
             JUtil.LogMessage(this, "Configuring for {0}", node.GetValue("name"));
             if (!node.HasValue("variableName"))
             {
                 throw new Exception("HorizontalBar " + node.GetValue("name") + " missing variableName");
             }
-            variable = VariableOrNumber.Instantiate(node.GetValue("variableName"));
+            variable = rpmComp.InstantiateVariableOrNumber(node.GetValue("variableName"));
 
             if (!node.HasValue("texture"))
             {
@@ -784,7 +781,7 @@ namespace JSI
                     throw new Exception("HorizontalBar " + node.GetValue("name") + " has an invalid enablingVariableRange");
                 }
 
-                enablingVariable = new VariableOrNumberRange(node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
+                enablingVariable = new VariableOrNumberRange(rpmComp, node.GetValue("enablingVariable").Trim(), range[0].Trim(), range[1].Trim());
             }
 
             barObject = JUtil.CreateSimplePlane("HorizontalBar" + node.GetValue("name"), new Vector2(0.5f * position.z, 0.5f * position.w), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
@@ -803,28 +800,26 @@ namespace JSI
             JUtil.ShowHide(true, barObject);
         }
 
-        internal void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        internal void Update()
         {
-            float value;
             if (enablingVariable != null)
             {
-                if (!enablingVariable.IsInRange(rpmComp, comp))
+                if (!enablingVariable.IsInRange())
                 {
                     return;
                 }
             }
 
-            if (variable.Get(out value, rpmComp, comp))
+            float value = variable.AsFloat();
+            if (useLog10)
             {
-                if (useLog10)
-                {
-                    value = JUtil.PseudoLog10(value);
-                }
-                float xOffset = JUtil.DualLerp(textureLimit, scale, value);
+                value = JUtil.PseudoLog10(value);
+            }
+            float xOffset = JUtil.DualLerp(textureLimit, scale, value);
 
-                MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
+            MeshFilter meshFilter = barObject.GetComponent<MeshFilter>();
 
-                meshFilter.mesh.uv = new[] 
+            meshFilter.mesh.uv = new[] 
                 {
                     new Vector2(xOffset - textureSize, 0.0f),
                     new Vector2(xOffset + textureSize, 0.0f),
@@ -832,8 +827,8 @@ namespace JSI
                     new Vector2(xOffset + textureSize, 1.0f)
                 };
 
-                JUtil.ShowHide(true, barObject);
-            }
+            JUtil.ShowHide(true, barObject);
+
         }
     }
 }

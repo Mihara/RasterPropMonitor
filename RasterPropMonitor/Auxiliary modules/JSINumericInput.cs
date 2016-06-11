@@ -85,12 +85,12 @@ namespace JSI
 
                 if (!string.IsNullOrEmpty(minValue))
                 {
-                    minRange = VariableOrNumber.Instantiate(minValue);
+                    minRange = rpmComp.InstantiateVariableOrNumber(minValue);
                     //JUtil.LogMessage(this, "Created lower bound variable");
                 }
                 if (!string.IsNullOrEmpty(maxValue))
                 {
-                    maxRange = VariableOrNumber.Instantiate(maxValue);
+                    maxRange = rpmComp.InstantiateVariableOrNumber(maxValue);
                     //JUtil.LogMessage(this, "Created upper bound variable");
                 }
                 if ((minRange == null || maxRange == null) && loopInput == true)
@@ -103,23 +103,15 @@ namespace JSI
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    VariableOrNumber von = VariableOrNumber.Instantiate(defaultValue);
-                    float value;
-                    if (von.Get(out value, rpmComp, comp))
+                    VariableOrNumber von = rpmComp.InstantiateVariableOrNumber(defaultValue);
+                    float value = von.AsFloat();
+
+                    if (stepSize > 0.0f)
                     {
-                        if (stepSize > 0.0f)
-                        {
-                            float remainder = value % stepSize;
-                            value -= remainder;
-                        }
-                        rpmComp.SetPersistentVariable(perPodPersistenceName, value);
+                        float remainder = value % stepSize;
+                        value -= remainder;
                     }
-                    else
-                    {
-                        JUtil.LogErrorMessage(this, "Failed to evaluate default value of {0} for {1}", defaultValue, perPodPersistenceName);
-                        return;
-                    }
+                    rpmComp.SetPersistentVariable(perPodPersistenceName, value);
                 }
 
                 ConfigNode moduleConfig = null;
@@ -181,49 +173,38 @@ namespace JSI
                     float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
                     val += change + remainder;
 
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     if (minRange != null)
                     {
-                        float v;
-                        if (minRange.Get(out v, rpmComp, comp))
+                        float v = minRange.AsFloat();
+
+                        if (loopInput)
                         {
-                            if (loopInput)
+                            if (val < v)
                             {
-                                if (val < v)
-                                {
-                                    if (maxRange.Get(out v, rpmComp, comp))
-                                    {
-                                        val = v;
-                                    }
-                                }
+                                val = maxRange.AsFloat();
                             }
-                            else
-                            {
-                                val = Mathf.Max(val, v);
-                            }
+                        }
+                        else
+                        {
+                            val = Mathf.Max(val, v);
                         }
                     }
 
                     if (maxRange != null)
                     {
-                        float v;
-                        if (maxRange.Get(out v, rpmComp, comp))
+                        float v = maxRange.AsFloat();
+                        if (loopInput)
                         {
-                            if (loopInput)
+                            if (val > v)
                             {
-                                if (val > v)
-                                {
-                                    if (minRange.Get(out v, rpmComp, comp))
-                                    {
-                                        val = v;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                val = Mathf.Min(val, v);
+                                val = minRange.AsFloat();
                             }
                         }
+                        else
+                        {
+                            val = Mathf.Min(val, v);
+                        }
+
                     }
 
                     if (stepSize > 0.0f)

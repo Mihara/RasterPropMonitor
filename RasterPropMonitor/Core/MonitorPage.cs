@@ -34,7 +34,7 @@ namespace JSI
         public readonly string name = string.Empty;
         public readonly bool unlocker;
         private readonly string text;
-        private string[] linesArray;
+        private StringProcessorFormatter[] spf;
         private string processedText = string.Empty;
 
         public string Text
@@ -124,7 +124,7 @@ namespace JSI
                 {
                     // There are processed variables in here?
                     StringBuilder bf = new StringBuilder();
-                    linesArray = processedText.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                    string[] linesArray = processedText.Split(JUtil.LineSeparator, StringSplitOptions.None);
                     for (int i = 0; i < linesArray.Length; i++)
                     {
                         bf.AppendLine(StringProcessor.ProcessString(linesArray[i], rpmComp));
@@ -136,15 +136,20 @@ namespace JSI
             {
                 if (isMutable)
                 {
-                    if (linesArray == null)
+                    if(spf == null)
                     {
-                        linesArray = text.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                        string[] linesArray = text.Split(JUtil.LineSeparator, StringSplitOptions.None);
+                        spf = new StringProcessorFormatter[linesArray.Length];
+                        for(int i=0; i<linesArray.Length; ++i)
+                        {
+                            spf[i] = new StringProcessorFormatter(linesArray[i], rpmComp);
+                        }
                     }
 
                     StringBuilder bf = new StringBuilder();
-                    for (int i = 0; i < linesArray.Length; i++)
+                    for (int i = 0; i < spf.Length; i++)
                     {
-                        bf.AppendLine(StringProcessor.ProcessString(linesArray[i], rpmComp));
+                        bf.AppendLine(StringProcessor.ProcessString(spf[i], rpmComp));
                     }
 
                     processedText = bf.ToString();

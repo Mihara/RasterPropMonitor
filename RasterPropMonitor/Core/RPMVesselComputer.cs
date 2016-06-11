@@ -68,7 +68,7 @@ namespace JSI
             BaseAction.GetGroupIndex(KSPActionGroup.Custom08),
             BaseAction.GetGroupIndex(KSPActionGroup.Custom09)
         };
-        internal static readonly string[] actionGroupMemo = {
+        internal readonly string[] actionGroupMemo = {
             "AG0",
             "AG1",
             "AG2",
@@ -349,6 +349,16 @@ namespace JSI
             }
 
             return instances[v.id];
+        }
+
+        /// <summary>
+        /// Public interface to fetch values.
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <returns></returns>
+        public object ProcessVariable(string variableName)
+        {
+            return null;
         }
 
         private Kerbal lastActiveKerbal = null;
@@ -1417,6 +1427,17 @@ namespace JSI
                 UpdateVariables();
                 // Re-trigger the update for the next FixedUpdate.
                 timeToUpdate = true;
+            }
+            else
+            {
+                // If it's no longer active, show any hidden kerbals
+                if (lastActiveKerbal != null)
+                {
+                    lastActiveKerbal.headTransform.parent.gameObject.SetActive(true);
+                    lastActiveKerbal.headTransform.gameObject.SetActive(true);
+                    lastActiveKerbal = null;
+                }
+
             }
         }
 

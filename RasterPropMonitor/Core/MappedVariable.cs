@@ -29,7 +29,7 @@ namespace JSI
         public readonly string mappedVariable;
         private readonly VariableOrNumber mappedExtent1, mappedExtent2;
 
-        public MappedVariable(ConfigNode node)
+        public MappedVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             if (!node.HasValue("mappedVariable") || !node.HasValue("mappedRange") || !node.HasValue("sourceVariable") || !node.HasValue("sourceRange"))
             {
@@ -44,7 +44,7 @@ namespace JSI
                 throw new ArgumentException("MappedVariable sourceRange does not have exactly two values");
             }
 
-            sourceVariable = new VariableOrNumberRange(sourceVariableStr, sources[0], sources[1]);
+            sourceVariable = new VariableOrNumberRange(rpmComp, sourceVariableStr, sources[0], sources[1]);
 
             mappedVariable = node.GetValue("mappedVariable");
             string[] destinations = node.GetValue("mappedRange").Split(',');
@@ -52,21 +52,17 @@ namespace JSI
             {
                 throw new ArgumentException("MappedVariable mappedRange does not have exactly two values");
             }
-            mappedExtent1 = VariableOrNumber.Instantiate(destinations[0]);
-            mappedExtent2 = VariableOrNumber.Instantiate(destinations[1]);
+            mappedExtent1 = rpmComp.InstantiateVariableOrNumber(destinations[0]);
+            mappedExtent2 = rpmComp.InstantiateVariableOrNumber(destinations[1]);
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
-            float lerp, extent1, extent2;
-            if (sourceVariable.InverseLerp(rpmComp, comp, out lerp) && mappedExtent1.Get(out extent1, rpmComp, comp) && mappedExtent2.Get(out extent2, rpmComp, comp))
-            {
-                return Mathf.Lerp(extent1, extent2, lerp);
-            }
-            else
-            {
-                return 0.0f;
-            }
+            float lerp = sourceVariable.InverseLerp();
+            float extent1 = mappedExtent1.AsFloat();
+            float extent2 = mappedExtent2.AsFloat();
+
+            return Mathf.Lerp(extent1, extent2, lerp);
         }
     }
 }

@@ -19,27 +19,32 @@
  * along with RasterPropMonitor.  If not, see <http://www.gnu.org/licenses/>.
  ****************************************************************************/
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace JSI
 {
+    /// <summary>
+    /// JSICallbackAnimator is an alternative for JSIVariableAnimator that handles
+    /// thresholded behavior (switching on/off, not interpolating between two
+    /// states).
+    /// </summary>
     public class JSICallbackAnimator : InternalModule
     {
         [KSPField]
         public string variableName = string.Empty;
+        [KSPField]
+        public float flashRate = 0.0f;
 
         private readonly List<CallbackAnimationSet> variableSets = new List<CallbackAnimationSet>();
         private Action<float> del;
-        /// <summary>
-        /// The Guid of the vessel we belonged to at Start.  When undocking,
-        /// KSP will change the vessel member variable before calling OnDestroy,
-        /// which prevents us from getting the RPMVesselComputer we registered
-        /// with.  So we have to store the Guid separately.
-        /// </summary>
-        private Guid registeredVessel = Guid.Empty;
         private RasterPropMonitorComputer rpmComp;
+        private JSIFlashModule fm;
 
+        /// <summary>
+        /// Start and initialize all the things!
+        /// </summary>
         public void Start()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -80,17 +85,18 @@ namespace JSI
                     }
                 }
 
-
-                del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
-                RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
-                float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-                for (int i = 0; i < variableSets.Count; ++i)
+                if (flashRate > 0.0f)
                 {
-                    variableSets[i].Update(rpmComp, comp, value);
+                    fm = JUtil.InstallFlashModule(part, flashRate);
+
+                    if (fm != null)
+                    {
+                        fm.flashSubscribers += FlashToggle;
+                    }
                 }
 
-                rpmComp.RegisterCallback(variableName, del);
-                registeredVessel = vessel.id;
+                del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
+                rpmComp.RegisterVariableCallback(variableName, del);
                 JUtil.LogMessage(this, "Configuration complete in prop {1} ({2}), supporting {0} callback animators.", variableSets.Count, internalProp.propID, internalProp.propName);
             }
             catch
@@ -101,6 +107,21 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback to update flashing parts
+        /// </summary>
+        /// <param name="newState"></param>
+        private void FlashToggle(bool newState)
+        {
+            for (int i = 0; i < variableSets.Count; ++i)
+            {
+                variableSets[i].FlashState(newState);
+            }
+        }
+
+        /// <summary>
+        /// Tear down the object.
+        /// </summary>
         public void OnDestroy()
         {
             for (int i = 0; i < variableSets.Count; ++i)
@@ -111,7 +132,11 @@ namespace JSI
 
             try
             {
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
+                if (fm != null)
+                {
+                    fm.flashSubscribers -= FlashToggle;
+                }
             }
             catch
             {
@@ -119,6 +144,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback RasterPropMonitorComputer calls when the variable of interest
+        /// changes.
+        /// </summary>
+        /// <param name="value"></param>
         void OnCallback(float value)
         {
             // Sanity checks:
@@ -127,20 +157,25 @@ namespace JSI
                 // Stop getting callbacks if for some reason a different
                 // computer is talking to us.
                 //JUtil.LogMessage(this, "OnCallback - unregistering del {0}, vessel null is {1}, comp.id = {2}", del.GetHashCode(), (vessel == null), comp.id);
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
             }
             else
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 for (int i = 0; i < variableSets.Count; ++i)
                 {
-                    variableSets[i].Update(rpmComp, comp, value);
+                    variableSets[i].Update(value);
                 }
             }
         }
     }
 
+    /// <summary>
+    /// CallbackAnimationSet tracks one particular animation (color change,
+    /// rotation, transformation, texture coordinate change).  It has an
+    /// independent range of enabling values, but it depends on the parent
+    /// JSICallback class to control what variable is tracked.
+    /// </summary>
     public class CallbackAnimationSet
     {
         private readonly VariableOrNumberRange variable;
@@ -161,8 +196,15 @@ namespace JSI
         private List<string> textureLayer = new List<string>();
         private readonly Mode mode;
         private readonly bool looping;
+        private readonly bool flash;
+        private FXGroup audioOutput;
+        private readonly float alarmSoundVolume;
+        private readonly bool alarmMustPlayOnce;
+        private readonly bool alarmSoundLooping;
         // runtime values:
+        private bool alarmActive; 
         private bool currentState;
+        private bool inIVA = false;
 
         private enum Mode
         {
@@ -176,6 +218,12 @@ namespace JSI
             TextureScale,
         }
 
+        /// <summary>
+        /// Initialize and configure the callback handler.
+        /// </summary>
+        /// <param name="node"></param>
+        /// <param name="variableName"></param>
+        /// <param name="thisProp"></param>
         public CallbackAnimationSet(ConfigNode node, string variableName, InternalProp thisProp)
         {
             currentState = false;
@@ -197,7 +245,8 @@ namespace JSI
                 throw new ArgumentException("Could not parse 'scale' parameter.");
             }
 
-            variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+            RasterPropMonitorComputer rpmComp = RasterPropMonitorComputer.Instantiate(thisProp, true);
+            variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
 
             // That takes care of the scale, now what to do about that scale:
             if (node.HasValue("reverse"))
@@ -206,6 +255,51 @@ namespace JSI
                 {
                     throw new ArgumentException("So is 'reverse' true or false?");
                 }
+            }
+
+            if (node.HasValue("flash"))
+            {
+                if(!bool.TryParse(node.GetValue("flash"), out flash))
+                {
+                    throw new ArgumentException("So is 'reverse' true or false?");
+                }
+            }
+            else
+            {
+                flash = false;
+            }
+
+            if (node.HasValue("alarmSound"))
+            {
+                alarmSoundVolume = 0.5f;
+                if (node.HasValue("alarmSoundVolume"))
+                {
+                    alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
+                }
+                audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
+                if (node.HasValue("alarmMustPlayOnce"))
+                {
+                    if (!bool.TryParse(node.GetValue("alarmMustPlayOnce"), out alarmMustPlayOnce))
+                    {
+                        throw new ArgumentException("So is 'alarmMustPlayOnce' true or false?");
+                    }
+                }
+                if (node.HasValue("alarmShutdownButton"))
+                {
+                    SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
+                }
+                if (node.HasValue("alarmSoundLooping"))
+                {
+                    if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
+                    {
+                        throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+                    }
+                    audioOutput.audio.loop = alarmSoundLooping;
+                }
+
+                inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+                GameEvents.OnCameraChange.Add(CameraChangeCallback);
             }
 
             if (node.HasValue("animationName"))
@@ -286,7 +380,6 @@ namespace JSI
                 }
                 colorName = Shader.PropertyToID(colorNameString);
 
-                RasterPropMonitorComputer rpmComp = null;
                 if (reverse)
                 {
                     activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
@@ -417,9 +510,34 @@ namespace JSI
             TurnOff();
         }
 
-        // Some things need to be explicitly destroyed due to Unity quirks.
+        /// <summary>
+        /// Callback method to notify animators that flash that it's time to flash.
+        /// </summary>
+        /// <param name="toggleState"></param>
+        internal void FlashState(bool toggleState)
+        {
+            if (flash && currentState)
+            {
+                if (toggleState)
+                {
+                    TurnOn();
+                }
+                else
+                {
+                    TurnOff();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Some things need to be explicitly destroyed due to Unity quirks. 
+        /// </summary>
         internal void TearDown()
         {
+            if (audioOutput != null)
+            {
+                GameEvents.OnCameraChange.Remove(CameraChangeCallback);
+            }
             if (affectedMaterial != null)
             {
                 UnityEngine.Object.Destroy(affectedMaterial);
@@ -429,6 +547,9 @@ namespace JSI
             controlledTransform = null;
         }
 
+        /// <summary>
+        /// Switch the animator to the ON state.
+        /// </summary>
         private void TurnOn()
         {
             switch (mode)
@@ -470,6 +591,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Switch the animator to the OFF state
+        /// </summary>
         private void TurnOff()
         {
             switch (mode)
@@ -519,9 +643,14 @@ namespace JSI
             }
         }
 
-        public void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, float value)
+        /// <summary>
+        /// Receive an update on the value; test if it is in the range we care
+        /// about, do what's appropriate if it is.
+        /// </summary>
+        /// <param name="value"></param>
+        public void Update(float value)
         {
-            bool newState = variable.IsInRange(rpmComp, comp, value);
+            bool newState = variable.IsInRange(value);
 
             if (newState ^ currentState)
             {
@@ -529,13 +658,65 @@ namespace JSI
                 if (newState)
                 {
                     TurnOn();
+
+                    if (audioOutput != null && !alarmActive)
+                    {
+                        audioOutput.audio.volume = (inIVA) ? alarmSoundVolume * GameSettings.SHIP_VOLUME : 0.0f;
+                        audioOutput.audio.Play();
+                        alarmActive = true;
+                    }
                 }
                 else
                 {
                     TurnOff();
+
+                    if (audioOutput != null && alarmActive)
+                    {
+                        if (!alarmMustPlayOnce)
+                        {
+                            audioOutput.audio.Stop();
+                        }
+                        alarmActive = false;
+                    }
                 }
 
                 currentState = newState;
+            }
+        }
+
+        /// <summary>
+        /// Callback to handle when the camera is switched from IVA to flight
+        /// </summary>
+        /// <param name="newMode"></param>
+        public void CameraChangeCallback(CameraManager.CameraMode newMode)
+        {
+            JUtil.LogMessage(this, "CameraChangeCallback({0})", newMode);
+            inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+            if(inIVA)
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                }
+            }
+            else
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = 0.0f;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Callback to turn off an alarm in response to a button hit on the prop.
+        /// </summary>
+        public void AlarmShutdown()
+        {
+            if (audioOutput != null && alarmActive && audioOutput.audio.isPlaying)
+            {
+                audioOutput.audio.Stop();
             }
         }
     }

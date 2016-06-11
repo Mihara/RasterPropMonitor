@@ -30,12 +30,14 @@ namespace JSI
     /// </summary>
     interface IComplexVariable
     {
-        object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp);
+        object Evaluate();
     }
 
-    // A CustomVariable defines a user-defined variable that consists of one or
-    // more RPM variables.  The CustomVariable applies a single logical operator
-    // across all the variables.
+    /// <summary>
+    /// A CustomVariable defines a user-defined variable that consists of one or
+    /// more RPM variables.  The CustomVariable applies a single logical operator
+    /// across all the variables.
+    /// </summary>
     class CustomVariable : IComplexVariable
     {
         enum Operator
@@ -61,14 +63,14 @@ namespace JSI
         private List<bool> reverse = new List<bool>();
         private Operator op;
 
-        internal CustomVariable(ConfigNode node)
+        internal CustomVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
             foreach (ConfigNode sourceVarNode in node.GetNodes("SOURCE_VARIABLE"))
             {
                 bool reverseVal;
-                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, out reverseVal);
+                VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, rpmComp, out reverseVal);
 
                 sourceVariables.Add(vonr);
                 reverse.Add(reverseVal);
@@ -110,10 +112,9 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
-            // MOARdV TODO: Reevaluate (SWIDT?) this method if math expressions are added
-            bool evaluation = sourceVariables[0].IsInRange(rpmComp, comp) ^ reverse[0];
+            bool evaluation = sourceVariables[0].IsInRange() ^ reverse[0];
 
             // Use an optimization on evaluation to speed things up
             bool earlyExit;
@@ -139,7 +140,7 @@ namespace JSI
 
             for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
             {
-                bool nextValue = sourceVariables[i].IsInRange(rpmComp, comp) ^ reverse[i];
+                bool nextValue = sourceVariables[i].IsInRange() ^ reverse[i];
 
                 switch (op)
                 {
@@ -169,7 +170,7 @@ namespace JSI
             return evaluation.GetHashCode();
         }
 
-        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, out bool reverse)
+        private static VariableOrNumberRange ProcessSourceNode(ConfigNode node, RasterPropMonitorComputer rpmComp, out bool reverse)
         {
             VariableOrNumberRange range;
             if (node.HasValue("range"))
@@ -180,11 +181,11 @@ namespace JSI
                 {
                     throw new ArgumentException("Found an unparseable value reading custom SOURCE_VARIABLE range");
                 }
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), tokens[0].Trim(), tokens[1].Trim());
             }
             else
             {
-                range = new VariableOrNumberRange(node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
+                range = new VariableOrNumberRange(rpmComp, node.GetValue("name").Trim(), float.MinValue.ToString(), float.MaxValue.ToString());
             }
 
             if (node.HasValue("reverse"))

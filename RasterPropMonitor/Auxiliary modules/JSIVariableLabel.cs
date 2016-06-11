@@ -81,7 +81,7 @@ namespace JSI
                         sourceString = sourceString.Substring(1);
                     }
                 }
-                spf = new StringProcessorFormatter(sourceString);
+                spf = new StringProcessorFormatter(sourceString, rpmComp);
 
                 if (!oneshot)
                 {
@@ -94,30 +94,16 @@ namespace JSI
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     zeroColorValue = JUtil.ParseColor32(zeroColor, part, ref rpmComp);
                     del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
-                    rpmComp.RegisterCallback(variableName, del);
+                    rpmComp.RegisterVariableCallback(variableName, del);
                     registeredVessel = vessel.id;
 
-                    // Initialize the text color.
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
-                    float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-                    if (value < 0.0f)
-                    {
-                        textObj.text.Color = negativeColorValue;
-                    }
-                    else if (value > 0.0f)
-                    {
-                        textObj.text.Color = positiveColorValue;
-                    }
-                    else
-                    {
-                        textObj.text.Color = zeroColorValue;
-                    }
+                    // Initialize the text color. Actually, callback registration took care of that
                 }
             }
             catch(Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed with exception {0}", e);
-                spf = new StringProcessorFormatter(string.Empty);
+                spf = new StringProcessorFormatter("x", rpmComp);
             }
         }
 
@@ -127,7 +113,7 @@ namespace JSI
             {
                 try
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 catch
                 {
@@ -145,7 +131,7 @@ namespace JSI
             if (vessel == null)
             {
                 // We're not attached to a ship?
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
@@ -158,7 +144,7 @@ namespace JSI
                 // before textObj is created.
                 if (del != null && !string.IsNullOrEmpty(variableName))
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;

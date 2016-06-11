@@ -48,7 +48,7 @@ namespace JSI
         private readonly Operator op;
         private readonly bool indexOperator;
 
-        internal MathVariable(ConfigNode node)
+        internal MathVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
@@ -126,7 +126,7 @@ namespace JSI
             int numIndices = Math.Min(sources.Length, maxParameters);
             for (int i = 0; i < numIndices; ++i)
             {
-                VariableOrNumber sv = VariableOrNumber.Instantiate(sources[i]);
+                VariableOrNumber sv = rpmComp.InstantiateVariableOrNumber(sources[i]);
                 sourceVariables.Add(sv);
             }
 
@@ -136,24 +136,16 @@ namespace JSI
             }
         }
 
-        public object Evaluate(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp)
+        public object Evaluate()
         {
             if (indexOperator)
             {
                 int index = 0;
-                float value = 0.0f;
-                if (!sourceVariables[0].Get(out value, rpmComp, comp))
-                {
-                    return 0;
-                }
+                float value = sourceVariables[0].AsFloat();
 
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
-                    float operand;
-                    if (!sourceVariables[i].Get(out operand, rpmComp, comp))
-                    {
-                        return 0;
-                    }
+                    float operand = sourceVariables[i].AsFloat();
 
                     switch (op)
                     {
@@ -178,19 +170,11 @@ namespace JSI
             }
             else
             {
-                double value = 0.0;
-                if (!sourceVariables[0].Get(out value, rpmComp, comp))
-                {
-                    return 0.0f;
-                }
+                double value = sourceVariables[0].AsDouble();
 
                 for (int i = 1; i < sourceVariables.Count; ++i)
                 {
-                    double operand;
-                    if (!sourceVariables[i].Get(out operand, rpmComp, comp))
-                    {
-                        return 0.0f;
-                    }
+                    double operand = sourceVariables[i].AsDouble();
 
                     switch (op)
                     {

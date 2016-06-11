@@ -1,4 +1,3 @@
-//#define SHOW_VARIABLE_QUERY_COUNTER
 /*****************************************************************************
  * RasterPropMonitor
  * =================
@@ -61,31 +60,43 @@ namespace JSI
         private List<kerbalExpressionSystem> localCrewMedical = new List<kerbalExpressionSystem>();
 
         // Processing cache!
+        private class VariableCache
+        {
+            internal VariableEvaluator evaluator;
+            internal VariableOrNumber value;
+            internal event Action<float> onChangeCallbacks;
+            internal event Action<bool> onResourceDepletedCallbacks;
+            internal bool cacheable;
+
+            internal void FireCallbacks(float newValue)
+            {
+                if (onChangeCallbacks != null)
+                {
+                    onChangeCallbacks(newValue);
+                }
+
+                if (onResourceDepletedCallbacks != null)
+                {
+                    onResourceDepletedCallbacks.Invoke(newValue < 0.01f);
+                }
+            }
+        };
+
+        private readonly Dictionary<string, VariableCache> variableCache = new Dictionary<string, VariableCache>();
+        private readonly List<VariableCache> updatableVariables = new List<VariableCache>();
         private readonly List<IJSIModule> installedModules = new List<IJSIModule>();
-        private readonly DefaultableDictionary<string, object> resultCache = new DefaultableDictionary<string, object>(null);
-        private readonly DefaultableDictionary<string, VariableCache> variableCache = new DefaultableDictionary<string, VariableCache>(null);
         private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
-        private uint masterSerialNumber = 0u;
+        private Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
 
         // Data refresh
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
         private bool timeToUpdate = false;
-
-        // Callback system
-        private Dictionary<string, List<Action<float>>> onChangeCallbacks = new Dictionary<string, List<Action<float>>>();
-        private Dictionary<string, float> onChangeValue = new Dictionary<string, float>();
-        private Dictionary<string, List<Action<bool>>> onResourceCallbacks = new Dictionary<string, List<Action<bool>>>();
-        private Dictionary<string, bool> onResourceValue = new Dictionary<string, bool>();
         private bool forceCallbackRefresh = false;
 
         // Diagnostics
         private int debug_fixedUpdates = 0;
         private DefaultableDictionary<string, int> debug_callCount = new DefaultableDictionary<string, int>(0);
-#if SHOW_VARIABLE_QUERY_COUNTER
-        private int debug_varsProcessed = 0;
-        private long debug_totalVars = 0;
-#endif
 
         [KSPField(isPersistant = true)]
         public string RPMCid = string.Empty;
@@ -99,8 +110,12 @@ namespace JSI
         private ExternalVariableHandlers plugins = null;
         internal Dictionary<string, Color32> overrideColors = new Dictionary<string, Color32>();
 
-        // Public functions:
-        // Request the instance, create it if one doesn't exist:
+        /// <summary>
+        /// Request the instance, create it if one doesn't exist.
+        /// </summary>
+        /// <param name="referenceLocation">Prop or part where the RPMC should be.</param>
+        /// <param name="createIfMissing">Create the RPMC if it's not already present.</param>
+        /// <returns>The RPMC, or null if it can't be or wasn't created.</returns>
         public static RasterPropMonitorComputer Instantiate(MonoBehaviour referenceLocation, bool createIfMissing)
         {
             var thatProp = referenceLocation as InternalProp;
@@ -122,18 +137,6 @@ namespace JSI
                 }
             }
             return (createIfMissing) ? thatPart.AddModule(typeof(RasterPropMonitorComputer).Name) as RasterPropMonitorComputer : null;
-        }
-
-        /// <summary>
-        /// Wrapper for ExternalVariablesHandler.ProcessVariable.
-        /// </summary>
-        /// <param name="variable"></param>
-        /// <param name="result"></param>
-        /// <param name="cacheable"></param>
-        /// <returns></returns>
-        internal bool ProcessVariable(string variable, out object result, out bool cacheable)
-        {
-            return plugins.ProcessVariable(variable, out result, out cacheable);
         }
 
         // Page handler interface for vessel description page.
@@ -159,9 +162,7 @@ namespace JSI
         /// <returns></returns>
         public object ProcessVariable(string input, RPMVesselComputer comp)
         {
-#if SHOW_VARIABLE_QUERY_COUNTER
-            ++debug_varsProcessed;
-#endif
+            input = input.Trim();
 
             if (RPMGlobals.debugShowVariableCallCount)
             {
@@ -172,89 +173,21 @@ namespace JSI
             {
                 comp = RPMVesselComputer.Instance(vid);
             }
-            VariableCache vc = variableCache[input];
-            if (vc != null)
-            {
-                if (!(vc.cacheable && vc.serialNumber == masterSerialNumber))
-                {
-                    try
-                    {
-                        object newValue = vc.accessor(input, this, comp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                        variableCache.Remove(input);
-                    }
-                }
 
-                return vc.cachedValue;
+            if (!variableCache.ContainsKey(input))
+            {
+                AddVariable(input);
+            }
+
+            VariableCache vc = variableCache[input];
+            if (vc.cacheable)
+            {
+                return vc.value.Get();
             }
             else
             {
-                bool cacheable;
-                VariableEvaluator evaluator = GetEvaluator(input, out cacheable);
-                if (evaluator != null)
-                {
-                    vc = new VariableCache(cacheable, evaluator);
-                    try
-                    {
-                        object newValue = vc.accessor(input, this, comp);
-                        vc.serialNumber = masterSerialNumber;
-                        vc.cachedValue = newValue;
-
-                        if (newValue.ToString() == input && !unrecognizedVariables.Contains(input))
-                        {
-                            unrecognizedVariables.Add(input);
-                            JUtil.LogMessage(this, "Unrecognized variable {0}", input);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        JUtil.LogErrorMessage(this, "Processing error while adding {0}: {1}", input, e.Message);
-                        //variableCache.Clear();
-                        return -1;
-                    }
-
-                    variableCache[input] = vc;
-                    return vc.cachedValue;
-                }
+                return vc.evaluator(input, comp);
             }
-
-            object returnValue = resultCache[input];
-            if (returnValue == null)
-            {
-                bool cacheable = true;
-                try
-                {
-                    if (!ProcessVariable(input, out returnValue, out cacheable))
-                    {
-                        cacheable = false;
-                        returnValue = input;
-                        if (!unrecognizedVariables.Contains(input))
-                        {
-                            unrecognizedVariables.Add(input);
-                            JUtil.LogMessage(this, "Unrecognized variable {0}", input);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    JUtil.LogErrorMessage(this, "Processing error while processing {0}: {1}", input, e.Message);
-                    // Most of the variables are doubles...
-                    return double.NaN;
-                }
-
-                if (cacheable && returnValue != null)
-                {
-                    //JUtil.LogMessage(this, "Found variable \"{0}\"!  It was {1}", input, returnValue);
-                    resultCache.Add(input, returnValue);
-                }
-            }
-
-            return returnValue;
         }
 
         /// <summary>
@@ -263,21 +196,17 @@ namespace JSI
         /// </summary>
         /// <param name="variableName"></param>
         /// <param name="cb"></param>
-        public void RegisterCallback(string variableName, Action<float> cb)
+        public void RegisterVariableCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "RegisterCallback with {1} for {0}", variableName, RPMCid);
-            if (onChangeCallbacks.ContainsKey(variableName))
+            variableName = variableName.Trim();
+            if (!variableCache.ContainsKey(variableName))
             {
-                onChangeCallbacks[variableName].Add(cb);
+                AddVariable(variableName);
             }
-            else
-            {
-                var callbackList = new List<Action<float>>();
-                callbackList.Add(cb);
-                onChangeCallbacks[variableName] = callbackList;
-                onChangeValue[variableName] = float.MaxValue;
-            }
-            forceCallbackRefresh = true;
+
+            VariableCache vc = variableCache[variableName];
+            vc.onChangeCallbacks += cb;
+            cb((float)vc.value.numericValue);
         }
 
         /// <summary>
@@ -285,19 +214,12 @@ namespace JSI
         /// </summary>
         /// <param name="variableName"></param>
         /// <param name="cb"></param>
-        public void UnregisterCallback(string variableName, Action<float> cb)
+        public void UnregisterVariableCallback(string variableName, Action<float> cb)
         {
-            //JUtil.LogMessage(this, "UnregisterCallback with {1} for {0}", variableName, RPMCid);
-            if (onChangeCallbacks.ContainsKey(variableName))
+            variableName = variableName.Trim();
+            if (variableCache.ContainsKey(variableName))
             {
-                try
-                {
-                    onChangeCallbacks[variableName].Remove(cb);
-                }
-                catch
-                {
-
-                }
+                variableCache[variableName].onChangeCallbacks -= cb;
             }
         }
 
@@ -309,23 +231,15 @@ namespace JSI
         /// <param name="cb"></param>
         public void RegisterResourceCallback(string variableName, Action<bool> cb)
         {
-            if (onResourceCallbacks.ContainsKey(variableName))
+            variableName = variableName.Trim();
+            if (!variableCache.ContainsKey(variableName))
             {
-                onResourceCallbacks[variableName].Add(cb);
+                AddVariable(variableName);
             }
-            else
-            {
-                var callbackList = new List<Action<bool>>();
-                callbackList.Add(cb);
-                onResourceCallbacks[variableName] = callbackList;
 
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                bool initValue = (ProcessVariable(variableName, comp).MassageToFloat() < 0.01f);
-                onResourceValue[variableName] = initValue;
-            }
-            cb(onResourceValue[variableName]);
-
-            forceCallbackRefresh = true;
+            VariableCache vc = variableCache[variableName];
+            vc.onResourceDepletedCallbacks += cb;
+            cb(vc.value.numericValue < 0.01);
         }
 
         /// <summary>
@@ -335,16 +249,77 @@ namespace JSI
         /// <param name="cb"></param>
         public void UnregisterResourceCallback(string variableName, Action<bool> cb)
         {
-            if (onResourceCallbacks.ContainsKey(variableName))
+            variableName = variableName.Trim();
+            if (variableCache.ContainsKey(variableName))
             {
-                try
-                {
-                    onResourceCallbacks[variableName].Remove(cb);
-                }
-                catch
-                {
+                variableCache[variableName].onResourceDepletedCallbacks -= cb;
+            }
+        }
 
+        /// <summary>
+        /// Instantiate a VariableOrNumber object attached to this computer, or
+        /// return a reference to an existing one.
+        /// </summary>
+        /// <param name="variableName">Name of the variable</param>
+        /// <returns>The VariableOrNumber</returns>
+        public VariableOrNumber InstantiateVariableOrNumber(string variableName)
+        {
+            variableName = variableName.Trim();
+            if (!variableCache.ContainsKey(variableName))
+            {
+                AddVariable(variableName);
+            }
+
+            return variableCache[variableName].value;
+        }
+
+        /// <summary>
+        /// Add a variable to the variableCache
+        /// </summary>
+        /// <param name="variableName"></param>
+        private void AddVariable(string variableName)
+        {
+            VariableCache vc = new VariableCache();
+            bool cacheable;
+            vc.evaluator = GetEvaluator(variableName, out cacheable);
+            vc.value = new VariableOrNumber(variableName, cacheable, this);
+            vc.cacheable = cacheable;
+
+            if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                object value = vc.evaluator(variableName, comp);
+                if (value is string)
+                {
+                    vc.value.stringValue = value as string;
+                    vc.value.isNumeric = false;
+                    vc.value.numericValue = 0.0;
+
+                    // If the evaluator returns the variableName, then we
+                    // have an unknown variable.  Change the VoN type to
+                    // ConstantString so we don't waste cycles on update to
+                    // reevaluate it.
+                    if (vc.value.stringValue == variableName && !unrecognizedVariables.Contains(variableName))
+                    {
+                        vc.value.variableType = VariableOrNumber.VoNType.ConstantString;
+                        unrecognizedVariables.Add(variableName);
+                        JUtil.LogInfo(this, "Unrecognized variable {0}", variableName);
+                    }
                 }
+                else
+                {
+                    vc.value.numericValue = value.MassageToDouble();
+                    vc.value.isNumeric = true;
+                }
+            }
+
+            variableCache.Add(variableName, vc);
+
+            if (vc.value.variableType == VariableOrNumber.VoNType.VariableValue)
+            {
+                // Only variables that are really variable need to be checked
+                // during FixedUpdate.
+                updatableVariables.Add(vc);
             }
         }
 
@@ -364,7 +339,24 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Clear out variables to force them to be re-evaluated.  TODO: Do
+        /// I clear out the variableCache?
+        /// </summary>
+        private void ClearVariables()
+        {
+            sideSlipEvaluator = null;
+            angleOfAttackEvaluator = null;
+
+            forceCallbackRefresh = true;
+            //variableCache.Clear();
+            timeToUpdate = true;
+        }
+
         #region Monobehaviour
+        /// <summary>
+        /// Configure this computer for operation.
+        /// </summary>
         public void Start()
         {
             if (!HighLogic.LoadedSceneIsEditor)
@@ -547,47 +539,31 @@ namespace JSI
             {
                 UpdateLocalVars();
 
-                ++masterSerialNumber;
-
-#if SHOW_VARIABLE_QUERY_COUNTER
-                int debug_callbacksProcessed = 0;
-                int debug_callbackQueriesMade = 0;
-#endif
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
-                foreach (var cbVal in onChangeCallbacks)
-                {
-                    float previousValue = onChangeValue[cbVal.Key];
-                    float newVal = ProcessVariable(cbVal.Key, comp).MassageToFloat();
-                    if (!Mathf.Approximately(newVal, previousValue) || forceCallbackRefresh == true)
-                    {
-                        for (int i = 0; i < cbVal.Value.Count; ++i)
-                        {
-#if SHOW_VARIABLE_QUERY_COUNTER
-                            ++debug_callbacksProcessed;
-#endif
-                            cbVal.Value[i](newVal);
-                        }
 
-                        onChangeValue[cbVal.Key] = newVal;
+                for (int i = 0; i < updatableVariables.Count; ++i)
+                {
+                    VariableCache vc = updatableVariables[i];
+                    float oldVal = vc.value.AsFloat();
+                    double newVal;
+
+                    object evaluant = vc.evaluator(vc.value.variableName, comp);
+                    if (evaluant is string)
+                    {
+                        vc.value.isNumeric = false;
+                        vc.value.stringValue = evaluant as string;
+                        newVal = 0.0;
                     }
-#if SHOW_VARIABLE_QUERY_COUNTER
-                    ++debug_callbackQueriesMade;
-#endif
-                }
-
-                foreach (var cbrVal in onResourceCallbacks)
-                {
-                    float newVal = ProcessVariable(cbrVal.Key, comp).MassageToFloat();
-                    bool newDepleted = (newVal < 0.01f);
-                    JUtil.LogMessage(this, "Checking {0} depletion: now {1}, was {2}", cbrVal.Key, newDepleted, onResourceValue[cbrVal.Key]);
-                    if (newDepleted != onResourceValue[cbrVal.Key])
+                    else
                     {
-                        for (int i = 0; i < cbrVal.Value.Count; ++i)
-                        {
-                            cbrVal.Value[i](newDepleted);
-                        }
+                        newVal = evaluant.MassageToDouble();
+                        vc.value.isNumeric = true;
+                    }
+                    vc.value.numericValue = newVal;
 
-                        onResourceValue[cbrVal.Key] = newDepleted;
+                    if (!Mathf.Approximately(oldVal, (float)newVal) || forceCallbackRefresh == true)
+                    {
+                        vc.FireCallbacks((float)newVal);
                     }
                 }
 
@@ -595,15 +571,11 @@ namespace JSI
 
                 forceCallbackRefresh = false;
                 timeToUpdate = false;
-#if SHOW_VARIABLE_QUERY_COUNTER
-                debug_totalVars += debug_varsProcessed;
-                JUtil.LogMessage(this, "{1} vars processed and {2} callbacks called for {3} callback variables ({0:0.0} avg. vars per FixedUpdate) ---", (float)(debug_totalVars) / (float)(debug_fixedUpdates), debug_varsProcessed, debug_callbacksProcessed, debug_callbackQueriesMade);
-                debug_varsProcessed = 0;
-#endif
 
+                Vessel v = vessel;
                 for (int i = 0; i < activeTriggeredEvents.Count; ++i)
                 {
-                    activeTriggeredEvents[i].Update(this, comp);
+                    activeTriggeredEvents[i].Update(v);
                 }
             }
         }
@@ -631,6 +603,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Tear down this computer.
+        /// </summary>
         public void OnDestroy()
         {
             if (!string.IsNullOrEmpty(RPMCid))
@@ -638,16 +613,10 @@ namespace JSI
                 JUtil.LogMessage(this, "OnDestroy: GUID {0}", RPMCid);
             }
 
-#if SHOW_VARIABLE_QUERY_COUNTER
-            debug_fixedUpdates = Math.Max(debug_fixedUpdates, 1);
-            JUtil.LogMessage(this, "{3}: {0} total variables queried in {1} FixedUpdate calls, or {2:0.0} variables/call",
-                debug_totalVars, debug_fixedUpdates, (float)(debug_totalVars) / (float)(debug_fixedUpdates), RPMCid);
-#endif
-
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onVesselChange.Remove(onVesselChange);
 
-            if (RPMGlobals.debugShowVariableCallCount)
+            if (RPMGlobals.debugShowVariableCallCount && !string.IsNullOrEmpty(RPMCid))
             {
                 List<KeyValuePair<string, int>> l = new List<KeyValuePair<string, int>>();
                 l.AddRange(debug_callCount);
@@ -659,24 +628,35 @@ namespace JSI
                 {
                     JUtil.LogMessage(this, "{0} queried {1} times {2:0.0} calls/FixedUpdate", l[i].Key, l[i].Value, (float)(l[i].Value) / (float)(debug_fixedUpdates));
                 }
+
+                JUtil.LogMessage(this, "{0} total variables were instantiated in this part", variableCache.Count);
+                JUtil.LogMessage(this, "{0} variables were polled every {1} updates in the VariableCache", updatableVariables.Count, refreshDataRate);
             }
 
             localCrew.Clear();
             localCrewMedical.Clear();
 
+            for (int i = 0; i < installedModules.Count; ++i)
+            {
+                installedModules[i].vessel = null;
+            }
+
             variableCache.Clear();
-            resultCache.Clear();
+            ClearVariables();
         }
 
+        /// <summary>
+        /// Callback to tell us our vessel was modified (and we thus need to
+        /// refresh some values.
+        /// </summary>
+        /// <param name="who"></param>
         private void onVesselChange(Vessel who)
         {
             if (who.id == vessel.id)
             {
                 vid = vessel.id;
                 //JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
-                forceCallbackRefresh = true;
-                variableCache.Clear();
-                resultCache.Clear();
+                ClearVariables();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
@@ -691,15 +671,18 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Callback to tell us our vessel was modified (and we thus need to
+        /// re-examine some values.
+        /// </summary>
+        /// <param name="who"></param>
         private void onVesselWasModified(Vessel who)
         {
             if (who.id == vessel.id)
             {
                 vid = vessel.id;
                 JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid);
-                forceCallbackRefresh = true;
-                variableCache.Clear();
-                resultCache.Clear();
+                ClearVariables();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {

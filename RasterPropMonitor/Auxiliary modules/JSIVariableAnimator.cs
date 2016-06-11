@@ -154,11 +154,10 @@ namespace JSI
                 return;
             }
 
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             double universalTime = Planetarium.GetUniversalTime();
             for (int unit = 0; unit < variableSets.Count; ++unit)
             {
-                variableSets[unit].Update(rpmComp, comp, universalTime);
+                variableSets[unit].Update(universalTime);
             }
         }
 
@@ -276,12 +275,12 @@ namespace JSI
 
             if (node.HasValue("modulo"))
             {
-                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1], node.GetValue("modulo"));
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1], node.GetValue("modulo"));
                 usesModulo = true;
             }
             else
             {
-                variable = new VariableOrNumberRange(variableName, tokens[0], tokens[1]);
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
                 usesModulo = false;
             }
 
@@ -708,13 +707,9 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        public void Update(RasterPropMonitorComputer rpmComp, RPMVesselComputer comp, double universalTime)
+        public void Update(double universalTime)
         {
-            float scaledValue;
-            if (!variable.InverseLerp(rpmComp, comp, out scaledValue))
-            {
-                return;
-            }
+            float scaledValue = variable.InverseLerp();
 
             float delta = Mathf.Abs(scaledValue - lastScaledValue);
             if (delta < float.Epsilon)

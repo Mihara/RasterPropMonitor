@@ -49,7 +49,7 @@ namespace JSI
 
         internal static List<string> debugShowOnly = new List<string>();
 
-        internal static Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
+        internal static Dictionary<string, ConfigNode> customVariables = new Dictionary<string, ConfigNode>();
         internal static List<string> knownLoadedAssemblies = new List<string>();
         internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
         internal static List<RasterPropMonitorComputer.TriggeredEventTemplate> triggeredEvents = new List<RasterPropMonitorComputer.TriggeredEventTemplate>();

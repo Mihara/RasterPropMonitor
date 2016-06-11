@@ -102,9 +102,6 @@ namespace JSI
         private string fontDefinitionString = @" !""#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~Δ☊¡¢£¤¥¦§¨©ª«¬☋®¯°±²³´µ¶·¸¹º»¼½¾¿";
         private RasterPropMonitorComputer rpmComp;
 
-        private int loopsWithoutInitCounter = 0;
-        private bool startupFailed = false;
-
         private static Texture2D LoadFont(object caller, InternalProp thisProp, string location)
         {
             Texture2D font = null;
@@ -267,7 +264,6 @@ namespace JSI
             catch
             {
                 JUtil.AnnoyUser(this);
-                startupFailed = true;
                 // We can also disable ourselves, that should help.
                 enabled = false;
                 // And now that we notified the user that config is borked, we rethrow the exception so that
@@ -446,7 +442,6 @@ namespace JSI
             // particularly when docking, so we can't use it to detect being broken by a third party plugin.
             if (!startupComplete)
             {
-                loopsWithoutInitCounter++;
                 return;
             }
 

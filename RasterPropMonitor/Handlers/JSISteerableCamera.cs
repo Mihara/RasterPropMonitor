@@ -246,14 +246,10 @@ namespace JSI
                 {
                     cameraEffectMaterial.SetVector("_ImageDims", new Vector4((float)renderTex.width, (float)renderTex.height, 1.0f / (float)renderTex.width, 1.0f / (float)renderTex.height));
 
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                     for (int i = 0; i < ceVariables.Count; ++i)
                     {
-                        float value;
-                        if (ceVariables[i].value.Get(out value, rpmComp, comp))
-                        {
-                            cameraEffectMaterial.SetFloat(ceVariables[i].variable, value);
-                        }
+                        float value = ceVariables[i].value.AsFloat();
+                        cameraEffectMaterial.SetFloat(ceVariables[i].variable, value);
                     }
 
                     Graphics.Blit(renderTex, screen, cameraEffectMaterial);
@@ -650,7 +646,7 @@ namespace JSI
                             {
                                 ShaderEffectVariable sev = new ShaderEffectVariable();
                                 sev.variable = Shader.PropertyToID(components[0].Trim());
-                                sev.value = VariableOrNumber.Instantiate(components[1]);
+                                sev.value = rpmComp.InstantiateVariableOrNumber(components[1]);
                                 ceVariables.Add(sev);
                             }
                         }

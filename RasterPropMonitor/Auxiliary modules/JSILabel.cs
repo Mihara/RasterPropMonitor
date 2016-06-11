@@ -41,8 +41,11 @@ namespace JSI
             always,
             never,
             active,
-            passive
+            passive,
+            flash
         };
+        [KSPField]
+        public float flashRate = 0.0f;
 
         [KSPField]
         public float fontSize = 8.0f;
@@ -80,6 +83,7 @@ namespace JSI
         public string zeroColor = string.Empty;
         private Color zeroColorValue = XKCDColors.White;
         private bool variablePositive = false;
+        private bool flashOn = true;
 
         private JSITextMesh textObj;
         private Font font;
@@ -99,7 +103,11 @@ namespace JSI
         /// </summary>
         private Guid registeredVessel = Guid.Empty;
         RasterPropMonitorComputer rpmComp;
+        private JSIFlashModule fm;
 
+        /// <summary>
+        /// Start everything up and get it configured.
+        /// </summary>
         public void Start()
         {
             try
@@ -206,7 +214,7 @@ namespace JSI
                             sourceString = sourceString.Substring(1);
                         }
                     }
-                    labels.Add(new JSILabelSet(sourceString, oneshot));
+                    labels.Add(new JSILabelSet(sourceString, rpmComp, oneshot));
 
                     if (!oneshot)
                     {
@@ -239,7 +247,7 @@ namespace JSI
                                         string lText = variableNodes[i].GetValue("labelText");
                                         string sourceString = lText.UnMangleConfigText();
                                         lOneshot |= !lText.Contains("$&$");
-                                        labels.Add(new JSILabelSet(sourceString, lOneshot));
+                                        labels.Add(new JSILabelSet(sourceString, rpmComp, lOneshot));
                                         if (!lOneshot)
                                         {
                                             rpmComp.UpdateDataRefreshRate(refreshRate);
@@ -270,27 +278,10 @@ namespace JSI
                     positiveColorValue = JUtil.ParseColor32(positiveColor, part, ref rpmComp);
                     negativeColorValue = JUtil.ParseColor32(negativeColor, part, ref rpmComp);
                     del = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnCallback");
-                    rpmComp.RegisterCallback(variableName, del);
+                    rpmComp.RegisterVariableCallback(variableName, del);
                     registeredVessel = vessel.id;
 
-                    // Initialize the text color.
-                    RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                    float value = rpmComp.ProcessVariable(variableName, comp).MassageToFloat();
-                    if (value < 0.0f)
-                    {
-                        textObj.color = negativeColorValue;
-                        variablePositive = false;
-                    }
-                    else if (value > 0.0f)
-                    {
-                        textObj.color = positiveColorValue;
-                        variablePositive = true;
-                    }
-                    else
-                    {
-                        textObj.color = zeroColorValue;
-                        variablePositive = false;
-                    }
+                    // Initialize the text color.  Actually, callback registration takes care of that.
                 }
 
                 if (string.IsNullOrEmpty(emissive))
@@ -320,6 +311,22 @@ namespace JSI
                 {
                     emissiveMode = EmissiveMode.passive;
                 }
+                else if (emissive.ToLower() == EmissiveMode.flash.ToString())
+                {
+                    if (flashRate > 0.0f)
+                    {
+                        emissiveMode = EmissiveMode.flash;
+                        fm = JUtil.InstallFlashModule(part, flashRate);
+                        if (fm != null)
+                        {
+                            fm.flashSubscribers += FlashToggle;
+                        }
+                    }
+                    else
+                    {
+                        emissiveMode = EmissiveMode.active;
+                    }
+                }
                 else
                 {
                     JUtil.LogErrorMessage(this, "Unrecognized emissive mode '{0}' in config for {1} ({2})", emissive, internalProp.propID, internalProp.propName);
@@ -331,10 +338,28 @@ namespace JSI
             catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "Start failed in prop {1} ({2}) with exception {0}", e, internalProp.propID, internalProp.propName);
-                labels.Add(new JSILabelSet("ERR", true));
+                labels.Add(new JSILabelSet("ERR", rpmComp, true));
             }
         }
 
+        /// <summary>
+        /// Callback to manage toggling the flash state, where applicable.
+        /// </summary>
+        /// <param name="newFlashState"></param>
+        private void FlashToggle(bool newFlashState)
+        {
+            flashOn = newFlashState;
+            UpdateShader();
+
+            if(variablePositive)
+            {
+                textObj.color = (flashOn) ? positiveColorValue : negativeColorValue;
+            }
+        }
+
+        /// <summary>
+        /// Respond to a click event: update the text object
+        /// </summary>
         public void Click()
         {
             activeLabel++;
@@ -356,9 +381,12 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Update the emissive value in the shader.
+        /// </summary>
         private void UpdateShader()
         {
-            float emissiveValue = 1.0f;
+            float emissiveValue;
             if (emissiveMode == EmissiveMode.always)
             {
                 emissiveValue = 1.0f;
@@ -366,6 +394,10 @@ namespace JSI
             else if (emissiveMode == EmissiveMode.never)
             {
                 emissiveValue = 0.0f;
+            }
+            else if (emissiveMode == EmissiveMode.flash)
+            {
+                emissiveValue = (variablePositive && flashOn) ? 1.0f : 0.0f;
             }
             else if (variablePositive ^ (emissiveMode == EmissiveMode.passive))
             {
@@ -379,14 +411,22 @@ namespace JSI
             textObj.material.SetFloat(emissiveFactorIndex, emissiveValue);
         }
 
+        /// <summary>
+        /// Tear down
+        /// </summary>
         public void OnDestroy()
         {
+            if (fm != null)
+            {
+                fm.flashSubscribers -= FlashToggle;
+            }
+
             //JUtil.LogMessage(this, "OnDestroy() for {0}", GetHashCode());
             if (del != null)
             {
                 try
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 catch
                 {
@@ -397,13 +437,17 @@ namespace JSI
             textObj = null;
         }
 
+        /// <summary>
+        /// Handle callbacks to update our color.
+        /// </summary>
+        /// <param name="value"></param>
         private void OnCallback(float value)
         {
             // Sanity checks:
             if (vessel == null)
             {
                 // We're not attached to a ship?
-                rpmComp.UnregisterCallback(variableName, del);
+                rpmComp.UnregisterVariableCallback(variableName, del);
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback()");
                 return;
             }
@@ -416,7 +460,7 @@ namespace JSI
                 // before textObj is created.
                 if (del != null && !string.IsNullOrEmpty(variableName))
                 {
-                    rpmComp.UnregisterCallback(variableName, del);
+                    rpmComp.UnregisterVariableCallback(variableName, del);
                 }
                 JUtil.LogErrorMessage(this, "Received an unexpected OnCallback() when textObj was null");
                 return;
@@ -429,7 +473,7 @@ namespace JSI
             }
             else if (value > 0.0f)
             {
-                textObj.color = positiveColorValue;
+                textObj.color = (flashOn) ? positiveColorValue : negativeColorValue;
                 variablePositive = true;
             }
             else
@@ -439,6 +483,10 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Time to update?
+        /// </summary>
+        /// <returns></returns>
         private bool UpdateCheck()
         {
             if (updateCountdown <= 0)
@@ -450,9 +498,12 @@ namespace JSI
             return false;
         }
 
+        /// <summary>
+        /// Do we need to update our text and shader?
+        /// </summary>
         public override void OnUpdate()
         {
-            if(textObj == null)
+            if (textObj == null)
             {
                 // Shouldn't happen ... but it does, thanks to the quirks of
                 // docking and undocking.
@@ -481,11 +532,11 @@ namespace JSI
         public bool oneshotComplete;
         public readonly bool oneshot;
 
-        internal JSILabelSet(string labelText, bool isOneshot)
+        internal JSILabelSet(string labelText, RasterPropMonitorComputer rpmComp, bool isOneshot)
         {
             oneshot = isOneshot;
             oneshotComplete = false;
-            spf = new StringProcessorFormatter(labelText);
+            spf = new StringProcessorFormatter(labelText, rpmComp);
         }
     }
 
