@@ -61,6 +61,11 @@ namespace JSI
         [KSPField]
         public Vector2 horizonOffset = Vector2.zero;
         private Vector4 cropBound = Vector4.zero;
+        [KSPField]
+        public string horizonEnableVariable = string.Empty;
+        [KSPField]
+        public string horizonEnableRange = string.Empty;
+        VariableOrNumberRange horizonEnable;
         private Material ladderMaterial;
 
         [KSPField]
@@ -154,6 +159,17 @@ namespace JSI
                 ladderMaterial.mainTexture = GameDatabase.Instance.GetTexture(horizonTexture.EnforceSlashes(), false);
                 if (ladderMaterial.mainTexture != null)
                 {
+                    if (!string.IsNullOrEmpty(horizonEnableVariable) && !string.IsNullOrEmpty(horizonEnableRange))
+                    {
+                        string[] range = horizonEnableRange.Split(',');
+                        if (range.Length != 2)
+                        {
+                            throw new Exception("horizonEnableRange has an invalid number of variables");
+                        }
+
+                        horizonEnable = new VariableOrNumberRange(rpmComp, horizonEnableVariable.Trim(), range[0].Trim(), range[1].Trim());
+                    }
+
                     float diagonal = horizonSize.magnitude / Mathf.Min(horizonSize.x, horizonSize.y) * 0.5f;
                     Vector2 horizonDrawSize = diagonal * horizonSize;
                     horizonTextureSize.x = 0.5f * (horizonTextureSize.x / ladderMaterial.mainTexture.width);
@@ -453,21 +469,12 @@ namespace JSI
 
             if (ladderMesh != null)
             {
-                // Viewport doesn't work with this, AFAICT.
-                // Anyway, these numbers aren't right for the redesigned HUD.
-                //JUtil.LogMessage(this, "screen is {0} x {1}, horizon size is {2} x {3}, making a rectangle at {4} x {5} with size of {6} x {7}",
-                //    screen.width,screen.height,
-                //    horizonSize.x, horizonSize.y,
-                //    (screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f,
-                //    horizonSize.x, horizonSize.y);
-                //GL.Viewport(new Rect((screen.width - horizonSize.x) * 0.5f, (screen.height - horizonSize.y) * 0.5f, horizonSize.x, horizonSize.y));
                 // Fix up UVs, apply rotation.
                 UpdateLadder(rotationVesselSurface, comp);
                 ladderMaterial.SetVector("_CropBound", cropBound);
-                JUtil.ShowHide(true, ladderMesh);
-                //hudCamera.Render();
-                //JUtil.ShowHide(false, ladderMesh);
-                //GL.Viewport(new Rect(0, 0, screen.width, screen.height));
+
+                bool enable = (horizonEnable == null || horizonEnable.IsInRange());
+                JUtil.ShowHide(enable, ladderMesh);
             }
 
             if (overlayMesh != null)
