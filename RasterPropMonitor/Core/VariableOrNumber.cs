@@ -38,6 +38,14 @@ namespace JSI
             VariableValue,
         }
 
+        internal bool cacheable
+        {
+            get
+            {
+                return (rpmComp == null);
+            }
+        }
+
         /// <summary>
         /// Initialize a VariableOrNumber
         /// </summary>
@@ -170,6 +178,20 @@ namespace JSI
         VariableOrNumber lowerBound;
         VariableOrNumber upperBound;
         VariableOrNumber modulo;
+
+        internal bool cacheable
+        {
+            get
+            {
+                bool isCacheable = sourceValue.cacheable && lowerBound.cacheable && upperBound.cacheable;
+                if (modulo != null)
+                {
+                    isCacheable = isCacheable && modulo.cacheable;
+                }
+
+                return isCacheable;
+            }
+        }
 
         public VariableOrNumberRange(RasterPropMonitorComputer rpmComp, string sourceVariable, string range1, string range2, string moduloVariable = null)
         {

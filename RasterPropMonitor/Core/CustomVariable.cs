@@ -30,6 +30,8 @@ namespace JSI
     /// </summary>
     interface IComplexVariable
     {
+        bool Cacheable();
+
         object Evaluate();
     }
 
@@ -62,16 +64,19 @@ namespace JSI
         private List<VariableOrNumberRange> sourceVariables = new List<VariableOrNumberRange>();
         private List<bool> reverse = new List<bool>();
         private Operator op;
+        private readonly bool cacheable;
 
         internal CustomVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
             name = node.GetValue("name");
 
+            cacheable = true;
             foreach (ConfigNode sourceVarNode in node.GetNodes("SOURCE_VARIABLE"))
             {
                 bool reverseVal;
                 VariableOrNumberRange vonr = ProcessSourceNode(sourceVarNode, rpmComp, out reverseVal);
 
+                cacheable = cacheable && vonr.cacheable;
                 sourceVariables.Add(vonr);
                 reverse.Add(reverseVal);
             }
@@ -110,6 +115,11 @@ namespace JSI
             {
                 throw new ArgumentException("Found an invalid operator type in RPM_CUSTOM_VARIABLE", oper);
             }
+        }
+
+        public bool Cacheable()
+        {
+            return cacheable;
         }
 
         public object Evaluate()

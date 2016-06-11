@@ -47,6 +47,7 @@ namespace JSI
         private List<VariableOrNumber> sourceVariables = new List<VariableOrNumber>();
         private readonly Operator op;
         private readonly bool indexOperator;
+        private readonly bool cacheable;
 
         internal MathVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
@@ -122,11 +123,13 @@ namespace JSI
                 throw new ArgumentException("Found an invalid operator type in RPM_CUSTOM_VARIABLE", oper);
             }
 
+            cacheable = true;
             string[] sources = node.GetValues("sourceVariable");
             int numIndices = Math.Min(sources.Length, maxParameters);
             for (int i = 0; i < numIndices; ++i)
             {
                 VariableOrNumber sv = rpmComp.InstantiateVariableOrNumber(sources[i]);
+                cacheable = cacheable && sv.cacheable;
                 sourceVariables.Add(sv);
             }
 
@@ -134,6 +137,11 @@ namespace JSI
             {
                 throw new ArgumentException("Did not find any SOURCE_VARIABLE nodes in RPM_CUSTOM_VARIABLE", name);
             }
+        }
+
+        public bool Cacheable()
+        {
+            return cacheable;
         }
 
         public object Evaluate()
