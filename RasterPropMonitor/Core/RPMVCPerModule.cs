@@ -294,7 +294,39 @@ namespace JSI
         /// </summary>
         private void FetchElectricData()
         {
-            solarOutput = fuelcellOutput = generatorOutput = alternatorOutput = 0.0f;
+            if (availableAlternators.Count > 0)
+            {
+                alternatorOutput = 0.0f;
+            }
+            else
+            {
+                alternatorOutput = -1.0f;
+            }
+            if (availableFuelCells.Count > 0)
+            {
+                fuelcellOutput = 0.0f;
+            }
+            else
+            {
+                fuelcellOutput = -1.0f;
+            }
+            if (availableGenerators.Count > 0)
+            {
+                generatorOutput = 0.0f;
+            }
+            else
+            {
+                generatorOutput = -1.0f;
+            }
+            if (availableSolarPanels.Count > 0)
+            {
+                solarOutput = 0.0f;
+            }
+            else
+            {
+                solarOutput = -1.0f;
+            }
+
             generatorsActive = false;
             solarPanelsDeployable = solarPanelsRetractable = false;
 
