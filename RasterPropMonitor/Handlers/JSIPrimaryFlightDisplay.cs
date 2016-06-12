@@ -272,7 +272,7 @@ namespace JSI
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
-                // However, in 1.1.2 (maybe earlier), something changed and something here is incorrect.
+                // However, in 1.1.2 (maybe earlier), the NavBall gameobject doesn't have children.
                 try
                 {
                     GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
