@@ -90,10 +90,24 @@ namespace JSI
                         {
                             if (tokens[1].StartsWith(resourceType.Key, StringComparison.Ordinal))
                             {
-                                return (string variable, RPMVesselComputer comp) =>
+                                try
                                 {
-                                    return comp.resources.ListElement(variable);
-                                };
+                                    RPMVesselComputer vc = RPMVesselComputer.Instance(vessel);
+                                    object o = vc.resources.ListElement(input);
+                                    if (o == null)
+                                    {
+                                        throw new ArgumentException();
+                                    }
+
+                                    return (string variable, RPMVesselComputer comp) =>
+                                    {
+                                        return comp.resources.ListElement(variable);
+                                    };
+                                }
+                                catch
+                                {
+                                    return (string variable, RPMVesselComputer comp) => { return variable; };
+                                }
                             }
                         }
                         return (string variable, RPMVesselComputer comp) => { return variable; };
