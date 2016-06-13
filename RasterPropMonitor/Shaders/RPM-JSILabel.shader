@@ -20,11 +20,12 @@ Shader "RPM/JSILabel"
 		_UnderwaterFogFactor("Underwater Fog Factor", Range(0,1)) = 0
 		[Header(RPM)]
 		_EmissiveFactor ("_EmissiveFactor", Range(0,1)) = 1
+		_Cutoff ("Alpha cutoff", Range(0,1)) = 0.35
 	}
 
 	SubShader
 	{
-		Tags { "Queue" = "Transparent" }
+		Tags {"Queue"="AlphaTest"}
 
 		Pass
 		{
@@ -32,18 +33,15 @@ Shader "RPM/JSILabel"
 			ColorMask 0
 		}
 
-		//ZWrite On
+		ZWrite Off
 		ZTest LEqual
 		Blend SrcAlpha OneMinusSrcAlpha
-		//Cull Off
 		Cull Back
 
 		CGPROGRAM
 
         #include "../../SquadCore/LightingKSP.cginc"
-		//#pragma surface surf BlinnPhongSmooth alpha:fade
-		//#pragma surface surf BlinnPhongSmooth alpha:fade fullforwardshadows
-		#pragma surface surf BlinnPhongSmooth alpha:blend fullforwardshadows
+		#pragma surface surf BlinnPhongSmooth alphatest:_Cutoff
 		#pragma target 3.0
 
 		half _Shininess;
@@ -86,9 +84,6 @@ Shader "RPM/JSILabel"
 
 			o.Albedo = color.rgb;
             o.Emission = emission * (1.0 - _EmissiveFactor) + (_EmissiveFactor * color.rgb) * alpha;
-            //o.Emission = _EmissiveFactor * color.rgb;
-            //o.Gloss = 0.5;
-            //o.Specular = _Shininess;
 			o.Normal = normal;
 			o.Emission *= _Opacity;// * fog.a;
 			o.Alpha = alpha;
@@ -97,5 +92,4 @@ Shader "RPM/JSILabel"
 		ENDCG
 	}
 	Fallback "Standard"
-
 }
