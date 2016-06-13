@@ -1693,6 +1693,12 @@ namespace JSI
                     RPMGlobals.debugShowVariableCallCount = false;
                 }
 
+                int minRefresh = RPMGlobals.minimumRefreshRate;
+                if (rpmSettings[0].TryGetValue("MinimumRefreshRate", ref minRefresh))
+                {
+                    RPMGlobals.minimumRefreshRate = Math.Max(minRefresh, 1);
+                }
+
                 RPMGlobals.debugShowOnly.Clear();
                 string showOnlyConcat = string.Empty;
                 if (rpmSettings[0].TryGetValue("ShowOnly", ref showOnlyConcat) && !string.IsNullOrEmpty(showOnlyConcat))

@@ -330,7 +330,7 @@ namespace JSI
         /// <param name="newDataRate">New data rate</param>
         internal void UpdateDataRefreshRate(int newDataRate)
         {
-            refreshDataRate = Math.Max(1, Math.Min(newDataRate, refreshDataRate));
+            refreshDataRate = Math.Max(RPMGlobals.minimumRefreshRate, Math.Min(newDataRate, refreshDataRate));
 
             RPMVesselComputer comp = null;
             if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
