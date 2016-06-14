@@ -424,6 +424,12 @@ namespace JSI
             }
         }
         */
+
+        /// <summary>
+        /// Returns true if the active Kerbal is in the specified part.
+        /// </summary>
+        /// <param name="thisPart"></param>
+        /// <returns></returns>
         public static bool ActiveKerbalIsLocal(this Part thisPart)
         {
             Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
@@ -437,6 +443,12 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Returns the index of the active seat in the current part, or -1 if
+        /// there is none.
+        /// </summary>
+        /// <param name="thisPart"></param>
+        /// <returns></returns>
         public static int CurrentActiveSeat(this Part thisPart)
         {
             Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
@@ -450,6 +462,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Return a reference to the active kerbal in the current part.
+        /// </summary>
+        /// <param name="thisPart"></param>
+        /// <returns></returns>
         public static Kerbal FindCurrentKerbal(this Part thisPart)
         {
             Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
@@ -678,6 +695,12 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Returns true if the vessel is the current vessel, we're in flight,
+        /// and we're in IVA.
+        /// </summary>
+        /// <param name="thatVessel"></param>
+        /// <returns></returns>
         public static bool VesselIsInIVA(Vessel thatVessel)
         {
             // Inactive IVAs are renderer.enabled = false, this can and should be used...
@@ -828,9 +851,14 @@ namespace JSI
             }
             return (destMax - destMin) * ((value - sourceMin) / (sourceMax - sourceMin)) + destMin;
         }
-        // Convert a variable to a log10-like value (log10 for values > 1,
-        // pass-through for values [-1, 1], and -log10(abs(value)) for values
-        // < -1.  Useful for logarithmic VSI and altitude strips.
+
+        /// <summary>
+        /// Convert a variable to a log10-like value (log10 for values > 1,
+        /// pass-through for values [-1, 1], and -log10(abs(value)) for values
+        /// values less than -1.  Useful for logarithmic VSI and altitude strips.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static double PseudoLog10(double value)
         {
             if (Math.Abs(value) <= 1.0)
@@ -840,6 +868,11 @@ namespace JSI
             return (1.0 + Math.Log10(Math.Abs(value))) * Math.Sign(value);
         }
 
+        /// <summary>
+        /// ibid, just using a float
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static float PseudoLog10(float value)
         {
             if (Mathf.Abs(value) <= 1.0f)
@@ -861,6 +894,11 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Translate a Color32 to a color tag [#rrggbbaa].
+        /// </summary>
+        /// <param name="color"></param>
+        /// <returns></returns>
         public static string ColorToColorTag(Color32 color)
         {
             var result = new StringBuilder();
@@ -1735,6 +1773,12 @@ namespace JSI
         /// <returns></returns>
         private IEnumerator LoadRasterPropMonitorValues()
         {
+            var bodies = FlightGlobals.Bodies;
+            for (int i = 0; i < bodies.Count; ++i)
+            {
+                JUtil.LogMessage(this, "CelestialBody {0} is index {1}", bodies[i].bodyName, bodies[i].flightGlobalsIndex);
+            }
+                
             RPMGlobals.customVariables.Clear();
 
             ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE");
