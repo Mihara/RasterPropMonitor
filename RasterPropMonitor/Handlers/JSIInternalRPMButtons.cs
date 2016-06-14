@@ -789,6 +789,59 @@ namespace JSI
         }
 
         /// <summary>
+        /// Sets multi-mode engines to run in primary mode (true) or secondary
+        /// mode (false).
+        /// </summary>
+        /// <param name="newstate"></param>
+        public void SetEnginesPrimaryMode(bool newstate)
+        {
+            try
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableMultiModeEngines.Count; ++i)
+                {
+                    if (comp.availableMultiModeEngines[i].runningPrimary ^ newstate)
+                    {
+                        if (newstate)
+                        {
+                            comp.availableMultiModeEngines[i].SetPrimary(true);
+                        }
+                        else
+                        {
+                            comp.availableMultiModeEngines[i].SetSecondary(true);
+                        }
+                        // Revised implementation:
+                        //comp.availableMultiModeEngines[i].ModeEvent();
+
+                        // original implementation:
+                        //var ev = comp.availableMultiModeEngines[i].Events["ModeEvent"];
+                        //if (ev != null)
+                        //{
+                        //    ev.Invoke();
+                        //}
+                    }
+
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Returns true if any engines are running in primary mode (for multi-mode
+        /// engines).
+        /// </summary>
+        /// <returns></returns>
+        public bool GetEnginesPrimaryMode()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.anyMmePrimary;
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Returns a single numeric value indicating what mode the autopilot is in.
         /// </summary>
         /// <returns></returns>

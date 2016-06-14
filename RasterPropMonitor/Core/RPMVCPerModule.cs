@@ -57,6 +57,7 @@ namespace JSI
 
         //--- Engines
         internal List<ModuleEngines> availableEngines = new List<ModuleEngines>();
+        internal List<MultiModeEngine> availableMultiModeEngines = new List<MultiModeEngine>();
         internal float totalCurrentThrust;
         internal float totalLimitedMaximumThrust;
         internal float totalRawMaximumThrust;
@@ -65,6 +66,7 @@ namespace JSI
         internal bool anyEnginesFlameout;
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
+        internal bool anyMmePrimary;
 
         //--- Gimbals
         internal List<ModuleGimbal> availableGimbals = new List<ModuleGimbal>();
@@ -124,6 +126,7 @@ namespace JSI
             availableGenerators.Clear();
             availableGeneratorOutput.Clear();
             availableGimbals.Clear();
+            availableMultiModeEngines.Clear();
             availableParachutes.Clear();
             availableRadars.Clear();
             availableRealChutes.Clear();
@@ -152,6 +155,10 @@ namespace JSI
                             if (module is ModuleEngines)
                             {
                                 availableEngines.Add(module as ModuleEngines);
+                            }
+                            else if (module is MultiModeEngine)
+                            {
+                                availableMultiModeEngines.Add(module as MultiModeEngine);
                             }
                             else if (module is ModuleAblator)
                             {
@@ -459,6 +466,21 @@ namespace JSI
         /// </summary>
         private void FetchEngineData()
         {
+            if (availableMultiModeEngines.Count == 0)
+            {
+                anyMmePrimary = true;
+            }
+            else
+            {
+                anyMmePrimary = false;
+                for (int i = 0; i < availableMultiModeEngines.Count; ++i)
+                {
+                    if (availableMultiModeEngines[i].runningPrimary)
+                    {
+                        anyMmePrimary = true;
+                    }
+                }
+            }
             // Per-engine values
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
@@ -576,7 +598,7 @@ namespace JSI
             anyParachutesDeployed = false;
             allParachutesSafe = true;
 
-            for(int i=0; i<availableParachutes.Count; ++i)
+            for (int i = 0; i < availableParachutes.Count; ++i)
             {
                 if (availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED || availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
                 {
