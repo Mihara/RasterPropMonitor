@@ -2366,6 +2366,17 @@ namespace JSI
 
 
                 // Database information about planetary bodies.
+                case "ORBITBODYINDEX":
+                    return (string variable, RPMVesselComputer comp) => { return vessel.orbit.referenceBody.flightGlobalsIndex; };
+                case "TARGETBODYINDEX":
+                    return (string variable, RPMVesselComputer comp) =>
+                    {
+                        if (comp.target != null && comp.targetBody != null)
+                        {
+                            return comp.targetBody.flightGlobalsIndex;
+                        }
+                        return -1;
+                    };
                 case "ORBITBODYATMOSPHERE":
                     return (string variable, RPMVesselComputer comp) => { return vessel.orbit.referenceBody.atmosphere ? 1d : -1d; };
                 case "TARGETBODYATMOSPHERE":
