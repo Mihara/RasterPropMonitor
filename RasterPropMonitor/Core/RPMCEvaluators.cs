@@ -258,9 +258,9 @@ namespace JSI
                         return (string variable, RPMVesselComputer comp) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            if (HasPersistentVariable(substring))
+                            if (HasPersistentVariable(substring, false))
                             {
-                                return GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                return GetPersistentVariable(substring, 0.0f, false).MassageToFloat();
                             }
                             else
                             {

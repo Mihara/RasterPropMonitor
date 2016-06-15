@@ -35,19 +35,27 @@ namespace JSI
         /// <summary>
         /// Returns the named persistent value, or the default provided if
         /// it's not set.  The persistent value is initialized to the default
-        /// if the default is used.
+        /// if the default is used.  If 'broadcast' is set, other RPMC on the
+        /// same vessel are queried, as well.
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="defaultValue"></param>
+        /// <param name="name">Name of the persistent</param>
+        /// <param name="defaultValue">The default value</param>
+        /// <param name="broadcast">Broadcast the request to other parts of the same craft?</param>
         /// <returns></returns>
-        internal object GetPersistentVariable(string name, object defaultValue)
+        internal object GetPersistentVariable(string name, object defaultValue, bool broadcast)
         {
             object val;
-            try
+            if (persistentVars.ContainsKey(name))
             {
                 val = persistentVars[name];
             }
-            catch
+            else if (broadcast)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                val = comp.GetPersistentVariable(name, defaultValue);
+                persistentVars[name] = val;
+            }
+            else
             {
                 val = defaultValue;
                 persistentVars[name] = defaultValue;
@@ -61,15 +69,25 @@ namespace JSI
         /// </summary>
         /// <param name="name"></param>
         /// <param name="defaultValue"></param>
+        /// <param name="broadcast">Broadcast the request to other parts of the same craft?</param>
         /// <returns></returns>
-        internal bool GetPersistentVariable(string name, bool defaultValue)
+        internal bool GetPersistentVariable(string name, bool defaultValue, bool broadcast)
         {
             object val;
-            try
+            if (persistentVars.ContainsKey(name))
             {
                 val = persistentVars[name];
             }
-            catch
+            else if (broadcast)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                val = comp.GetPersistentVariable(name, defaultValue);
+                if (val.GetType() == typeof(System.Boolean))
+                {
+                    persistentVars[name] = val;
+                }
+            }
+            else
             {
                 val = defaultValue;
                 persistentVars[name] = defaultValue;
@@ -84,10 +102,23 @@ namespace JSI
         /// dictionary.
         /// </summary>
         /// <param name="name"></param>
+        /// <param name="broadcast">Broadcast the request to other parts of the same craft?</param>
         /// <returns></returns>
-        internal bool HasPersistentVariable(string name)
+        internal bool HasPersistentVariable(string name, bool broadcast)
         {
-            return persistentVars.ContainsKey(name);
+            if(persistentVars.ContainsKey(name))
+            {
+                return true;
+            }
+            else if(broadcast)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.HasPersistentVariable(name);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -95,23 +126,20 @@ namespace JSI
         /// </summary>
         /// <param name="name"></param>
         /// <param name="value"></param>
-        internal void SetPersistentVariable(string name, object value)
+        /// <param name="broadcast">Broadcast the request to other parts of the same craft?</param>
+        internal void SetPersistentVariable(string name, object value, bool broadcast)
         {
-            try
+            if (name.Trim().Length == 0)
             {
-                if (name.Trim().Length == 0)
-                {
-                    JUtil.LogErrorMessage(this, "Trying to set an empty variable name!");
-                    return;
-                }
-                persistentVars[name] = value;
-                //JUtil.LogMessage(this, "Setting persistent var {0} to {1}", name, value);
+                JUtil.LogErrorMessage(this, "Trying to set an empty variable name!");
+                return;
             }
-            catch
+            persistentVars[name] = value;
+
+            if(broadcast)
             {
-                // Not needed?  Looks like the assignment will add the value.
-                persistentVars.Add(name, value);
-                //JUtil.LogMessage(this, "Adding persistent var {0} as {1}", name, value);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                comp.SetPersistentVariable(name, value);
             }
         }
     }

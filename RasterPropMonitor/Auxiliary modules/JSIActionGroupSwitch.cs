@@ -41,6 +41,8 @@ namespace JSI
         public string perPodPersistenceName = string.Empty;
         private bool perPodPersistenceValid = false;
         [KSPField]
+        public bool perPodPersistenceIsGlobal = false;
+        [KSPField]
         public string perPodMasterSwitchName = string.Empty;
         private bool perPodMasterSwitchValid = false;
         [KSPField]
@@ -513,13 +515,13 @@ namespace JSI
                         {
                             if (switchGroupIdentifier >= 0)
                             {
-                                int activeSwitch = rpmComp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
+                                int activeSwitch = rpmComp.GetPersistentVariable(persistentVarName, 0, perPodPersistenceIsGlobal).MassageToInt();
 
                                 currentState = customGroupState = (switchGroupIdentifier == activeSwitch);
                             }
                             else
                             {
-                                currentState = customGroupState = rpmComp.GetPersistentVariable(persistentVarName, initialState);
+                                currentState = customGroupState = rpmComp.GetPersistentVariable(persistentVarName, initialState, perPodPersistenceIsGlobal);
                             }
 
                             if (customAction == CustomActions.IntLight)
@@ -532,18 +534,18 @@ namespace JSI
                     }
                 }
 
-                if (persistentVarValid && !rpmComp.HasPersistentVariable(persistentVarName))
+                if (persistentVarValid && !rpmComp.HasPersistentVariable(persistentVarName, perPodPersistenceIsGlobal))
                 {
                     if (switchGroupIdentifier >= 0)
                     {
                         if (currentState)
                         {
-                            rpmComp.SetPersistentVariable(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetPersistentVariable(persistentVarName, switchGroupIdentifier, perPodPersistenceIsGlobal);
                         }
                     }
                     else
                     {
-                        rpmComp.SetPersistentVariable(persistentVarName, currentState);
+                        rpmComp.SetPersistentVariable(persistentVarName, currentState, perPodPersistenceIsGlobal);
                     }
                 }
 
@@ -648,7 +650,7 @@ namespace JSI
             {
                 if (perPodMasterSwitchValid)
                 {
-                    switchEnabled = rpmComp.GetPersistentVariable(perPodMasterSwitchName, false);
+                    switchEnabled = rpmComp.GetPersistentVariable(perPodMasterSwitchName, false, false);
                 }
                 if (masterVariable != null)
                 {
@@ -672,7 +674,7 @@ namespace JSI
                         customGroupState = true;
                         if (persistentVarValid)
                         {
-                            rpmComp.SetPersistentVariable(persistentVarName, switchGroupIdentifier);
+                            rpmComp.SetPersistentVariable(persistentVarName, switchGroupIdentifier, perPodPersistenceIsGlobal);
                         }
                     }
                     // else: can't turn off a radio group switch.
@@ -687,7 +689,7 @@ namespace JSI
                     customGroupState = !customGroupState;
                     if (persistentVarValid)
                     {
-                        rpmComp.SetPersistentVariable(persistentVarName, customGroupState);
+                        rpmComp.SetPersistentVariable(persistentVarName, customGroupState, perPodPersistenceIsGlobal);
                     }
                 }
             }
@@ -722,7 +724,7 @@ namespace JSI
                         }
                     }
                     float getValue = transferGetter.AsFloat();
-                    rpmComp.SetPersistentVariable(transferPersistentName, getValue);
+                    rpmComp.SetPersistentVariable(transferPersistentName, getValue, false);
                     break;
                 case CustomActions.TransferFromPersistent:
                     if (stateVariable != null)
@@ -734,9 +736,9 @@ namespace JSI
                             return; // early - button disabled
                         }
                     }
-                    if (rpmComp.HasPersistentVariable(transferPersistentName))
+                    if (rpmComp.HasPersistentVariable(transferPersistentName, false))
                     {
-                        transferSetter(rpmComp.GetPersistentVariable(transferPersistentName, 0.0).MassageToDouble());
+                        transferSetter(rpmComp.GetPersistentVariable(transferPersistentName, 0.0, false).MassageToDouble());
                     }
                     break;
                 case CustomActions.TransferFromVariable:
@@ -813,14 +815,14 @@ namespace JSI
                 {
                     if (switchGroupIdentifier >= 0)
                     {
-                        int activeGroupId = rpmComp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
+                        int activeGroupId = rpmComp.GetPersistentVariable(persistentVarName, 0, perPodPersistenceIsGlobal).MassageToInt();
                         newState = (switchGroupIdentifier == activeGroupId);
                         customGroupState = newState;
                     }
                     else
                     {
                         // If the switch transform is not given, and the global comp.Persistence value is, this means this is a slave module.
-                        newState = rpmComp.GetPersistentVariable(persistentVarName, false);
+                        newState = rpmComp.GetPersistentVariable(persistentVarName, false, perPodPersistenceIsGlobal);
                     }
                 }
                 else
@@ -830,13 +832,13 @@ namespace JSI
                     {
                         if (switchGroupIdentifier >= 0)
                         {
-                            int activeGroupId = rpmComp.GetPersistentVariable(persistentVarName, 0).MassageToInt();
+                            int activeGroupId = rpmComp.GetPersistentVariable(persistentVarName, 0, perPodPersistenceIsGlobal).MassageToInt();
                             newState = (switchGroupIdentifier == activeGroupId);
                             customGroupState = newState;
                         }
                         else
                         {
-                            newState = rpmComp.GetPersistentVariable(persistentVarName, customGroupState);
+                            newState = rpmComp.GetPersistentVariable(persistentVarName, customGroupState, perPodPersistenceIsGlobal);
                         }
                     }
                     else
@@ -858,7 +860,7 @@ namespace JSI
 
             if (perPodMasterSwitchValid)
             {
-                bool switchEnabled = rpmComp.GetPersistentVariable(perPodMasterSwitchName, false);
+                bool switchEnabled = rpmComp.GetPersistentVariable(perPodMasterSwitchName, false, false);
                 if (!switchEnabled)
                 {
                     // If the master switch is 'off', this switch needs to turn off

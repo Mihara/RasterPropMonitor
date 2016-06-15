@@ -84,7 +84,7 @@ namespace JSI
             float value;
             if (!string.IsNullOrEmpty(perPodPersistenceName))
             {
-                bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false);
+                bool state = rpmComp.GetPersistentVariable(perPodPersistenceName, false, false);
                 RPMVesselComputer comp = RPMVesselComputer.Instance(rpmComp.vessel);
                 value = rpmComp.ProcessVariable((state) ? altVariable : variable, comp).MassageToFloat();
             }

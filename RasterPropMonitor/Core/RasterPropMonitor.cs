@@ -230,7 +230,7 @@ namespace JSI
 
                 // Load our state from storage...
                 persistentVarName = "activePage" + internalProp.propID;
-                int activePageID = rpmComp.GetPersistentVariable(persistentVarName, pages.Count).MassageToInt();
+                int activePageID = rpmComp.GetPersistentVariable(persistentVarName, pages.Count, false).MassageToInt();
                 if (activePageID < pages.Count)
                 {
                     activePage = pages[activePageID];
@@ -353,7 +353,7 @@ namespace JSI
                 activePage.Active(false);
                 activePage = triggeredPage;
                 activePage.Active(true);
-                rpmComp.SetPersistentVariable(persistentVarName, activePage.pageNumber);
+                rpmComp.SetPersistentVariable(persistentVarName, activePage.pageNumber, false);
                 refreshDrawCountdown = refreshTextCountdown = 0;
                 firstRenderComplete = false;
                 PlayClickSound(audioOutput);
