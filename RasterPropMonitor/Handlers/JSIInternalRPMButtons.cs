@@ -889,6 +889,31 @@ namespace JSI
         }
 
         /// <summary>
+        /// Sets the throttle imit for all engines.
+        /// </summary>
+        /// <param name="limit"></param>
+        public void SetThrottleLimit(double limit)
+        {
+            if (vessel != null)
+            {
+                if (limit < 0.0)
+                {
+                    limit = 0.0;
+                }
+                else if (limit > 100.0)
+                {
+                    limit = 100.0;
+                }
+
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableEngines.Count; ++i)
+                {
+                    comp.availableEngines[i].thrustPercentage = (float)limit;
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns a single numeric value indicating what mode the autopilot is in.
         /// </summary>
         /// <returns></returns>

@@ -63,6 +63,8 @@ namespace JSI
         internal float totalRawMaximumThrust;
         internal float maxEngineFuelFlow;
         internal float currentEngineFuelFlow;
+        internal int currentEngineCount;
+        internal int activeEngineCount;
         internal bool anyEnginesFlameout;
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
@@ -500,7 +502,9 @@ namespace JSI
                     }
                 }
             }
+
             // Per-engine values
+            currentEngineCount = 0;
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
             float hottestEngine = float.MaxValue;
@@ -509,10 +513,24 @@ namespace JSI
 
             float averageIspContribution = 0.0f;
             float maxIspContribution = 0.0f;
+            List<Part> visitedParts = new List<Part>();
 
             for (int i = 0; i < availableEngines.Count; ++i)
             {
                 Part thatPart = availableEngines[i].part;
+                if (thatPart.inverseStage == StageManager.CurrentStage)
+                {
+                    if (!visitedParts.Contains(thatPart))
+                    {
+                        currentEngineCount++;
+                        if (availableEngines[i].getIgnitionState)
+                        {
+                            activeEngineCount++;
+                        }
+                        visitedParts.Add(thatPart);
+                    }
+                }
+
                 anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
                 anyEnginesEnabled |= availableEngines[i].allowShutdown && availableEngines[i].getIgnitionState;
                 anyEnginesFlameout |= (availableEngines[i].isActiveAndEnabled && availableEngines[i].flameout);
@@ -644,12 +662,15 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Refresh wheel data: current landing gear deployment state.
+        /// </summary>
         private void FetchWheelData()
         {
             gearState = -1;
             gearPosition = 0.0f;
 
-            for (int i=0; i<availableDeployableWheels.Count; ++i)
+            for (int i = 0; i < availableDeployableWheels.Count; ++i)
             {
                 if (gearState == -1 || gearState == 4)
                 {

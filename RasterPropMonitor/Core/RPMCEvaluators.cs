@@ -729,6 +729,16 @@ namespace JSI
                     {
                         return comp.actualMaxIsp;
                     };
+                case "ACTIVEENGINECOUNT":
+                    return (string variable, RPMVesselComputer comp) =>
+                    {
+                        return comp.activeEngineCount;
+                    };
+                case "ENGINECOUNT":
+                    return (string variable, RPMVesselComputer comp) =>
+                    {
+                        return comp.currentEngineCount;
+                    };
                 case "CURRENTINTAKEAIRFLOW":
                     return (string variable, RPMVesselComputer comp) =>
                     {
