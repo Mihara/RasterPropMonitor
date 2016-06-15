@@ -762,6 +762,21 @@ namespace JSI
         }
 
         /// <summary>
+        /// Returns the animation state of the first retractable solar panel
+        /// that is not broken, unless they're all broken.
+        /// </summary>
+        /// <returns></returns>
+        public double SolarPanelsState()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return (double)comp.solarPanelMovement;
+            }
+            return -1.0;
+        }
+
+        /// <summary>
         /// Toggles the state of deployable solar panels.
         /// </summary>
         /// <param name="state"></param>

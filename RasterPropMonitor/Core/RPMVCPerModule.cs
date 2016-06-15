@@ -100,6 +100,7 @@ namespace JSI
         internal bool solarPanelsDeployable;
         internal bool solarPanelsRetractable;
         internal bool solarPanelsState; // Returns false if the solar panels are extendable or are retracting
+        internal int solarPanelMovement;
         internal float alternatorOutput;
         internal float fuelcellOutput;
         internal float generatorOutput;
@@ -337,6 +338,7 @@ namespace JSI
 
             generatorsActive = false;
             solarPanelsDeployable = solarPanelsRetractable = solarPanelsState = false;
+            solarPanelMovement = -1;
 
             for (int i = 0; i < availableGenerators.Count; ++i)
             {
@@ -375,6 +377,11 @@ namespace JSI
                 solarPanelsRetractable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED);
                 solarPanelsDeployable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED);
                 solarPanelsState |= (availableSolarPanels[i].useAnimation && (availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED || availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDING));
+
+                if ((solarPanelMovement == -1 || solarPanelMovement == (int)ModuleDeployableSolarPanel.panelStates.BROKEN) && availableSolarPanels[i].useAnimation)
+                {
+                    solarPanelMovement = (int)availableSolarPanels[i].panelState;
+                }
             }
         }
 
