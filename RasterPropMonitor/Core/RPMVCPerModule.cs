@@ -494,7 +494,9 @@ namespace JSI
         /// hottest engine temperature and limit, current and max ISP,
         /// boolean flags of engine states.
         /// </summary>
-        private void FetchEngineData()
+        /// <returns>true if something changed that warrants a reset
+        /// of tracked modules.</returns>
+        private bool FetchEngineData()
         {
             if (availableMultiModeEngines.Count == 0)
             {
@@ -524,8 +526,11 @@ namespace JSI
             float maxIspContribution = 0.0f;
             List<Part> visitedParts = new List<Part>();
 
+            bool requestReset = false;
             for (int i = 0; i < availableEngines.Count; ++i)
             {
+                requestReset |= (!availableEngines[i].isEnabled);
+
                 Part thatPart = availableEngines[i].part;
                 if (thatPart.inverseStage == StageManager.CurrentStage)
                 {
@@ -621,6 +626,8 @@ namespace JSI
             catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
+
+            return requestReset;
         }
 
         /// <summary>
@@ -735,15 +742,21 @@ namespace JSI
 
             UpdateModuleLists();
 
+            bool requestReset = false;
             FetchAblatorData();
             FetchAirIntakeData();
             FetchDockingNodeData();
             FetchElectricData();
-            FetchEngineData();
+            requestReset |= FetchEngineData();
             FetchGimbalData();
             FetchParachuteData();
             FetchRadarData();
             FetchWheelData();
+
+            if (requestReset)
+            {
+                InvalidateModuleLists();
+            }
         }
         #endregion
 

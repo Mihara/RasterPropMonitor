@@ -912,6 +912,10 @@ namespace JSI
                         //}
                     }
                 }
+
+                // Toggling modes changes which engines are enabled and which
+                // are disabled.  Force a reset here.
+                comp.InvalidateModuleLists();
             }
             catch { }
         }
