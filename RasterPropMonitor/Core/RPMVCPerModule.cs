@@ -110,6 +110,11 @@ namespace JSI
         internal List<JSIRadar> availableRadars = new List<JSIRadar>();
         internal bool radarActive;
 
+        //--- Wheels
+        internal List<ModuleWheels.ModuleWheelDeployment> availableDeployableWheels = new List<ModuleWheels.ModuleWheelDeployment>();
+        internal int gearState;
+        internal float gearPosition;
+
         #region List Management
         /// <summary>
         /// Flag the lists as invalid due to craft changes / destruction.
@@ -122,6 +127,7 @@ namespace JSI
             availableAirIntakes.Clear();
             availableAlternators.Clear();
             availableAlternatorOutput.Clear();
+            availableDeployableWheels.Clear();
             availableEngines.Clear();
             availableFuelCells.Clear();
             availableFuelCellOutput.Clear();
@@ -237,6 +243,10 @@ namespace JSI
                             else if (module is ModuleParachute)
                             {
                                 availableParachutes.Add(module as ModuleParachute);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelDeployment)
+                            {
+                                availableDeployableWheels.Add(module as ModuleWheels.ModuleWheelDeployment);
                             }
                             else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
                             {
@@ -634,6 +644,45 @@ namespace JSI
             }
         }
 
+        private void FetchWheelData()
+        {
+            gearState = -1;
+            gearPosition = 0.0f;
+
+            for (int i=0; i<availableDeployableWheels.Count; ++i)
+            {
+                if (gearState == -1 || gearState == 4)
+                {
+                    try
+                    {
+                        gearPosition = UnityEngine.Mathf.Lerp(availableDeployableWheels[i].retractedPosition, availableDeployableWheels[i].deployedPosition, availableDeployableWheels[i].position);
+                        var state = availableDeployableWheels[i].fsm.CurrentState;
+                        if (state == availableDeployableWheels[i].st_deployed)
+                        {
+                            gearState = 1;
+                        }
+                        else if (state == availableDeployableWheels[i].st_retracted)
+                        {
+                            gearState = 0;
+                        }
+                        else if (state == availableDeployableWheels[i].st_deploying)
+                        {
+                            gearState = 2;
+                        }
+                        else if (state == availableDeployableWheels[i].st_retracting)
+                        {
+                            gearState = 3;
+                        }
+                        else if (state == availableDeployableWheels[i].st_inoperable)
+                        {
+                            gearState = 4;
+                        }
+                    }
+                    catch { }
+                }
+            }
+        }
+
         /// <summary>
         /// Master update method.
         /// </summary>
@@ -654,6 +703,7 @@ namespace JSI
             FetchGimbalData();
             FetchParachuteData();
             FetchRadarData();
+            FetchWheelData();
         }
         #endregion
 

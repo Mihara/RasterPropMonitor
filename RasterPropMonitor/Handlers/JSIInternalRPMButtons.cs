@@ -668,6 +668,38 @@ namespace JSI
         }
 
         /// <summary>
+        /// Returns a value representing the current state of the landing gear.
+        /// </summary>
+        /// <returns></returns>
+        public double LandingGearState()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.gearState;
+        }
+
+        /// <summary>
+        /// Returns a value representing the current position of landing gear
+        /// where 0 is retracted, 1 is extended.
+        /// </summary>
+        /// <returns></returns>
+        public double LandingGearPosition()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.gearPosition;
+
+        }
+
+        /// <summary>
         /// Locks / unlocks gimbals on the currently-active stage.
         /// </summary>
         /// <param name="state"></param>
