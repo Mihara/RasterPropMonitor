@@ -151,6 +151,26 @@ namespace JSI
                             return variable;
                         };
 
+                    case "PERIODRANDOM":
+                        int periodrandom;
+                        if (int.TryParse(tokens[1], out periodrandom))
+                        {
+                            PeriodicRandomValue v = periodicRandomVals.Find(x => x.period == periodrandom);
+                            if (v == null)
+                            {
+                                v = new PeriodicRandomValue(periodrandom);
+                                periodicRandomVals.Add(v);
+                            }
+                            return (string variable, RPMVesselComputer comp) =>
+                            {
+                                return v.value;
+                            };
+                        }
+                        else
+                        {
+                            return (string variable, RPMVesselComputer comp) => { return variable; };
+                        }
+
                     case "PERIOD":
                         if (tokens[1].Substring(tokens[1].Length - 2) == "HZ")
                         {
