@@ -142,6 +142,7 @@ namespace JSI
         private Material iconMaterial;
 
         private Material cameraEffectMaterial;
+        private RenderTexture renderTex;
         private RasterPropMonitorComputer rpmComp;
 
         private int currentCamera = 0;
@@ -193,14 +194,32 @@ namespace JSI
             return targetDisp;
         }
 
+        /// <summary>
+        /// Notify this page that it's now active or inactive.  If it's
+        /// becoming inactive, release its render texture.
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="pageID"></param>
         public void PageActive(bool state, int pageID)
         {
+            if (state == false && renderTex != null)
+            {
+                UnityEngine.Object.Destroy(renderTex);
+                renderTex = null;
+            }
+
             if (cameraObject == null)
+            {
                 return;
+            }
             if (state)
+            {
                 cameraObject.SetFlicker(flickerChance, flickerRange);
+            }
             else
+            {
                 cameraObject.SetFlicker(0, 0);
+            }
         }
 
         public bool RenderCamera(RenderTexture screen, float cameraAspect)
@@ -237,7 +256,11 @@ namespace JSI
 
                 // Note to self: when rentex dims != screen dims, the FOV seems to be wrong (like FOV is smaller).
             }
-            RenderTexture renderTex = RenderTexture.GetTemporary(rentexWidth, rentexHeight, screen.depth, screen.format);
+            if (renderTex == null)
+            {
+                renderTex = new RenderTexture(rentexWidth, rentexHeight, screen.depth);
+                renderTex.Create();
+            }
 
             // Negate pitch - the camera object treats a negative pitch as "up"
             if (cameraObject.Render(renderTex, activeCamera.currentYaw, -activeCamera.currentPitch))
@@ -258,7 +281,7 @@ namespace JSI
                 {
                     Graphics.Blit(renderTex, screen);
                 }
-                RenderTexture.ReleaseTemporary(renderTex);
+                renderTex.DiscardContents();
 
                 ITargetable target = FlightGlobals.fetch.VesselTarget;
 
@@ -328,7 +351,6 @@ namespace JSI
                 SelectNextCamera();
             }
 
-            RenderTexture.ReleaseTemporary(renderTex);
             return false;
         }
 
@@ -381,6 +403,11 @@ namespace JSI
             if (cameraEffectMaterial != null)
             {
                 UnityEngine.Object.Destroy(cameraEffectMaterial);
+            }
+            if (renderTex != null)
+            {
+                UnityEngine.Object.Destroy(renderTex);
+                renderTex = null;
             }
         }
 

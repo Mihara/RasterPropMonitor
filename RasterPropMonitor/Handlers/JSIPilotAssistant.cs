@@ -805,7 +805,7 @@ namespace JSI
                 object pilotAssistant = GetPilotAssistant();
                 object throttleActive = throttleActive_t.GetValue(pilotAssistant);
 
-                SetHorz(pilotAssistant, new object[] { throttleActive, false, throttleMode, 0.0 });
+                SetThrottle(pilotAssistant, new object[] { throttleActive, false, throttleMode, 0.0 });
             }
             catch (Exception e)
             {

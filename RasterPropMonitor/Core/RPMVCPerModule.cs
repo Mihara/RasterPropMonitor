@@ -57,6 +57,7 @@ namespace JSI
 
         //--- Engines
         internal List<ModuleEngines> availableEngines = new List<ModuleEngines>();
+        internal List<MultiModeEngine> availableMultiModeEngines = new List<MultiModeEngine>();
         internal float totalCurrentThrust;
         internal float totalLimitedMaximumThrust;
         internal float totalRawMaximumThrust;
@@ -65,6 +66,7 @@ namespace JSI
         internal bool anyEnginesFlameout;
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
+        internal bool anyMmePrimary;
 
         //--- Gimbals
         internal List<ModuleGimbal> availableGimbals = new List<ModuleGimbal>();
@@ -97,6 +99,8 @@ namespace JSI
         internal bool generatorsActive; // Returns true if at least one generator or fuel cell is active that can be otherwise switched off
         internal bool solarPanelsDeployable;
         internal bool solarPanelsRetractable;
+        internal bool solarPanelsState; // Returns false if the solar panels are extendable or are retracting
+        internal int solarPanelMovement;
         internal float alternatorOutput;
         internal float fuelcellOutput;
         internal float generatorOutput;
@@ -124,6 +128,7 @@ namespace JSI
             availableGenerators.Clear();
             availableGeneratorOutput.Clear();
             availableGimbals.Clear();
+            availableMultiModeEngines.Clear();
             availableParachutes.Clear();
             availableRadars.Clear();
             availableRealChutes.Clear();
@@ -152,6 +157,10 @@ namespace JSI
                             if (module is ModuleEngines)
                             {
                                 availableEngines.Add(module as ModuleEngines);
+                            }
+                            else if (module is MultiModeEngine)
+                            {
+                                availableMultiModeEngines.Add(module as MultiModeEngine);
                             }
                             else if (module is ModuleAblator)
                             {
@@ -294,9 +303,42 @@ namespace JSI
         /// </summary>
         private void FetchElectricData()
         {
-            solarOutput = fuelcellOutput = generatorOutput = alternatorOutput = 0.0f;
+            if (availableAlternators.Count > 0)
+            {
+                alternatorOutput = 0.0f;
+            }
+            else
+            {
+                alternatorOutput = -1.0f;
+            }
+            if (availableFuelCells.Count > 0)
+            {
+                fuelcellOutput = 0.0f;
+            }
+            else
+            {
+                fuelcellOutput = -1.0f;
+            }
+            if (availableGenerators.Count > 0)
+            {
+                generatorOutput = 0.0f;
+            }
+            else
+            {
+                generatorOutput = -1.0f;
+            }
+            if (availableSolarPanels.Count > 0)
+            {
+                solarOutput = 0.0f;
+            }
+            else
+            {
+                solarOutput = -1.0f;
+            }
+
             generatorsActive = false;
-            solarPanelsDeployable = solarPanelsRetractable = false;
+            solarPanelsDeployable = solarPanelsRetractable = solarPanelsState = false;
+            solarPanelMovement = -1;
 
             for (int i = 0; i < availableGenerators.Count; ++i)
             {
@@ -334,6 +376,12 @@ namespace JSI
                 solarOutput += availableSolarPanels[i].flowRate;
                 solarPanelsRetractable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED);
                 solarPanelsDeployable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED);
+                solarPanelsState |= (availableSolarPanels[i].useAnimation && (availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED || availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDING));
+
+                if ((solarPanelMovement == -1 || solarPanelMovement == (int)ModuleDeployableSolarPanel.panelStates.BROKEN) && availableSolarPanels[i].useAnimation)
+                {
+                    solarPanelMovement = (int)availableSolarPanels[i].panelState;
+                }
             }
         }
 
@@ -427,6 +475,21 @@ namespace JSI
         /// </summary>
         private void FetchEngineData()
         {
+            if (availableMultiModeEngines.Count == 0)
+            {
+                anyMmePrimary = true;
+            }
+            else
+            {
+                anyMmePrimary = false;
+                for (int i = 0; i < availableMultiModeEngines.Count; ++i)
+                {
+                    if (availableMultiModeEngines[i].runningPrimary)
+                    {
+                        anyMmePrimary = true;
+                    }
+                }
+            }
             // Per-engine values
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
@@ -544,7 +607,7 @@ namespace JSI
             anyParachutesDeployed = false;
             allParachutesSafe = true;
 
-            for(int i=0; i<availableParachutes.Count; ++i)
+            for (int i = 0; i < availableParachutes.Count; ++i)
             {
                 if (availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.SEMIDEPLOYED || availableParachutes[i].deploymentState == ModuleParachute.deploymentStates.DEPLOYED)
                 {

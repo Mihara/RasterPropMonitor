@@ -762,6 +762,21 @@ namespace JSI
         }
 
         /// <summary>
+        /// Returns the animation state of the first retractable solar panel
+        /// that is not broken, unless they're all broken.
+        /// </summary>
+        /// <returns></returns>
+        public double SolarPanelsState()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return (double)comp.solarPanelMovement;
+            }
+            return -1.0;
+        }
+
+        /// <summary>
         /// Toggles the state of deployable solar panels.
         /// </summary>
         /// <param name="state"></param>
@@ -783,7 +798,60 @@ namespace JSI
             if (vessel != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                return !comp.solarPanelsDeployable;
+                return comp.solarPanelsState;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Sets multi-mode engines to run in primary mode (true) or secondary
+        /// mode (false).
+        /// </summary>
+        /// <param name="newstate"></param>
+        public void SetEnginesPrimaryMode(bool newstate)
+        {
+            try
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableMultiModeEngines.Count; ++i)
+                {
+                    if (comp.availableMultiModeEngines[i].runningPrimary ^ newstate)
+                    {
+                        if (newstate)
+                        {
+                            comp.availableMultiModeEngines[i].SetPrimary(true);
+                        }
+                        else
+                        {
+                            comp.availableMultiModeEngines[i].SetSecondary(true);
+                        }
+                        // Revised implementation:
+                        //comp.availableMultiModeEngines[i].ModeEvent();
+
+                        // original implementation:
+                        //var ev = comp.availableMultiModeEngines[i].Events["ModeEvent"];
+                        //if (ev != null)
+                        //{
+                        //    ev.Invoke();
+                        //}
+                    }
+
+                }
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Returns true if any engines are running in primary mode (for multi-mode
+        /// engines).
+        /// </summary>
+        /// <returns></returns>
+        public bool GetEnginesPrimaryMode()
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                return comp.anyMmePrimary;
             }
             return true;
         }

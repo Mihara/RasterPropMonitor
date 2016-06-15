@@ -47,6 +47,12 @@ namespace JSI
         /// </summary>
         internal static bool debugShowVariableCallCount = false;
 
+        /// <summary>
+        /// What is the minimum setting we want to allow for our variable
+        /// refresh?
+        /// </summary>
+        internal static int minimumRefreshRate = 1;
+
         internal static List<string> debugShowOnly = new List<string>();
 
         internal static Dictionary<string, ConfigNode> customVariables = new Dictionary<string, ConfigNode>();

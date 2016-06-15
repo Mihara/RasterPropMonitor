@@ -119,7 +119,7 @@ namespace JSI
                 if (list.Count > 0)
                 {
                     float stage = 0.0f, stageMax = 0.0f;
-                    
+
                     for (int j = 0; j < list.Count; ++j)
                     {
                         stage += (float)list[j].amount;
@@ -328,6 +328,7 @@ namespace JSI
             catch (Exception e)
             {
                 JUtil.LogErrorMessage(this, "ListElement({1}) threw trapped exception {0}", e, resourceQuery);
+                v = null;
             }
             return v;
         }
