@@ -696,7 +696,51 @@ namespace JSI
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             return (double)comp.gearPosition;
+        }
 
+        /// <summary>
+        /// Returns true if any wheels are damaged
+        /// </summary>
+        /// <returns></returns>
+        public bool GetWheelsDamaged()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelsDamaged;
+        }
+
+        /// <summary>
+        /// Returns true if any wheels are repairable
+        /// </summary>
+        /// <returns></returns>
+        public bool GetWheelsRepairable()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelsRepairable;
+        }
+
+        /// <summary>
+        /// Returns the stress of the most-stressed wheel.
+        /// </summary>
+        /// <returns></returns>
+        public double GetWheelStress()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelStress;
         }
 
         /// <summary>
@@ -867,7 +911,6 @@ namespace JSI
                         //    ev.Invoke();
                         //}
                     }
-
                 }
             }
             catch { }

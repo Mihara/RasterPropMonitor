@@ -114,6 +114,10 @@ namespace JSI
 
         //--- Wheels
         internal List<ModuleWheels.ModuleWheelDeployment> availableDeployableWheels = new List<ModuleWheels.ModuleWheelDeployment>();
+        internal List<ModuleWheels.ModuleWheelDamage> availableWheelDamage = new List<ModuleWheels.ModuleWheelDamage>();
+        internal bool wheelsDamaged;
+        internal bool wheelsRepairable;
+        internal float wheelStress;
         internal int gearState;
         internal float gearPosition;
 
@@ -141,6 +145,7 @@ namespace JSI
             availableRadars.Clear();
             availableRealChutes.Clear();
             availableSolarPanels.Clear();
+            availableWheelDamage.Clear();
 
             mainDockingNode = null;
         }
@@ -249,6 +254,10 @@ namespace JSI
                             else if (module is ModuleWheels.ModuleWheelDeployment)
                             {
                                 availableDeployableWheels.Add(module as ModuleWheels.ModuleWheelDeployment);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelDamage)
+                            {
+                                availableWheelDamage.Add(module as ModuleWheels.ModuleWheelDamage);
                             }
                             else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
                             {
@@ -701,6 +710,16 @@ namespace JSI
                     }
                     catch { }
                 }
+            }
+
+            wheelsDamaged = wheelsRepairable = false;
+            wheelStress = 0.0f;
+
+            for (int i = 0; i < availableWheelDamage.Count; ++i)
+            {
+                wheelsDamaged |= availableWheelDamage[i].isDamaged;
+                wheelsRepairable |= availableWheelDamage[i].isRepairable;
+                wheelStress = Math.Max(wheelStress, availableWheelDamage[i].stressPercent);
             }
         }
 
