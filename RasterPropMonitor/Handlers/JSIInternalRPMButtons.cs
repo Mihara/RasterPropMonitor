@@ -783,7 +783,7 @@ namespace JSI
             if (vessel != null)
             {
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
-                return !comp.solarPanelsDeployable;
+                return comp.solarPanelsState;
             }
             return true;
         }
