@@ -545,6 +545,29 @@ namespace JSI
         }
 
         /// <summary>
+        /// Set the throttle to the desired setting in the range [0-100]
+        /// </summary>
+        /// <param name="setting"></param>
+        public void SetThrottle(double setting)
+        {
+            if (vessel != null)
+            {
+                float newThrottle = Mathf.Clamp01((float)setting / 100.0f);
+                float throttle = vessel.ctrlState.mainThrottle;
+
+                try
+                {
+                    // Why was this in a try with a catch that does the same thing?
+                    FlightInputHandler.state.mainThrottle = newThrottle;
+                }
+                catch (Exception)
+                {
+                    FlightInputHandler.state.mainThrottle = throttle;
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns when the throttle is at or near maximum.
         /// </summary>
         /// <returns></returns>
@@ -665,6 +688,162 @@ namespace JSI
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             return (comp.mainDockingNodeState == RPMVesselComputer.DockingNodeState.READY);
+        }
+
+        /// <summary>
+        /// Returns a value representing the current state of the landing gear.
+        /// </summary>
+        /// <returns></returns>
+        public double LandingGearState()
+        {
+            if (vessel == null)
+            {
+                return -1.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.gearState;
+        }
+
+        /// <summary>
+        /// Returns a value representing the current position of landing gear
+        /// where 0 is retracted, 1 is extended.
+        /// </summary>
+        /// <returns></returns>
+        public double LandingGearPosition()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.gearPosition;
+        }
+
+        /// <summary>
+        /// Toggles thrust reversers
+        /// </summary>
+        /// <param name="state"></param>
+        public void SetThrustReverser(bool state)
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableThrustReverser.Count; ++i)
+                {
+                    ModuleAnimateGeneric thrustReverser = comp.availableThrustReverser[i].thrustReverser;
+                    if (thrustReverser != null)
+                    {
+                        if (state)
+                        {
+                            if (thrustReverser.Progress < 0.5f && thrustReverser.CanMove && thrustReverser.aniState != ModuleAnimateGeneric.animationStates.MOVING)
+                            {
+                                thrustReverser.Toggle();
+                            }
+                        }
+                        else
+                        {
+                            if (thrustReverser.Progress > 0.5f && thrustReverser.CanMove && thrustReverser.aniState != ModuleAnimateGeneric.animationStates.MOVING)
+                            {
+                                thrustReverser.Toggle();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if at least one thrust reverser is enabled.
+        /// </summary>
+        /// <returns></returns>
+        public bool GetThrustReverserEnabled()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.anyThrustReversersDeployed;
+        }
+
+        /// <summary>
+        /// Returns the wheel brakes tweakable (averaged across wheels)
+        /// </summary>
+        /// <returns></returns>
+        public double GetWheelBrakes()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.wheelBrakeSetting;
+        }
+
+        /// <summary>
+        /// Adjust the wheel brake tweakable
+        /// </summary>
+        /// <param name="setting"></param>
+        public void SetWheelBrakes(double setting)
+        {
+            if (vessel != null)
+            {
+                float newsetting = Mathf.Clamp((float)setting, 0.0f, 200.0f);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableWheelBrakes.Count; ++i)
+                {
+                    comp.availableWheelBrakes[i].brakeTweakable = newsetting;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if any wheels are damaged
+        /// </summary>
+        /// <returns></returns>
+        public bool GetWheelsDamaged()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelsDamaged;
+        }
+
+        /// <summary>
+        /// Returns true if any wheels are repairable
+        /// </summary>
+        /// <returns></returns>
+        public bool GetWheelsRepairable()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelsRepairable;
+        }
+
+        /// <summary>
+        /// Returns the stress of the most-stressed wheel.
+        /// </summary>
+        /// <returns></returns>
+        public double GetWheelStress()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.wheelStress;
         }
 
         /// <summary>
@@ -835,8 +1014,11 @@ namespace JSI
                         //    ev.Invoke();
                         //}
                     }
-
                 }
+
+                // Toggling modes changes which engines are enabled and which
+                // are disabled.  Force a reset here.
+                comp.InvalidateModuleLists();
             }
             catch { }
         }
@@ -854,6 +1036,31 @@ namespace JSI
                 return comp.anyMmePrimary;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Sets the throttle imit for all engines.
+        /// </summary>
+        /// <param name="limit"></param>
+        public void SetThrottleLimit(double limit)
+        {
+            if (vessel != null)
+            {
+                if (limit < 0.0)
+                {
+                    limit = 0.0;
+                }
+                else if (limit > 100.0)
+                {
+                    limit = 100.0;
+                }
+
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableEngines.Count; ++i)
+                {
+                    comp.availableEngines[i].thrustPercentage = (float)limit;
+                }
+            }
         }
 
         /// <summary>

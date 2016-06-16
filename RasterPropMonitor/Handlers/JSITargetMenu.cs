@@ -691,7 +691,7 @@ namespace JSI
             persistentVarName = "targetfilter" + internalProp.propID;
 
             // 7 is the bitmask for ship-station-probe;
-            VesselFilterFromBitmask(rpmComp.GetPersistentVariable(persistentVarName, defaultFilter).MassageToInt());
+            VesselFilterFromBitmask(rpmComp.GetPersistentVariable(persistentVarName, defaultFilter, false).MassageToInt());
 
             nameColorTag = JUtil.ColorToColorTag(nameColorValue);
             distanceColorTag = JUtil.ColorToColorTag(distanceColorValue);
@@ -1095,7 +1095,7 @@ namespace JSI
         private void ToggleFilter(int index, TextMenu.Item ti)
         {
             vesselFilter[vesselFilter.ElementAt(index).Key] = !vesselFilter[vesselFilter.ElementAt(index).Key];
-            rpmComp.SetPersistentVariable(persistentVarName, VesselFilterToBitmask(vesselFilter));
+            rpmComp.SetPersistentVariable(persistentVarName, VesselFilterToBitmask(vesselFilter), false);
             ti.isSelected = !ti.isSelected;
             ti.labelText = vesselFilter.ElementAt(index).Key.ToString().PadRight(9) + (ti.isSelected ? "- On" : "- Off");
         }

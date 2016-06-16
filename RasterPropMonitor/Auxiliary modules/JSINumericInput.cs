@@ -31,6 +31,9 @@ namespace JSI
         public string perPodPersistenceName = string.Empty;
 
         [KSPField]
+        public bool perPodPersistenceIsGlobal = false;
+
+        [KSPField]
         public string defaultValue = string.Empty;
 
         [KSPField]
@@ -99,7 +102,7 @@ namespace JSI
                     loopInput = false;
                 }
 
-                if (!rpmComp.HasPersistentVariable(perPodPersistenceName))
+                if (!rpmComp.HasPersistentVariable(perPodPersistenceName, perPodPersistenceIsGlobal))
                 {
                     //JUtil.LogMessage(this, "Initializing per pod persistence value {0}", perPodPersistenceName);
 
@@ -111,7 +114,7 @@ namespace JSI
                         float remainder = value % stepSize;
                         value -= remainder;
                     }
-                    rpmComp.SetPersistentVariable(perPodPersistenceName, value);
+                    rpmComp.SetPersistentVariable(perPodPersistenceName, value, perPodPersistenceIsGlobal);
                 }
 
                 ConfigNode moduleConfig = null;
@@ -170,7 +173,7 @@ namespace JSI
 
                 if (change < 0.0f || change > 0.0f)
                 {
-                    float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f).MassageToFloat();
+                    float val = rpmComp.GetPersistentVariable(perPodPersistenceName, 0.0f, perPodPersistenceIsGlobal).MassageToFloat();
                     val += change + remainder;
 
                     if (minRange != null)
@@ -215,7 +218,7 @@ namespace JSI
                         val -= remainder;
                     }
 
-                    rpmComp.SetPersistentVariable(perPodPersistenceName, val);
+                    rpmComp.SetPersistentVariable(perPodPersistenceName, val, perPodPersistenceIsGlobal);
                 }
                 else
                 {

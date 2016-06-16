@@ -88,6 +88,21 @@ namespace JSI
         private readonly HashSet<string> unrecognizedVariables = new HashSet<string>();
         private Dictionary<string, IComplexVariable> customVariables = new Dictionary<string, IComplexVariable>();
 
+        private class PeriodicRandomValue
+        {
+            internal readonly int period;
+            internal int counter;
+            internal float value;
+
+            internal PeriodicRandomValue(int period_)
+            {
+                value = UnityEngine.Random.value;
+                period = period_;
+                counter = period;
+            }
+        }
+        private readonly List<PeriodicRandomValue> periodicRandomVals = new List<PeriodicRandomValue>();
+
         // Data refresh
         private int dataUpdateCountdown;
         private int refreshDataRate = 60;
@@ -540,6 +555,16 @@ namespace JSI
                 UpdateLocalVars();
 
                 RPMVesselComputer comp = RPMVesselComputer.Instance(vid);
+
+                for (int i = 0; i < periodicRandomVals.Count; ++i)
+                {
+                    periodicRandomVals[i].counter -= refreshDataRate;
+                    if (periodicRandomVals[i].counter <= 0)
+                    {
+                        periodicRandomVals[i].counter = periodicRandomVals[i].period;
+                        periodicRandomVals[i].value = UnityEngine.Random.value;
+                    }
+                }
 
                 for (int i = 0; i < updatableVariables.Count; ++i)
                 {

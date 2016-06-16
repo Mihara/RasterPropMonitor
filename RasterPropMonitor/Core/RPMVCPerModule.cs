@@ -56,6 +56,7 @@ namespace JSI
         };
 
         //--- Engines
+        internal List<JSIThrustReverser> availableThrustReverser = new List<JSIThrustReverser>();
         internal List<ModuleEngines> availableEngines = new List<ModuleEngines>();
         internal List<MultiModeEngine> availableMultiModeEngines = new List<MultiModeEngine>();
         internal float totalCurrentThrust;
@@ -63,10 +64,13 @@ namespace JSI
         internal float totalRawMaximumThrust;
         internal float maxEngineFuelFlow;
         internal float currentEngineFuelFlow;
+        internal int currentEngineCount;
+        internal int activeEngineCount;
         internal bool anyEnginesFlameout;
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
         internal bool anyMmePrimary;
+        internal bool anyThrustReversersDeployed;
 
         //--- Gimbals
         internal List<ModuleGimbal> availableGimbals = new List<ModuleGimbal>();
@@ -110,6 +114,17 @@ namespace JSI
         internal List<JSIRadar> availableRadars = new List<JSIRadar>();
         internal bool radarActive;
 
+        //--- Wheels
+        internal List<ModuleWheels.ModuleWheelDeployment> availableDeployableWheels = new List<ModuleWheels.ModuleWheelDeployment>();
+        internal List<ModuleWheels.ModuleWheelBrakes> availableWheelBrakes = new List<ModuleWheels.ModuleWheelBrakes>();
+        internal List<ModuleWheels.ModuleWheelDamage> availableWheelDamage = new List<ModuleWheels.ModuleWheelDamage>();
+        internal bool wheelsDamaged;
+        internal bool wheelsRepairable;
+        internal float wheelBrakeSetting;
+        internal float wheelStress;
+        internal int gearState;
+        internal float gearPosition;
+
         #region List Management
         /// <summary>
         /// Flag the lists as invalid due to craft changes / destruction.
@@ -122,6 +137,7 @@ namespace JSI
             availableAirIntakes.Clear();
             availableAlternators.Clear();
             availableAlternatorOutput.Clear();
+            availableDeployableWheels.Clear();
             availableEngines.Clear();
             availableFuelCells.Clear();
             availableFuelCellOutput.Clear();
@@ -133,6 +149,9 @@ namespace JSI
             availableRadars.Clear();
             availableRealChutes.Clear();
             availableSolarPanels.Clear();
+            availableThrustReverser.Clear();
+            availableWheelBrakes.Clear();
+            availableWheelDamage.Clear();
 
             mainDockingNode = null;
         }
@@ -161,6 +180,10 @@ namespace JSI
                             else if (module is MultiModeEngine)
                             {
                                 availableMultiModeEngines.Add(module as MultiModeEngine);
+                            }
+                            else if (module is JSIThrustReverser)
+                            {
+                                availableThrustReverser.Add(module as JSIThrustReverser);
                             }
                             else if (module is ModuleAblator)
                             {
@@ -237,6 +260,18 @@ namespace JSI
                             else if (module is ModuleParachute)
                             {
                                 availableParachutes.Add(module as ModuleParachute);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelDeployment)
+                            {
+                                availableDeployableWheels.Add(module as ModuleWheels.ModuleWheelDeployment);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelDamage)
+                            {
+                                availableWheelDamage.Add(module as ModuleWheels.ModuleWheelDamage);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelBrakes)
+                            {
+                                availableWheelBrakes.Add(module as ModuleWheels.ModuleWheelBrakes);
                             }
                             else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
                             {
@@ -473,7 +508,9 @@ namespace JSI
         /// hottest engine temperature and limit, current and max ISP,
         /// boolean flags of engine states.
         /// </summary>
-        private void FetchEngineData()
+        /// <returns>true if something changed that warrants a reset
+        /// of tracked modules.</returns>
+        private bool FetchEngineData()
         {
             if (availableMultiModeEngines.Count == 0)
             {
@@ -490,7 +527,18 @@ namespace JSI
                     }
                 }
             }
+
+            anyThrustReversersDeployed = false;
+            for (int i = 0; i < availableThrustReverser.Count; ++i)
+            {
+                if (availableThrustReverser[i].thrustReverser != null)
+                {
+                    anyThrustReversersDeployed |= (availableThrustReverser[i].thrustReverser.Progress > 0.5f);
+                }
+            }
+
             // Per-engine values
+            currentEngineCount = 0;
             totalCurrentThrust = totalLimitedMaximumThrust = totalRawMaximumThrust = 0.0f;
             maxEngineFuelFlow = currentEngineFuelFlow = 0.0f;
             float hottestEngine = float.MaxValue;
@@ -499,10 +547,27 @@ namespace JSI
 
             float averageIspContribution = 0.0f;
             float maxIspContribution = 0.0f;
+            List<Part> visitedParts = new List<Part>();
 
+            bool requestReset = false;
             for (int i = 0; i < availableEngines.Count; ++i)
             {
+                requestReset |= (!availableEngines[i].isEnabled);
+
                 Part thatPart = availableEngines[i].part;
+                if (thatPart.inverseStage == StageManager.CurrentStage)
+                {
+                    if (!visitedParts.Contains(thatPart))
+                    {
+                        currentEngineCount++;
+                        if (availableEngines[i].getIgnitionState)
+                        {
+                            activeEngineCount++;
+                        }
+                        visitedParts.Add(thatPart);
+                    }
+                }
+
                 anyEnginesOverheating |= (thatPart.skinTemperature / thatPart.skinMaxTemp > 0.9) || (thatPart.temperature / thatPart.maxTemp > 0.9);
                 anyEnginesEnabled |= availableEngines[i].allowShutdown && availableEngines[i].getIgnitionState;
                 anyEnginesFlameout |= (availableEngines[i].isActiveAndEnabled && availableEngines[i].flameout);
@@ -584,6 +649,8 @@ namespace JSI
             catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
+
+            return requestReset;
         }
 
         /// <summary>
@@ -635,6 +702,69 @@ namespace JSI
         }
 
         /// <summary>
+        /// Refresh wheel data: current landing gear deployment state, wheel
+        /// damage state, brake settings.
+        /// </summary>
+        private void FetchWheelData()
+        {
+            gearState = -1;
+            gearPosition = 0.0f;
+
+            for (int i = 0; i < availableDeployableWheels.Count; ++i)
+            {
+                if (gearState == -1 || gearState == 4)
+                {
+                    try
+                    {
+                        gearPosition = UnityEngine.Mathf.Lerp(availableDeployableWheels[i].retractedPosition, availableDeployableWheels[i].deployedPosition, availableDeployableWheels[i].position);
+                        var state = availableDeployableWheels[i].fsm.CurrentState;
+                        if (state == availableDeployableWheels[i].st_deployed)
+                        {
+                            gearState = 1;
+                        }
+                        else if (state == availableDeployableWheels[i].st_retracted)
+                        {
+                            gearState = 0;
+                        }
+                        else if (state == availableDeployableWheels[i].st_deploying)
+                        {
+                            gearState = 2;
+                        }
+                        else if (state == availableDeployableWheels[i].st_retracting)
+                        {
+                            gearState = 3;
+                        }
+                        else if (state == availableDeployableWheels[i].st_inoperable)
+                        {
+                            gearState = 4;
+                        }
+                    }
+                    catch { }
+                }
+            }
+
+            wheelsDamaged = wheelsRepairable = false;
+            wheelStress = 0.0f;
+
+            for (int i = 0; i < availableWheelDamage.Count; ++i)
+            {
+                wheelsDamaged |= availableWheelDamage[i].isDamaged;
+                wheelsRepairable |= availableWheelDamage[i].isRepairable;
+                wheelStress = Math.Max(wheelStress, availableWheelDamage[i].stressPercent);
+            }
+
+            wheelBrakeSetting = 0.0f;
+            if (availableWheelBrakes.Count > 0)
+            {
+                for (int i = 0; i < availableWheelBrakes.Count; ++i)
+                {
+                    wheelBrakeSetting += availableWheelBrakes[i].brakeTweakable;
+                }
+                wheelBrakeSetting /= (float)availableWheelBrakes.Count;
+            }
+        }
+
+        /// <summary>
         /// Master update method.
         /// </summary>
         internal void FetchPerModuleData()
@@ -646,14 +776,21 @@ namespace JSI
 
             UpdateModuleLists();
 
+            bool requestReset = false;
             FetchAblatorData();
             FetchAirIntakeData();
             FetchDockingNodeData();
             FetchElectricData();
-            FetchEngineData();
+            requestReset |= FetchEngineData();
             FetchGimbalData();
             FetchParachuteData();
             FetchRadarData();
+            FetchWheelData();
+
+            if (requestReset)
+            {
+                InvalidateModuleLists();
+            }
         }
         #endregion
 

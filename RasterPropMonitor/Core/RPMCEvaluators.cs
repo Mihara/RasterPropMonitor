@@ -151,6 +151,26 @@ namespace JSI
                             return variable;
                         };
 
+                    case "PERIODRANDOM":
+                        int periodrandom;
+                        if (int.TryParse(tokens[1], out periodrandom))
+                        {
+                            PeriodicRandomValue v = periodicRandomVals.Find(x => x.period == periodrandom);
+                            if (v == null)
+                            {
+                                v = new PeriodicRandomValue(periodrandom);
+                                periodicRandomVals.Add(v);
+                            }
+                            return (string variable, RPMVesselComputer comp) =>
+                            {
+                                return v.value;
+                            };
+                        }
+                        else
+                        {
+                            return (string variable, RPMVesselComputer comp) => { return variable; };
+                        }
+
                     case "PERIOD":
                         if (tokens[1].Substring(tokens[1].Length - 2) == "HZ")
                         {
@@ -238,9 +258,9 @@ namespace JSI
                         return (string variable, RPMVesselComputer comp) =>
                         {
                             string substring = variable.Substring("PERSISTENT".Length + 1);
-                            if (HasPersistentVariable(substring))
+                            if (HasPersistentVariable(substring, false))
                             {
-                                return GetPersistentVariable(substring, 0.0f).MassageToFloat();
+                                return GetPersistentVariable(substring, 0.0f, false).MassageToFloat();
                             }
                             else
                             {
@@ -708,6 +728,16 @@ namespace JSI
                     return (string variable, RPMVesselComputer comp) =>
                     {
                         return comp.actualMaxIsp;
+                    };
+                case "ACTIVEENGINECOUNT":
+                    return (string variable, RPMVesselComputer comp) =>
+                    {
+                        return comp.activeEngineCount;
+                    };
+                case "ENGINECOUNT":
+                    return (string variable, RPMVesselComputer comp) =>
+                    {
+                        return comp.currentEngineCount;
                     };
                 case "CURRENTINTAKEAIRFLOW":
                     return (string variable, RPMVesselComputer comp) =>
