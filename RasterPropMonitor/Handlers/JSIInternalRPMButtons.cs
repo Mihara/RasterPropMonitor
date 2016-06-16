@@ -722,6 +722,54 @@ namespace JSI
         }
 
         /// <summary>
+        /// Toggles thrust reversers
+        /// </summary>
+        /// <param name="state"></param>
+        public void SetThrustReverser(bool state)
+        {
+            if (vessel != null)
+            {
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableThrustReverser.Count; ++i)
+                {
+                    ModuleAnimateGeneric thrustReverser = comp.availableThrustReverser[i].thrustReverser;
+                    if (thrustReverser != null)
+                    {
+                        if (state)
+                        {
+                            if (thrustReverser.Progress < 0.5f && thrustReverser.CanMove && thrustReverser.aniState != ModuleAnimateGeneric.animationStates.MOVING)
+                            {
+                                thrustReverser.Toggle();
+                            }
+                        }
+                        else
+                        {
+                            if (thrustReverser.Progress > 0.5f && thrustReverser.CanMove && thrustReverser.aniState != ModuleAnimateGeneric.animationStates.MOVING)
+                            {
+                                thrustReverser.Toggle();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if at least one thrust reverser is enabled.
+        /// </summary>
+        /// <returns></returns>
+        public bool GetThrustReverserEnabled()
+        {
+            if (vessel == null)
+            {
+                return false;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return comp.anyThrustReversersDeployed;
+        }
+
+        /// <summary>
         /// Returns the wheel brakes tweakable (averaged across wheels)
         /// </summary>
         /// <returns></returns>

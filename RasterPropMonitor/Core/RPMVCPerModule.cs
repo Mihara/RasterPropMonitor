@@ -56,6 +56,7 @@ namespace JSI
         };
 
         //--- Engines
+        internal List<JSIThrustReverser> availableThrustReverser = new List<JSIThrustReverser>();
         internal List<ModuleEngines> availableEngines = new List<ModuleEngines>();
         internal List<MultiModeEngine> availableMultiModeEngines = new List<MultiModeEngine>();
         internal float totalCurrentThrust;
@@ -69,6 +70,7 @@ namespace JSI
         internal bool anyEnginesOverheating;
         internal bool anyEnginesEnabled;
         internal bool anyMmePrimary;
+        internal bool anyThrustReversersDeployed;
 
         //--- Gimbals
         internal List<ModuleGimbal> availableGimbals = new List<ModuleGimbal>();
@@ -147,6 +149,7 @@ namespace JSI
             availableRadars.Clear();
             availableRealChutes.Clear();
             availableSolarPanels.Clear();
+            availableThrustReverser.Clear();
             availableWheelBrakes.Clear();
             availableWheelDamage.Clear();
 
@@ -177,6 +180,10 @@ namespace JSI
                             else if (module is MultiModeEngine)
                             {
                                 availableMultiModeEngines.Add(module as MultiModeEngine);
+                            }
+                            else if (module is JSIThrustReverser)
+                            {
+                                availableThrustReverser.Add(module as JSIThrustReverser);
                             }
                             else if (module is ModuleAblator)
                             {
@@ -518,6 +525,15 @@ namespace JSI
                     {
                         anyMmePrimary = true;
                     }
+                }
+            }
+
+            anyThrustReversersDeployed = false;
+            for (int i = 0; i < availableThrustReverser.Count; ++i)
+            {
+                if (availableThrustReverser[i].thrustReverser != null)
+                {
+                    anyThrustReversersDeployed |= (availableThrustReverser[i].thrustReverser.Progress > 0.5f);
                 }
             }
 
