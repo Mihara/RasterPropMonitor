@@ -728,11 +728,11 @@ namespace JSI
                         }
                         else if (state == availableDeployableWheels[i].st_deploying)
                         {
-                            gearState = 2;
+                            gearState = 3;
                         }
                         else if (state == availableDeployableWheels[i].st_retracting)
                         {
-                            gearState = 3;
+                            gearState = 2;
                         }
                         else if (state == availableDeployableWheels[i].st_inoperable)
                         {
