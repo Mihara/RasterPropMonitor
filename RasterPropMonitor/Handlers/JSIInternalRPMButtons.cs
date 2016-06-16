@@ -545,6 +545,29 @@ namespace JSI
         }
 
         /// <summary>
+        /// Set the throttle to the desired setting in the range [0-100]
+        /// </summary>
+        /// <param name="setting"></param>
+        public void SetThrottle(double setting)
+        {
+            if (vessel != null)
+            {
+                float newThrottle = Mathf.Clamp01((float)setting / 100.0f);
+                float throttle = vessel.ctrlState.mainThrottle;
+
+                try
+                {
+                    // Why was this in a try with a catch that does the same thing?
+                    FlightInputHandler.state.mainThrottle = newThrottle;
+                }
+                catch (Exception)
+                {
+                    FlightInputHandler.state.mainThrottle = throttle;
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns when the throttle is at or near maximum.
         /// </summary>
         /// <returns></returns>
