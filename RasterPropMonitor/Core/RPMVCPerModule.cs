@@ -114,9 +114,11 @@ namespace JSI
 
         //--- Wheels
         internal List<ModuleWheels.ModuleWheelDeployment> availableDeployableWheels = new List<ModuleWheels.ModuleWheelDeployment>();
+        internal List<ModuleWheels.ModuleWheelBrakes> availableWheelBrakes = new List<ModuleWheels.ModuleWheelBrakes>();
         internal List<ModuleWheels.ModuleWheelDamage> availableWheelDamage = new List<ModuleWheels.ModuleWheelDamage>();
         internal bool wheelsDamaged;
         internal bool wheelsRepairable;
+        internal float wheelBrakeSetting;
         internal float wheelStress;
         internal int gearState;
         internal float gearPosition;
@@ -145,6 +147,7 @@ namespace JSI
             availableRadars.Clear();
             availableRealChutes.Clear();
             availableSolarPanels.Clear();
+            availableWheelBrakes.Clear();
             availableWheelDamage.Clear();
 
             mainDockingNode = null;
@@ -258,6 +261,10 @@ namespace JSI
                             else if (module is ModuleWheels.ModuleWheelDamage)
                             {
                                 availableWheelDamage.Add(module as ModuleWheels.ModuleWheelDamage);
+                            }
+                            else if (module is ModuleWheels.ModuleWheelBrakes)
+                            {
+                                availableWheelBrakes.Add(module as ModuleWheels.ModuleWheelBrakes);
                             }
                             else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
                             {
@@ -679,7 +686,8 @@ namespace JSI
         }
 
         /// <summary>
-        /// Refresh wheel data: current landing gear deployment state.
+        /// Refresh wheel data: current landing gear deployment state, wheel
+        /// damage state, brake settings.
         /// </summary>
         private void FetchWheelData()
         {
@@ -727,6 +735,16 @@ namespace JSI
                 wheelsDamaged |= availableWheelDamage[i].isDamaged;
                 wheelsRepairable |= availableWheelDamage[i].isRepairable;
                 wheelStress = Math.Max(wheelStress, availableWheelDamage[i].stressPercent);
+            }
+
+            wheelBrakeSetting = 0.0f;
+            if (availableWheelBrakes.Count > 0)
+            {
+                for (int i = 0; i < availableWheelBrakes.Count; ++i)
+                {
+                    wheelBrakeSetting += availableWheelBrakes[i].brakeTweakable;
+                }
+                wheelBrakeSetting /= (float)availableWheelBrakes.Count;
             }
         }
 

@@ -675,7 +675,7 @@ namespace JSI
         {
             if (vessel == null)
             {
-                return 0.0;
+                return -1.0;
             }
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
@@ -696,6 +696,38 @@ namespace JSI
 
             RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
             return (double)comp.gearPosition;
+        }
+
+        /// <summary>
+        /// Returns the wheel brakes tweakable (averaged across wheels)
+        /// </summary>
+        /// <returns></returns>
+        public double GetWheelBrakes()
+        {
+            if (vessel == null)
+            {
+                return 0.0;
+            }
+
+            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+            return (double)comp.wheelBrakeSetting;
+        }
+
+        /// <summary>
+        /// Adjust the wheel brake tweakable
+        /// </summary>
+        /// <param name="setting"></param>
+        public void SetWheelBrakes(double setting)
+        {
+            if (vessel != null)
+            {
+                float newsetting = Mathf.Clamp((float)setting, 0.0f, 200.0f);
+                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
+                for (int i = 0; i < comp.availableWheelBrakes.Count; ++i)
+                {
+                    comp.availableWheelBrakes[i].brakeTweakable = newsetting;
+                }
+            }
         }
 
         /// <summary>
