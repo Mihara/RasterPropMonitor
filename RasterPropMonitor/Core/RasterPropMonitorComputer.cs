@@ -377,6 +377,7 @@ namespace JSI
             if (!HighLogic.LoadedSceneIsEditor)
             {
                 vid = vessel.id;
+                refreshDataRate = RPMGlobals.defaultRefreshRate;
 
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
                 GameEvents.onVesselChange.Add(onVesselChange);
@@ -605,6 +606,9 @@ namespace JSI
             }
         }
 
+        /// <summary>
+        /// Check if it's time to update.
+        /// </summary>
         public void Update()
         {
             if (HighLogic.LoadedSceneIsEditor)

@@ -1731,6 +1731,12 @@ namespace JSI
                     RPMGlobals.debugShowVariableCallCount = false;
                 }
 
+                int defaultRefresh = RPMGlobals.defaultRefreshRate;
+                if (rpmSettings[0].TryGetValue("DefaultRefreshRate", ref defaultRefresh))
+                {
+                    RPMGlobals.defaultRefreshRate = Math.Max(defaultRefresh, 1);
+                }
+
                 int minRefresh = RPMGlobals.minimumRefreshRate;
                 if (rpmSettings[0].TryGetValue("MinimumRefreshRate", ref minRefresh))
                 {
