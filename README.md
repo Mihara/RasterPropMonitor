@@ -1,5 +1,7 @@
 # RasterPropMonitor
 
+To view this document with formatting, refer to https://github.com/Mihara/RasterPropMonitor/blob/master/README.md
+
 RasterPropMonitor (RPM) is a toolkit and plugin that provides drastically-increased functionality to the IVA
 mode in Kerbal Space Program.  Using RPM-enabled props, a player can control almost any aspect of spacecraft
 or spaceplane operations.
@@ -40,9 +42,30 @@ If the plugin was listed as a dependency by some other mod author, and you do no
 ###UPGRADING FROM OLDER VERSIONS:
 As a general rule, you should delete any existing installation (just don't accidentally delete JSIAdvTransparentPods
 if you are using that mod, too).  v0.26.1 removed JSITransparentPod and its
-corresponding JSINonTransparentPod, so legacy parts should be upgraded to use JSIAdvTransparentPods.
+corresponding JSINonTransparentPod.  Contact the makers of the transparent
+pods to ask them to upgrade to use JSIAdvTransparentPods.
 
 JSIAdvTransparentPods is a separate mod created by JPLRepo.  It can be found on GitHub at https://github.com/JPLRepo/JSIAdvTransparentPods and on the [KSP forum](http://forum.kerbalspaceprogram.com/index.php?/topic/138433-111-jsi-advanced-transparent-pods-v0160-previously-part-of-rasterpropmonitor-14th-may-2016/).
+
+## CONFIGURATION
+
+Out of the box, RasterPropMonitor ships with default configuration settings.  The configuration file is
+installed next to the DLL in GameData/JSI/RasterPropMonitor/rpm-config.cfg
+
+The config file settings are:
+
+* DebugLogging - False by default.  Setting this to True will vastly increase the amount of information that
+RasterPropMonitor writes to KSP's log file.  You should only need to change this for support purposes.
+* ShowCallCount - False by default.  Primarily intended for IVA makers to collect information on what impact
+their IVA has on performance.  Should not need to be set True except for collecting this info.  DebugLogging
+must also be set True for the call count to be logged.
+* DefaultRefreshRate - 5 by default.  Defines how many Update calls must elapse before RPM will update its
+variables.  One Update occurs every screen refresh, so if KSP is running at 60fps, the default refresh rate
+of 5 means that variables will update roughly 12 times per second.  Note that props may override this
+value by making it smaller, but never by making it larger.
+* MinimumRefreshRate - 1 by default.  Defines what the minimum value for the refresh rate may be.  Lower-spec
+computers may benefit by setting this value higher than 1. It must not be larger than DefaultRefreshRate.
+Large minimum values will cause some animations and updates to stutter, instead of moving smoothly.
 
 ## MOAR IVAs?
 
@@ -83,13 +106,16 @@ Source code and full license information available at
 
 RasterPropMonitor plugin (C) 2013-2016 Mihara, MOARdV, and other contributors.
 
-Code and shaders are licensed under GPLv3.
+Code and shaders are licensed under GPLv3.  You should have received a copy of this license
+in this distribution package.
 
-Props courtesy of alexustas and other contributors, available under the terms of CC 3.0 BY-NC-SA. Portions of this package are derived from stock textures by Squad and are distributed according to Squad policy of permitting to distribute stock assets with mods if required.
+Props courtesy of alexustas and other contributors, available under the terms of CC 3.0 BY-NC-SA.
+Portions of this package are derived from stock textures by Squad and are distributed according to Squad policy of permitting to distribute stock assets with mods if required.
 
 The ModuleManager plugin included in this distribution to modify stock config files on the fly is available under the terms of CC SA, and obtained from [this thread](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-105-module-manager-2618-january-17th-with-even-more-sha-and-less-bug/#comment-720814)
 
-RasterPropMonitor includes the following fonts in its Asset Bundle:
+RasterPropMonitor includes the following fonts in its Asset Bundle.  License / readme files for the first two are installed
+adjacent to the RasterPropMonitor DLL
 
 [Repetition Scrolling Font](http://www.1001fonts.com/repetition-scrolling-font.html) by Tepid Monkey Fonts.
 
