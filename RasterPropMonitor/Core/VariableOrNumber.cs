@@ -171,6 +171,14 @@ namespace JSI
         VariableOrNumber upperBound;
         VariableOrNumber modulo;
 
+        public string variableName
+        {
+            get
+            {
+                return sourceValue.variableName;
+            }
+        }
+
         public VariableOrNumberRange(RasterPropMonitorComputer rpmComp, string sourceVariable, string range1, string range2, string moduloVariable = null)
         {
             sourceValue = rpmComp.InstantiateVariableOrNumber(sourceVariable);

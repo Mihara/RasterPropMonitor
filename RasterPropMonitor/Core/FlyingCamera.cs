@@ -44,7 +44,7 @@ namespace JSI
         private readonly Camera[] cameraObject = { null, null, null, null, null, null, null };
         private readonly float cameraAspect;
         private bool enabled;
-        private bool isReferenceCamera, isReferenceClawCamera;
+        private bool isReferenceCamera, isReferenceClawCamera, isReferenceTransformCamera;
         private ModuleGrappleNode clawModule;
         private Part referencePart;
         private const string referenceCamera = "CurrentReferenceDockingPortCamera";
@@ -106,32 +106,38 @@ namespace JSI
                     thatPort = thatModule as ModuleDockingNode;
                     thatClaw = thatModule as ModuleGrappleNode;
                     if (thatPort != null || thatClaw != null)
+                    {
                         break;
+                    }
                 }
             }
-            if (thatPort != null || thatClaw != null)
+
+            if (thatPort != null)
             {
-                if (thatPort != null)
+                if (!LocateCamera(referencePart, "dockingNode"))
                 {
                     cameraPart = thatPort.part;
                     cameraTransform = ourVessel.ReferenceTransform.gameObject;
-                    isReferenceClawCamera = false;
+                    isReferenceTransformCamera = true;
                 }
-                else if (thatClaw != null)
+                isReferenceClawCamera = false;
+                return CreateCameraObjects();
+            }
+            else if (thatClaw != null)
+            {
+                // Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
+                if (LocateCamera(referencePart, "ArticulatedCap"))
                 {
-                    // Mihara: Dirty hack to get around the fact that claws have their reference transform inside the structure.
-                    if (LocateCamera(referencePart, "ArticulatedCap"))
-                    {
-                        isReferenceClawCamera = true;
-                        clawModule = thatClaw;
-                    }
-                    else
-                    {
-                        JUtil.LogMessage(this, "Claw was not a stock part. Falling back to reference transform position...");
-                        cameraPart = thatClaw.part;
-                        cameraTransform = ourVessel.ReferenceTransform.gameObject;
-                    }
+                    isReferenceClawCamera = true;
+                    clawModule = thatClaw;
                 }
+                else
+                {
+                    JUtil.LogMessage(this, "Claw was not a stock part. Falling back to reference transform position...");
+                    cameraPart = thatClaw.part;
+                    cameraTransform = ourVessel.ReferenceTransform.gameObject;
+                }
+
                 return CreateCameraObjects();
             }
             else
@@ -142,7 +148,6 @@ namespace JSI
 
         private bool CreateCameraObjects(string newCameraName = null)
         {
-
             if (!string.IsNullOrEmpty(newCameraName))
             {
                 isReferenceCamera = false;
@@ -247,8 +252,10 @@ namespace JSI
         public Quaternion CameraRotation(float yawOffset = 0.0f, float pitchOffset = 0.0f)
         {
             Quaternion rotation = cameraTransform.transform.rotation;
-            if (isReferenceCamera)
+            if (isReferenceTransformCamera)
+            {
                 rotation *= referencePointRotation;
+            }
             Quaternion offset = Quaternion.Euler(new Vector3(pitchOffset, yawOffset, 0.0f));
             return rotation * offset;
         }
@@ -260,7 +267,7 @@ namespace JSI
 
         public Vector3 GetTransformForward()
         {
-            return isReferenceCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
+            return isReferenceTransformCamera ? cameraTransform.transform.up : cameraTransform.transform.forward;
         }
 
         public bool Render(RenderTexture screen, float yawOffset, float pitchOffset)
@@ -302,7 +309,7 @@ namespace JSI
 
             Quaternion rotation = cameraTransform.transform.rotation;
 
-            if (isReferenceCamera && !isReferenceClawCamera)
+            if (isReferenceTransformCamera)
             {
                 // Reference transforms of docking ports have the wrong orientation, so need an extra rotation applied before that.
                 rotation *= referencePointRotation;

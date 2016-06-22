@@ -53,6 +53,11 @@ namespace JSI
         /// </summary>
         internal static int minimumRefreshRate = 1;
 
+        /// <summary>
+        /// What should the initial refresh rate be?
+        /// </summary>
+        internal static int defaultRefreshRate = 10;
+
         internal static List<string> debugShowOnly = new List<string>();
 
         internal static Dictionary<string, ConfigNode> customVariables = new Dictionary<string, ConfigNode>();
