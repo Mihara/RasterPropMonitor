@@ -1024,7 +1024,7 @@ namespace JSI
             {
                 object stagestats = GetComputerModule(activeJeb, "MechJebModuleStageStats");
 
-                requestUpdate(stagestats, new object[] { this });
+                requestUpdate(stagestats, new object[] { this, false });
 
                 int atmStatsLength = 0, vacStatsLength = 0;
 
