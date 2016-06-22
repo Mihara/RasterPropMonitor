@@ -269,10 +269,12 @@ namespace JSI
                 JUtil.ShowHide(true, markerManeuver, markerManeuverMinus);
             }
 
+            /*
             if (FinePrint.WaypointManager.navIsActive() == true)
             {
                 // MOARdV: Code for the waypoint marker based on https://github.com/Ninenium/NavHud/blob/master/Source/WaypointMarker.cs
                 // However, in 1.1.2 (maybe earlier), the NavBall gameobject doesn't have children.
+                // And in 1.1.3, FinePrint.WaypointManager .navIsActive and .navWaypoint no longer exist...
                 try
                 {
                     GameObject navWaypointIndicator = GameObject.Find("NavBall").transform.FindChild("vectorsPivot").FindChild("NavWaypoint").gameObject;
@@ -297,7 +299,7 @@ namespace JSI
                     // if something's borked, let's just silently do nothing
                 }
             }
-
+            */
             ITargetable target = FlightGlobals.fetch.VesselTarget;
             if (target != null)
             {
