@@ -433,7 +433,7 @@ namespace JSI
         public static bool ActiveKerbalIsLocal(this Part thisPart)
         {
             Kerbal thatKerbal = CameraManager.Instance.IVACameraActiveKerbal;
-            if(thatKerbal != null)
+            if (thatKerbal != null)
             {
                 return thatKerbal.InPart == thisPart;
             }
@@ -470,7 +470,7 @@ namespace JSI
         public static Kerbal FindCurrentKerbal(this Part thisPart)
         {
             Kerbal activeKerbal = CameraManager.Instance.IVACameraActiveKerbal;
-            if(activeKerbal != null)
+            if (activeKerbal != null)
             {
                 return (activeKerbal.InPart == thisPart) ? activeKerbal : null;
             }
@@ -587,9 +587,9 @@ namespace JSI
         public static JSIFlashModule InstallFlashModule(Part part, float flashRate)
         {
             JSIFlashModule[] loadedModules = part.GetComponents<JSIFlashModule>();
-            for(int i=0; i<loadedModules.Length; ++i)
+            for (int i = 0; i < loadedModules.Length; ++i)
             {
-                if(loadedModules[i].flashRate == flashRate)
+                if (loadedModules[i].flashRate == flashRate)
                 {
                     return loadedModules[i];
                 }
@@ -1372,12 +1372,12 @@ namespace JSI
         /// <returns>The complex variable, or null</returns>
         internal static IComplexVariable InstantiateComplexVariable(ConfigNode node, RasterPropMonitorComputer rpmComp)
         {
-            if(node == null)
+            if (node == null)
             {
                 throw new ArgumentNullException("node was null. how did that happen?");
             }
 
-            switch(node.name)
+            switch (node.name)
             {
                 case "RPM_CUSTOM_VARIABLE":
                     return new CustomVariable(node, rpmComp);
@@ -1389,7 +1389,7 @@ namespace JSI
                     return new SelectVariable(node, rpmComp);
             }
 
-            throw new ArgumentException("Unrecognized complex variable "+node.name);
+            throw new ArgumentException("Unrecognized complex variable " + node.name);
         }
 
         /// <summary>
@@ -1705,12 +1705,21 @@ namespace JSI
                 throw new Exception("RPMShaderLoader: GameDatabase is not ready.  Unable to continue.");
             }
 
-            var rpmSettings = GameDatabase.Instance.GetConfigNodes("RasterPropMonitorSettings");
-            if (rpmSettings.Length > 0)
+            ConfigNode rpmSettings = ConfigNode.Load(KSPUtil.ApplicationRootPath + RPMGlobals.configFileName);
+            // rpmSettings points at the base node.  I need to step into that node to access my settings.
+            if (rpmSettings != null && rpmSettings.CountNodes > 0)
             {
-                // Really, there should be only one
+                rpmSettings = rpmSettings.GetNode("RasterPropMonitorSettings");
+            }
+            else
+            {
+                rpmSettings = null;
+            }
+
+            if (rpmSettings != null)
+            {
                 bool enableLogging = false;
-                if (rpmSettings[0].TryGetValue("DebugLogging", ref enableLogging))
+                if (rpmSettings.TryGetValue("DebugLogging", ref enableLogging))
                 {
                     RPMGlobals.debugLoggingEnabled = enableLogging;
                     JUtil.LogInfo(this, "Set debugLoggingEnabled to {0}", enableLogging);
@@ -1721,7 +1730,7 @@ namespace JSI
                 }
 
                 bool showVariableCallCount = false;
-                if (rpmSettings[0].TryGetValue("ShowCallCount", ref showVariableCallCount))
+                if (rpmSettings.TryGetValue("ShowCallCount", ref showVariableCallCount))
                 {
                     // call count doesn't write anything if enableLogging is false
                     RPMGlobals.debugShowVariableCallCount = showVariableCallCount && RPMGlobals.debugLoggingEnabled;
@@ -1732,23 +1741,23 @@ namespace JSI
                 }
 
                 int defaultRefresh = RPMGlobals.defaultRefreshRate;
-                if (rpmSettings[0].TryGetValue("DefaultRefreshRate", ref defaultRefresh))
+                if (rpmSettings.TryGetValue("DefaultRefreshRate", ref defaultRefresh))
                 {
                     RPMGlobals.defaultRefreshRate = Math.Max(defaultRefresh, 1);
                 }
 
                 int minRefresh = RPMGlobals.minimumRefreshRate;
-                if (rpmSettings[0].TryGetValue("MinimumRefreshRate", ref minRefresh))
+                if (rpmSettings.TryGetValue("MinimumRefreshRate", ref minRefresh))
                 {
                     RPMGlobals.minimumRefreshRate = Math.Max(minRefresh, 1);
                 }
 
                 RPMGlobals.debugShowOnly.Clear();
                 string showOnlyConcat = string.Empty;
-                if (rpmSettings[0].TryGetValue("ShowOnly", ref showOnlyConcat) && !string.IsNullOrEmpty(showOnlyConcat))
+                if (rpmSettings.TryGetValue("ShowOnly", ref showOnlyConcat) && !string.IsNullOrEmpty(showOnlyConcat))
                 {
                     string[] showOnly = showOnlyConcat.Split('|');
-                    for(int i=0; i<showOnly.Length; ++i)
+                    for (int i = 0; i < showOnly.Length; ++i)
                     {
                         RPMGlobals.debugShowOnly.Add(showOnly[i].Trim());
                     }
@@ -1784,11 +1793,11 @@ namespace JSI
             {
                 JUtil.LogMessage(this, "CelestialBody {0} is index {1}", bodies[i].bodyName, bodies[i].flightGlobalsIndex);
             }
-                
+
             RPMGlobals.customVariables.Clear();
 
             ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("RPM_CUSTOM_VARIABLE");
-            for (int i=0; i<nodes.Length; ++i)
+            for (int i = 0; i < nodes.Length; ++i)
             {
 
                 try
@@ -2066,14 +2075,14 @@ namespace JSI
                 .SelectMany(t => t)
                 .FirstOrDefault(t => t.FullName == "ModuleManager.MMPatchLoader");
 
-            if(mmPatchLoader == null)
+            if (mmPatchLoader == null)
             {
                 return false;
             }
 
             MethodInfo addPostPatchCallback = mmPatchLoader.GetMethod("addPostPatchCallback", BindingFlags.Static | BindingFlags.Public);
 
-            if(addPostPatchCallback == null)
+            if (addPostPatchCallback == null)
             {
                 return false;
             }
@@ -2092,7 +2101,7 @@ namespace JSI
 
                 addPostPatchCallback.Invoke(null, args);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 JUtil.LogMessage(this, "addPostPatchCallback threw {0}", e);
                 return false;

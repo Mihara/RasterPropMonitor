@@ -235,6 +235,8 @@ namespace JSI
                 Vector3 velocityVesselOrbitUnit = comp.Prograde;
                 Vector3 radialPlus = comp.RadialOut;
                 Vector3 normalPlus = comp.NormalPlus;
+                // stockNavBall.relativeGymbal * (stockNavBall.progradeVector.localRotation * stockNavBall.progradeVector.right == gymbal * velocityVesselOrbitUnit
+                // But...  Same is true for stockNavBall.normalVector and stockNavBall.radialOutVector
 
                 MoveMarker(markerPrograde, velocityVesselOrbitUnit, gymbal);
                 MoveMarker(markerRetrograde, -velocityVesselOrbitUnit, gymbal);
@@ -434,9 +436,9 @@ namespace JSI
                 {
                     stockNavBall = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.NavBall>();
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
-                    JUtil.LogErrorMessage(this, "Unable to fetch the NavBall object: {0}",e);
+                    JUtil.LogErrorMessage(this, "Unable to fetch the NavBall object: {0}", e);
                     // Set up a bogus one so there's no null derefs.
                     stockNavBall = new NavBall();
                 }
@@ -461,7 +463,7 @@ namespace JSI
                 ballCamera.transform.LookAt(navBallPosition, Vector3.up);
 
                 navBall = GameDatabase.Instance.GetModel(navBallModel.EnforceSlashes());
-                if(navBall == null)
+                if (navBall == null)
                 {
                     JUtil.LogErrorMessage(this, "Failed to load navball model {0}", navBallModel);
                     // Early return here - if we don't even have a navball, this module is pointless.
