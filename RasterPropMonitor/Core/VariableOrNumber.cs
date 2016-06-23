@@ -179,6 +179,14 @@ namespace JSI
             }
         }
 
+        public float rawValue
+        {
+            get
+            {
+                return sourceValue.AsFloat();
+            }
+        }
+
         public VariableOrNumberRange(RasterPropMonitorComputer rpmComp, string sourceVariable, string range1, string range2, string moduloVariable = null)
         {
             sourceValue = rpmComp.InstantiateVariableOrNumber(sourceVariable);
@@ -212,7 +220,38 @@ namespace JSI
                     float modDivRange = mod / range;
                     scaledValue = (scaledValue % (modDivRange)) / modDivRange;
                 }
-                //value = value % mod;
+
+                return scaledValue;
+            }
+            else
+            {
+                return Mathf.InverseLerp(low, high, value);
+            }
+        }
+
+        /// <summary>
+        /// Return a value in the range of 0 to 1 representing where the current variable
+        /// evaluates within its range.
+        /// </summary>
+        /// <param name="value">The new value (assumed to be from the right variable)</param>
+        /// <returns>0-1</returns>
+        public float InverseLerp(float value)
+        {
+            float low = lowerBound.AsFloat();
+            float high = upperBound.AsFloat();
+
+            if (modulo != null)
+            {
+                float mod = modulo.AsFloat();
+
+                float scaledValue = Mathf.InverseLerp(low, high, value);
+                float range = Mathf.Abs(high - low);
+                if (range > 0.0f)
+                {
+                    float modDivRange = mod / range;
+                    scaledValue = (scaledValue % (modDivRange)) / modDivRange;
+                }
+
                 return scaledValue;
             }
             else
