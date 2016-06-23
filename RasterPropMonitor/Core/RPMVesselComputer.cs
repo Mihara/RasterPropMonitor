@@ -832,9 +832,13 @@ namespace JSI
 
             float d1 = (float)altitudeBottom - priorAltitudeBottom;
             float t1 = (float)(Planetarium.GetUniversalTime() - lastRadarAltitudeTime);
-            // simple exponential smoothing - radar altitude gets very noisy when terrain is hilly.
-            const float alpha = 0.0625f;
-            radarAltitudeRate = radarAltitudeRate * (1.0f - alpha) + (d1 / t1) * alpha;
+            if (t1 > 0.0f)
+            {
+                // simple exponential smoothing - radar altitude gets very noisy when terrain is hilly.
+                const float alpha = 0.0625f;
+                radarAltitudeRate = radarAltitudeRate * (1.0f - alpha) + (d1 / t1) * alpha;
+            }
+
             lastRadarAltitudeTime = Planetarium.GetUniversalTime();
 
             if (Planetarium.GetUniversalTime() >= lastAltitudeBottomSampleTime + 1.0)
