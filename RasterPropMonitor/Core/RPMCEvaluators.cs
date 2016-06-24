@@ -134,21 +134,18 @@ namespace JSI
                             }
                         };
 
-                    case "CREW":
                     case "CREWLOCAL":
+                        int crewSeatID = Convert.ToInt32(tokens[1]);
                         return (string variable, RPMVesselComputer comp) =>
                         {
-                            // Do I really need to split this here?
-                            string[] toks = variable.Split('_');
-                            ushort crewSeatID = Convert.ToUInt16(toks[1]);
-                            switch (toks[0])
-                            {
-                                case "CREW":
-                                    return CrewListElement(toks[2], crewSeatID, comp.vesselCrew, comp.vesselCrewMedical);
-                                case "CREWLOCAL":
-                                    return CrewListElement(toks[2], crewSeatID, localCrew, localCrewMedical);
-                            }
-                            return variable;
+                            return CrewListElement(tokens[2], crewSeatID, localCrew, localCrewMedical);
+                        };
+
+                    case "CREW":
+                        int vesselCrewSeatID = Convert.ToInt32(tokens[1]);
+                        return (string variable, RPMVesselComputer comp) =>
+                        {
+                            return CrewListElement(tokens[2], vesselCrewSeatID, comp.vesselCrew, comp.vesselCrewMedical);
                         };
 
                     case "PERIODRANDOM":
