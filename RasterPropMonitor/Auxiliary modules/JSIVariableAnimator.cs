@@ -20,6 +20,7 @@
  ****************************************************************************/
 using UnityEngine;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace JSI
@@ -34,6 +35,7 @@ namespace JSI
         private bool alwaysActive;
         private bool muted = false;
         private RasterPropMonitorComputer rpmComp;
+        private bool useNewMode;
 
         private bool UpdateCheck()
         {
@@ -56,6 +58,7 @@ namespace JSI
             try
             {
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
+                useNewMode = RPMGlobals.useNewVariableAnimator;
 
                 ConfigNode moduleConfig = null;
                 foreach (ConfigNode node in GameDatabase.Instance.GetConfigNodes("PROP"))
@@ -70,7 +73,14 @@ namespace JSI
                         {
                             try
                             {
-                                variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp, rpmComp));
+                                if (useNewMode)
+                                {
+                                    variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp, rpmComp, this));
+                                }
+                                else
+                                {
+                                    variableSets.Add(new VariableAnimationSet(variableNodes[i], internalProp, rpmComp));
+                                }
                             }
                             catch (ArgumentException e)
                             {
@@ -86,7 +96,14 @@ namespace JSI
                 {
                     try
                     {
-                        variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp, rpmComp));
+                        if (useNewMode)
+                        {
+                            variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp, rpmComp, this));
+                        }
+                        else
+                        {
+                            variableSets.Add(new VariableAnimationSet(moduleConfig, internalProp, rpmComp));
+                        }
                     }
                     catch (ArgumentException e)
                     {
@@ -117,13 +134,18 @@ namespace JSI
             //JUtil.LogMessage(this, "OnDestroy()");
             for (int i = 0; i < variableSets.Count; ++i)
             {
-                variableSets[i].TearDown();
+                variableSets[i].TearDown(rpmComp);
             }
             variableSets.Clear();
         }
 
         public void Update()
         {
+            if (useNewMode)
+            {
+                return;
+            }
+
             if (!JUtil.IsActiveVessel(vessel) || !startupComplete)
             {
                 return;
@@ -160,15 +182,6 @@ namespace JSI
                 variableSets[unit].Update(universalTime);
             }
         }
-
-        //public void LateUpdate()
-        //{
-        //    if (vessel != null && JUtil.VesselIsInIVA(vessel) && !startupComplete)
-        //    {
-        //        JUtil.AnnoyUser(this);
-        //        enabled = false;
-        //    }
-        //}
     }
 
     public class VariableAnimationSet
@@ -580,8 +593,19 @@ namespace JSI
         }
 
         // Some things need to be explicitly destroyed due to Unity quirks.
-        internal void TearDown()
+        internal void TearDown(RasterPropMonitorComputer rpmComp)
         {
+            //--- new ways
+            if (onChangeDelegate != null)
+            {
+                rpmComp.UnregisterVariableCallback(variable.variableName, onChangeDelegate);
+            }
+            if (audioOutput != null)
+            {
+                GameEvents.OnCameraChange.Remove(OnCameraChange);
+            }
+            //---
+
             if (affectedMaterial != null)
             {
                 UnityEngine.Object.Destroy(affectedMaterial);
@@ -711,8 +735,7 @@ namespace JSI
         {
             float scaledValue = variable.InverseLerp();
 
-            float delta = Mathf.Abs(scaledValue - lastScaledValue);
-            if (delta < float.Epsilon)
+            if (Mathf.Approximately(scaledValue, lastScaledValue))
             {
                 if (thresholdMode && flashingDelay > 0.0 && scaledValue >= threshold.x && scaledValue <= threshold.y)
                 {
@@ -765,13 +788,13 @@ namespace JSI
                         scaledValue = lastScaledValue + maxDelta;
                     }
 
-                    if(wrapAround)
+                    if (wrapAround)
                     {
-                        if(scaledValue < 0.0f)
+                        if (scaledValue < 0.0f)
                         {
                             scaledValue += 1.0f;
                         }
-                        else if(scaledValue > 1.0f)
+                        else if (scaledValue > 1.0f)
                         {
                             scaledValue -= 1.0f;
                         }
@@ -894,6 +917,629 @@ namespace JSI
                 audioOutput.audio.Stop();
             }
         }
+
+        //--- NEW VERSION
+        private Action<float> onChangeDelegate;
+        private JSIVariableAnimator varAnim;
+        private bool inIVA = false;
+        private bool inCoroutine = false;
+
+        public VariableAnimationSet(ConfigNode node, InternalProp thisProp, RasterPropMonitorComputer rpmComp, JSIVariableAnimator parent)
+        {
+            varAnim = parent;
+            onChangeDelegate = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "OnChange");
+            part = thisProp.part;
+
+            if (!node.HasData)
+            {
+                throw new ArgumentException("No data?!");
+            }
+
+            string[] tokens = { };
+
+            if (node.HasValue("scale"))
+            {
+                tokens = node.GetValue("scale").Split(',');
+            }
+
+            if (tokens.Length != 2)
+            {
+                throw new ArgumentException("Could not parse 'scale' parameter.");
+            }
+
+            string variableName = string.Empty;
+            if (node.HasValue("variableName"))
+            {
+                variableName = node.GetValue("variableName").Trim();
+            }
+            else if (node.HasValue("stateMethod"))
+            {
+                string stateMethod = node.GetValue("stateMethod").Trim();
+                // Verify the state method actually exists
+                Func<bool> stateFunction = (Func<bool>)rpmComp.GetMethod(stateMethod, thisProp, typeof(Func<bool>));
+                if (stateFunction != null)
+                {
+                    variableName = "PLUGIN_" + stateMethod;
+                }
+                else
+                {
+                    throw new ArgumentException("Unrecognized stateMethod");
+                }
+            }
+            else
+            {
+                throw new ArgumentException("Missing variable name.");
+            }
+
+            if (node.HasValue("modulo"))
+            {
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1], node.GetValue("modulo"));
+                usesModulo = true;
+            }
+            else
+            {
+                variable = new VariableOrNumberRange(rpmComp, variableName, tokens[0], tokens[1]);
+                usesModulo = false;
+            }
+
+            // That takes care of the scale, now what to do about that scale:
+            if (node.HasValue("reverse"))
+            {
+                if (!bool.TryParse(node.GetValue("reverse"), out reverse))
+                {
+                    throw new ArgumentException("So is 'reverse' true or false?");
+                }
+            }
+
+            if (node.HasValue("animationName"))
+            {
+                animationName = node.GetValue("animationName");
+                if (node.HasValue("animationSpeed"))
+                {
+                    animationSpeed = float.Parse(node.GetValue("animationSpeed"));
+
+                    if (reverse)
+                    {
+                        animationSpeed = -animationSpeed;
+                    }
+                }
+                else
+                {
+                    animationSpeed = 0.0f;
+                }
+                Animation[] anims = node.HasValue("animateExterior") ? thisProp.part.FindModelAnimators(animationName) : thisProp.FindModelAnimators(animationName);
+                if (anims.Length > 0)
+                {
+                    onAnim = anims[0];
+                    onAnim.enabled = true;
+                    onAnim[animationName].speed = 0;
+                    onAnim[animationName].normalizedTime = reverse ? 1f : 0f;
+                    looping = node.HasValue("loopingAnimation");
+                    if (looping)
+                    {
+                        onAnim[animationName].wrapMode = WrapMode.Loop;
+                        onAnim.wrapMode = WrapMode.Loop;
+                        onAnim[animationName].speed = animationSpeed;
+                        mode = Mode.LoopingAnimation;
+                    }
+                    else
+                    {
+                        onAnim[animationName].wrapMode = WrapMode.Once;
+                        mode = Mode.Animation;
+                    }
+                    onAnim.Play();
+                    alwaysActive = node.HasValue("animateExterior");
+                }
+                else
+                {
+                    throw new ArgumentException("Animation could not be found.");
+                }
+
+                if (node.HasValue("stopAnimationName"))
+                {
+                    stopAnimationName = node.GetValue("stopAnimationName");
+                    anims = node.HasValue("animateExterior") ? thisProp.part.FindModelAnimators(stopAnimationName) : thisProp.FindModelAnimators(stopAnimationName);
+                    if (anims.Length > 0)
+                    {
+                        offAnim = anims[0];
+                        offAnim.enabled = true;
+                        offAnim[stopAnimationName].speed = 0;
+                        offAnim[stopAnimationName].normalizedTime = reverse ? 1f : 0f;
+                        if (looping)
+                        {
+                            offAnim[stopAnimationName].wrapMode = WrapMode.Loop;
+                            offAnim.wrapMode = WrapMode.Loop;
+                            offAnim[stopAnimationName].speed = animationSpeed;
+                            mode = Mode.LoopingAnimation;
+                        }
+                        else
+                        {
+                            offAnim[stopAnimationName].wrapMode = WrapMode.Once;
+                            mode = Mode.Animation;
+                        }
+                    }
+                }
+            }
+            else if (node.HasValue("activeColor") && node.HasValue("passiveColor") && node.HasValue("coloredObject"))
+            {
+                string colorNameString = "_EmissiveColor";
+                if (node.HasValue("colorName"))
+                {
+                    colorNameString = node.GetValue("colorName");
+                }
+                colorName = Shader.PropertyToID(colorNameString);
+
+                if (reverse)
+                {
+                    activeColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    passiveColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
+                }
+                else
+                {
+                    passiveColor = JUtil.ParseColor32(node.GetValue("passiveColor"), thisProp.part, ref rpmComp);
+                    activeColor = JUtil.ParseColor32(node.GetValue("activeColor"), thisProp.part, ref rpmComp);
+                }
+                Renderer colorShiftRenderer = thisProp.FindModelComponent<Renderer>(node.GetValue("coloredObject"));
+                affectedMaterial = colorShiftRenderer.material;
+                affectedMaterial.SetColor(colorName, passiveColor);
+                mode = Mode.Color;
+            }
+            else if (node.HasValue("controlledTransform") && node.HasValue("localRotationStart") && node.HasValue("localRotationEnd"))
+            {
+                controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+                initialRotation = controlledTransform.localRotation;
+                if (node.HasValue("longPath"))
+                {
+                    longPath = true;
+                    if (reverse)
+                    {
+                        vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
+                        vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+                    }
+                    else
+                    {
+                        vectorStart = ConfigNode.ParseVector3(node.GetValue("localRotationStart"));
+                        vectorEnd = ConfigNode.ParseVector3(node.GetValue("localRotationEnd"));
+                    }
+                }
+                else
+                {
+                    if (reverse)
+                    {
+                        rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
+                        rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+                    }
+                    else
+                    {
+                        rotationStart = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationStart")));
+                        rotationEnd = Quaternion.Euler(ConfigNode.ParseVector3(node.GetValue("localRotationEnd")));
+                    }
+                }
+                mode = Mode.Rotation;
+            }
+            else if (node.HasValue("controlledTransform") && node.HasValue("localTranslationStart") && node.HasValue("localTranslationEnd"))
+            {
+                controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+                initialPosition = controlledTransform.localPosition;
+                if (reverse)
+                {
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+                }
+                else
+                {
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localTranslationStart"));
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localTranslationEnd"));
+                }
+                mode = Mode.Translation;
+            }
+            else if (node.HasValue("controlledTransform") && node.HasValue("localScaleStart") && node.HasValue("localScaleEnd"))
+            {
+                controlledTransform = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim());
+                initialScale = controlledTransform.localScale;
+                if (reverse)
+                {
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+                }
+                else
+                {
+                    vectorStart = ConfigNode.ParseVector3(node.GetValue("localScaleStart"));
+                    vectorEnd = ConfigNode.ParseVector3(node.GetValue("localScaleEnd"));
+                }
+                mode = Mode.Scale;
+            }
+            else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureShiftStart") && node.HasValue("textureShiftEnd"))
+            {
+                affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).GetComponent<Renderer>().material;
+                var textureLayers = node.GetValue("textureLayers").Split(',');
+                for (int i = 0; i < textureLayers.Length; ++i)
+                {
+                    textureLayer.Add(textureLayers[i].Trim());
+                }
+
+                if (reverse)
+                {
+                    textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
+                    textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+                }
+                else
+                {
+                    textureShiftStart = ConfigNode.ParseVector2(node.GetValue("textureShiftStart"));
+                    textureShiftEnd = ConfigNode.ParseVector2(node.GetValue("textureShiftEnd"));
+                }
+                mode = Mode.TextureShift;
+            }
+            else if (node.HasValue("controlledTransform") && node.HasValue("textureLayers") && node.HasValue("textureScaleStart") && node.HasValue("textureScaleEnd"))
+            {
+                affectedMaterial = thisProp.FindModelTransform(node.GetValue("controlledTransform").Trim()).GetComponent<Renderer>().material;
+                var textureLayers = node.GetValue("textureLayers").Split(',');
+                for (int i = 0; i < textureLayers.Length; ++i)
+                {
+                    textureLayer.Add(textureLayers[i].Trim());
+                }
+
+                if (reverse)
+                {
+                    textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
+                    textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+                }
+                else
+                {
+                    textureScaleStart = ConfigNode.ParseVector2(node.GetValue("textureScaleStart"));
+                    textureScaleEnd = ConfigNode.ParseVector2(node.GetValue("textureScaleEnd"));
+                }
+                mode = Mode.TextureScale;
+            }
+            else
+            {
+                throw new ArgumentException("Cannot initiate any of the possible action modes.");
+            }
+
+            if (!(node.HasValue("maxRateChange") && float.TryParse(node.GetValue("maxRateChange"), out maxRateChange)))
+            {
+                maxRateChange = 0.0f;
+            }
+            if (maxRateChange >= 60.0f)
+            {
+                // Animation rate is too fast to even notice @60Hz
+                maxRateChange = 0.0f;
+            }
+            else
+            {
+                lastAnimUpdate = Planetarium.GetUniversalTime();
+            }
+
+            if (node.HasValue("threshold"))
+            {
+                threshold = ConfigNode.ParseVector2(node.GetValue("threshold"));
+            }
+
+            resourceAmount = 0.0f;
+            if (threshold != Vector2.zero)
+            {
+                thresholdMode = true;
+
+                float min = Mathf.Min(threshold.x, threshold.y);
+                float max = Mathf.Max(threshold.x, threshold.y);
+                threshold.x = min;
+                threshold.y = max;
+
+                if (node.HasValue("flashingDelay"))
+                {
+                    flashingDelay = double.Parse(node.GetValue("flashingDelay"));
+                }
+
+                if (node.HasValue("alarmSound"))
+                {
+                    alarmSoundVolume = 0.5f;
+                    if (node.HasValue("alarmSoundVolume"))
+                    {
+                        alarmSoundVolume = float.Parse(node.GetValue("alarmSoundVolume"));
+                    }
+                    audioOutput = JUtil.SetupIVASound(thisProp, node.GetValue("alarmSound"), alarmSoundVolume, false);
+                    if (node.HasValue("alarmMustPlayOnce"))
+                    {
+                        if (!bool.TryParse(node.GetValue("alarmMustPlayOnce"), out alarmMustPlayOnce))
+                        {
+                            throw new ArgumentException("So is 'alarmMustPlayOnce' true or false?");
+                        }
+                    }
+                    if (node.HasValue("alarmShutdownButton"))
+                    {
+                        SmarterButton.CreateButton(thisProp, node.GetValue("alarmShutdownButton"), AlarmShutdown);
+                    }
+                    if (node.HasValue("alarmSoundLooping"))
+                    {
+                        if (!bool.TryParse(node.GetValue("alarmSoundLooping"), out alarmSoundLooping))
+                        {
+                            throw new ArgumentException("So is 'alarmSoundLooping' true or false?");
+                        }
+                        audioOutput.audio.loop = alarmSoundLooping;
+                    }
+                    
+                    inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+                    GameEvents.OnCameraChange.Add(OnCameraChange);
+                }
+
+                if (node.HasValue("resourceAmount"))
+                {
+                    resourceAmount = float.Parse(node.GetValue("resourceAmount"));
+
+                    if (node.HasValue("resourceName"))
+                    {
+                        resourceName = node.GetValue("resourceName");
+                    }
+                    else
+                    {
+                        resourceName = "ElectricCharge";
+                    }
+                }
+
+                TurnOff(Planetarium.GetUniversalTime());
+            }
+
+            rpmComp.RegisterVariableCallback(variable.variableName, onChangeDelegate);
+        }
+
+        /// <summary>
+        /// Callback to manage muting audio.
+        /// </summary>
+        /// <param name="mode"></param>
+        private void OnCameraChange(CameraManager.CameraMode mode)
+        {
+            inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
+
+            if (inIVA)
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                }
+            }
+            else
+            {
+                if (audioOutput != null && alarmActive)
+                {
+                    audioOutput.audio.volume = 0.0f;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Callback used to trigger animations when the variable changes
+        /// </summary>
+        /// <param name="newValue"></param>
+        private void OnChange(float newValue)
+        {
+            if (inCoroutine)
+            {
+                // If the coroutine is already running, we do not need to do
+                // anything here - we're already doing it.
+                return;
+            }
+            //JUtil.LogMessage(this, "TimeWarp values: dT = {0:0.000}, fixed-dT = {1:0.000}", TimeWarp.deltaTime, TimeWarp.fixedDeltaTime);
+            bool triggerCoroutine = Update(newValue);
+            if (triggerCoroutine)
+            {
+                varAnim.StartCoroutine(OnCoroutine());
+            }
+
+            //JUtil.LogMessage(this, "{0} now {1:0.000} - coroutine request is {2}", variable.variableName, newValue, triggerCoroutine);
+        }
+
+        /// <summary>
+        /// Coroutine callback used for handling animations that use flashing
+        /// or maxRateChange limitations.
+        /// </summary>
+        /// <returns>true as long as the coroutine is needed.</returns>
+        private IEnumerator OnCoroutine()
+        {
+            inCoroutine = true;
+            //JUtil.LogMessage(this, "OnCoroutine Enter {0}", variable.variableName);
+            // yield return first, since this coroutine is triggered right
+            // after an Update.
+            // MOARdV TODO: Replace this with WaitWhile or WaitUntil?  That
+            // would make this fire every update instead of every fixed update
+            yield return new WaitForFixedUpdate();
+
+            float updatedValue = variable.rawValue;
+            //JUtil.LogMessage(this, "OnCoroutine Update {0}", variable.variableName);
+            while (Update(updatedValue))
+            {
+                yield return new WaitForFixedUpdate();
+                updatedValue = variable.rawValue;
+
+                //JUtil.LogMessage(this, "OnCoroutine Update {0}", variable.variableName);
+            }
+
+            //JUtil.LogMessage(this, "OnCoroutine Exit {0}", variable.variableName);
+            inCoroutine = false;
+            yield return null;
+        }
+
+        /// <summary>
+        /// React to updates to variables.
+        /// </summary>
+        /// <param name="newValue"></param>
+        /// <returns>true when an animation needs to use the coroutine system</returns>
+        private bool Update(float newValue)
+        {
+            bool needsCoroutine = false;
+            float scaledValue = variable.InverseLerp(newValue);
+            double universalTime = Planetarium.GetUniversalTime();
+            // HACK:
+            lastAnimUpdate = universalTime - TimeWarp.deltaTime;
+            
+
+            if (Mathf.Approximately(scaledValue, lastScaledValue))
+            {
+                if (thresholdMode && flashingDelay > 0.0 && scaledValue >= threshold.x && scaledValue <= threshold.y)
+                {
+                    // If we're blinking our lights, they need to keep blinking
+                    if (lastStateChange < universalTime - flashingDelay)
+                    {
+                        if (currentState)
+                        {
+                            TurnOff(universalTime);
+                        }
+                        else
+                        {
+                            TurnOn(universalTime);
+                        }
+                    }
+
+                    //if (alarmActive && audioOutput != null)
+                    //{
+                    //    //audioOutput.audio.volume = audioMute * alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                    //}
+
+                    needsCoroutine = true;
+                }
+
+                if (maxRateChange > 0.0f)
+                {
+                    lastAnimUpdate = universalTime;
+                }
+
+                return needsCoroutine;
+            }
+
+            if (maxRateChange > 0.0f && lastScaledValue >= 0.0f)
+            {
+                float maxDelta = (float)(universalTime - lastAnimUpdate) * maxRateChange;
+
+                float difference = Mathf.Abs(lastScaledValue - scaledValue);
+                if (difference > maxDelta)
+                {
+                    bool wrapAround = usesModulo && (difference > 0.5f);
+                    if (wrapAround)
+                    {
+                        maxDelta = Mathf.Min(maxDelta, 1.0f - difference);
+                        maxDelta = -maxDelta;
+                    }
+
+                    if (scaledValue < lastScaledValue)
+                    {
+                        scaledValue = lastScaledValue - maxDelta;
+                    }
+                    else
+                    {
+                        scaledValue = lastScaledValue + maxDelta;
+                    }
+
+                    if (wrapAround)
+                    {
+                        if (scaledValue < 0.0f)
+                        {
+                            scaledValue += 1.0f;
+                        }
+                        else if (scaledValue > 1.0f)
+                        {
+                            scaledValue -= 1.0f;
+                        }
+                    }
+
+                    // There are cases where this may not actually be true due
+                    // to wrap-around, but they'll not be too much of a burden.
+                    needsCoroutine = true;
+                }
+            }
+
+            lastScaledValue = scaledValue;
+            lastAnimUpdate = universalTime;
+
+            if (thresholdMode)
+            {
+                if (scaledValue >= threshold.x && scaledValue <= threshold.y)
+                {
+                    if (flashingDelay > 0.0)
+                    {
+                        if (lastStateChange < universalTime - flashingDelay)
+                        {
+                            if (currentState)
+                            {
+                                TurnOff(universalTime);
+                            }
+                            else
+                            {
+                                TurnOn(universalTime);
+                            }
+                        }
+                        needsCoroutine = true;
+                    }
+                    else
+                    {
+                        TurnOn(universalTime);
+                    }
+                    if (audioOutput != null && !alarmActive)
+                    {
+                        audioOutput.audio.volume = (inIVA) ? alarmSoundVolume * GameSettings.SHIP_VOLUME : 0.0f;
+                        audioOutput.audio.Play();
+                        alarmActive = true;
+                    }
+                }
+                else
+                {
+                    TurnOff(universalTime);
+                    if (audioOutput != null && alarmActive)
+                    {
+                        if (!alarmMustPlayOnce)
+                        {
+                            audioOutput.audio.Stop();
+                        }
+                        alarmActive = false;
+                    }
+                }
+                // Resetting the audio volume in case it was muted while the ship was out of IVA.
+                //if (alarmActive && audioOutput != null)
+                //{
+                //    audioOutput.audio.volume = alarmSoundVolume * GameSettings.SHIP_VOLUME;
+                //}
+            }
+            else
+            {
+                switch (mode)
+                {
+                    case Mode.Rotation:
+                        Quaternion newRotation = longPath ? Quaternion.Euler(Vector3.Lerp(vectorStart, vectorEnd, scaledValue)) :
+                                                 Quaternion.Slerp(rotationStart, rotationEnd, scaledValue);
+                        controlledTransform.localRotation = initialRotation * newRotation;
+                        break;
+                    case Mode.Translation:
+                        controlledTransform.localPosition = initialPosition + Vector3.Lerp(vectorStart, vectorEnd, scaledValue);
+                        break;
+                    case Mode.Scale:
+                        controlledTransform.localScale = initialScale + Vector3.Lerp(vectorStart, vectorEnd, scaledValue);
+                        break;
+                    case Mode.Color:
+                        affectedMaterial.SetColor(colorName, Color.Lerp(passiveColor, activeColor, scaledValue));
+                        break;
+                    case Mode.TextureShift:
+                        for (int i = 0; i < textureLayer.Count; ++i)
+                        {
+                            affectedMaterial.SetTextureOffset(textureLayer[i],
+                                Vector2.Lerp(textureShiftStart, textureShiftEnd, scaledValue));
+                        }
+                        break;
+                    case Mode.TextureScale:
+                        for (int i = 0; i < textureLayer.Count; ++i)
+                        {
+                            affectedMaterial.SetTextureScale(textureLayer[i],
+                                Vector2.Lerp(textureScaleStart, textureScaleEnd, scaledValue));
+                        }
+                        break;
+                    case Mode.LoopingAnimation:
+                    // MOARdV TODO: Define what this actually does
+                    case Mode.Animation:
+                        float lerp = (reverse) ? (1.0f - scaledValue) : scaledValue;
+                        onAnim[animationName].normalizedTime = lerp;
+                        break;
+                }
+            }
+
+            return needsCoroutine;
+        }
     }
 }
-
