@@ -1752,6 +1752,16 @@ namespace JSI
                     RPMGlobals.minimumRefreshRate = Math.Max(minRefresh, 1);
                 }
 
+                bool useNewVariableAnimator = false;
+                if (rpmSettings.TryGetValue("UseNewVariableAnimator", ref useNewVariableAnimator))
+                {
+                    RPMGlobals.useNewVariableAnimator = useNewVariableAnimator;
+                }
+                else
+                {
+                    RPMGlobals.useNewVariableAnimator = false;
+                }
+
                 RPMGlobals.debugShowOnly.Clear();
                 string showOnlyConcat = string.Empty;
                 if (rpmSettings.TryGetValue("ShowOnly", ref showOnlyConcat) && !string.IsNullOrEmpty(showOnlyConcat))

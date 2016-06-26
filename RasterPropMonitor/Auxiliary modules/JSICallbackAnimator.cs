@@ -690,7 +690,6 @@ namespace JSI
         /// <param name="newMode"></param>
         public void CameraChangeCallback(CameraManager.CameraMode newMode)
         {
-            JUtil.LogMessage(this, "CameraChangeCallback({0})", newMode);
             inIVA = (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA);
 
             if(inIVA)

@@ -48,6 +48,8 @@ namespace JSI
         /// </summary>
         internal static bool debugShowVariableCallCount = false;
 
+        internal static bool useNewVariableAnimator = false;
+
         /// <summary>
         /// What is the minimum setting we want to allow for our variable
         /// refresh?

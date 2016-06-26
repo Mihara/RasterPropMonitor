@@ -381,6 +381,7 @@ namespace JSI
 
                 GameEvents.onVesselWasModified.Add(onVesselWasModified);
                 GameEvents.onVesselChange.Add(onVesselChange);
+                GameEvents.onVesselCrewWasModified.Add(onVesselCrewWasModified);
 
                 installedModules.Add(new JSIParachute(vessel));
                 installedModules.Add(new JSIMechJeb(vessel));
@@ -497,17 +498,50 @@ namespace JSI
                     }
                 }
 
-                // part.internalModel can be null if the craft is loaded, but isn't the active/IVA craft
-                if (part.internalModel != null)
+                UpdateLocalCrew();
+                UpdateLocalVars();
+            }
+        }
+
+        /// <summary>
+        /// Update the variables tracking crew in this pod.
+        /// </summary>
+        private void UpdateLocalCrew()
+        {
+            // part.internalModel can be null if the craft is loaded, but isn't the active/IVA craft
+            if (part.internalModel != null)
+            {
+                if (part.internalModel.seats.Count != localCrew.Count)
                 {
+                    // This can happen when the internalModel is loaded when
+                    // it wasn't previously, which appears to occur on docking
+                    // for instance.
+                    localCrew.Clear();
+                    localCrewMedical.Clear();
+
+                    // Note that we set localCrewMedical to null because the
+                    // crewMedical ends up being going null sometime between
+                    // when the crew changed callback fires and when we start
+                    // checking variables.  Thus, we still have to poll the
+                    // crew medical.
                     for (int i = 0; i < part.internalModel.seats.Count; i++)
                     {
                         localCrew.Add(part.internalModel.seats[i].crew);
-                        localCrewMedical.Add((localCrew[i] == null) ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>());
+                        localCrewMedical.Add(null);
                     }
                 }
-
-                UpdateLocalVars();
+                else
+                {
+                    for (int i = 0; i < part.internalModel.seats.Count; i++)
+                    {
+                        localCrew[i] = part.internalModel.seats[i].crew;
+                        localCrewMedical[i] = null;
+                    }
+                }
+            }
+            else
+            {
+                JUtil.LogErrorMessage(this, "UpdateLocalCrew() - no internal model!");
             }
         }
 
@@ -524,27 +558,22 @@ namespace JSI
 
             orbitSensibility = JUtil.OrbitMakesSense(vessel);
 
-            if (part.internalModel != null)
+            if (part.internalModel != null && part.internalModel.seats.Count == localCrew.Count)
             {
-                if (part.internalModel.seats.Count != localCrew.Count)
-                {
-                    // This can happen when the internalModel is loaded when
-                    // it wasn't previously, which appears to occur on docking
-                    // for instance.
-                    localCrew.Clear();
-                    localCrewMedical.Clear();
-                    for (int i = 0; i < part.internalModel.seats.Count; i++)
-                    {
-                        localCrew.Add(part.internalModel.seats[i].crew);
-                        localCrewMedical.Add((localCrew[i] == null) ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>());
-                    }
-
-                }
-                // TODO: Not polling this - find the callbacks for it
+                // For some reason, the localCrewMedical value seems to get nulled after
+                // we update crew assignments, so we keep polling it here.
                 for (int i = 0; i < part.internalModel.seats.Count; i++)
                 {
-                    localCrew[i] = part.internalModel.seats[i].crew;
-                    localCrewMedical[i] = (localCrew[i]) == null ? null : localCrew[i].KerbalRef.GetComponent<kerbalExpressionSystem>();
+                    if (localCrew[i] != null)
+                    {
+                        kerbalExpressionSystem kES = localCrewMedical[i];
+                        localCrew[i].KerbalRef.GetComponentCached<kerbalExpressionSystem>(ref kES);
+                        localCrewMedical[i] = kES;
+                    }
+                    else
+                    {
+                        localCrewMedical[i] = null;
+                    }
                 }
             }
         }
@@ -644,6 +673,7 @@ namespace JSI
 
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
             GameEvents.onVesselChange.Remove(onVesselChange);
+            GameEvents.onVesselCrewWasModified.Remove(onVesselCrewWasModified);
 
             if (RPMGlobals.debugShowVariableCallCount && !string.IsNullOrEmpty(RPMCid))
             {
@@ -686,6 +716,7 @@ namespace JSI
                 vid = vessel.id;
                 //JUtil.LogMessage(this, "onVesselChange(): RPMCid {0} / vessel {1}", RPMCid, vid);
                 ClearVariables();
+                UpdateLocalCrew();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
@@ -701,6 +732,19 @@ namespace JSI
         }
 
         /// <summary>
+        /// Callback to tell us the crew aboard was modifed in some way.
+        /// </summary>
+        /// <param name="who"></param>
+        private void onVesselCrewWasModified(Vessel who)
+        {
+            if (who.id == vessel.id)
+            {
+                // Someone went on EVA, or came inside, or changed seats.
+                UpdateLocalCrew();
+            }            
+        }
+
+        /// <summary>
         /// Callback to tell us our vessel was modified (and we thus need to
         /// re-examine some values.
         /// </summary>
@@ -710,8 +754,9 @@ namespace JSI
             if (who.id == vessel.id)
             {
                 vid = vessel.id;
-                JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid);
+                //JUtil.LogMessage(this, "onVesselWasModified(): RPMCid {0} / vessel {1}", RPMCid, vid;)
                 ClearVariables();
+                UpdateLocalCrew();
 
                 for (int i = 0; i < installedModules.Count; ++i)
                 {
