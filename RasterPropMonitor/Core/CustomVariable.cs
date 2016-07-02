@@ -55,6 +55,8 @@ namespace JSI
             NAND,
             // Evaluate each source variable as a boolean, return the logical NOR of the result
             NOR,
+            // Evaluate each source variable, testing for NaN or Inf, return the logical OR of the result.
+            ISNANORINF,
         };
 
         public readonly string name;
@@ -106,6 +108,10 @@ namespace JSI
             {
                 op = Operator.XOR;
             }
+            else if (oper == Operator.ISNANORINF.ToString())
+            {
+                op = Operator.ISNANORINF;
+            }
             else
             {
                 throw new ArgumentException("Found an invalid operator type in RPM_CUSTOM_VARIABLE", oper);
@@ -114,57 +120,70 @@ namespace JSI
 
         public object Evaluate()
         {
-            bool evaluation = sourceVariables[0].IsInRange() ^ reverse[0];
-
-            // Use an optimization on evaluation to speed things up
-            bool earlyExit;
-            switch (op)
+            bool evaluation = false;
+            if (op == Operator.ISNANORINF)
             {
-                case Operator.AND:
-                case Operator.NAND:
-                    earlyExit = !evaluation;
-                    break;
-                case Operator.OR:
-                case Operator.NOR:
-                    earlyExit = evaluation;
-                    break;
-                case Operator.XOR:
-                    earlyExit = false;
-                    break;
-                case Operator.NONE:
-                    earlyExit = true;
-                    break;
-                default:
-                    throw new ArgumentException("CustomVariable.Evaluate was called with an invalid operator?");
+                evaluation = (float.IsNaN(sourceVariables[0].rawValue) || float.IsInfinity(sourceVariables[0].rawValue)) ^ reverse[0];
+
+                for (int i = 1; i < sourceVariables.Count && (evaluation == false); ++i)
+                {
+                    evaluation = (float.IsNaN(sourceVariables[i].rawValue) || float.IsInfinity(sourceVariables[i].rawValue)) ^ reverse[i];
+                }
             }
-
-            for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
+            else
             {
-                bool nextValue = sourceVariables[i].IsInRange() ^ reverse[i];
+                evaluation = sourceVariables[0].IsInRange() ^ reverse[0];
 
+                // Use an optimization on evaluation to speed things up
+                bool earlyExit;
                 switch (op)
                 {
                     case Operator.AND:
                     case Operator.NAND:
-                        evaluation = (evaluation) && (nextValue);
                         earlyExit = !evaluation;
                         break;
                     case Operator.OR:
                     case Operator.NOR:
-                        evaluation = (evaluation) || (nextValue);
                         earlyExit = evaluation;
                         break;
                     case Operator.XOR:
-                        evaluation = (evaluation) ^ (nextValue);
+                        earlyExit = false;
                         break;
                     case Operator.NONE:
+                        earlyExit = true;
                         break;
+                    default:
+                        throw new ArgumentException("CustomVariable.Evaluate was called with an invalid operator?");
                 }
-            }
 
-            if (op == Operator.NAND || op == Operator.NOR)
-            {
-                evaluation = !evaluation;
+                for (int i = 1; i < sourceVariables.Count && (earlyExit == false); ++i)
+                {
+                    bool nextValue = sourceVariables[i].IsInRange() ^ reverse[i];
+
+                    switch (op)
+                    {
+                        case Operator.AND:
+                        case Operator.NAND:
+                            evaluation = (evaluation) && (nextValue);
+                            earlyExit = !evaluation;
+                            break;
+                        case Operator.OR:
+                        case Operator.NOR:
+                            evaluation = (evaluation) || (nextValue);
+                            earlyExit = evaluation;
+                            break;
+                        case Operator.XOR:
+                            evaluation = (evaluation) ^ (nextValue);
+                            break;
+                        case Operator.NONE:
+                            break;
+                    }
+                }
+
+                if (op == Operator.NAND || op == Operator.NOR)
+                {
+                    evaluation = !evaluation;
+                }
             }
 
             return evaluation.GetHashCode();
