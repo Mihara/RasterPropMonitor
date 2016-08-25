@@ -1471,6 +1471,18 @@ namespace JSI
 
 
                 // comp.targeting. Probably the most finicky bit right now.
+                case "TARGETSAMESOI":
+                    return (string variable, RPMVesselComputer comp) =>
+                        {
+                            if (comp.target == null)
+                            {
+                                return 0;
+                            }
+                            else
+                            {
+                                return (comp.targetOrbit.referenceBody == vessel.orbit.referenceBody).GetHashCode();
+                            }
+                        };
                 case "TARGETNAME":
                     return (string variable, RPMVesselComputer comp) =>
                     {
