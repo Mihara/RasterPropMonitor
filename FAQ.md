@@ -20,7 +20,10 @@ The current version is always identified on the [forum](http://forum.kerbalspace
 * Make sure that there is only one RasterPropMonitor.dll and that it is located at GameData/JSI/RasterPropMonitor/Plugins/RasterPropMonitor.dll -- several earlier third-party capsules distributed old versions incorrectly.
 * Make sure that you're using the appropriate versions of every other plugin that interfaces with RasterPropMonitor.
 
-If these steps do not solve your problem, please follow the steps in (this post on the forum)[http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/] and post the required information on the (RPM forum)[http://forum.kerbalspaceprogram.com/threads/117471] or open an issue on (GitHub)[https://github.com/Mihara/RasterPropMonitor/issues].
+If these steps do not solve your problem, please follow the steps in 
+[this post on the forum](http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/) 
+and post the required information on the [RPM forum](http://forum.kerbalspaceprogram.com/threads/117471) 
+or open an issue on [GitHub](https://github.com/Mihara/RasterPropMonitor/issues).
 
 ## Gameplay
 
