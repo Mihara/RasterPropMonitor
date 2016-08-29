@@ -215,6 +215,7 @@
     <None Include="Shaders\RPM-FontShader.shader" />
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)GameData\JSI\RasterPropMonitor\Plugins\</PostBuildEvent>
+    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)GameData\JSI\RasterPropMonitor\Plugins\
+copy $(TargetPath) "D:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\JSI\RasterPropMonitor\Plugins\"</PostBuildEvent>
   </PropertyGroup>
 </Project>
