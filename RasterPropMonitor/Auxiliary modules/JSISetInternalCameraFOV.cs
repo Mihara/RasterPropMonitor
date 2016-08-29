@@ -23,7 +23,6 @@ using UnityEngine;
 
 namespace JSI
 {
-    // MOARdV TODO: OnIVACameraKerbalChange
     public class JSISetInternalCameraFOV : InternalModule
     {
         public enum HideKerbal
@@ -89,6 +88,8 @@ namespace JSI
                     }
                 }
             }
+            GameEvents.OnCameraChange.Add(OnCameraChange);
+            GameEvents.OnIVACameraKerbalChange.Add(OnIVACameraChange);
             // Pseudo-seat with default values.
             seats.Add(new SeatCamera
             {
@@ -98,10 +99,8 @@ namespace JSI
                 minPitch = defaultMinPitch,
                 hideKerbal = HideKerbal.none
             });
-        }
 
-        public override void OnUpdate()
-        {
+            // If (somehow) we start in IVA, make sure we initialize here.
             if (JUtil.UserIsInPod(part) && InternalCamera.Instance != null && InternalCamera.Instance.isActive && CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA)
             {
                 Kerbal activeKerbal = part.FindCurrentKerbal();
@@ -115,25 +114,82 @@ namespace JSI
                     seatID = activeKerbal.protoCrewMember.seatIdx;
                 }
 
-                if (seatID < 0)
-                {
-                    seatID = seats.Count - 1;
-                }
+                UpdateCameras(seatID, activeKerbal);
+            }
+        }
 
+        /// <summary>
+        /// Unregister those callbacks
+        /// </summary>
+        public void OnDestroy()
+        {
+            GameEvents.OnIVACameraKerbalChange.Remove(OnIVACameraChange);
+            GameEvents.OnCameraChange.Remove(OnCameraChange);
+        }
+
+        /// <summary>
+        /// If the camera mode changes, we need to reset our local cache.
+        /// </summary>
+        /// <param name="newMode"></param>
+        private void OnCameraChange(CameraManager.CameraMode newMode)
+        {
+            if (newMode == CameraManager.CameraMode.IVA)
+            {
+                Kerbal activeKerbal = part.FindCurrentKerbal();
+                if (activeKerbal != null)
+                {
+                    int seatID = activeKerbal.protoCrewMember.seatIdx;
+                    if (seatID != oldSeat)
+                    {
+                        UpdateCameras(seatID, activeKerbal);
+                    }
+                }
+            }
+            else
+            {
+                oldSeat = -1;
+            }
+        }
+
+        /// <summary>
+        /// Take care of updating everything.
+        /// </summary>
+        /// <param name="seatID"></param>
+        /// <param name="activeKerbal"></param>
+        private void UpdateCameras(int seatID, Kerbal activeKerbal)
+        {
+            InternalCamera.Instance.SetFOV(seats[seatID].fov);
+            InternalCamera.Instance.maxRot = seats[seatID].maxRot;
+            InternalCamera.Instance.maxPitch = seats[seatID].maxPitch;
+            InternalCamera.Instance.minPitch = seats[seatID].minPitch;
+
+            RPMVesselComputer comp = null;
+            if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
+            {
+                comp.SetKerbalVisible(activeKerbal, seats[seatID].hideKerbal);
+            }
+
+            oldSeat = seatID;
+        }
+
+        /// <summary>
+        /// Callback when the player switches IVA camera.
+        /// 
+        /// BUG: The callback's parameter tells me who the
+        /// previous Kerbal was, not who the new Kerbal is.
+        /// </summary>
+        /// <param name="newKerbal"></param>
+        private void OnIVACameraChange(Kerbal newKerbal)
+        {
+            // Unfortunately, the callback is telling me who the previous Kerbal was,
+            // not who the new Kerbal is.
+            Kerbal activeKerbal = part.FindCurrentKerbal();
+            if (activeKerbal != null)
+            {
+                int seatID = activeKerbal.protoCrewMember.seatIdx;
                 if (seatID != oldSeat)
                 {
-                    InternalCamera.Instance.SetFOV(seats[seatID].fov);
-                    InternalCamera.Instance.maxRot = seats[seatID].maxRot;
-                    InternalCamera.Instance.maxPitch = seats[seatID].maxPitch;
-                    InternalCamera.Instance.minPitch = seats[seatID].minPitch;
-
-                    RPMVesselComputer comp = null;
-                    if (RPMVesselComputer.TryGetInstance(vessel, ref comp))
-                    {
-                        comp.SetKerbalVisible(activeKerbal, seats[seatID].hideKerbal);
-                    }
-
-                    oldSeat = seatID;
+                    UpdateCameras(seatID, activeKerbal);
                 }
             }
         }
