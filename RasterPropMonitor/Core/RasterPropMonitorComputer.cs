@@ -427,6 +427,11 @@ namespace JSI
                 {
                     comp.SetVesselDescription(vesselDescription);
                 }
+                var restoredPersistents = comp.RestorePersistents(id);
+                if (restoredPersistents != null)
+                {
+                    persistentVars = restoredPersistents;
+                }
 
                 // Make sure we have the description strings parsed.
                 string[] descriptionStrings = vesselDescription.UnMangleConfigText().Split(JUtil.LineSeparator, StringSplitOptions.None);
@@ -741,7 +746,7 @@ namespace JSI
             {
                 // Someone went on EVA, or came inside, or changed seats.
                 UpdateLocalCrew();
-            }            
+            }
         }
 
         /// <summary>
