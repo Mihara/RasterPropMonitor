@@ -767,7 +767,7 @@ namespace JSI
 
         public static bool IsInIVA()
         {
-            return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
+            return (CameraManager.Instance != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal));
         }
 
         // LogMessage, but unconditional (logs regardless of debugLoggingEnabled state).

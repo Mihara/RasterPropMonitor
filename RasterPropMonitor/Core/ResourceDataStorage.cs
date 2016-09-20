@@ -32,9 +32,6 @@ namespace JSI
         private readonly string[] sortedResourceNames;
         private int numValidResourceNames = 0;
 
-        // A dictionary mapping resourceIDs to dictionaries that map 
-        private readonly Dictionary<int, List<PartResource>> activeResources = new Dictionary<int, List<PartResource>>();
-
         private class ResourceComparer : IComparer<ResourceData>
         {
             public int Compare(ResourceData a, ResourceData b)
@@ -68,8 +65,6 @@ namespace JSI
                 rs[index].density = thatResource.density;
                 rs[index].resourceId = thatResource.id;
 
-                activeResources.Add(thatResource.id, new List<PartResource>());
-
                 nameResources.Add(thatResource.name, rs[index]);
                 sysrResources.Add(nameSysr, rs[index]);
                 ++index;
@@ -79,17 +74,19 @@ namespace JSI
             Array.Sort(rs, new ResourceComparer());
         }
 
-        public void StartLoop()
+        public void StartLoop(Vessel vessel)
         {
             for (int i = 0; i < rs.Length; ++i)
             {
-                rs[i].current = 0.0f;
-                rs[i].max = 0.0f;
                 rs[i].stage = 0.0f;
                 rs[i].stagemax = 0.0f;
                 rs[i].ispropellant = false;
 
-                activeResources[rs[i].resourceId].Clear();
+                double amount, maxAmount;
+                vessel.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount);
+
+                rs[i].current = (float)amount;
+                rs[i].max = (float)maxAmount;
             }
         }
 
@@ -111,24 +108,6 @@ namespace JSI
                     sortedResourceNames[numValidResourceNames] = rs[i].name;
                     ++numValidResourceNames;
                 }
-
-                // See if any engines marked these resources as propellants.
-                // If so, we have stage and stageMax info available, so we can
-                // sum them up.
-                var list = activeResources[rs[i].resourceId];
-                if (list.Count > 0)
-                {
-                    float stage = 0.0f, stageMax = 0.0f;
-
-                    for (int j = 0; j < list.Count; ++j)
-                    {
-                        stage += (float)list[j].amount;
-                        stageMax += (float)list[j].maxAmount;
-                    }
-
-                    rs[i].stage = stage;
-                    rs[i].stagemax = stageMax;
-                }
             }
         }
 
@@ -148,45 +127,11 @@ namespace JSI
 
         public void MarkPropellant(Propellant propel)
         {
-            var connectedResources = propel.connectedResources;
-            for (int resourceIdx = 0; resourceIdx < connectedResources.Count; ++resourceIdx)
-            {
-                try
-                {
-                    ResourceData r = nameResources[connectedResources[resourceIdx].info.name];
-                    r.ispropellant = true;
-
-                    // If the resoruce in question isn't a "free flow" -
-                    // that is, an ALL_VESSEL_* resource - then add the
-                    // PartResource to the list we will consider for stage
-                    // resource availability.  But also don't add it if the
-                    // particular PartResource is in the list (as based on
-                    // checking GetHashCode()).
-                    // MOARdV TODO: I *could* make a dictionary instead of list,
-                    // but I don't know if it's worthwhile.
-                    if (!IsFreeFlow(connectedResources[resourceIdx].info.resourceFlowMode))
-                    {
-                        var list = activeResources[r.resourceId];
-                        bool needsAdded = true;
-                        for (int listIndex = 0; listIndex < list.Count; ++listIndex)
-                        {
-                            if (list[listIndex].GetHashCode() == connectedResources[resourceIdx].GetHashCode())
-                            {
-                                needsAdded = false;
-                                break;
-                            }
-                        }
-                        if (needsAdded)
-                        {
-                            list.Add(connectedResources[resourceIdx]);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    JUtil.LogErrorMessage(this, "Error in MarkPropellant({0}): {1}", connectedResources[resourceIdx].info.name, e);
-                }
-            }
+            // Not 100% sure this is right:  It does report fuel levels correctly.
+            ResourceData r = nameResources[propel.name];
+            r.stage = (float)propel.totalResourceAvailable;
+            r.stagemax = (float)propel.totalResourceCapacity;
+            r.ispropellant = true;
         }
 
         public void GetAvailableResourceNames(ref string[] result)
@@ -406,21 +351,21 @@ namespace JSI
             }
         }
 
-        public void SetActive(Vessel.ActiveResource resource)
-        {
-            try
-            {
-                ResourceData res = nameResources[resource.info.name];
-                res.stage = (float)resource.amount;
-                res.stagemax = (float)resource.maxAmount;
-                var list = activeResources[resource.info.id];
-                list.Clear();
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Error SetActive {0}: {1}", resource.info.name, e);
-            }
-        }
+        //public void SetActive(Vessel.ActiveResource resource)
+        //{
+        //    try
+        //    {
+        //        ResourceData res = nameResources[resource.info.name];
+        //        res.stage = (float)resource.amount;
+        //        res.stagemax = (float)resource.maxAmount;
+        //        var list = activeResources[resource.info.id];
+        //        list.Clear();
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        JUtil.LogErrorMessage(this, "Error SetActive {0}: {1}", resource.info.name, e);
+        //    }
+        //}
 
         private class ResourceData
         {

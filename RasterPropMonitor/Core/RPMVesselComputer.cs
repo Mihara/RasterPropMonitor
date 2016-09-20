@@ -88,15 +88,15 @@ namespace JSI
         /*
          * This region contains variables that apply per-instance (per vessel).
          */
-        private Guid vid;
+        //private Guid vid;
         internal Vessel getVessel() { return vessel; }
-        internal Guid id
-        {
-            get
-            {
-                return (vessel == null) ? Guid.Empty : vessel.id;
-            }
-        }
+        //internal Guid id
+        //{
+        //    get
+        //    {
+        //        return (vessel == null) ? Guid.Empty : vessel.id;
+        //    }
+        //}
         private NavBall navBall;
         internal LinearAtmosphereGauge linearAtmosGauge;
 
@@ -410,10 +410,10 @@ namespace JSI
         /// (KSP 1.2 build 1500) it appears SpaceCenter is flight.
         /// </summary>
         /// <returns></returns>
-        public override VesselModule.Activation GetActivation()
-        {
-            return Activation.FlightScene;
-        }
+        //public override VesselModule.Activation GetActivation()
+        //{
+        //    return Activation.FlightScene;
+        //}
 
         private Dictionary<Guid, Dictionary<string, object>> persistentNodeData = new Dictionary<Guid, Dictionary<string, object>>();
         private bool anyRestored = false;
@@ -589,10 +589,10 @@ namespace JSI
                     }
                 }
             }
-            else if (vid != Guid.Empty)
-            {
-                JUtil.LogErrorMessage(this, "OnSave vessel is null? expected for {0}", vid);
-            }
+            //else if (vid != Guid.Empty)
+            //{
+            //    JUtil.LogErrorMessage(this, "OnSave vessel is null? expected for {0}", vid);
+            //}
         }
 
         protected override void OnAwake()
@@ -615,6 +615,11 @@ namespace JSI
                 return;
             }
 
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
             if (!GameDatabase.Instance.IsReady())
             {
                 throw new Exception("GameDatabase is not ready?");
@@ -631,7 +636,7 @@ namespace JSI
                     instances.Add(vessel.id, this);
                     JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
                 }
-                vid = vessel.id;
+                //vid = vessel.id;
             }
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
@@ -654,6 +659,15 @@ namespace JSI
             }
 
             JUtil.LogMessage(this, "OnStart for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            if (instances.ContainsKey(vessel.id))
+            {
+                JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            }
+            else
+            {
+                instances.Add(vessel.id, this);
+                JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+            }
             try
             {
                 navBall = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.NavBall>();
@@ -685,7 +699,7 @@ namespace JSI
 
         public void OnDestroy()
         {
-            if (vessel == null || vid == Guid.Empty)
+            if (vessel == null)// || vid == Guid.Empty)
             {
                 return;
             }
@@ -694,10 +708,10 @@ namespace JSI
                 return;
             }
 
-            if (vid != vessel.id)
-            {
-                JUtil.LogErrorMessage(this, "OnDestroy() called for vessel {0}, but I think I am vessel {1}", vessel.id, vid);
-            }
+            //if (vid != vessel.id)
+            //{
+            //    JUtil.LogErrorMessage(this, "OnDestroy() called for vessel {0}, but I think I am vessel {1}", vessel.id, vid);
+            //}
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onVesselChange.Remove(onVesselChange);
@@ -710,13 +724,13 @@ namespace JSI
 
             // This very likely was handled in the OnVesselDestroy callback,
             // but there is no harm trying again here.
-            if (instances.ContainsKey(vid))
+            if (instances.ContainsKey(vessel.id))
             {
-                instances.Remove(vid);
-                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vid);
+                instances.Remove(vessel.id);
+                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
-            vid = Guid.Empty;
+            //vid = Guid.Empty;
             navBall = null;
 
             target = null;
@@ -733,6 +747,11 @@ namespace JSI
 
         public void Update()
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
             if (vessel == null)
             {
                 return;
@@ -740,6 +759,7 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
+                //JUtil.LogMessage(this, "UpdateCheck - time to update");
                 timeToUpdate = true;
             }
 
@@ -756,7 +776,12 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            if (vessel == null || vessel.isActiveVessel == false)
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
+            if (vessel == null /*|| vessel.isActiveVessel == false*/)
             {
                 return;
             }
@@ -772,6 +797,7 @@ namespace JSI
             // Update values related to the vessel (position, CoM, etc)
             if (timeToUpdate)
             {
+                //JUtil.LogMessage(this, "UpdateVariables({0})", vessel.id);
                 Protractor.OnFixedUpdate();
 
                 timeToUpdate = false;
@@ -781,7 +807,7 @@ namespace JSI
                 // Sorta messy: resources.StartLoop must come before
                 // FetchPerPartData.  FetchPerPartData must come before
                 // FetchPerModuleData.
-                resources.StartLoop();
+                resources.StartLoop(vessel);
                 FetchPerPartData();
                 FetchPerModuleData();
 
@@ -910,8 +936,16 @@ namespace JSI
             float hottestPart = float.MaxValue;
             float totalResourceMass = 0.0f;
 
+            if (vessel.parts == null)
+            {
+                JUtil.LogErrorMessage(this, "FetchPerPartData(): vessel.parts is null");
+            }
             foreach (Part thatPart in vessel.parts)
             {
+                if (thatPart.Resources == null)
+                {
+                    JUtil.LogErrorMessage(this, "FetchPerPartData(): vessel.part[{0}].Resources is null", thatPart.partInfo.title);
+                }
                 foreach (PartResource resource in thatPart.Resources)
                 {
                     resources.Add(resource);
@@ -1062,43 +1096,46 @@ namespace JSI
                 speedHorizontal = 0.0;
             }
 
-            // Record the vessel-relative basis
-            // north isn't actually used anywhere...
-            right = vessel.GetTransform().right;
-            forward = vessel.GetTransform().up;
-            top = vessel.GetTransform().forward;
-
-            //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
-            // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            up = FlightGlobals.upAxis;
-            surfaceForward = Vector3.Cross(up, right);
-            // If the craft is rolled sharply to the side, we have to re-do our basis.
-            if (surfaceForward.sqrMagnitude < 0.5f)
+            if (vessel.GetTransform() != null)
             {
-                surfaceRight = Vector3.Cross(forward, up);
-                surfaceForward = Vector3.Cross(up, surfaceRight);
-            }
-            else
-            {
-                surfaceRight = Vector3.Cross(surfaceForward, up);
-            }
+                // Record the vessel-relative basis
+                // north isn't actually used anywhere...
+                right = vessel.GetTransform().right;
+                forward = vessel.GetTransform().up;
+                top = vessel.GetTransform().forward;
 
-            // This happens if we update right away, before navBall has been fetched.
-            // Like, at load time.
-            if (navBall != null)
-            {
-                rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
-            }
-            else
-            {
-                rotationVesselSurface = Quaternion.identity;
-            }
+                //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
+                // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
+                up = FlightGlobals.upAxis;
+                surfaceForward = Vector3.Cross(up, right);
+                // If the craft is rolled sharply to the side, we have to re-do our basis.
+                if (surfaceForward.sqrMagnitude < 0.5f)
+                {
+                    surfaceRight = Vector3.Cross(forward, up);
+                    surfaceForward = Vector3.Cross(up, surfaceRight);
+                }
+                else
+                {
+                    surfaceRight = Vector3.Cross(surfaceForward, up);
+                }
 
-            prograde = vessel.orbit.GetVel().normalized;
-            radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
-            normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
+                // This happens if we update right away, before navBall has been fetched.
+                // Like, at load time.
+                if (navBall != null)
+                {
+                    rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
+                }
+                else
+                {
+                    rotationVesselSurface = Quaternion.identity;
+                }
 
-            UpdateLandingPredictions();
+                prograde = vessel.orbit.GetVel().normalized;
+                radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
+                normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
+
+                UpdateLandingPredictions();
+            }
         }
 
         private bool runningPredicition = false;
@@ -1466,7 +1503,7 @@ namespace JSI
         /// <param name="who"></param>
         private void onVesselChange(Vessel who)
         {
-            if (who.id == vessel.id)
+            if (who.id == vessel.id && vessel.isActiveVessel)
             {
                 JUtil.LogMessage(this, "onVesselChange(): for me {0}", who.id);
 
