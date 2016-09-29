@@ -590,6 +590,7 @@ namespace JSI
                     currentEngineFuelFlow += specificFuelConsumption * currentThrust;
                 }
 
+                resources.MarkPropellant(thatPart.crossfeedPartSet);
                 foreach (Propellant thatResource in availableEngines[i].propellants)
                 {
                     resources.MarkPropellant(thatResource);
@@ -633,20 +634,6 @@ namespace JSI
             {
                 actualMaxIsp = 0.0f;
             }
-
-            // We can use the stock routines to get at the per-stage resources.
-            // Except KSP 1.1.1 broke GetActiveResources() and GetActiveResource(resource).
-            // Like exception-throwing broke.  It was fixed in 1.1.2, but I
-            // already put together a work-around.
-            //try
-            //{
-            //    var activeResources = vessel.GetActiveResources();
-            //    for (int i = 0; i < activeResources.Count; ++i)
-            //    {
-            //        resources.SetActive(activeResources[i]);
-            //    }
-            //}
-            //catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
 

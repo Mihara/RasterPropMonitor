@@ -30,6 +30,7 @@ namespace JSI
         private readonly Dictionary<string, ResourceData> nameResources = new Dictionary<string, ResourceData>();
         private readonly Dictionary<string, ResourceData> sysrResources = new Dictionary<string, ResourceData>();
         private readonly string[] sortedResourceNames;
+        private HashSet<Part> activeResources = new HashSet<Part>();
         private int numValidResourceNames = 0;
 
         private class ResourceComparer : IComparer<ResourceData>
@@ -76,6 +77,7 @@ namespace JSI
 
         public void StartLoop(Vessel vessel)
         {
+            activeResources.Clear();
             for (int i = 0; i < rs.Length; ++i)
             {
                 rs[i].stage = 0.0f;
@@ -100,6 +102,8 @@ namespace JSI
             }
             lastcheck = time;
 
+            var ps = new PartSet(activeResources);
+
             numValidResourceNames = 0;
             for (int i = 0; i < rs.Length; ++i)
             {
@@ -107,6 +111,14 @@ namespace JSI
                 {
                     sortedResourceNames[numValidResourceNames] = rs[i].name;
                     ++numValidResourceNames;
+
+                    if (rs[i].ispropellant)
+                    {
+                        double amount, maxAmount;
+                        ps.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount, true);
+                        rs[i].stagemax = (float)maxAmount;
+                        rs[i].stage = (float)amount;
+                    }
                 }
             }
         }
@@ -125,12 +137,15 @@ namespace JSI
         //    }
         //}
 
+        public void MarkPropellant(PartSet ps)
+        {
+            var parts = ps.GetParts();
+            activeResources.UnionWith(parts);
+        }
+
         public void MarkPropellant(Propellant propel)
         {
-            // Not 100% sure this is right:  It does report fuel levels correctly.
             ResourceData r = nameResources[propel.name];
-            r.stage = (float)propel.totalResourceAvailable;
-            r.stagemax = (float)propel.totalResourceCapacity;
             r.ispropellant = true;
         }
 
@@ -350,22 +365,6 @@ namespace JSI
                 JUtil.LogErrorMessage(this, "Error adding {0}: {1}", resource.info.name, e);
             }
         }
-
-        //public void SetActive(Vessel.ActiveResource resource)
-        //{
-        //    try
-        //    {
-        //        ResourceData res = nameResources[resource.info.name];
-        //        res.stage = (float)resource.amount;
-        //        res.stagemax = (float)resource.maxAmount;
-        //        var list = activeResources[resource.info.id];
-        //        list.Clear();
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        JUtil.LogErrorMessage(this, "Error SetActive {0}: {1}", resource.info.name, e);
-        //    }
-        //}
 
         private class ResourceData
         {
