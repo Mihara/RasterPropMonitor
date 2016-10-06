@@ -31,6 +31,7 @@ namespace JSI
         private readonly Dictionary<string, ResourceData> sysrResources = new Dictionary<string, ResourceData>();
         private readonly string[] sortedResourceNames;
         private HashSet<Part> activeResources = new HashSet<Part>();
+        private PartSet partSet = null;
         private int numValidResourceNames = 0;
 
         private class ResourceComparer : IComparer<ResourceData>
@@ -48,11 +49,7 @@ namespace JSI
 
         public ResourceDataStorage()
         {
-            int resourceCount = 0;
-            foreach (PartResourceDefinition thatResource in PartResourceLibrary.Instance.resourceDefinitions)
-            {
-                ++resourceCount;
-            }
+            int resourceCount = PartResourceLibrary.Instance.resourceDefinitions.Count;
 
             rs = new ResourceData[resourceCount];
             sortedResourceNames = new string[resourceCount];
@@ -102,7 +99,14 @@ namespace JSI
             }
             lastcheck = time;
 
-            var ps = new PartSet(activeResources);
+            if (partSet == null)
+            {
+                partSet = new PartSet(activeResources);
+            }
+            else
+            {
+                partSet.RebuildParts(activeResources);
+            }
 
             numValidResourceNames = 0;
             for (int i = 0; i < rs.Length; ++i)
@@ -115,7 +119,7 @@ namespace JSI
                     if (rs[i].ispropellant)
                     {
                         double amount, maxAmount;
-                        ps.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount, true);
+                        partSet.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount, true);
                         rs[i].stagemax = (float)maxAmount;
                         rs[i].stage = (float)amount;
                     }
