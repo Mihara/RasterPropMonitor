@@ -767,7 +767,7 @@ namespace JSI
 
         public static bool IsInIVA()
         {
-            return CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal;
+            return (CameraManager.Instance != null && (CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.IVA || CameraManager.Instance.currentCameraMode == CameraManager.CameraMode.Internal));
         }
 
         // LogMessage, but unconditional (logs regardless of debugLoggingEnabled state).
@@ -775,11 +775,11 @@ namespace JSI
         {
             if (caller != null)
             {
-                Debug.Log(String.Format(caller.GetType().Name + ": " + line, list));
+                Debug.Log(String.Format("[" + caller.GetType().Name + "]: " + line, list));
             }
             else
             {
-                Debug.Log(String.Format("RasterPropMonitor: " + line, list));
+                Debug.Log(String.Format("[RasterPropMonitor]: " + line, list));
             }
         }
 
@@ -791,7 +791,7 @@ namespace JSI
 
                 if (RPMGlobals.debugShowOnly.Count == 0 || RPMGlobals.debugShowOnly.Contains(callerName))
                 {
-                    Debug.Log(String.Format(callerName + ": " + line, list));
+                    Debug.Log(String.Format("[" + callerName + "]: " + line, list));
                 }
             }
         }
@@ -800,11 +800,11 @@ namespace JSI
         {
             if (caller != null)
             {
-                Debug.LogError(String.Format(caller.GetType().Name + ": " + line, list));
+                Debug.LogError(String.Format("[" + caller.GetType().Name + "]: " + line, list));
             }
             else
             {
-                Debug.LogError(String.Format("RasterPropMonitor: " + line, list));
+                Debug.LogError(String.Format("[RasterPropMonitor]: " + line, list));
             }
         }
 
@@ -967,7 +967,7 @@ namespace JSI
 
         public static Vector3d ProjectPositionOntoSurface(this Vessel vessel)
         {
-            Vector3d coM = vessel.findWorldCenterOfMass();
+            Vector3d coM = vessel.CoMD;
 
             double latitude = vessel.mainBody.GetLatitude(coM);
             double longitude = vessel.mainBody.GetLongitude(coM);

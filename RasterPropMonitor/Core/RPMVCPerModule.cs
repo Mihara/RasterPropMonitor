@@ -203,12 +203,12 @@ namespace JSI
                             else if (module is ModuleAlternator)
                             {
                                 ModuleAlternator alt = module as ModuleAlternator;
-                                for (int i = 0; i < alt.outputResources.Count; ++i)
+                                for (int i = 0; i < alt.resHandler.outputResources.Count; ++i)
                                 {
-                                    if (alt.outputResources[i].name == "ElectricCharge")
+                                    if (alt.resHandler.outputResources[i].name == "ElectricCharge")
                                     {
                                         availableAlternators.Add(alt);
-                                        availableAlternatorOutput.Add((float)alt.outputResources[i].rate);
+                                        availableAlternatorOutput.Add((float)alt.resHandler.outputResources[i].rate);
                                         break;
                                     }
                                 }
@@ -216,12 +216,12 @@ namespace JSI
                             else if (module is ModuleGenerator)
                             {
                                 ModuleGenerator gen = module as ModuleGenerator;
-                                for (int i = 0; i < gen.outputList.Count; ++i)
+                                for (int i = 0; i < gen.resHandler.outputResources.Count; ++i)
                                 {
-                                    if (gen.outputList[i].name == "ElectricCharge")
+                                    if (gen.resHandler.outputResources[i].name == "ElectricCharge")
                                     {
                                         availableGenerators.Add(gen);
-                                        availableGeneratorOutput.Add((float)gen.outputList[i].rate);
+                                        availableGeneratorOutput.Add((float)gen.resHandler.outputResources[i].rate);
                                         break;
                                     }
                                 }
@@ -409,13 +409,13 @@ namespace JSI
             for (int i = 0; i < availableSolarPanels.Count; ++i)
             {
                 solarOutput += availableSolarPanels[i].flowRate;
-                solarPanelsRetractable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED);
-                solarPanelsDeployable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED);
-                solarPanelsState |= (availableSolarPanels[i].useAnimation && (availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED || availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDING));
+                solarPanelsRetractable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].deployState == ModuleDeployableSolarPanel.DeployState.EXTENDED);
+                solarPanelsDeployable |= (availableSolarPanels[i].useAnimation && availableSolarPanels[i].deployState == ModuleDeployableSolarPanel.DeployState.RETRACTED);
+                solarPanelsState |= (availableSolarPanels[i].useAnimation && (availableSolarPanels[i].deployState == ModuleDeployableSolarPanel.DeployState.EXTENDED || availableSolarPanels[i].deployState == ModuleDeployableSolarPanel.DeployState.EXTENDING));
 
-                if ((solarPanelMovement == -1 || solarPanelMovement == (int)ModuleDeployableSolarPanel.panelStates.BROKEN) && availableSolarPanels[i].useAnimation)
+                if ((solarPanelMovement == -1 || solarPanelMovement == (int)ModuleDeployableSolarPanel.DeployState.BROKEN) && availableSolarPanels[i].useAnimation)
                 {
-                    solarPanelMovement = (int)availableSolarPanels[i].panelState;
+                    solarPanelMovement = (int)availableSolarPanels[i].deployState;
                 }
             }
         }
@@ -590,6 +590,7 @@ namespace JSI
                     currentEngineFuelFlow += specificFuelConsumption * currentThrust;
                 }
 
+                resources.MarkPropellant(thatPart.crossfeedPartSet);
                 foreach (Propellant thatResource in availableEngines[i].propellants)
                 {
                     resources.MarkPropellant(thatResource);
@@ -633,20 +634,6 @@ namespace JSI
             {
                 actualMaxIsp = 0.0f;
             }
-
-            // We can use the stock routines to get at the per-stage resources.
-            // Except KSP 1.1.1 broke GetActiveResources() and GetActiveResource(resource).
-            // Like exception-throwing broke.  It was fixed in 1.1.2, but I
-            // already put together a work-around.
-            try
-            {
-                var activeResources = vessel.GetActiveResources();
-                for (int i = 0; i < activeResources.Count; ++i)
-                {
-                    resources.SetActive(activeResources[i]);
-                }
-            }
-            catch { }
 
             resources.EndLoop(Planetarium.GetUniversalTime());
 
@@ -872,7 +859,7 @@ namespace JSI
             {
                 for (int i = 0; i < availableSolarPanels.Count; ++i)
                 {
-                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.RETRACTED)
+                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].deployState == ModuleDeployablePart.DeployState.RETRACTED)
                     {
                         availableSolarPanels[i].Extend();
                     }
@@ -882,7 +869,7 @@ namespace JSI
             {
                 for (int i = 0; i < availableSolarPanels.Count; ++i)
                 {
-                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].panelState == ModuleDeployableSolarPanel.panelStates.EXTENDED)
+                    if (availableSolarPanels[i].useAnimation && availableSolarPanels[i].retractable && availableSolarPanels[i].deployState == ModuleDeployablePart.DeployState.EXTENDED)
                     {
                         availableSolarPanels[i].Retract();
                     }

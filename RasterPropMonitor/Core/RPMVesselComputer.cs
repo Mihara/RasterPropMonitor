@@ -88,16 +88,15 @@ namespace JSI
         /*
          * This region contains variables that apply per-instance (per vessel).
          */
-        private Vessel vessel;
-        private Guid vid;
+        //private Guid vid;
         internal Vessel getVessel() { return vessel; }
-        internal Guid id
-        {
-            get
-            {
-                return (vessel == null) ? Guid.Empty : vessel.id;
-            }
-        }
+        //internal Guid id
+        //{
+        //    get
+        //    {
+        //        return (vessel == null) ? Guid.Empty : vessel.id;
+        //    }
+        //}
         private NavBall navBall;
         internal LinearAtmosphereGauge linearAtmosGauge;
 
@@ -405,30 +404,30 @@ namespace JSI
         }
 
         #region VesselModule Overrides
+
+        /// <summary>
+        /// I only want this object active in flight.  However, right now
+        /// (KSP 1.2 build 1500) it appears SpaceCenter is flight.
+        /// </summary>
+        /// <returns></returns>
+        //public override VesselModule.Activation GetActivation()
+        //{
+        //    return Activation.FlightScene;
+        //}
+
+        private Dictionary<Guid, Dictionary<string, object>> persistentNodeData = new Dictionary<Guid, Dictionary<string, object>>();
+        private bool anyRestored = false;
+
         /// <summary>
         /// Load and parse persistent variables
         /// </summary>
         /// <param name="node"></param>
-        public override void OnLoad(ConfigNode node)
+        protected override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
 
-            // null vessels are possible - if I detect the craft is
-            // uncontrollable at Awake, I don't bother storing vessel, so we
-            // can see null here.  It is not an error.
-            if (vessel != null)
+            try
             {
-                JUtil.LogMessage(this, "OnLoad for vessel {0}", vessel.id);
-                List<RasterPropMonitorComputer> knownRpmc = new List<RasterPropMonitorComputer>();
-                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
-                {
-                    RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if (rpmc != null)
-                    {
-                        knownRpmc.Add(rpmc);
-                    }
-                }
-
                 ConfigNode[] pers = node.GetNodes("RPM_PERSISTENT_VARS");
                 for (int nodeIdx = 0; nodeIdx < pers.Length; ++nodeIdx)
                 {
@@ -496,17 +495,40 @@ namespace JSI
                             }
                         }
 
-                        for (int rpmIdx = 0; rpmIdx < knownRpmc.Count; ++rpmIdx)
-                        {
-                            if (knownRpmc[rpmIdx].RPMCid == nodeName)
-                            {
-                                JUtil.LogMessage(this, "Loading RPMC {0} persistents ({1} values)", nodeName, myPersistentVars.Count);
-                                knownRpmc[rpmIdx].persistentVars = myPersistentVars;
-                                break;
-                            }
-                        }
+                        persistentNodeData.Add(new Guid(nodeName), myPersistentVars);
                     }
                 }
+
+                if (persistentNodeData.Count > 0)
+                {
+                    JUtil.LogMessage(this, "OnLoad for vessel {0}", vessel.id);
+                }
+            }
+            catch (Exception e)
+            {
+                JUtil.LogErrorMessage(this, "OnLoad threw an exception {0}", e);
+            }
+        }
+
+        /// <summary>
+        /// When the RPMC object is restored, it needs to query here to get its
+        /// persistent data, since it didn't exist during OnLoad.
+        /// </summary>
+        /// <param name="rpmcId"></param>
+        /// <returns></returns>
+        internal Dictionary<string, object> RestorePersistents(Guid rpmcId)
+        {
+            // Whether we have the persistent data or not, we want to flag
+            // that we did indeed have someone ask for persistents, which
+            // means we have an active vessel.
+            anyRestored = true;
+            if (persistentNodeData.ContainsKey(rpmcId))
+            {
+                return persistentNodeData[rpmcId];
+            }
+            else
+            {
+                return null;
             }
         }
 
@@ -514,42 +536,66 @@ namespace JSI
         /// Save our persistent variables
         /// </summary>
         /// <param name="node"></param>
-        public override void OnSave(ConfigNode node)
+        protected override void OnSave(ConfigNode node)
         {
             base.OnSave(node);
 
-            // null vessels are possible - if I detect the craft is
-            // uncontrollable at Awake, I don't bother storing vessel, so we
-            // can see null here.  It is not an error.
+            // Are null vessels still possible?
             if (vessel != null)
             {
-                JUtil.LogMessage(this, "OnSave for vessel {0}", vessel.id);
-
-                for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
+                // If anyRestored is true, at least one PartModule was found on
+                // this vessel, and it was loaded.  In that case, we want to
+                // iterate over the RasterPropMonitorComputer modules so we can
+                // save any updated persistent data.
+                if (anyRestored)
                 {
-                    RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if (rpmc != null && rpmc.persistentVars.Count > 0)
+                    JUtil.LogMessage(this, "OnSave for vessel {0}", vessel.id);
+                    for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                     {
-                        JUtil.LogMessage(this, "Storing RPMC {0} persistents", rpmc.RPMCid);
-                        ConfigNode rpmcPers = new ConfigNode("RPM_PERSISTENT_VARS");
-                        rpmcPers.AddValue("name", rpmc.RPMCid);
-                        foreach (var val in rpmc.persistentVars)
+                        RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
+                        if (rpmc != null && rpmc.persistentVars.Count > 0)
                         {
-                            string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
-                            rpmcPers.AddValue(val.Key, value);
+                            JUtil.LogMessage(this, "Storing RPMC {0} persistents", rpmc.RPMCid);
+                            ConfigNode rpmcPers = new ConfigNode("RPM_PERSISTENT_VARS");
+                            rpmcPers.AddValue("name", rpmc.RPMCid);
+                            foreach (var val in rpmc.persistentVars)
+                            {
+                                string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
+                                rpmcPers.AddValue(val.Key, value);
+                            }
+                            node.AddNode(rpmcPers);
                         }
-                        node.AddNode(rpmcPers);
                     }
                 }
-
+                else
+                {
+                    // If anyRestored was false, our vessel did not load, so all we need
+                    // to do is re-save the data we cached in OnLoad.
+                    if (persistentNodeData.Count > 0)
+                    {
+                        JUtil.LogMessage(this, "OnSave for vessel {0}", vessel.id);
+                        foreach (var dict in persistentNodeData)
+                        {
+                            JUtil.LogMessage(this, "Storing RPMC {0} persistents", dict.Key);
+                            ConfigNode rpmcPers = new ConfigNode("RPM_PERSISTENT_VARS");
+                            rpmcPers.AddValue("name", dict.Key.ToString());
+                            foreach (var val in dict.Value)
+                            {
+                                string value = string.Format("{0},{1}", val.Value.GetType().ToString(), val.Value.ToString());
+                                rpmcPers.AddValue(val.Key, value);
+                            }
+                            node.AddNode(rpmcPers);
+                        }
+                    }
+                }
             }
-            else if (vid != Guid.Empty)
-            {
-                JUtil.LogMessage(this, "OnSave vessel is null? expected for {0}", vid);
-            }
+            //else if (vid != Guid.Empty)
+            //{
+            //    JUtil.LogErrorMessage(this, "OnSave vessel is null? expected for {0}", vid);
+            //}
         }
 
-        public override void OnAwake()
+        protected override void OnAwake()
         {
             base.OnAwake();
 
@@ -558,24 +604,61 @@ namespace JSI
                 return;
             }
 
-            vessel = GetComponent<Vessel>();
-            if (vessel == null || vessel.isEVA || !vessel.isCommandable)
-            {
-                vessel = null;
-                //Destroy(this);
-                return;
-            }
-            if (!GameDatabase.Instance.IsReady())
-            {
-                throw new Exception("GameDatabase is not ready?");
-            }
-
             if (instances == null)
             {
                 JUtil.LogInfo(this, "Initializing RPM version {0}", FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion);
                 instances = new Dictionary<Guid, RPMVesselComputer>();
             }
 
+            if (vessel == null || vessel.isEVA)
+            {
+                return;
+            }
+
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
+            if (!GameDatabase.Instance.IsReady())
+            {
+                throw new Exception("GameDatabase is not ready?");
+            }
+
+            if (vessel.id != Guid.Empty)
+            {
+                if (instances.ContainsKey(vessel.id))
+                {
+                    JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+                }
+                else
+                {
+                    instances.Add(vessel.id, this);
+                    JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
+                }
+                //vid = vessel.id;
+            }
+            GameEvents.onVesselChange.Add(onVesselChange);
+            GameEvents.onVesselWasModified.Add(onVesselWasModified);
+#if SHOW_DOCKING_EVENTS
+            GameEvents.onPartCouple.Add(onPartCouple);
+            GameEvents.onPartUndock.Add(onPartUndock);
+#endif
+            GameEvents.onVesselDestroy.Add(onVesselDestroy);
+        }
+
+        protected override void OnStart()
+        {
+            if (vessel == null)
+            {
+                return;
+            }
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
+            JUtil.LogMessage(this, "OnStart for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             if (instances.ContainsKey(vessel.id))
             {
                 JUtil.LogErrorMessage(this, "Awake for vessel {0} ({1}), but it's already in the dictionary.", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
@@ -585,27 +668,6 @@ namespace JSI
                 instances.Add(vessel.id, this);
                 JUtil.LogMessage(this, "Awake for vessel {0} ({1}).", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             }
-            vid = vessel.id;
-
-            //GameEvents.onGameSceneLoadRequested.Add(onGameSceneLoadRequested);
-            GameEvents.onVesselChange.Add(onVesselChange);
-            GameEvents.onVesselWasModified.Add(onVesselWasModified);
-#if SHOW_DOCKING_EVENTS
-            GameEvents.onPartCouple.Add(onPartCouple);
-            GameEvents.onPartUndock.Add(onPartUndock);
-#endif
-            GameEvents.onVesselDestroy.Add(onVesselDestroy);
-            GameEvents.onVesselCreate.Add(onVesselCreate);
-        }
-
-        public void Start()
-        {
-            if (vessel == null)
-            {
-                return;
-            }
-
-            //JUtil.LogMessage(this, "Start for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             try
             {
                 navBall = UnityEngine.Object.FindObjectOfType<KSP.UI.Screens.Flight.NavBall>();
@@ -637,18 +699,21 @@ namespace JSI
 
         public void OnDestroy()
         {
-            if (vessel == null && vid == Guid.Empty)
+            if (vessel == null)// || vid == Guid.Empty)
+            {
+                return;
+            }
+            if (!HighLogic.LoadedSceneIsFlight)
             {
                 return;
             }
 
-            if (vid != vessel.id)
-            {
-                JUtil.LogErrorMessage(this, "OnDestroy() called for vessel {0}, but I think I am vessel {1}", vessel.id, vid);
-            }
+            //if (vid != vessel.id)
+            //{
+            //    JUtil.LogErrorMessage(this, "OnDestroy() called for vessel {0}, but I think I am vessel {1}", vessel.id, vid);
+            //}
 
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
-            //GameEvents.onGameSceneLoadRequested.Remove(onGameSceneLoadRequested);
             GameEvents.onVesselChange.Remove(onVesselChange);
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
 #if SHOW_DOCKING_EVENTS
@@ -656,18 +721,16 @@ namespace JSI
             GameEvents.onPartUndock.Remove(onPartUndock);
 #endif
             GameEvents.onVesselDestroy.Remove(onVesselDestroy);
-            GameEvents.onVesselCreate.Remove(onVesselCreate);
 
             // This very likely was handled in the OnVesselDestroy callback,
             // but there is no harm trying again here.
-            if (instances.ContainsKey(vid))
+            if (instances.ContainsKey(vessel.id))
             {
-                instances.Remove(vid);
-                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vid);
+                instances.Remove(vessel.id);
+                JUtil.LogMessage(this, "OnDestroy for vessel {0}", vessel.id);
             }
 
-            vessel = null;
-            vid = Guid.Empty;
+            //vid = Guid.Empty;
             navBall = null;
 
             target = null;
@@ -684,6 +747,11 @@ namespace JSI
 
         public void Update()
         {
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
             if (vessel == null)
             {
                 return;
@@ -691,6 +759,7 @@ namespace JSI
 
             if (JUtil.IsActiveVessel(vessel) && UpdateCheck())
             {
+                //JUtil.LogMessage(this, "UpdateCheck - time to update");
                 timeToUpdate = true;
             }
 
@@ -707,7 +776,12 @@ namespace JSI
 
         public void FixedUpdate()
         {
-            if (vessel == null)
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
+            if (vessel == null /*|| vessel.isActiveVessel == false*/)
             {
                 return;
             }
@@ -723,6 +797,7 @@ namespace JSI
             // Update values related to the vessel (position, CoM, etc)
             if (timeToUpdate)
             {
+                //JUtil.LogMessage(this, "UpdateVariables({0})", vessel.id);
                 Protractor.OnFixedUpdate();
 
                 timeToUpdate = false;
@@ -732,7 +807,7 @@ namespace JSI
                 // Sorta messy: resources.StartLoop must come before
                 // FetchPerPartData.  FetchPerPartData must come before
                 // FetchPerModuleData.
-                resources.StartLoop();
+                resources.StartLoop(vessel);
                 FetchPerPartData();
                 FetchPerModuleData();
 
@@ -861,8 +936,16 @@ namespace JSI
             float hottestPart = float.MaxValue;
             float totalResourceMass = 0.0f;
 
+            if (vessel.parts == null)
+            {
+                JUtil.LogErrorMessage(this, "FetchPerPartData(): vessel.parts is null");
+            }
             foreach (Part thatPart in vessel.parts)
             {
+                if (thatPart.Resources == null)
+                {
+                    JUtil.LogErrorMessage(this, "FetchPerPartData(): vessel.part[{0}].Resources is null", thatPart.partInfo.title);
+                }
                 foreach (PartResource resource in thatPart.Resources)
                 {
                     resources.Add(resource);
@@ -1013,43 +1096,46 @@ namespace JSI
                 speedHorizontal = 0.0;
             }
 
-            // Record the vessel-relative basis
-            // north isn't actually used anywhere...
-            right = vessel.GetTransform().right;
-            forward = vessel.GetTransform().up;
-            top = vessel.GetTransform().forward;
-
-            //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
-            // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
-            up = FlightGlobals.upAxis;
-            surfaceForward = Vector3.Cross(up, right);
-            // If the craft is rolled sharply to the side, we have to re-do our basis.
-            if (surfaceForward.sqrMagnitude < 0.5f)
+            if (vessel.GetTransform() != null)
             {
-                surfaceRight = Vector3.Cross(forward, up);
-                surfaceForward = Vector3.Cross(up, surfaceRight);
-            }
-            else
-            {
-                surfaceRight = Vector3.Cross(surfaceForward, up);
-            }
+                // Record the vessel-relative basis
+                // north isn't actually used anywhere...
+                right = vessel.GetTransform().right;
+                forward = vessel.GetTransform().up;
+                top = vessel.GetTransform().forward;
 
-            // This happens if we update right away, before navBall has been fetched.
-            // Like, at load time.
-            if (navBall != null)
-            {
-                rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
-            }
-            else
-            {
-                rotationVesselSurface = Quaternion.identity;
-            }
+                //north = Vector3.ProjectOnPlane((vessel.mainBody.position + (Vector3d)vessel.mainBody.transform.up * vessel.mainBody.Radius) - CoM, up).normalized;
+                // Generate the surface-relative basis (up, surfaceRight, surfaceForward)
+                up = FlightGlobals.upAxis;
+                surfaceForward = Vector3.Cross(up, right);
+                // If the craft is rolled sharply to the side, we have to re-do our basis.
+                if (surfaceForward.sqrMagnitude < 0.5f)
+                {
+                    surfaceRight = Vector3.Cross(forward, up);
+                    surfaceForward = Vector3.Cross(up, surfaceRight);
+                }
+                else
+                {
+                    surfaceRight = Vector3.Cross(surfaceForward, up);
+                }
 
-            prograde = vessel.orbit.GetVel().normalized;
-            radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
-            normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
+                // This happens if we update right away, before navBall has been fetched.
+                // Like, at load time.
+                if (navBall != null)
+                {
+                    rotationVesselSurface = Quaternion.Inverse(navBall.relativeGymbal);
+                }
+                else
+                {
+                    rotationVesselSurface = Quaternion.identity;
+                }
 
-            UpdateLandingPredictions();
+                prograde = vessel.orbit.GetVel().normalized;
+                radialOut = Vector3.ProjectOnPlane(up, prograde).normalized;
+                normalPlus = -Vector3.Cross(radialOut, prograde).normalized;
+
+                UpdateLandingPredictions();
+            }
         }
 
         private bool runningPredicition = false;
@@ -1417,7 +1503,7 @@ namespace JSI
         /// <param name="who"></param>
         private void onVesselChange(Vessel who)
         {
-            if (who.id == vessel.id)
+            if (who.id == vessel.id && vessel.isActiveVessel)
             {
                 JUtil.LogMessage(this, "onVesselChange(): for me {0}", who.id);
 
@@ -1474,7 +1560,7 @@ namespace JSI
             {
                 if (who.id == vessel.id)
                 {
-                    JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", who.id);
+                    //JUtil.LogMessage(this, "onVesselDestroy(): for me {0} - unregistering", who.id);
                     instances.Remove(who.id);
                     InvalidateModuleLists();
 
@@ -1490,26 +1576,6 @@ namespace JSI
             }
         }
 
-        /// <summary>
-        /// Callback to catch situations where a RPMVesselComputer was left a
-        /// zombie because its craft was destroyed but it wasn't (as happens
-        /// with docking)
-        /// </summary>
-        /// <param name="who"></param>
-        private void onVesselCreate(Vessel who)
-        {
-            if (vessel == null)
-            {
-                Vessel avessel = GetComponent<Vessel>();
-                if (avessel != null && avessel.id == who.id)
-                {
-                    JUtil.LogMessage(this, "onVesselCreate(): I was zombie VesselModule; now part of {0}", who.id);
-                    instances.Add(who.id, this);
-                    vid = who.id;
-                    InvalidateModuleLists();
-                }
-            }
-        }
         #endregion
 
         private class ResourceNameLengthComparer : IComparer<String>
