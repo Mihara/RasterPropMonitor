@@ -65,7 +65,7 @@ namespace JSI
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
                 textObjTransform = internalProp.FindModelTransform(labelTransform);
-                textObj = InternalComponents.Instance.CreateText(fontName, fontSize, textObjTransform, string.Empty);
+                textObj = InternalComponents.Instance.CreateText(fontName, fontSize * 15.5f, textObjTransform, string.Empty);
                 activeLabel = 0;
 
                 SmarterButton.CreateButton(internalProp, switchTransform, Click);
