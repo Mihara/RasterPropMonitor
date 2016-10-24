@@ -153,10 +153,15 @@ namespace JSI
         {
             try
             {
-                dpaiModuleDockingNodeNamed = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
-                    .SingleOrDefault(t => t.FullName == "NavyFish.ModuleDockingNodeNamed");
-
+                Type dpaiMDNN = null;
+                AssemblyLoader.loadedAssemblies.TypeOperation(t =>
+                {
+                    if (t.FullName == "NavyFish.ModuleDockingNodeNamed")
+                    {
+                        dpaiMDNN = t;
+                    }
+                });
+                dpaiModuleDockingNodeNamed = dpaiMDNN;
                 dpaiPortName = dpaiModuleDockingNodeNamed.GetField("portName", BindingFlags.Instance | BindingFlags.Public);
             }
             catch (Exception)

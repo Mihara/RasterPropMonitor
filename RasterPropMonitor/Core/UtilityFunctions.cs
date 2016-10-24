@@ -2080,10 +2080,14 @@ namespace JSI
 
         private bool RegisterWithModuleManager()
         {
-            var mmPatchLoader = AssemblyLoader.loadedAssemblies
-                .Select(a => a.assembly.GetExportedTypes())
-                .SelectMany(t => t)
-                .FirstOrDefault(t => t.FullName == "ModuleManager.MMPatchLoader");
+            Type mmPatchLoader = null;
+            AssemblyLoader.loadedAssemblies.TypeOperation(t =>
+            {
+                if (t.FullName == "ModuleManager.MMPatchLoader")
+                {
+                    mmPatchLoader = t;
+                }
+            });
 
             if (mmPatchLoader == null)
             {
