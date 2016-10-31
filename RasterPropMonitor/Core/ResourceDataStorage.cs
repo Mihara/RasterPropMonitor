@@ -44,7 +44,7 @@ namespace JSI
 
         private static bool IsFreeFlow(ResourceFlowMode flowMode)
         {
-            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.ALL_VESSEL_BALANCE || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
+            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
         }
 
         public ResourceDataStorage()
@@ -62,6 +62,7 @@ namespace JSI
                 rs[index].name = thatResource.name;
                 rs[index].density = thatResource.density;
                 rs[index].resourceId = thatResource.id;
+                rs[index].flowMode = thatResource.resourceFlowMode;
 
                 nameResources.Add(thatResource.name, rs[index]);
                 sysrResources.Add(nameSysr, rs[index]);
@@ -86,6 +87,11 @@ namespace JSI
 
                 rs[i].current = (float)amount;
                 rs[i].max = (float)maxAmount;
+                if (IsFreeFlow(rs[i].flowMode))
+                {
+                    rs[i].stage = (float)amount;
+                    rs[i].stagemax = (float)maxAmount;
+                }
             }
         }
 
@@ -349,26 +355,26 @@ namespace JSI
             return v;
         }
 
-        public void Add(PartResource resource)
-        {
-            try
-            {
-                ResourceData res = nameResources[resource.info.name];
-                res.current += (float)resource.amount;
-                res.max += (float)resource.maxAmount;
+        //public void Add(PartResource resource)
+        //{
+        //    try
+        //    {
+        //        ResourceData res = nameResources[resource.info.name];
+        //        res.current += (float)resource.amount;
+        //        res.max += (float)resource.maxAmount;
 
-                var flowmode = resource.info.resourceFlowMode;
-                if (IsFreeFlow(flowmode))
-                {
-                    res.stage += (float)resource.amount;
-                    res.stagemax += (float)resource.maxAmount;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Error adding {0}: {1}", resource.info.name, e);
-            }
-        }
+        //        var flowmode = resource.info.resourceFlowMode;
+        //        if (IsFreeFlow(flowmode))
+        //        {
+        //            res.stage += (float)resource.amount;
+        //            res.stagemax += (float)resource.maxAmount;
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        JUtil.LogErrorMessage(this, "Error adding {0}: {1}", resource.info.name, e);
+        //    }
+        //}
 
         private class ResourceData
         {
@@ -385,6 +391,7 @@ namespace JSI
             public float delta;
 
             public int resourceId;
+            public ResourceFlowMode flowMode;
 
             public bool ispropellant;
         }
