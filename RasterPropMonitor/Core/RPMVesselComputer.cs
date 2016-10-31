@@ -948,7 +948,8 @@ namespace JSI
                 }
                 foreach (PartResource resource in thatPart.Resources)
                 {
-                    resources.Add(resource);
+                    // This is redundant.
+                    //resources.Add(resource);
 
                     if (!resource.flowState)
                     {
