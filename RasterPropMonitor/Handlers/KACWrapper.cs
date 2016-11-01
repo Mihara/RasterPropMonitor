@@ -75,10 +75,18 @@ namespace JSI
             LogFormatted("Attempting to Grab KAC Types...");
 
             //find the base type
-            KACType = AssemblyLoader.loadedAssemblies
-                .Select(a => a.assembly.GetExportedTypes())
-                .SelectMany(t => t)
-                .FirstOrDefault(t => t.FullName == "KerbalAlarmClock.KerbalAlarmClock");
+            // MOARdV: work around Contract Configurator - induced crash:
+            //KACType = AssemblyLoader.loadedAssemblies
+            //    .Select(a => a.assembly.GetExportedTypes())
+            //    .SelectMany(t => t)
+            //    .FirstOrDefault(t => t.FullName == "KerbalAlarmClock.KerbalAlarmClock");
+            AssemblyLoader.loadedAssemblies.TypeOperation(t =>
+            {
+                if (t.FullName == "KerbalAlarmClock.KerbalAlarmClock")
+                {
+                    KACType = t;
+                }
+            });
 
             if (KACType == null)
             {
@@ -93,10 +101,18 @@ namespace JSI
             }
             
             //now the Alarm Type
-            KACAlarmType = AssemblyLoader.loadedAssemblies
-                .Select(a => a.assembly.GetExportedTypes())
-                .SelectMany(t => t)
-                .FirstOrDefault(t => t.FullName == "KerbalAlarmClock.KACAlarm");
+            // MOARdV: work around Contract Configurator - induced crash:
+            //KACAlarmType = AssemblyLoader.loadedAssemblies
+            //    .Select(a => a.assembly.GetExportedTypes())
+            //    .SelectMany(t => t)
+            //    .FirstOrDefault(t => t.FullName == "KerbalAlarmClock.KACAlarm");
+            AssemblyLoader.loadedAssemblies.TypeOperation(t =>
+            {
+                if (t.FullName == "KerbalAlarmClock.KACAlarm")
+                {
+                    KACAlarmType = t;
+                }
+            });
 
             if (KACAlarmType == null)
             {

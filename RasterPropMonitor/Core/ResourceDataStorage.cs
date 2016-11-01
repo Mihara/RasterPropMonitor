@@ -30,7 +30,7 @@ namespace JSI
         private readonly Dictionary<string, ResourceData> nameResources = new Dictionary<string, ResourceData>();
         private readonly Dictionary<string, ResourceData> sysrResources = new Dictionary<string, ResourceData>();
         private readonly string[] sortedResourceNames;
-        private HashSet<Part> activeResources = new HashSet<Part>();
+        private HashSet<Part> activeStageParts = new HashSet<Part>();
         private PartSet partSet = null;
         private int numValidResourceNames = 0;
 
@@ -44,7 +44,7 @@ namespace JSI
 
         private static bool IsFreeFlow(ResourceFlowMode flowMode)
         {
-            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.ALL_VESSEL_BALANCE || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
+            return (flowMode == ResourceFlowMode.ALL_VESSEL || flowMode == ResourceFlowMode.STAGE_PRIORITY_FLOW);
         }
 
         public ResourceDataStorage()
@@ -62,6 +62,7 @@ namespace JSI
                 rs[index].name = thatResource.name;
                 rs[index].density = thatResource.density;
                 rs[index].resourceId = thatResource.id;
+                rs[index].flowMode = thatResource.resourceFlowMode;
 
                 nameResources.Add(thatResource.name, rs[index]);
                 sysrResources.Add(nameSysr, rs[index]);
@@ -72,9 +73,15 @@ namespace JSI
             Array.Sort(rs, new ResourceComparer());
         }
 
+        private bool stagePartsChanged = true;
+        public void ClearActiveStageParts()
+        {
+            activeStageParts.Clear();
+            stagePartsChanged = true;
+        }
+
         public void StartLoop(Vessel vessel)
         {
-            activeResources.Clear();
             for (int i = 0; i < rs.Length; ++i)
             {
                 rs[i].stage = 0.0f;
@@ -86,6 +93,11 @@ namespace JSI
 
                 rs[i].current = (float)amount;
                 rs[i].max = (float)maxAmount;
+                if (IsFreeFlow(rs[i].flowMode))
+                {
+                    rs[i].stage = (float)amount;
+                    rs[i].stagemax = (float)maxAmount;
+                }
             }
         }
 
@@ -99,13 +111,17 @@ namespace JSI
             }
             lastcheck = time;
 
-            if (partSet == null)
+            if (stagePartsChanged)
             {
-                partSet = new PartSet(activeResources);
-            }
-            else
-            {
-                partSet.RebuildParts(activeResources);
+                if (partSet == null)
+                {
+                    partSet = new PartSet(activeStageParts);
+                }
+                else
+                {
+                    partSet.RebuildParts(activeStageParts);
+                }
+                stagePartsChanged = false;
             }
 
             numValidResourceNames = 0;
@@ -116,7 +132,9 @@ namespace JSI
                     sortedResourceNames[numValidResourceNames] = rs[i].name;
                     ++numValidResourceNames;
 
-                    if (rs[i].ispropellant)
+                    // If the resource can flow anywhere, we already have the stage
+                    // values listed here.
+                    if (rs[i].stagemax == 0.0)
                     {
                         double amount, maxAmount;
                         partSet.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount, true);
@@ -141,10 +159,11 @@ namespace JSI
         //    }
         //}
 
-        public void MarkPropellant(PartSet ps)
+        public void MarkActiveStage(PartSet ps)
         {
             var parts = ps.GetParts();
-            activeResources.UnionWith(parts);
+            activeStageParts.UnionWith(parts);
+            stagePartsChanged = true;
         }
 
         public void MarkPropellant(Propellant propel)
@@ -349,26 +368,26 @@ namespace JSI
             return v;
         }
 
-        public void Add(PartResource resource)
-        {
-            try
-            {
-                ResourceData res = nameResources[resource.info.name];
-                res.current += (float)resource.amount;
-                res.max += (float)resource.maxAmount;
+        //public void Add(PartResource resource)
+        //{
+        //    try
+        //    {
+        //        ResourceData res = nameResources[resource.info.name];
+        //        res.current += (float)resource.amount;
+        //        res.max += (float)resource.maxAmount;
 
-                var flowmode = resource.info.resourceFlowMode;
-                if (IsFreeFlow(flowmode))
-                {
-                    res.stage += (float)resource.amount;
-                    res.stagemax += (float)resource.maxAmount;
-                }
-            }
-            catch (Exception e)
-            {
-                JUtil.LogErrorMessage(this, "Error adding {0}: {1}", resource.info.name, e);
-            }
-        }
+        //        var flowmode = resource.info.resourceFlowMode;
+        //        if (IsFreeFlow(flowmode))
+        //        {
+        //            res.stage += (float)resource.amount;
+        //            res.stagemax += (float)resource.maxAmount;
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        JUtil.LogErrorMessage(this, "Error adding {0}: {1}", resource.info.name, e);
+        //    }
+        //}
 
         private class ResourceData
         {
@@ -385,6 +404,7 @@ namespace JSI
             public float delta;
 
             public int resourceId;
+            public ResourceFlowMode flowMode;
 
             public bool ispropellant;
         }

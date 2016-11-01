@@ -166,6 +166,7 @@ namespace JSI
         {
             if (listsInvalid && vessel != null)
             {
+                resources.ClearActiveStageParts();
                 var partsList = vessel.parts;
                 for (int partsIdx = 0; partsIdx < partsList.Count; ++partsIdx)
                 {
@@ -279,6 +280,17 @@ namespace JSI
                             }
                         }
                     }
+
+                    if (vessel.currentStage <= partsList[partsIdx].inverseStage)
+                    {
+                        JUtil.LogMessage(this, "+ stage = {0}, part invsStage = {1} for {2}", vessel.currentStage, partsList[partsIdx].inverseStage, partsList[partsIdx].partInfo.title);
+                        resources.MarkActiveStage(partsList[partsIdx].crossfeedPartSet);
+                    }
+                    else
+                    {
+                        JUtil.LogMessage(this, "- stage = {0}, part invsStage = {1} for {2}", vessel.currentStage, partsList[partsIdx].inverseStage, partsList[partsIdx].partInfo.title);
+                    }
+
                 }
 
                 listsInvalid = false;
@@ -590,7 +602,6 @@ namespace JSI
                     currentEngineFuelFlow += specificFuelConsumption * currentThrust;
                 }
 
-                resources.MarkPropellant(thatPart.crossfeedPartSet);
                 foreach (Propellant thatResource in availableEngines[i].propellants)
                 {
                     resources.MarkPropellant(thatResource);

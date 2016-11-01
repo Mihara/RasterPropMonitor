@@ -57,9 +57,15 @@ namespace JSI
         {
             try
             {
-                rcModuleRealChute = AssemblyLoader.loadedAssemblies.SelectMany(
-                    a => a.assembly.GetExportedTypes())
-                    .SingleOrDefault(t => t.FullName == "RealChute.RealChuteModule");
+                Type rcMRC = null;
+                AssemblyLoader.loadedAssemblies.TypeOperation(t =>
+                {
+                    if (t.FullName == "RealChute.RealChuteModule")
+                    {
+                        rcMRC = t;
+                    }
+                });
+                rcModuleRealChute = rcMRC;
                 if (rcModuleRealChute == null)
                 {
                     rcFound = false;
