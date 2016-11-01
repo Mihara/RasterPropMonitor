@@ -78,19 +78,26 @@ namespace JSI
             bool evaPossible = GameVariables.Instance.EVAIsPossible(evaUnlocked, vessel);
             if (evaPossible && thatKerbal != null && HighLogic.CurrentGame.Parameters.Flight.CanEVA)
             {
-                activeKerbal = thatKerbal;
-                if (intAnim != null)
+                if (thatKerbal.protoCrewMember.type != ProtoCrewMember.KerbalType.Tourist)
                 {
-                    intAnim.enabled = true;
-                    intAnim[internalAnimation].speed = 1;
-                    intAnim.Play();
-                    intAnimStarted = true;
+                    activeKerbal = thatKerbal;
+                    if (intAnim != null)
+                    {
+                        intAnim.enabled = true;
+                        intAnim[internalAnimation].speed = 1;
+                        intAnim.Play();
+                        intAnimStarted = true;
+                    }
+                    else
+                    {
+                        GoEva();
+                    }
+                    JUtil.LogMessage(this, "{0} has opened the internal EVA hatch.", thatKerbal.name);
                 }
                 else
                 {
-                    GoEva();
+                    JUtil.LogMessage(this, "{0}, a tourist, tried to open the EVA hatch.", thatKerbal.name);
                 }
-                JUtil.LogMessage(this, "{0} has opened the internal EVA hatch.", thatKerbal.name);
             }
             else
             {
