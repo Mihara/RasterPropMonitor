@@ -30,7 +30,7 @@ namespace JSI
         private readonly Dictionary<string, ResourceData> nameResources = new Dictionary<string, ResourceData>();
         private readonly Dictionary<string, ResourceData> sysrResources = new Dictionary<string, ResourceData>();
         private readonly string[] sortedResourceNames;
-        private HashSet<Part> activeResources = new HashSet<Part>();
+        private HashSet<Part> activeStageParts = new HashSet<Part>();
         private PartSet partSet = null;
         private int numValidResourceNames = 0;
 
@@ -73,9 +73,15 @@ namespace JSI
             Array.Sort(rs, new ResourceComparer());
         }
 
+        private bool stagePartsChanged = true;
+        public void ClearActiveStageParts()
+        {
+            activeStageParts.Clear();
+            stagePartsChanged = true;
+        }
+
         public void StartLoop(Vessel vessel)
         {
-            activeResources.Clear();
             for (int i = 0; i < rs.Length; ++i)
             {
                 rs[i].stage = 0.0f;
@@ -105,13 +111,17 @@ namespace JSI
             }
             lastcheck = time;
 
-            if (partSet == null)
+            if (stagePartsChanged)
             {
-                partSet = new PartSet(activeResources);
-            }
-            else
-            {
-                partSet.RebuildParts(activeResources);
+                if (partSet == null)
+                {
+                    partSet = new PartSet(activeStageParts);
+                }
+                else
+                {
+                    partSet.RebuildParts(activeStageParts);
+                }
+                stagePartsChanged = false;
             }
 
             numValidResourceNames = 0;
@@ -122,7 +132,9 @@ namespace JSI
                     sortedResourceNames[numValidResourceNames] = rs[i].name;
                     ++numValidResourceNames;
 
-                    if (rs[i].ispropellant)
+                    // If the resource can flow anywhere, we already have the stage
+                    // values listed here.
+                    if (rs[i].stagemax == 0.0)
                     {
                         double amount, maxAmount;
                         partSet.GetConnectedResourceTotals(rs[i].resourceId, out amount, out maxAmount, true);
@@ -147,10 +159,11 @@ namespace JSI
         //    }
         //}
 
-        public void MarkPropellant(PartSet ps)
+        public void MarkActiveStage(PartSet ps)
         {
             var parts = ps.GetParts();
-            activeResources.UnionWith(parts);
+            activeStageParts.UnionWith(parts);
+            stagePartsChanged = true;
         }
 
         public void MarkPropellant(Propellant propel)

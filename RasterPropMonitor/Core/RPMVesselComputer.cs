@@ -640,6 +640,7 @@ namespace JSI
             }
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
+            GameEvents.onStageActivate.Add(onStageActivate);
 #if SHOW_DOCKING_EVENTS
             GameEvents.onPartCouple.Add(onPartCouple);
             GameEvents.onPartUndock.Add(onPartUndock);
@@ -716,6 +717,7 @@ namespace JSI
             //JUtil.LogMessage(this, "OnDestroy for vessel {0} ({1})", (string.IsNullOrEmpty(vessel.vesselName)) ? "(no name)" : vessel.vesselName, vessel.id);
             GameEvents.onVesselChange.Remove(onVesselChange);
             GameEvents.onVesselWasModified.Remove(onVesselWasModified);
+            GameEvents.onStageActivate.Remove(onStageActivate);
 #if SHOW_DOCKING_EVENTS
             GameEvents.onPartCouple.Remove(onPartCouple);
             GameEvents.onPartUndock.Remove(onPartUndock);
@@ -1548,6 +1550,15 @@ namespace JSI
                 }
                 InvalidateModuleLists();
             }
+        }
+
+        /// <summary>
+        /// Staging event - need to update active resources, etc.
+        /// </summary>
+        /// <param name="stage"></param>
+        private void onStageActivate(int stage)
+        {
+            InvalidateModuleLists();
         }
 
         /// <summary>
