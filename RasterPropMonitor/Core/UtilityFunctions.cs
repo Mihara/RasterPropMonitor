@@ -1183,9 +1183,7 @@ namespace JSI
             Orbit closestorbit = GetClosestOrbit(vesselOrbit, targetCelestial);
             if (closestorbit.referenceBody == targetCelestial)
             {
-                timeAtClosestApproach = closestorbit.StartUT + ((closestorbit.eccentricity < 1.0) ?
-                    closestorbit.timeToPe :
-                    -closestorbit.meanAnomaly / (2 * Math.PI / closestorbit.period));
+                timeAtClosestApproach = closestorbit.StartUT + closestorbit.timeToPe;
                 return closestorbit.PeA;
             }
             if (closestorbit.referenceBody == targetCelestial.referenceBody)
