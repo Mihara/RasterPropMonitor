@@ -1033,9 +1033,9 @@ namespace JSI
                     return (string variable, RPMVesselComputer comp) =>
                     {
                         if (orbitSensibility)
-                            return vessel.orbit.eccentricity < 1 ?
-                                vessel.orbit.timeToPe :
-                                -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
+                        {
+                            return vessel.orbit.timeToPe;
+                        }
                         return double.NaN;
                     };
                 case "TIMESINCELASTAP":
@@ -1049,7 +1049,11 @@ namespace JSI
                     return (string variable, RPMVesselComputer comp) =>
                     {
                         if (orbitSensibility)
-                            return vessel.orbit.period - (vessel.orbit.eccentricity < 1 ? vessel.orbit.timeToPe : -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period));
+                        {
+                            return (vessel.orbit.eccentricity < 1.0) ?
+                                vessel.orbit.period - vessel.orbit.timeToPe :
+                                -vessel.orbit.timeToPe;
+                        }
                         return double.NaN;
                     };
                 case "TIMETONEXTAPSIS":
@@ -1060,9 +1064,7 @@ namespace JSI
                             double apsisType = NextApsisType(vessel);
                             if (apsisType < 0.0)
                             {
-                                return vessel.orbit.eccentricity < 1 ?
-                                    vessel.orbit.timeToPe :
-                                    -vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period);
+                                return vessel.orbit.timeToPe;
                             }
                             return vessel.orbit.timeToAp;
                         }
@@ -1901,9 +1903,9 @@ namespace JSI
                     return (string variable, RPMVesselComputer comp) =>
                     {
                         if (comp.target != null && comp.targetOrbitSensibility)
-                            return comp.targetOrbit.eccentricity < 1 ?
-                                comp.targetOrbit.timeToPe :
-                                -comp.targetOrbit.meanAnomaly / (2 * Math.PI / comp.targetOrbit.period);
+                        {
+                            return comp.targetOrbit.timeToPe;
+                        }
                         return double.NaN;
                     };
                 case "TARGETLAUNCHTIMESECS":
@@ -2697,7 +2699,7 @@ namespace JSI
                     return (vessel.orbit.timeToPe < vessel.orbit.timeToAp) ? -1.0 : 1.0;
                 } 	// Ship is hyperbolic.  There is no Ap.  Have we already
                 // passed Pe?
-                return (-vessel.orbit.meanAnomaly / (2 * Math.PI / vessel.orbit.period) > 0.0) ? -1.0 : 0.0;
+                return (vessel.orbit.timeToPe > 0.0) ? -1.0 : 0.0;
             }
 
             return 0.0;
