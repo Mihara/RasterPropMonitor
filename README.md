@@ -12,7 +12,7 @@ actively supported and known working mods is available in the [release notes](ht
 Included in the RPM distribution are example props for use in enhancing the IVA experience.  Most of these
 props were created by using stock KSP prop models.  There is also an MFD model by alexustas for use in glass cockpit designs.
 
-The RPM distribution also contains [Module Manager](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-112-module-manager-2625-may-19th-where-the-singularity-started/) configs to override some of the stock IVAs with the example props to give you an idea of what is possible with RPM.
+The RPM distribution also contains [Module Manager](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-112-module-manager-2625-may-19th-where-the-singularity-started/) configs to override some of the stock IVAs with the example props to give you an idea of what is possible with RPM.  However, ModuleManager is not part of this distribution.  You must install it separately.
 
 **NOTE:** This mod by itself is not intended to be a comprehensive IVA experience.  While basic IVAs are
 included, they are intended to be examples of what is possible.  Because creating a good IVA takes a significant
@@ -50,7 +50,7 @@ JSIAdvTransparentPods is a separate mod created by JPLRepo.  It can be found on 
 ## CONFIGURATION
 
 Out of the box, RasterPropMonitor ships with default configuration settings.  The configuration file is
-installed next to the DLL in GameData/JSI/RasterPropMonitor/rpm-config.cfg
+installed to GameData/JSI/RasterPropMonitor/Plugins/PluginData/rpm-config.cfg
 
 The config file settings are:
 
@@ -111,8 +111,6 @@ in this distribution package.
 
 Props courtesy of alexustas and other contributors, available under the terms of CC 3.0 BY-NC-SA.
 Portions of this package are derived from stock textures by Squad and are distributed according to Squad policy of permitting to distribute stock assets with mods if required.
-
-The ModuleManager plugin included in this distribution to modify stock config files on the fly is available under the terms of CC SA, and obtained from [this thread](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-105-module-manager-2618-january-17th-with-even-more-sha-and-less-bug/#comment-720814)
 
 RasterPropMonitor includes the following fonts in its Asset Bundle.  License / readme files for the first two are installed
 adjacent to the RasterPropMonitor DLL
