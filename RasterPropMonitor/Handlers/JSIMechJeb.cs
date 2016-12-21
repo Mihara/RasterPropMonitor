@@ -1054,8 +1054,8 @@ namespace JSI
                             throw new NotImplementedException("atmStat or vacState did not evaluate");
                         }
 
-                        float atm = (float)mjStageDv.GetValue(atmStat);
-                        float vac = (float)mjStageDv.GetValue(vacStat);
+                        double atm = (double)mjStageDv.GetValue(atmStat);
+                        double vac = (double)mjStageDv.GetValue(vacStat);
                         double stagedV = UtilMath.LerpUnclamped(vac, atm, atmospheresLocal);
 
                         deltaV += stagedV;
