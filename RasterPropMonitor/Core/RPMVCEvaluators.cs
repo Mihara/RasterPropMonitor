@@ -41,9 +41,12 @@ namespace JSI
                 for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
                     RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if(rpmc.HasPersistentVariable(name, false))
+                    if (rpmc != null)
                     {
-                        return rpmc.GetPersistentVariable(name, defaultValue, false);
+                        if (rpmc.HasPersistentVariable(name, false))
+                        {
+                            return rpmc.GetPersistentVariable(name, defaultValue, false);
+                        }
                     }
                 }
             }
@@ -65,9 +68,12 @@ namespace JSI
                 for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
                     RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    if (rpmc.HasPersistentVariable(name, false))
+                    if (rpmc != null)
                     {
-                        return true;
+                        if (rpmc.HasPersistentVariable(name, false))
+                        {
+                            return true;
+                        }
                     }
                 }
             }
@@ -88,7 +94,10 @@ namespace JSI
                 for (int partIdx = 0; partIdx < vessel.parts.Count; ++partIdx)
                 {
                     RasterPropMonitorComputer rpmc = RasterPropMonitorComputer.Instantiate(vessel.parts[partIdx], false);
-                    rpmc.SetPersistentVariable(name, value, false);
+                    if (rpmc != null)
+                    {
+                        rpmc.SetPersistentVariable(name, value, false);
+                    }
                 }
             }
         }
