@@ -12,7 +12,9 @@ actively supported and known working mods is available in the [release notes](ht
 Included in the RPM distribution are example props for use in enhancing the IVA experience.  Most of these
 props were created by using stock KSP prop models.  There is also an MFD model by alexustas for use in glass cockpit designs.
 
-The RPM distribution also contains [Module Manager](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-112-module-manager-2625-may-19th-where-the-singularity-started/) configs to override some of the stock IVAs with the example props to give you an idea of what is possible with RPM.  However, ModuleManager is not part of this distribution.  You must install it separately.
+The RPM distribution also contains configuration files for [Module Manager](http://forum.kerbalspaceprogram.com/index.php?/topic/50533-112-module-manager-2625-may-19th-where-the-singularity-started/) that will override some of the stock IVAs with the example props to give you an idea of what is possible with RPM.
+
+However, ModuleManager is not part of this distribution.  You **must** install it separately.
 
 **NOTE:** This mod by itself is not intended to be a comprehensive IVA experience.  While basic IVAs are
 included, they are intended to be examples of what is possible.  Because creating a good IVA takes a significant
