@@ -403,7 +403,7 @@ namespace JSI
                 case "TERMINALVELOCITY":
                     return (string variable, RPMVesselComputer comp) =>
                     {
-                        return TerminalVelocity();
+                        return TerminalVelocity(comp);
                     };
                 case "SURFSPEED":
                     return (string variable, RPMVesselComputer comp) => { return vessel.srfSpeed; };
@@ -507,7 +507,7 @@ namespace JSI
                     };
 
                 case "TIMETOIMPACTSECS":
-                    return (string variable, RPMVesselComputer comp) => { return TimeToImpact(); };
+                    return (string variable, RPMVesselComputer comp) => { return TimeToImpact(comp); };
                 case "SPEEDATIMPACT":
                     return (string variable, RPMVesselComputer comp) =>
                     {
@@ -3293,7 +3293,7 @@ namespace JSI
             }
         }
 
-        internal double TerminalVelocity()
+        internal double TerminalVelocity(RPMVesselComputer comp)
         {
             if (evaluateTerminalVelocityReady == false)
             {
@@ -3325,7 +3325,6 @@ namespace JSI
 
             if (evaluateTerminalVelocity == null)
             {
-                RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
                 return comp.FallbackEvaluateTerminalVelocity();
             }
             else
@@ -3334,7 +3333,7 @@ namespace JSI
             }
         }
 
-        private double TimeToImpact()
+        private double TimeToImpact(RPMVesselComputer comp)
         {
             if (evaluateTimeToImpactReady == false)
             {
@@ -3356,7 +3355,6 @@ namespace JSI
             }
 
             double timeToImpact;
-            RPMVesselComputer comp = RPMVesselComputer.Instance(vessel);
 
             if (evaluateTimeToImpact != null)
             {
