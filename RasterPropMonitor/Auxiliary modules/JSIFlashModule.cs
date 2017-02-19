@@ -77,26 +77,30 @@ namespace JSI
         /// <returns></returns>
         private IEnumerator FlashCoroutine()
         {
-            while (flashRate > 0.0f)
+            try
             {
-                flashToggle = !flashToggle;
-
-                flashSubscribers(flashToggle);
-
-                float delay = flashRate / TimeWarp.CurrentRate;
-
-                if (delay < TimeWarp.fixedDeltaTime)
+                while (flashRate > 0.0f)
                 {
-                    yield return new WaitForFixedUpdate();
-                }
-                else
-                {
-                    yield return new WaitForSeconds(delay);
+                    flashToggle = !flashToggle;
+
+                    flashSubscribers(flashToggle);
+
+                    float delay = flashRate / TimeWarp.CurrentRate;
+
+                    if (delay < TimeWarp.fixedDeltaTime)
+                    {
+                        yield return new WaitForFixedUpdate();
+                    }
+                    else
+                    {
+                        yield return new WaitForSeconds(delay);
+                    }
                 }
             }
+            finally { }
 
             yield return null;
-            
+
         }
     }
 }

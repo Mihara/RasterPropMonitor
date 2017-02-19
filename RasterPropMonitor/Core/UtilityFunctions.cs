@@ -1069,37 +1069,43 @@ namespace JSI
         // Another MechJeb import.
         public static string CurrentBiome(this Vessel thatVessel)
         {
-            if (thatVessel.landedAt != string.Empty)
+            if (!string.IsNullOrEmpty(thatVessel.landedAt))
             {
                 return thatVessel.landedAt;
             }
-            string biome = thatVessel.mainBody.BiomeMap.GetAtt(thatVessel.latitude * Math.PI / 180d, thatVessel.longitude * Math.PI / 180d).name;
-            switch (thatVessel.situation)
+            try
             {
-                //ExperimentSituations.SrfLanded
-                case Vessel.Situations.LANDED:
-                case Vessel.Situations.PRELAUNCH:
-                    return thatVessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
-                //ExperimentSituations.SrfSplashed
-                case Vessel.Situations.SPLASHED:
-                    return thatVessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
-                case Vessel.Situations.FLYING:
-                    if (thatVessel.altitude < thatVessel.mainBody.scienceValues.flyingAltitudeThreshold)
-                    {
-                        //ExperimentSituations.FlyingLow
-                        return "Flying over " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
-                    }
-                    //ExperimentSituations.FlyingHigh
-                    return "Upper atmosphere of " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
-                default:
-                    if (thatVessel.altitude < thatVessel.mainBody.scienceValues.spaceAltitudeThreshold)
-                    {
-                        //ExperimentSituations.InSpaceLow
-                        return "Space just above " + thatVessel.mainBody.theName;
-                    }
-                    // ExperimentSituations.InSpaceHigh
-                    return "Space high over " + thatVessel.mainBody.theName;
+                string biome = thatVessel.mainBody.BiomeMap.GetAtt(thatVessel.latitude * Math.PI / 180d, thatVessel.longitude * Math.PI / 180d).name;
+                switch (thatVessel.situation)
+                {
+                    //ExperimentSituations.SrfLanded
+                    case Vessel.Situations.LANDED:
+                    case Vessel.Situations.PRELAUNCH:
+                        return thatVessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
+                    //ExperimentSituations.SrfSplashed
+                    case Vessel.Situations.SPLASHED:
+                        return thatVessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
+                    case Vessel.Situations.FLYING:
+                        if (thatVessel.altitude < thatVessel.mainBody.scienceValues.flyingAltitudeThreshold)
+                        {
+                            //ExperimentSituations.FlyingLow
+                            return "Flying over " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+                        }
+                        //ExperimentSituations.FlyingHigh
+                        return "Upper atmosphere of " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+                    default:
+                        if (thatVessel.altitude < thatVessel.mainBody.scienceValues.spaceAltitudeThreshold)
+                        {
+                            //ExperimentSituations.InSpaceLow
+                            return "Space just above " + thatVessel.mainBody.theName;
+                        }
+                        // ExperimentSituations.InSpaceHigh
+                        return "Space high over " + thatVessel.mainBody.theName;
+                }
             }
+            finally { }
+
+            return "Space over " + thatVessel.mainBody.theName;
         }
 
 
