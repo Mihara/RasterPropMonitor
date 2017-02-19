@@ -107,15 +107,22 @@ namespace JSI
             Texture2D font = null;
             if (!string.IsNullOrEmpty(location))
             {
-                if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes()))
+                try
                 {
-                    font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
-                    JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
+                    if (GameDatabase.Instance.ExistsTexture(location.EnforceSlashes()))
+                    {
+                        font = GameDatabase.Instance.GetTexture(location.EnforceSlashes(), false);
+                        JUtil.LogMessage(caller, "Loading font texture from URL \"{0}\"", location);
+                    }
+                    else
+                    {
+                        font = (Texture2D)thisProp.FindModelTransform(location).GetComponent<Renderer>().material.mainTexture;
+                        JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
+                    }
                 }
-                else
+                catch(Exception)
                 {
-                    font = (Texture2D)thisProp.FindModelTransform(location).GetComponent<Renderer>().material.mainTexture;
-                    JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
+                    JUtil.LogErrorMessage(caller, "Failed loading font texture \"{0}\" - missing texture?", location);
                 }
             }
             return font;
