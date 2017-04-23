@@ -21,7 +21,7 @@ included, they are intended to be examples of what is possible.  Because creatin
 amount of time (I've put more than 80 hours into each of the IVAs I've made), these example IVAs are not frequently updated, and they only scratch the surface of what can be
 accomplished using RasterPropMonitor.
 
-##INSTALLATION INSTRUCTIONS:
+## INSTALLATION INSTRUCTIONS:
 
 Extract the contents of the GameData folder in the RPM zip file into the GameData folder of your KSP install.  You should see the following folder structure:
 
@@ -41,7 +41,7 @@ If you used CKAN to install this mod, check the file structure.  CKAN has instal
 
 If the plugin was listed as a dependency by some other mod author, and you do not want to use the modified stock interiors included in this package, the JSI/RPMPodPatches directory may be safely deleted. Every capsule being modified has its own pair of patch config files -- you can safely delete only those you don't want.
 
-###UPGRADING FROM OLDER VERSIONS:
+### UPGRADING FROM OLDER VERSIONS:
 As a general rule, you should delete any existing installation (just don't accidentally delete JSIAdvTransparentPods
 if you are using that mod, too).  v0.26.1 removed JSITransparentPod and its
 corresponding JSINonTransparentPod.  Contact the makers of the transparent
