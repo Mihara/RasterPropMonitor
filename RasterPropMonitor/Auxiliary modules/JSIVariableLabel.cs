@@ -63,6 +63,11 @@ namespace JSI
 
         public void Start()
         {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                return;
+            }
+
             try
             {
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);

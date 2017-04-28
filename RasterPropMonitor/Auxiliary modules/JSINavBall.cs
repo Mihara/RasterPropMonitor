@@ -50,6 +50,11 @@ namespace JSI
 
         public void Start()
         {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                return;
+            }
+
             rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
             lastOrientation = navBall.rotation;
