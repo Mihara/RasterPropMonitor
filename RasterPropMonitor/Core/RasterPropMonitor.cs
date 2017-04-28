@@ -68,7 +68,11 @@ namespace JSI
         [KSPField]
         public string resourceName = "SYSR_ELECTRICCHARGE";
         private bool resourceDepleted = false; // Managed by rpmComp callback
-        private Action<bool> del;
+        private Action<bool> delResourceCallback;
+        [KSPField]
+        public bool needsCommConnection = true;
+        private bool noCommConnection = false; // Managed by rpmComp callback
+        private Action<float> delCommConnectionCallback;
         [KSPField]
         public string defaultFontTint = string.Empty;
         public Color defaultFontTintValue = Color.white;
@@ -261,8 +265,14 @@ namespace JSI
 
                 if (needsElectricCharge)
                 {
-                    del = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), this, "ResourceDepletedCallback");
-                    rpmComp.RegisterResourceCallback(resourceName, del);
+                    delResourceCallback = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), this, "ResourceDepletedCallback");
+                    rpmComp.RegisterResourceCallback(resourceName, delResourceCallback);
+                }
+
+                if (needsCommConnection)
+                {
+                    delCommConnectionCallback = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "CommConnectionCallback");
+                        rpmComp.RegisterVariableCallback("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
                 }
 
                 // And if the try block never completed, startupComplete will never be true.
@@ -296,9 +306,13 @@ namespace JSI
             {
                 Destroy(screenMat);
             }
-            if (del != null)
+            if (delResourceCallback != null)
             {
-                rpmComp.UnregisterResourceCallback(resourceName, del);
+                rpmComp.UnregisterResourceCallback(resourceName, delResourceCallback);
+            }
+            if (delCommConnectionCallback != null)
+            {
+                rpmComp.UnregisterVariableCallback ("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
             }
         }
 
@@ -312,7 +326,7 @@ namespace JSI
 
         public void GlobalButtonClick(int buttonID)
         {
-            if (resourceDepleted)
+            if (resourceDepleted || noCommConnection)
             {
                 return;
             }
@@ -348,7 +362,7 @@ namespace JSI
 
         public void PageButtonClick(MonitorPage triggeredPage)
         {
-            if (resourceDepleted)
+            if (resourceDepleted || noCommConnection)
             {
                 return;
             }
@@ -404,7 +418,7 @@ namespace JSI
             screenTexture.DiscardContents();
             RenderTexture.active = screenTexture;
 
-            if (resourceDepleted)
+            if (resourceDepleted || noCommConnection)
             {
                 // If we're out of electric charge, we're drawing a blank screen.
                 GL.Clear(true, true, emptyColorValue);
@@ -492,7 +506,7 @@ namespace JSI
                 }
                 else
                 {
-                    if (!resourceDepleted)
+                    if (!resourceDepleted && !noCommConnection)
                     {
                         RenderScreen();
                     }
@@ -505,7 +519,7 @@ namespace JSI
                     FillScreenBuffer();
                     textRefreshRequired = false;
                 }
-                if (!resourceDepleted)
+                if (!resourceDepleted && !noCommConnection)
                 {
                     RenderScreen();
                 }
@@ -560,6 +574,20 @@ namespace JSI
         void ResourceDepletedCallback(bool newValue)
         {
             resourceDepleted = newValue;
+        }
+
+        /// <summary>
+        /// Similar to ResourceDepletedCallback, allows computer to inform monitor
+        /// of commnet connection status.
+        /// </summary>
+        /// <param name="newValue"></param>
+        void CommConnectionCallback(float newValue)
+        {
+            //None, ProbeNone, Partial, ProbePartial
+            if ((newValue == 0.0) || (newValue == 2.0) || (newValue == 8.0) || (newValue == 10.0))
+                noCommConnection = true;
+            else
+                noCommConnection = false;
         }
     }
 }
