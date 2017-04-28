@@ -70,7 +70,7 @@ namespace JSI
         private bool resourceDepleted = false; // Managed by rpmComp callback
         private Action<bool> delResourceCallback;
         [KSPField]
-        public bool needsCommConnection = true;
+        public bool needsCommConnection = false;
         private bool noCommConnection = false; // Managed by rpmComp callback
         private Action<float> delCommConnectionCallback;
         [KSPField]
@@ -124,7 +124,7 @@ namespace JSI
                         JUtil.LogMessage(caller, "Loading font texture from a transform named \"{0}\"", location);
                     }
                 }
-                catch(Exception)
+                catch (Exception)
                 {
                     JUtil.LogErrorMessage(caller, "Failed loading font texture \"{0}\" - missing texture?", location);
                 }
@@ -272,7 +272,7 @@ namespace JSI
                 if (needsCommConnection)
                 {
                     delCommConnectionCallback = (Action<float>)Delegate.CreateDelegate(typeof(Action<float>), this, "CommConnectionCallback");
-                        rpmComp.RegisterVariableCallback("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
+                    rpmComp.RegisterVariableCallback("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
                 }
 
                 // And if the try block never completed, startupComplete will never be true.
@@ -312,7 +312,7 @@ namespace JSI
             }
             if (delCommConnectionCallback != null)
             {
-                rpmComp.UnregisterVariableCallback ("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
+                rpmComp.UnregisterVariableCallback("COMMNETVESSELCONTROLSTATE", delCommConnectionCallback);
             }
         }
 
