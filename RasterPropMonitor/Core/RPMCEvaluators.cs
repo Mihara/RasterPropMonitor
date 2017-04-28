@@ -2332,6 +2332,36 @@ namespace JSI
                 case "FUNDS":
                     return (string variable, RPMVesselComputer comp) => { return Funding.Instance != null ? Funding.Instance.Funds : 0.0; };
 
+                // CommNet
+                case "COMMNETCONNECTED":
+                    return (string variable, RPMVesselComputer comp) => {
+                        return ((vessel.connection != null) && (vessel.connection.IsConnected)) ? 1.0 : 0.0;
+                    };
+                case "COMMNETSIGNALSTRENGTH":
+                    return (string variable, RPMVesselComputer comp) => {
+                        return (vessel.connection != null) ? (float)vessel.connection.SignalStrength : 0.0;
+                    };
+                case "COMMNETVESSELCONTROLSTATE":
+                    return (string variable, RPMVesselComputer comp) => {
+                        if (vessel.connection == null)
+                            return 0.0;
+                        
+                        switch (vessel.connection.ControlState)
+                        {
+                            case CommNet.VesselControlState.None: return 0.0;
+                            case CommNet.VesselControlState.Probe: return 2.0;
+                            //case CommNet.VesselControlState.ProbeNone: return 2.0;
+                            case CommNet.VesselControlState.Kerbal: return 4.0;
+                            //case CommNet.VesselControlState.KerbalNone: return 4.0;
+                            case CommNet.VesselControlState.Partial: return 8.0;
+                            case CommNet.VesselControlState.ProbePartial: return 10.0;
+                            case CommNet.VesselControlState.KerbalPartial: return 12.0;
+                            case CommNet.VesselControlState.Full: return 16.0;
+                            case CommNet.VesselControlState.ProbeFull: return 18.0;
+                            case CommNet.VesselControlState.KerbalFull: return 20.0;
+                            default: return 0.0;
+                        }
+                    };
 
                 // Action group flags. To properly format those, use this format:
                 // {0:on;0;OFF}
