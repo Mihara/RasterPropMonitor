@@ -21,6 +21,11 @@ namespace JSI
 
         public void Start()
         {
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                return;
+            }
+
             rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
             if (string.IsNullOrEmpty(soundURL))
             {

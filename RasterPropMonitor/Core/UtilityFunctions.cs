@@ -1103,7 +1103,7 @@ namespace JSI
                         return "Space high over " + thatVessel.mainBody.theName;
                 }
             }
-            finally { }
+            catch { }
 
             return "Space over " + thatVessel.mainBody.theName;
         }
