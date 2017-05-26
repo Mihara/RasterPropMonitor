@@ -1081,31 +1081,31 @@ namespace JSI
                     //ExperimentSituations.SrfLanded
                     case Vessel.Situations.LANDED:
                     case Vessel.Situations.PRELAUNCH:
-                        return thatVessel.mainBody.theName + "'s " + (biome == "" ? "surface" : biome);
+                        return thatVessel.mainBody.bodyName + "'s " + (biome == "" ? "surface" : biome);
                     //ExperimentSituations.SrfSplashed
                     case Vessel.Situations.SPLASHED:
-                        return thatVessel.mainBody.theName + "'s " + (biome == "" ? "oceans" : biome);
+                        return thatVessel.mainBody.bodyName + "'s " + (biome == "" ? "oceans" : biome);
                     case Vessel.Situations.FLYING:
                         if (thatVessel.altitude < thatVessel.mainBody.scienceValues.flyingAltitudeThreshold)
                         {
                             //ExperimentSituations.FlyingLow
-                            return "Flying over " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+                            return "Flying over " + thatVessel.mainBody.bodyName + (biome == "" ? "" : "'s " + biome);
                         }
                         //ExperimentSituations.FlyingHigh
-                        return "Upper atmosphere of " + thatVessel.mainBody.theName + (biome == "" ? "" : "'s " + biome);
+                        return "Upper atmosphere of " + thatVessel.mainBody.bodyName + (biome == "" ? "" : "'s " + biome);
                     default:
                         if (thatVessel.altitude < thatVessel.mainBody.scienceValues.spaceAltitudeThreshold)
                         {
                             //ExperimentSituations.InSpaceLow
-                            return "Space just above " + thatVessel.mainBody.theName;
+                            return "Space just above " + thatVessel.mainBody.bodyName;
                         }
                         // ExperimentSituations.InSpaceHigh
-                        return "Space high over " + thatVessel.mainBody.theName;
+                        return "Space high over " + thatVessel.mainBody.bodyName;
                 }
             }
             catch { }
 
-            return "Space over " + thatVessel.mainBody.theName;
+            return "Space over " + thatVessel.mainBody.bodyName;
         }
 
 
