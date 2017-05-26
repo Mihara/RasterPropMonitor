@@ -73,7 +73,7 @@ namespace JSI
                 rpmComp = RasterPropMonitorComputer.Instantiate(internalProp, true);
 
                 Transform textObjTransform = internalProp.FindModelTransform(transformName);
-                textObj = InternalComponents.Instance.CreateText("Arial", fontSize * 15.5f, textObjTransform, string.Empty);
+                textObj = InternalComponents.Instance.CreateText("Arial", fontSize * 15.5f, textObjTransform);
                 // Force oneshot if there's no variables:
                 oneshot |= !labelText.Contains("$&$");
                 string sourceString = labelText.UnMangleConfigText();
