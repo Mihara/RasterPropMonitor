@@ -122,3 +122,5 @@ adjacent to the RasterPropMonitor DLL
 [Digital-7](http://www.fontspace.com/style-7/digital-7) by Sizenko Alexander [Style-7](http://www.styleseven.com).
 
 [InconsolataGo](http://www.levien.com/type/myfonts/), released under the [Open Font License](http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&item_id=OFL&_sc=1).
+
+[Liberation Sans](https://pagure.io/liberation-fonts), released under the [Open Font License](https://opensource.org/licenses/OFL-1.1).
