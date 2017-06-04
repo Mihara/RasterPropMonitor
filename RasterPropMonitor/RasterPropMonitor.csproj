@@ -65,7 +65,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Auxiliary modules\JSICallbackAnimator.cs" />
-    <Compile Include="Auxiliary modules\JSIEngineMonitor.cs" />
     <Compile Include="Auxiliary modules\JSIFlashModule.cs" />
     <Compile Include="Auxiliary modules\JSILabel.cs" />
     <Compile Include="Auxiliary modules\JSINavBall.cs" />

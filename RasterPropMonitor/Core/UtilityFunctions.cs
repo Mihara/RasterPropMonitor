@@ -1538,8 +1538,12 @@ namespace JSI
             }
             else
             {
-                // Fallback
-                return LoadFont("Arial", size);
+                if (!loadedFonts.ContainsKey("LiberationSans-Regular"))
+                {
+                    throw new ArgumentException("Failed finding fallback font LiberationSans-Regular");
+                }
+
+                return loadedFonts["LiberationSans-Regular"];
             }
         }
     }

@@ -40,8 +40,9 @@ Shader "RPM/JSILabel"
 
 		CGPROGRAM
 
-        #include "../../SquadCore/LightingKSP.cginc"
-		#pragma surface surf BlinnPhongSmooth alphatest:_Cutoff
+        //#include "../../SquadCore/LightingKSP.cginc"
+        #pragma surface surf Lambert alpha
+		//#pragma surface surf BlinnPhongSmooth alphatest:_Cutoff
 		#pragma target 3.0
 
 		half _Shininess;
