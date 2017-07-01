@@ -588,7 +588,7 @@ namespace JSI
                     }
                 }
 
-                TurnOff(Planetarium.GetUniversalTime());
+                TurnOff(Planetarium.GetUniversalTime(), true);
             }
         }
 
@@ -668,7 +668,7 @@ namespace JSI
                     if (extracted < 0.5f * requesting)
                     {
                         // Insufficient power - shut down
-                        TurnOff(universalTime);
+                        TurnOff(universalTime, true);
                         return; // early, so we don't think it's on
                     }
                 }
@@ -677,9 +677,9 @@ namespace JSI
             lastStateChange = universalTime;
         }
 
-        private void TurnOff(double universalTime)
+        private void TurnOff(double universalTime, bool forceOff)
         {
-            if (currentState)
+            if (currentState || forceOff)
             {
                 switch (mode)
                 {
@@ -744,7 +744,7 @@ namespace JSI
                     {
                         if (currentState)
                         {
-                            TurnOff(universalTime);
+                            TurnOff(universalTime, false);
                         }
                         else
                         {
@@ -815,7 +815,7 @@ namespace JSI
                         {
                             if (currentState)
                             {
-                                TurnOff(universalTime);
+                                TurnOff(universalTime, false);
                             }
                             else
                             {
@@ -835,7 +835,7 @@ namespace JSI
                 }
                 else
                 {
-                    TurnOff(universalTime);
+                    TurnOff(universalTime, false);
                     if (audioOutput != null && alarmActive)
                     {
                         if (!alarmMustPlayOnce)
@@ -1277,7 +1277,7 @@ namespace JSI
                     }
                 }
 
-                TurnOff(Planetarium.GetUniversalTime());
+                TurnOff(Planetarium.GetUniversalTime(), true);
             }
 
             rpmComp.RegisterVariableCallback(variable.variableName, onChangeDelegate);
@@ -1382,7 +1382,7 @@ namespace JSI
                     {
                         if (currentState)
                         {
-                            TurnOff(universalTime);
+                            TurnOff(universalTime, false);
                         }
                         else
                         {
@@ -1460,7 +1460,7 @@ namespace JSI
                         {
                             if (currentState)
                             {
-                                TurnOff(universalTime);
+                                TurnOff(universalTime, false);
                             }
                             else
                             {
@@ -1482,7 +1482,7 @@ namespace JSI
                 }
                 else
                 {
-                    TurnOff(universalTime);
+                    TurnOff(universalTime, false);
                     if (audioOutput != null && alarmActive)
                     {
                         if (!alarmMustPlayOnce)
