@@ -1678,8 +1678,6 @@ namespace JSI
     [KSPAddon(KSPAddon.Startup.MainMenu, true)]
     public class RPMShaderLoader : MonoBehaviour
     {
-        //private bool reloadInProgress = false;
-
         RPMShaderLoader()
         {
             // I don't want this object destroyed on scene change, since the database
@@ -1688,25 +1686,103 @@ namespace JSI
             DontDestroyOnLoad(this);
         }
 
+        private void LoadAssets()
+        {
+            String assetsPath = KSPUtil.ApplicationRootPath + "GameData/JSI/RasterPropMonitor/";
+            String shaderAssetBundleName = "rasterpropmonitor";
+            if (Application.platform == RuntimePlatform.WindowsPlayer)
+            {
+                shaderAssetBundleName += "-win";
+            }
+            else if (Application.platform == RuntimePlatform.LinuxPlayer)
+            {
+                shaderAssetBundleName += "-lin";
+            }
+            else if (Application.platform == RuntimePlatform.OSXPlayer)
+            {
+                shaderAssetBundleName += "-osx";
+            }
+            shaderAssetBundleName += ".assetbundle";
+
+            WWW www = new WWW("file://" + assetsPath + shaderAssetBundleName);
+
+            if (!string.IsNullOrEmpty(www.error))
+            {
+                JUtil.LogErrorMessage(this, "Error loading AssetBundle: {0}", www.error);
+                return;
+            }
+            else if (www.assetBundle == null)
+            {
+                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}" + www);
+                return;
+            }
+
+            JUtil.parsedShaders.Clear();
+
+            AssetBundle bundle = www.assetBundle;
+
+            string[] assetNames = bundle.GetAllAssetNames();
+            int len = assetNames.Length;
+
+            Shader shader;
+            for (int i = 0; i < len; i++)
+            {
+                if (assetNames[i].EndsWith(".shader"))
+                {
+                    shader = bundle.LoadAsset<Shader>(assetNames[i]);
+                    if (!shader.isSupported)
+                    {
+                        JUtil.LogErrorMessage(this, "Shader {0} - unsupported in this configuration", shader.name);
+                    }
+                    JUtil.parsedShaders[shader.name] = shader;
+                }
+            }
+
+            bundle.Unload(false);
+
+            string fontAssetBundleName = "rasterpropmonitor-font.assetbundle";
+            www = new WWW("file://" + assetsPath + fontAssetBundleName);
+
+            if (!string.IsNullOrEmpty(www.error))
+            {
+                JUtil.LogErrorMessage(this, "Error loading AssetBundle: {0}", www.error);
+                return;
+            }
+            else if (www.assetBundle == null)
+            {
+                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}" + www);
+                return;
+            }
+
+            JUtil.loadedFonts.Clear();
+
+            bundle = www.assetBundle;
+
+            assetNames = bundle.GetAllAssetNames();
+            len = assetNames.Length;
+
+            Font font;
+            for (int i = 0; i < len; i++)
+            {
+                if (assetNames[i].EndsWith(".ttf"))
+                {
+                    font = bundle.LoadAsset<Font>(assetNames[i]);
+                    JUtil.LogInfo(this, "Adding RPM-included font {0} / {1}", font.name, font.fontSize);
+
+                    JUtil.loadedFonts[font.name] = font;
+                }
+            }
+            bundle.Unload(false);
+
+            JUtil.LogInfo(this, "Found {0} RPM shaders and {1} fonts.", JUtil.parsedShaders.Count, JUtil.loadedFonts.Count);
+        }
+
         /// <summary>
         /// Wake up and ask for all of the shaders in our asset bundle and kick off
         /// the coroutines that look for global RPM config data.
         /// </summary>
         private void Awake()
         {
-            if (KSPAssets.Loaders.AssetLoader.Ready == false)
-            {
-                JUtil.LogErrorMessage(this, "Unable to load shaders - AssetLoader is not ready.");
-                return;
-            }
-
-            KSPAssets.AssetDefinition[] rpmShaders = KSPAssets.Loaders.AssetLoader.GetAssetDefinitionsWithType("JSI/RasterPropMonitor/rasterpropmonitor", typeof(Shader));
-            if (rpmShaders == null || rpmShaders.Length == 0)
-            {
-                JUtil.LogErrorMessage(this, "Unable to load shaders - No shaders found in RPM asset bundle.");
-                return;
-            }
-
             if (!GameDatabase.Instance.IsReady())
             {
                 JUtil.LogErrorMessage(this, "GameDatabase.IsReady is false");
@@ -1782,12 +1858,8 @@ namespace JSI
                 }
             }
 
-            // HACK: Pass only one of the asset definitions, since LoadAssets
-            // behaves badly if we ask it to load more than one.  If that ever
-            // gets fixed, I can clean up AssetsLoaded drastically.
-            KSPAssets.Loaders.AssetLoader.LoadAssets(AssetsLoaded, rpmShaders[0]);
+            LoadAssets();
 
-            //reloadInProgress = true;
             StartCoroutine("LoadRasterPropMonitorValues");
 
             // Register a callback with ModuleManager so we can get notified
@@ -1982,102 +2054,7 @@ namespace JSI
                 JUtil.LogMessage(this, "Remembering system resource {1} as SYSR_{0}", varname, thatResource.name);
             }
 
-            //reloadInProgress = false;
             yield return null;
-        }
-
-        /// <summary>
-        /// Callback that fires once the requested assets have loaded.
-        /// </summary>
-        /// <param name="loader">Object containing our loaded assets (see comments in this method)</param>
-        private void AssetsLoaded(KSPAssets.Loaders.AssetLoader.Loader loader)
-        {
-            // This is an unforunate hack.  AssetLoader.LoadAssets barfs if
-            // multiple assets are loaded, leaving us with only one valid asset
-            // and some nulls afterwards in loader.objects.  We are forced to
-            // traverse the LoadedBundles list to find our loaded bundle so we
-            // can find the rest of our shaders.
-            string aShaderName = string.Empty;
-            for (int i = 0; i < loader.objects.Length; ++i)
-            {
-                UnityEngine.Object o = loader.objects[i];
-                if (o != null && o is Shader)
-                {
-                    // We'll remember the name of whichever shader we were
-                    // able to load.
-                    aShaderName = o.name;
-                    break;
-                }
-            }
-
-            if (string.IsNullOrEmpty(aShaderName))
-            {
-                JUtil.LogErrorMessage(this, "Unable to find a named shader in loader.objects");
-                return;
-            }
-
-            var loadedBundles = KSPAssets.Loaders.AssetLoader.LoadedBundles;
-            if (loadedBundles == null)
-            {
-                JUtil.LogErrorMessage(this, "Unable to find any loaded bundles in AssetLoader");
-                return;
-            }
-
-            // Iterate over all loadedBundles.  Experimentally, my bundle was
-            // the only one in the array, but I expect that to change as other
-            // mods use asset bundles (maybe none of the mods I have load this
-            // early).
-            for (int i = 0; i < loadedBundles.Count; ++i)
-            {
-                Shader[] shaders = null;
-                Font[] fonts = null;
-                bool theRightBundle = false;
-
-                try
-                {
-                    // Try to get a list of all the shaders in the bundle.
-                    shaders = loadedBundles[i].LoadAllAssets<Shader>();
-                    if (shaders != null)
-                    {
-                        // Look through all the shaders to see if our named
-                        // shader is one of them.  If so, we assume this is
-                        // the bundle we want.
-                        for (int shaderIdx = 0; shaderIdx < shaders.Length; ++shaderIdx)
-                        {
-                            if (shaders[shaderIdx].name == aShaderName)
-                            {
-                                theRightBundle = true;
-                                break;
-                            }
-                        }
-                    }
-                    fonts = loadedBundles[i].LoadAllAssets<Font>();
-                }
-                catch { }
-
-                if (theRightBundle)
-                {
-                    // If we found our bundle, set up our parsedShaders
-                    // dictionary and bail - our mission is complete.
-                    JUtil.LogInfo(this, "Found {0} RPM shaders and {1} fonts.", shaders.Length, fonts.Length);
-                    for (int j = 0; j < shaders.Length; ++j)
-                    {
-                        if (!shaders[j].isSupported)
-                        {
-                            JUtil.LogErrorMessage(this, "Shader {0} - unsupported in this configuration", shaders[j].name);
-                        }
-                        JUtil.parsedShaders[shaders[j].name] = shaders[j];
-                    }
-                    for (int j = 0; j < fonts.Length; ++j)
-                    {
-                        JUtil.LogInfo(this, "Adding RPM-included font {0} / {1}", fonts[j].name, fonts[j].fontSize);
-                        JUtil.loadedFonts[fonts[j].name] = fonts[j];
-                    }
-                    return;
-                }
-            }
-
-            JUtil.LogErrorMessage(this, "No RasterPropMonitor shaders were loaded - how did this callback execute?");
         }
 
         public void PostPatchCallback()
