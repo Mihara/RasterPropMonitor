@@ -8,7 +8,6 @@ Shader "RPM/Noise"
 		_Gain ("_Gain", float) = 1.0
 		_Blend ("_Blend", float) = 1.0
 		_NoiseOffset ("_NoiseOffset", float) = 0.0
-		//_ImageDims ("_ImageDims", Vector) = (512,512,0.001953125,0.001953125)
 	}
 	SubShader 
 	{
@@ -19,10 +18,11 @@ Shader "RPM/Noise"
 				#pragma vertex vert_img
 				#pragma fragment frag
 				#pragma target 3.0
+				
 				#include "UnityCG.cginc"
 
-				sampler2D _MainTex;
-				sampler2D _Noise;
+				UNITY_DECLARE_TEX2D(_MainTex);
+				UNITY_DECLARE_TEX2D(_Noise);
 				uniform float _Gain;
 				uniform float _Blend;
 				uniform float _NoiseOffset;
@@ -31,7 +31,7 @@ Shader "RPM/Noise"
 				{
 					// Fetch color
 					float2 uv = IN.uv;
-					float4 color = tex2D(_MainTex, uv);
+					float4 color = UNITY_SAMPLE_TEX2D(_MainTex, uv);
 
 					// Apply gain
 					float gainBoost = max(0.0, _Gain - 1.0) * 0.15;
@@ -41,7 +41,7 @@ Shader "RPM/Noise"
 					
 					// Fetch noise, including offset
 					uv.y = frac(uv.y + _NoiseOffset);
-					float4 noise = tex2D(_Noise, uv);
+					float4 noise = UNITY_SAMPLE_TEX2D(_Noise, uv);
 					
 					// Blend RGB
 					color.r = lerp(noise.r, color.r, _Blend);

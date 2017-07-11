@@ -16,15 +16,16 @@ Shader "RPM/Grayscale"
 			CGPROGRAM
 				#pragma vertex vert_img
 				#pragma fragment frag
+				#pragma target 3.0
 				#include "UnityCG.cginc"
 
-				sampler2D _MainTex;
+				UNITY_DECLARE_TEX2D(_MainTex);
 				uniform float _Gain;
 				uniform float _Opacity;
 
 				float4 frag(v2f_img IN) : COLOR
 				{
-					float4 c = tex2D (_MainTex, IN.uv);
+					float4 c = UNITY_SAMPLE_TEX2D (_MainTex, IN.uv);
 
 					// CIE 1931 conversion of linear color to luminance
 					float Y = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722;
