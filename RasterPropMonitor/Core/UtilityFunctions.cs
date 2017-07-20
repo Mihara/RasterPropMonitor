@@ -1713,7 +1713,7 @@ namespace JSI
             }
             else if (www.assetBundle == null)
             {
-                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}" + www);
+                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}", www);
                 return;
             }
 
@@ -1750,7 +1750,7 @@ namespace JSI
             }
             else if (www.assetBundle == null)
             {
-                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}" + www);
+                JUtil.LogErrorMessage(this, "Unable to load AssetBundle {0}", www);
                 return;
             }
 
