@@ -39,7 +39,7 @@ Shader "RPM/DisplayShader"
 				float2 texcoord : TEXCOORD0;
 			};
 
-			sampler2D _MainTex;
+			UNITY_DECLARE_TEX2D(_MainTex);
 
 			uniform float4 _MainTex_ST;
 			uniform float4 _Color;
@@ -55,7 +55,7 @@ Shader "RPM/DisplayShader"
 
 			float4 frag (v2f_displayshader i) : COLOR
 			{
-				float4 diffuse = tex2D(_MainTex, i.texcoord);
+				float4 diffuse = UNITY_SAMPLE_TEX2D(_MainTex, i.texcoord);
 				diffuse.a *= _Color.a * _Opacity;
 				diffuse.rgb = (diffuse.rgb * _Color.rgb) * diffuse.a;
 				return diffuse;

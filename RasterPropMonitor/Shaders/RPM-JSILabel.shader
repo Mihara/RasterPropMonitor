@@ -40,14 +40,12 @@ Shader "RPM/JSILabel"
 
 		CGPROGRAM
 
-        //#include "../../SquadCore/LightingKSP.cginc"
         #pragma surface surf Lambert alpha
-		//#pragma surface surf BlinnPhongSmooth alphatest:_Cutoff
 		#pragma target 3.0
 
 		half _Shininess;
 
-		sampler2D _MainTex;
+		UNITY_DECLARE_TEX2D(_MainTex);
 
 		float _Opacity;
 		float _Fresnel;
@@ -73,7 +71,7 @@ Shader "RPM/JSILabel"
 		{
 			float4 color = IN.color * _BurnColor;
 
-			float alpha = tex2D(_MainTex, (IN.uv_MainTex)).a * IN.color.a;
+			float alpha = UNITY_SAMPLE_TEX2D(_MainTex, (IN.uv_MainTex)).a * IN.color.a;
 
 			float3 normal = float3(0.0,0.0,1.0);
 			half rim = 1.0 - saturate(dot (normalize(IN.viewDir), normal));
