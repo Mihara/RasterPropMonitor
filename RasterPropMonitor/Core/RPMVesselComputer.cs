@@ -1541,7 +1541,7 @@ namespace JSI
         /// <param name="who"></param>
         private void onVesselWasModified(Vessel who)
         {
-            if (who.id == vessel.id)
+            if (who != null && who.id == vessel.id)
             {
                 JUtil.LogMessage(this, "onVesselWasModified(): for me {0}", who.id);
                 if (JUtil.IsActiveVessel(vessel))
