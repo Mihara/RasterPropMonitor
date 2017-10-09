@@ -105,6 +105,7 @@ namespace JSI
             { VesselType.Base,false },
             { VesselType.Debris,false },
             { VesselType.Unknown,false },
+            { VesselType.Relay,false }
         };
 
         private enum MenuList
@@ -783,6 +784,8 @@ namespace JSI
                 mask |= 1 << 8;
             if (filterList[VesselType.Unknown])
                 mask |= 1 << 9;
+            if (filterList[VesselType.Relay])
+                mask |= 1 << 10;
             return mask;
         }
 
@@ -798,6 +801,7 @@ namespace JSI
             vesselFilter[VesselType.Base] = (mask & (1 << 7)) > 0;
             vesselFilter[VesselType.Debris] = (mask & (1 << 8)) > 0;
             vesselFilter[VesselType.Unknown] = (mask & (1 << 9)) > 0;
+            vesselFilter[VesselType.Relay] = (mask & (1 << 10)) > 0;
         }
 
         // Returns true if the reference part is a claw and the part can be
