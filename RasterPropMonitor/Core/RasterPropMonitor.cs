@@ -506,10 +506,7 @@ namespace JSI
                 }
                 else
                 {
-                    if (!resourceDepleted && !noCommConnection)
-                    {
-                        RenderScreen();
-                    }
+                    RenderScreen();
                 }
             }
             else
@@ -519,10 +516,8 @@ namespace JSI
                     FillScreenBuffer();
                     textRefreshRequired = false;
                 }
-                if (!resourceDepleted && !noCommConnection)
-                {
-                    RenderScreen();
-                }
+                RenderScreen();
+
                 firstRenderComplete = true;
             }
 
@@ -584,10 +579,14 @@ namespace JSI
         void CommConnectionCallback(float newValue)
         {
             //None, ProbeNone, Partial, ProbePartial
-            if ((newValue == 0.0) || (newValue == 2.0) || (newValue == 8.0) || (newValue == 10.0))
+            if ((newValue == 0.0f) || (newValue == 2.0f) || (newValue == 8.0f) || (newValue == 10.0f))
+            {
                 noCommConnection = true;
+            }
             else
+            {
                 noCommConnection = false;
+            }
         }
     }
 }
