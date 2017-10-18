@@ -136,11 +136,11 @@ namespace JSI
             {
                 if (isMutable)
                 {
-                    if(spf == null)
+                    if (spf == null)
                     {
                         string[] linesArray = text.Split(JUtil.LineSeparator, StringSplitOptions.None);
                         spf = new StringProcessorFormatter[linesArray.Length];
-                        for(int i=0; i<linesArray.Length; ++i)
+                        for (int i = 0; i < linesArray.Length; ++i)
                         {
                             spf[i] = new StringProcessorFormatter(linesArray[i], rpmComp);
                         }
@@ -388,6 +388,7 @@ namespace JSI
             {
                 if (node.HasValue("cameraTransform"))
                 {
+                    JUtil.LogInfo(this, "WARNING: 'cameraTransform' in a PAGE node is deprecated, and the functionality will be removed in a future RPM release.  Please use a JSISteerableCamera background handler instead.");
                     isMutable = true;
                     background = BackgroundType.Camera;
                     camera = node.GetValue("cameraTransform");

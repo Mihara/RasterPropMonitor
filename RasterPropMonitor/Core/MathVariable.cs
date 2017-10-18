@@ -41,6 +41,7 @@ namespace JSI
             ATAN2,
             MAXINDEX,
             MININDEX,
+            MODULO,
         };
 
         public readonly string name;
@@ -104,6 +105,12 @@ namespace JSI
             else if (oper == Operator.ATAN2.ToString())
             {
                 op = Operator.ATAN2;
+                indexOperator = false;
+                maxParameters = 2;
+            }
+            else if (oper == Operator.MODULO.ToString())
+            {
+                op = Operator.MODULO;
                 indexOperator = false;
                 maxParameters = 2;
             }
@@ -206,6 +213,9 @@ namespace JSI
                             break;
                         case Operator.ATAN2:
                             value = Math.Atan2(value, operand) * Mathf.Rad2Deg;
+                            break;
+                        case Operator.MODULO:
+                            value = (operand == 0.0) ? 0.0 : (value - operand * Math.Floor(value / operand));
                             break;
                     }
                 }

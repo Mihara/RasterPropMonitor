@@ -94,7 +94,6 @@ namespace JSI
 
         //--- Power production
         internal List<ModuleAlternator> availableAlternators = new List<ModuleAlternator>();
-        internal List<float> availableAlternatorOutput = new List<float>();
         internal List<ModuleResourceConverter> availableFuelCells = new List<ModuleResourceConverter>();
         internal List<float> availableFuelCellOutput = new List<float>();
         internal List<ModuleGenerator> availableGenerators = new List<ModuleGenerator>();
@@ -136,7 +135,6 @@ namespace JSI
             availableAblators.Clear();
             availableAirIntakes.Clear();
             availableAlternators.Clear();
-            availableAlternatorOutput.Clear();
             availableDeployableWheels.Clear();
             availableEngines.Clear();
             availableFuelCells.Clear();
@@ -209,7 +207,6 @@ namespace JSI
                                     if (alt.resHandler.outputResources[i].name == "ElectricCharge")
                                     {
                                         availableAlternators.Add(alt);
-                                        availableAlternatorOutput.Add((float)alt.resHandler.outputResources[i].rate);
                                         break;
                                     }
                                 }
@@ -415,7 +412,7 @@ namespace JSI
             for (int i = 0; i < availableAlternators.Count; ++i)
             {
                 // I assume there's only one ElectricCharge output in a given ModuleAlternator
-                alternatorOutput += availableAlternatorOutput[i] * availableAlternators[i].outputRate;
+                alternatorOutput += availableAlternators[i].outputRate;
             }
 
             for (int i = 0; i < availableSolarPanels.Count; ++i)
