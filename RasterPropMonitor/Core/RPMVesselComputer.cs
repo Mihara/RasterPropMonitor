@@ -1449,12 +1449,15 @@ namespace JSI
 		/// </summary>
 		/// <returns>true if the module is specified to be ignored</returns>
 		internal bool ShouldIgnoreModule(PartModule partModule) {
+			if (ignoreModuleList.Count == 0) {
+				return false;
+			}
 			//Pod part names have a vessel name added to them after a whitespace, we have to get rid of it
 			int vesselNameIndex = -1;
 			if (partModule.part.name.Length > partModule.vessel.vesselName.Length) { //Extra comparison to skip one string operation
 				vesselNameIndex = partModule.part.name.IndexOf(" (" + partModule.vessel.vesselName);
 			}
-			string partName = vesselNameIndex < 0 ? partModule.part.name : partModule.part.name.Substring(0, vesselNameIndex);
+			string partName = (vesselNameIndex < 0 ? partModule.part.name : partModule.part.name.Substring(0, vesselNameIndex));
 			return ignoreModuleList.Contains(partName + ".*") || ignoreModuleList.Contains(partName + "." + partModule.moduleName);
 		}
 
