@@ -170,7 +170,7 @@ namespace JSI
                 {
                     foreach (PartModule module in partsList[partsIdx].Modules)
                     {
-                        if (module.isEnabled)
+						if (module.isEnabled && !ShouldIgnoreModule(module))
                         {
                             if (module is ModuleEngines)
                             {

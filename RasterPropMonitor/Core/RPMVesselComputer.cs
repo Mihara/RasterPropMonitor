@@ -252,6 +252,7 @@ namespace JSI
         internal Vector3d velocityRelativeTarget;
         internal float approachSpeed;
         private Quaternion targetOrientation;
+		internal List<string> ignoreModuleList;
 
         #endregion
 
@@ -638,6 +639,13 @@ namespace JSI
                 }
                 //vid = vessel.id;
             }
+
+			ignoreModuleList = new List<string>();
+			ConfigNode[] ignoreNodes = GameDatabase.Instance.GetConfigNodes("RPM_IGNORE");
+			for (int node = 0; node < ignoreNodes.Length; node++) {
+				ignoreModuleList.AddRange(ignoreNodes[node].GetValuesList("moduleName"));
+			}
+
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
             GameEvents.onStageActivate.Add(onStageActivate);
@@ -1435,6 +1443,20 @@ namespace JSI
             }
             return impactTime - decelTime / 2.0 - Planetarium.GetUniversalTime();
         }
+
+		/// <summary>
+		/// Determines if partModule is listed in RPM_IGNORE by either "moduleName = ItsPartName.*" or "moduleName = ItsPartName.TheModuleName".
+		/// </summary>
+		/// <returns>true if the module is specified to be ignored</returns>
+		internal bool ShouldIgnoreModule(PartModule partModule) {
+			//Pod part names have a vessel name added to them after a whitespace, we have to get rid of it
+			int vesselNameIndex = -1;
+			if (partModule.part.name.Length > partModule.vessel.vesselName.Length) { //Extra comparison to skip one string operation
+				vesselNameIndex = partModule.part.name.IndexOf(" (" + partModule.vessel.vesselName);
+			}
+			string partName = vesselNameIndex < 0 ? partModule.part.name : partModule.part.name.Substring(0, vesselNameIndex);
+			return ignoreModuleList.Contains(partName + ".*") || ignoreModuleList.Contains(partName + "." + partModule.moduleName);
+		}
 
         /// <summary>
         /// Determines if enough screen updates have passed to trigger another data update.
