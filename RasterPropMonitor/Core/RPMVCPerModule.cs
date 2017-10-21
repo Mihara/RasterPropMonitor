@@ -767,7 +767,8 @@ namespace JSI
             {
                 Part thatPart = availableEngines[i].part;
 
-                if (thatPart.inverseStage == StageManager.CurrentStage || !state)
+				if (StageManager.CurrentStage == StageManager.StageCount && thatPart.inverseStage == StageManager.StageCount - 1 || //This line allows to start engines of the first stage before the initial launch 
+					thatPart.inverseStage == StageManager.CurrentStage || !state)
                 {
                     if (availableEngines[i].EngineIgnited != state)
                     {
