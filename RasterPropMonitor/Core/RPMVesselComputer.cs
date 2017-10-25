@@ -638,6 +638,7 @@ namespace JSI
                 }
                 //vid = vessel.id;
             }
+
             GameEvents.onVesselChange.Add(onVesselChange);
             GameEvents.onVesselWasModified.Add(onVesselWasModified);
             GameEvents.onStageActivate.Add(onStageActivate);
@@ -1436,7 +1437,7 @@ namespace JSI
             return impactTime - decelTime / 2.0 - Planetarium.GetUniversalTime();
         }
 
-        /// <summary>
+		/// <summary>
         /// Determines if enough screen updates have passed to trigger another data update.
         /// </summary>
         /// <returns>true if it's time to update things</returns>

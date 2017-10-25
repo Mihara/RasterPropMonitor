@@ -2034,6 +2034,31 @@ namespace JSI
                 }
             }
 
+			RPMGlobals.ignoreAllPartModules.Clear();
+			RPMGlobals.ignorePartModules.Clear();
+			nodes = GameDatabase.Instance.GetConfigNodes("RPM_IGNORE_MODULES");
+			for (int idx = 0; idx < nodes.Length; ++idx) {
+				foreach (string nameExpression in nodes[idx].GetValuesList("moduleName")) {
+					string[] splitted = nameExpression.Split(':'); //splitted[0] - part name, splitted[1] - module name
+					if (splitted.Length != 2 || splitted[0].Length == 0 || splitted[1].Length == 0) {
+						continue; //just skipping in case of bad syntax
+					}
+					string partName = splitted[0].Replace('_','.'); //KSP does it, so we do
+					if (splitted[1] == "*") {
+						RPMGlobals.ignoreAllPartModules.Add(partName);
+					} else {
+						List<string> moduleNameList;
+						if (!RPMGlobals.ignorePartModules.TryGetValue(partName, out moduleNameList)) {
+							moduleNameList = new List<string>();
+							RPMGlobals.ignorePartModules.Add(partName, moduleNameList);
+						}
+						if (!moduleNameList.Contains(splitted[1])) {
+							moduleNameList.Add(splitted[1]);
+						}
+					}
+				}
+			}
+
             RPMGlobals.knownLoadedAssemblies.Clear();
             for (int i = 0; i < AssemblyLoader.loadedAssemblies.Count; ++i)
             {
