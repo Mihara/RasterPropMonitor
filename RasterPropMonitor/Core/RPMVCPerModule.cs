@@ -38,7 +38,7 @@ namespace JSI
         /// JSIInternalButtons methods is outright eliminated.
 
         private bool listsInvalid = true;
-		private readonly static List<string> emptyIgnoreList = new List<string>();
+        private readonly static List<string> emptyIgnoreList = new List<string>();
 
         //--- Docking Nodes
         internal ModuleDockingNode mainDockingNode;
@@ -169,79 +169,124 @@ namespace JSI
                 var partsList = vessel.parts;
                 for (int partsIdx = 0; partsIdx < partsList.Count; ++partsIdx)
                 {
-                	string partName = partsList[partsIdx].partInfo.name;
-					if (!RPMGlobals.ignoreAllPartModules.Contains(partName)) {
-						List<string> modulesToIgnore;
-						if (!RPMGlobals.ignorePartModules.TryGetValue(partName, out modulesToIgnore)) {
-							modulesToIgnore = emptyIgnoreList;
-						}
-						foreach (PartModule module in partsList[partsIdx].Modules) {
-							if (module.isEnabled && !modulesToIgnore.Contains(module.moduleName)) {
-								if (module is ModuleEngines) {
-									availableEngines.Add(module as ModuleEngines);
-								} else if (module is MultiModeEngine) {
-									availableMultiModeEngines.Add(module as MultiModeEngine);
-								} else if (module is JSIThrustReverser) {
-									availableThrustReverser.Add(module as JSIThrustReverser);
-								} else if (module is ModuleAblator) {
-									availableAblators.Add(module as ModuleAblator);
-								} else if (module is ModuleResourceIntake) {
-									if ((module as ModuleResourceIntake).resourceName == "IntakeAir") {
-										availableAirIntakes.Add(module as ModuleResourceIntake);
-									} else {
-										JUtil.LogMessage(this, "intake resource is {0}?", (module as ModuleResourceIntake).resourceName);
-									}
-								} else if (module is ModuleAlternator) {
-									ModuleAlternator alt = module as ModuleAlternator;
-									for (int i = 0; i < alt.resHandler.outputResources.Count; ++i) {
-										if (alt.resHandler.outputResources[i].name == "ElectricCharge") {
-											availableAlternators.Add(alt);
-											break;
-										}
-									}
-								} else if (module is ModuleGenerator) {
-									ModuleGenerator gen = module as ModuleGenerator;
-									for (int i = 0; i < gen.resHandler.outputResources.Count; ++i) {
-										if (gen.resHandler.outputResources[i].name == "ElectricCharge") {
-											availableGenerators.Add(gen);
-											availableGeneratorOutput.Add((float)gen.resHandler.outputResources[i].rate);
-											break;
-										}
-									}
-								} else if (module is ModuleResourceConverter) {
-									ModuleResourceConverter gen = module as ModuleResourceConverter;
-									ConversionRecipe recipe = gen.Recipe;
-									for (int i = 0; i < recipe.Outputs.Count; ++i) {
-										if (recipe.Outputs[i].ResourceName == "ElectricCharge") {
-											availableFuelCells.Add(gen);
-											availableFuelCellOutput.Add((float)recipe.Outputs[i].Ratio);
-											break;
-										}
-									}
-								} else if (module is ModuleDeployableSolarPanel) {
-									ModuleDeployableSolarPanel sp = module as ModuleDeployableSolarPanel;
+                    string partName = partsList[partsIdx].partInfo.name;
+                    if (!RPMGlobals.ignoreAllPartModules.Contains(partName))
+                    {
+                        List<string> modulesToIgnore;
+                        if (!RPMGlobals.ignorePartModules.TryGetValue(partName, out modulesToIgnore))
+                        {
+                            modulesToIgnore = emptyIgnoreList;
+                        }
+                        foreach (PartModule module in partsList[partsIdx].Modules)
+                        {
+                            if (module.isEnabled && !modulesToIgnore.Contains(module.moduleName))
+                            {
+                                if (module is ModuleEngines)
+                                {
+                                    availableEngines.Add(module as ModuleEngines);
+                                }
+                                else if (module is MultiModeEngine)
+                                {
+                                    availableMultiModeEngines.Add(module as MultiModeEngine);
+                                }
+                                else if (module is JSIThrustReverser)
+                                {
+                                    availableThrustReverser.Add(module as JSIThrustReverser);
+                                }
+                                else if (module is ModuleAblator)
+                                {
+                                    availableAblators.Add(module as ModuleAblator);
+                                }
+                                else if (module is ModuleResourceIntake)
+                                {
+                                    if ((module as ModuleResourceIntake).resourceName == "IntakeAir")
+                                    {
+                                        availableAirIntakes.Add(module as ModuleResourceIntake);
+                                    }
+                                    else
+                                    {
+                                        JUtil.LogMessage(this, "intake resource is {0}?", (module as ModuleResourceIntake).resourceName);
+                                    }
+                                }
+                                else if (module is ModuleAlternator)
+                                {
+                                    ModuleAlternator alt = module as ModuleAlternator;
+                                    for (int i = 0; i < alt.resHandler.outputResources.Count; ++i)
+                                    {
+                                        if (alt.resHandler.outputResources[i].name == "ElectricCharge")
+                                        {
+                                            availableAlternators.Add(alt);
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (module is ModuleGenerator)
+                                {
+                                    ModuleGenerator gen = module as ModuleGenerator;
+                                    for (int i = 0; i < gen.resHandler.outputResources.Count; ++i)
+                                    {
+                                        if (gen.resHandler.outputResources[i].name == "ElectricCharge")
+                                        {
+                                            availableGenerators.Add(gen);
+                                            availableGeneratorOutput.Add((float)gen.resHandler.outputResources[i].rate);
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (module is ModuleResourceConverter)
+                                {
+                                    ModuleResourceConverter gen = module as ModuleResourceConverter;
+                                    ConversionRecipe recipe = gen.Recipe;
+                                    for (int i = 0; i < recipe.Outputs.Count; ++i)
+                                    {
+                                        if (recipe.Outputs[i].ResourceName == "ElectricCharge")
+                                        {
+                                            availableFuelCells.Add(gen);
+                                            availableFuelCellOutput.Add((float)recipe.Outputs[i].Ratio);
+                                            break;
+                                        }
+                                    }
+                                }
+                                else if (module is ModuleDeployableSolarPanel)
+                                {
+                                    ModuleDeployableSolarPanel sp = module as ModuleDeployableSolarPanel;
 
-									if (sp.resourceName == "ElectricCharge") {
-										availableSolarPanels.Add(sp);
-									}
-								} else if (module is ModuleGimbal) {
-									availableGimbals.Add(module as ModuleGimbal);
-								} else if (module is JSIRadar) {
-									availableRadars.Add(module as JSIRadar);
-								} else if (module is ModuleParachute) {
-									availableParachutes.Add(module as ModuleParachute);
-								} else if (module is ModuleWheels.ModuleWheelDeployment) {
-									availableDeployableWheels.Add(module as ModuleWheels.ModuleWheelDeployment);
-								} else if (module is ModuleWheels.ModuleWheelDamage) {
-									availableWheelDamage.Add(module as ModuleWheels.ModuleWheelDamage);
-								} else if (module is ModuleWheels.ModuleWheelBrakes) {
-									availableWheelBrakes.Add(module as ModuleWheels.ModuleWheelBrakes);
-								} else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute) {
-									availableRealChutes.Add(module);
-								}
-							}
-						}
-					}
+                                    if (sp.resourceName == "ElectricCharge")
+                                    {
+                                        availableSolarPanels.Add(sp);
+                                    }
+                                }
+                                else if (module is ModuleGimbal)
+                                {
+                                    availableGimbals.Add(module as ModuleGimbal);
+                                }
+                                else if (module is JSIRadar)
+                                {
+                                    availableRadars.Add(module as JSIRadar);
+                                }
+                                else if (module is ModuleParachute)
+                                {
+                                    availableParachutes.Add(module as ModuleParachute);
+                                }
+                                else if (module is ModuleWheels.ModuleWheelDeployment)
+                                {
+                                    availableDeployableWheels.Add(module as ModuleWheels.ModuleWheelDeployment);
+                                }
+                                else if (module is ModuleWheels.ModuleWheelDamage)
+                                {
+                                    availableWheelDamage.Add(module as ModuleWheels.ModuleWheelDamage);
+                                }
+                                else if (module is ModuleWheels.ModuleWheelBrakes)
+                                {
+                                    availableWheelBrakes.Add(module as ModuleWheels.ModuleWheelBrakes);
+                                }
+                                else if (JSIParachute.rcFound && module.GetType() == JSIParachute.rcModuleRealChute)
+                                {
+                                    availableRealChutes.Add(module);
+                                }
+                            }
+                        }
+                    }
 
                     if (vessel.currentStage <= partsList[partsIdx].inverseStage)
                     {
@@ -767,8 +812,9 @@ namespace JSI
             {
                 Part thatPart = availableEngines[i].part;
 
-				if (StageManager.CurrentStage == StageManager.StageCount && thatPart.inverseStage == StageManager.StageCount - 1 || //This line allows to start engines of the first stage before the initial launch 
-					thatPart.inverseStage == StageManager.CurrentStage || !state)
+                // The first line allows to start engines of the first stage before the initial launch 
+                if ((StageManager.CurrentStage == StageManager.StageCount && thatPart.inverseStage == StageManager.StageCount - 1) ||
+                    thatPart.inverseStage == StageManager.CurrentStage || !state)
                 {
                     if (availableEngines[i].EngineIgnited != state)
                     {
