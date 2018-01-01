@@ -68,9 +68,9 @@ namespace JSI
         internal static SortedDictionary<string, string> systemNamedResources = new SortedDictionary<string, string>();
         internal static List<RasterPropMonitorComputer.TriggeredEventTemplate> triggeredEvents = new List<RasterPropMonitorComputer.TriggeredEventTemplate>();
 
-		/// List of parts where all PartModule should be ignored.
-		internal static List<string> ignoreAllPartModules = new List<string>();
-		/// List of parts where some PartModules should be ignored.  Part names are the Key, list of module names is the Value.
-		internal static Dictionary<string, List<string>> ignorePartModules = new Dictionary<string, List<string>>();
+        /// List of parts where all PartModule should be ignored.
+        internal static List<string> ignoreAllPartModules = new List<string>();
+        /// List of parts where some PartModules should be ignored.  Part names are the Key, list of module names is the Value.
+        internal static Dictionary<string, List<string>> ignorePartModules = new Dictionary<string, List<string>>();
     }
 }
