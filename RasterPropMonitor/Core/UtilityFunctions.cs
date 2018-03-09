@@ -273,7 +273,6 @@ namespace JSI
             };
 
             mesh.RecalculateBounds();
-            mesh.Optimize();
 
             meshFilter.mesh = mesh;
 
@@ -1998,16 +1997,23 @@ namespace JSI
                     if (colorConfig[defIdx].HasValue("name") && colorConfig[defIdx].HasValue("color"))
                     {
                         string name = "COLOR_" + (colorConfig[defIdx].GetValue("name").Trim());
-                        Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
-                        if (JUtil.globalColors.ContainsKey(name))
+                        try
                         {
-                            JUtil.globalColors[name] = color;
+                            Color32 color = ConfigNode.ParseColor32(colorConfig[defIdx].GetValue("color").Trim());
+                            if (JUtil.globalColors.ContainsKey(name))
+                            {
+                                JUtil.globalColors[name] = color;
+                            }
+                            else
+                            {
+                                JUtil.globalColors.Add(name, color);
+                            }
+                            JUtil.LogMessage(this, "I know {0} = {1}", name, color);
                         }
-                        else
+                        catch(Exception e)
                         {
-                            JUtil.globalColors.Add(name, color);
+                            JUtil.LogErrorMessage(this, "Error parsing color {0}: {1}", colorConfig[defIdx].GetValue("name").Trim(), e);
                         }
-                        JUtil.LogMessage(this, "I know {0} = {1}", name, color);
                     }
                 }
             }

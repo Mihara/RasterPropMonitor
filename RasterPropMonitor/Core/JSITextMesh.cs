@@ -618,7 +618,6 @@ namespace JSI
             meshFilter_.mesh.uv = uv;
             meshFilter_.mesh.triangles = triangles;
             meshFilter_.mesh.RecalculateNormals();
-            meshFilter_.mesh.Optimize();
             // Can't hide mesh with (true), or we can't edit colors later.
             meshFilter_.mesh.UploadMeshData(false);
         }
@@ -782,7 +781,6 @@ namespace JSI
             meshFilter_.mesh.uv = uv;
             meshFilter_.mesh.triangles = triangles;
             meshFilter_.mesh.RecalculateNormals();
-            meshFilter_.mesh.Optimize();
             // Can't hide mesh with (true), or we can't edit colors later.
             meshFilter_.mesh.UploadMeshData(false);
         }

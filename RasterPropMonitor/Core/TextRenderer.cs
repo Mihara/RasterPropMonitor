@@ -84,9 +84,6 @@ namespace JSI
                 }
 
                 mesh.triangles = indices;
-
-                //mesh.RecalculateBounds();
-                mesh.Optimize();
             }
 
             internal void Clear()
