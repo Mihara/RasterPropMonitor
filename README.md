@@ -90,8 +90,6 @@ following prop packs to make something exceptional:
 * [ASET Avionics](forum.kerbalspaceprogram.com/index.php?/topic/116479-ivaprops-aset-avionics-pack-v-10-for-the-modders-who-create-ivaã¢â‚¬â„¢s/) - primarily aircraft-oriented props.
 * [ASET Props](forum.kerbalspaceprogram.com/index.php?/topic/116430-ivaprops-aset-props-pack-v13-for-the-modders-who-create-ivaã¢â‚¬â„¢s/) - a mix of spacecraft and spaceplane props, including several MFD designs as well as some classic NASA-style analog gauges.
 
-**NOTE 2:** As of 28 May 2016, the ASET props and avionics packs *are* being updated.  Until alexustas is ready to release them, there are links in the ASET Props thread to the current edition of those props packs.
-
 ## LINKS
 
 See [the forum support thread](http://forum.kerbalspaceprogram.com/index.php?/topic/105821-105-rasterpropmonitor-still-putting-the-a-in-iva-v0240-10-november-2015/) for support.
@@ -106,7 +104,7 @@ Source code and full license information available at
 
 ## LICENSES
 
-RasterPropMonitor plugin (C) 2013-2016 Mihara, MOARdV, and other contributors.
+RasterPropMonitor plugin (C) 2013-2018 Mihara, MOARdV, and other contributors.
 
 Code and shaders are licensed under GPLv3.  You should have received a copy of this license
 in this distribution package.
