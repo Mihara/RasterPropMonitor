@@ -1691,11 +1691,11 @@ namespace JSI
             String shaderAssetBundleName = "rasterpropmonitor";
             if (Application.platform == RuntimePlatform.WindowsPlayer)
             {
-                shaderAssetBundleName += "-win";
+                shaderAssetBundleName += "-windows";
             }
             else if (Application.platform == RuntimePlatform.LinuxPlayer)
             {
-                shaderAssetBundleName += "-lin";
+                shaderAssetBundleName += "-linux";
             }
             else if (Application.platform == RuntimePlatform.OSXPlayer)
             {
