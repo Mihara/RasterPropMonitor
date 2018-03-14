@@ -173,8 +173,9 @@ namespace JSI
                 lightConeRenderer = lightCone.AddComponent<LineRenderer>();
                 lightConeRenderer.useWorldSpace = true;
                 lightConeRenderer.material = lightConeMaterial;
-                lightConeRenderer.SetWidth(0.054f, endSpan);
-                lightConeRenderer.SetVertexCount(2);
+                lightConeRenderer.startWidth = 0.054f;
+                lightConeRenderer.endWidth=endSpan;
+                lightConeRenderer.positionCount =2;
                 lightConeRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 lightConeRenderer.receiveShadows = false;
                 lightConeRenderer.SetPosition(0, Vector3.zero);
@@ -200,7 +201,8 @@ namespace JSI
             if (lightConeRenderer != null)
             {
                 var newStart = Color32.Lerp(new Color32(0, 0, 255, 178), new Color32(255, 0, 0, 178), 1f / (maximum) * (current - 1));
-                lightConeRenderer.SetColors(newStart, new Color32(newStart.r, newStart.g, newStart.b, 0));
+                lightConeRenderer.startColor = newStart;
+                lightConeRenderer.endColor = new Color32(newStart.r, newStart.g, newStart.b, 0);
             }
         }
 

@@ -84,8 +84,6 @@ namespace JSI
         public bool doScreenshots = true;
         [KSPField]
         public bool oneshot = false;
-        // This needs to be public so that pages can point it.
-        public FlyingCamera cameraStructure;
         // Internal stuff.
         private TextRenderer textRenderer;
         private RenderTexture screenTexture;
@@ -187,9 +185,6 @@ namespace JSI
                 {
                     noSignalTexture = GameDatabase.Instance.GetTexture(noSignalTextureURL.EnforceSlashes(), false);
                 }
-
-                // Create camera instance...
-                cameraStructure = new FlyingCamera(part, cameraAspect);
 
                 // The neat trick. IConfigNode doesn't work. No amount of kicking got it to work.
                 // Well, we don't need it. GameDatabase, gimme config nodes for all props!

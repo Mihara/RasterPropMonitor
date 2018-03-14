@@ -8,6 +8,8 @@ Did you install using CKAN?  I do not support CKAN installations.  It has incorr
 
 If that doesn't work, I strongly recommend you look at the [KSP forum post](http://forum.kerbalspaceprogram.com/index.php?/topic/83212-how-to-get-support-read-first/) on getting support for mods.
 
+Did you install Module Manager?  Module Manager is required, but it is not included.
+
 ### What about CKAN?
 
 Due to problems I have had with incorrect CKAN configurations, I do not support CKAN installations.  When KerbalStuff was around, it had an option to update CKAN automatically when I posted a new version, but that is the limit of my involvement with CKAN.
