@@ -62,7 +62,6 @@ namespace JSI
         private enum BackgroundType
         {
             None,
-            Camera,
             Texture,
             Handler,
         };
@@ -72,10 +71,6 @@ namespace JSI
         private readonly Texture2D overlayTexture, interlayTexture;
         public readonly Color defaultColor;
         private readonly BackgroundType background = BackgroundType.None;
-        private readonly float cameraFOV;
-        private readonly string camera;
-        private readonly FlyingCamera cameraObject;
-        private const float defaultFOV = 60f;
         private readonly Texture2D backgroundTexture;
         private readonly Func<int, int, string> pageHandlerMethod;
         private readonly Func<RenderTexture, float, bool> backgroundHandlerMethod;
@@ -83,19 +78,12 @@ namespace JSI
         private readonly RasterPropMonitor ourMonitor;
         private readonly int screenWidth, screenHeight;
         private readonly float cameraAspect;
-        private readonly int zoomUpButton, zoomDownButton;
-        private readonly float maxFOV, minFOV;
-        private readonly int zoomSteps;
-        private readonly float zoomSkip;
-        private int currentZoom;
         private readonly bool showNoSignal;
         private readonly bool simpleLockingPage;
         private readonly List<string> disableSwitchingTo = new List<string>();
         private readonly DefaultableDictionary<string, string> redirectPages = new DefaultableDictionary<string, string>(string.Empty);
         private readonly DefaultableDictionary<int, int?> redirectGlobals = new DefaultableDictionary<int, int?>(null);
         private readonly MonoBehaviour backgroundHandlerModule, pageHandlerModule;
-        private readonly float cameraFlickerChance;
-        private readonly int cameraFlickerRange;
         private readonly List<string> techsRequired = new List<string>();
         private readonly string fallbackPageName = string.Empty;
 
@@ -199,7 +187,6 @@ namespace JSI
             screenWidth = ourMonitor.screenWidth;
             screenHeight = ourMonitor.screenHeight;
             cameraAspect = ourMonitor.cameraAspect;
-            cameraObject = thatMonitor.cameraStructure;
             defaultColor = ourMonitor.defaultFontTintValue;
             screenXMin = 0;
             screenYMin = 0;
@@ -384,46 +371,6 @@ namespace JSI
                 }
             }
 
-            if (background == BackgroundType.None)
-            {
-                if (node.HasValue("cameraTransform"))
-                {
-                    JUtil.LogInfo(this, "WARNING: 'cameraTransform' in a PAGE node is deprecated, and the functionality will be removed in a future RPM release.  Please use a JSISteerableCamera background handler instead.");
-                    isMutable = true;
-                    background = BackgroundType.Camera;
-                    camera = node.GetValue("cameraTransform");
-                    cameraFOV = defaultFOV;
-
-                    cameraFlickerChance = node.GetFloat("flickerChance") ?? 0;
-                    cameraFlickerRange = node.GetInt("flickerRange") ?? 0;
-
-                    if (node.HasValue("fov"))
-                    {
-                        float fov;
-                        cameraFOV = float.TryParse(node.GetValue("fov"), out fov) ? fov : defaultFOV;
-                    }
-                    else if (node.HasValue("zoomFov") && node.HasValue("zoomButtons"))
-                    {
-                        Vector3 zoomFov = ConfigNode.ParseVector3(node.GetValue("zoomFov"));
-                        Vector2 zoomButtons = ConfigNode.ParseVector2(node.GetValue("zoomButtons"));
-                        if ((int)zoomFov.z != 0 && ((int)zoomButtons.x != (int)zoomButtons.y))
-                        {
-                            maxFOV = Math.Max(zoomFov.x, zoomFov.y);
-                            minFOV = Math.Min(zoomFov.x, zoomFov.y);
-                            zoomSteps = (int)zoomFov.z;
-                            zoomUpButton = (int)zoomButtons.x;
-                            zoomDownButton = (int)zoomButtons.y;
-                            zoomSkip = (maxFOV - minFOV) / zoomSteps;
-                            currentZoom = 0;
-                            cameraFOV = maxFOV;
-                        }
-                        else
-                        {
-                            JUtil.LogMessage(ourMonitor, "Ignored invalid camera zoom settings on page {0}.", pageNumber);
-                        }
-                    }
-                }
-            }
             if (background == BackgroundType.None)
             {
                 if (node.HasValue("textureURL"))
@@ -634,25 +581,9 @@ namespace JSI
             return null;
         }
 
-        private float ComputeFOV()
-        {
-            if (zoomSteps == 0)
-            {
-                return cameraFOV;
-            }
-            else
-            {
-                return maxFOV - zoomSkip * currentZoom;
-            }
-        }
-
         public void Active(bool state)
         {
             isActive = state;
-            if (state)
-            {
-                cameraObject.PointCamera(camera, ComputeFOV());
-            }
             if (pageHandlerS.activate != null)
             {
                 pageHandlerS.activate(state, pageNumber);
@@ -660,14 +591,6 @@ namespace JSI
             if (backgroundHandlerS.activate != null && backgroundHandlerS.activate != pageHandlerS.activate)
             {
                 backgroundHandlerS.activate(state, pageNumber);
-            }
-            if (cameraFlickerChance > 0)
-            {
-                cameraObject.SetFlicker(cameraFlickerChance, cameraFlickerRange);
-            }
-            else
-            {
-                cameraObject.SetFlicker(0, 0);
             }
         }
 
@@ -688,27 +611,6 @@ namespace JSI
             {
                 backgroundHandlerS.buttonClick(buttonID);
                 actionTaken = true;
-            }
-            else if (zoomSteps > 0)
-            {
-                actionTaken = true;
-                if (buttonID == zoomUpButton)
-                {
-                    currentZoom--;
-                }
-                if (buttonID == zoomDownButton)
-                {
-                    currentZoom++;
-                }
-                if (currentZoom < 0)
-                {
-                    currentZoom = 0;
-                }
-                if (currentZoom > zoomSteps)
-                {
-                    currentZoom = zoomSteps;
-                }
-                cameraObject.FOV = ComputeFOV();
             }
             return actionTaken;
         }
@@ -741,16 +643,6 @@ namespace JSI
             {
                 case BackgroundType.None:
                     GL.Clear(true, true, ourMonitor.emptyColorValue);
-                    break;
-                case BackgroundType.Camera:
-                    GL.Clear(true, true, ourMonitor.emptyColorValue);
-                    if (!cameraObject.Render(screen, 0.0f, 0.0f))
-                    {
-                        if (ourMonitor.noSignalTexture != null)
-                        {
-                            Graphics.DrawTexture(new Rect(0, 0, screen.width, screen.height), ourMonitor.noSignalTexture);
-                        }
-                    }
                     break;
                 case BackgroundType.Texture:
                     //call clear before redraw of textures
