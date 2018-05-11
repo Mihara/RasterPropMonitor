@@ -237,6 +237,8 @@ namespace JSI
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
         internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
 
+        internal static bool manuallyInvertY = false;
+
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
             return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
@@ -1857,6 +1859,11 @@ namespace JSI
                 }
             }
 
+            if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9"))
+            {
+                JUtil.manuallyInvertY = true;
+            }
+
             LoadAssets();
 
             StartCoroutine("LoadRasterPropMonitorValues");
@@ -2010,7 +2017,7 @@ namespace JSI
                             }
                             JUtil.LogMessage(this, "I know {0} = {1}", name, color);
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             JUtil.LogErrorMessage(this, "Error parsing color {0}: {1}", colorConfig[defIdx].GetValue("name").Trim(), e);
                         }

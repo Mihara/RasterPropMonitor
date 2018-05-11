@@ -161,6 +161,13 @@ namespace JSI
 
             screenXOffset = (float)screenPixelWidth * -0.5f;
             screenYOffset = (float)screenPixelHeight * 0.5f - fontLetterSize.y;
+            if (JUtil.manuallyInvertY)
+            {
+                // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
+                // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
+                screenYOffset = -screenYOffset;
+                screenYOffset -= fontLetterSize.y;
+            }
 
             float fontLettersX = Mathf.Floor(fontTexture[0].width / fontLetterSize.x);
             float fontLettersY = Mathf.Floor(fontTexture[0].height / fontLetterSize.y);
@@ -400,7 +407,19 @@ namespace JSI
         {
             if (fontCharacters.ContainsKey(letter))
             {
-                Rect pos = new Rect(screenXOffset + xPos, screenYOffset - ((scriptType == Script.Superscript) ? yPos - fontLetterHalfHeight : yPos),
+                // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
+                // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
+                float yPosition;
+                if (JUtil.manuallyInvertY)
+                {
+                    yPosition = screenYOffset + ((scriptType == Script.Superscript) ? yPos + fontLetterHalfHeight : yPos);
+                }
+                else
+                {
+                    yPosition = screenYOffset - ((scriptType == Script.Superscript) ? yPos - fontLetterHalfHeight : yPos);
+                }
+                Rect pos = new Rect(screenXOffset + xPos,
+                    yPosition,
                         (fontWidth == Width.Normal ? fontLetterWidth : (fontWidth == Width.Half ? fontLetterHalfWidth : fontLetterDoubleWidth)),
                         (scriptType != Script.Normal) ? fontLetterHalfHeight : fontLetterHeight);
                 fr.vertices.Add(new Vector3(pos.xMin, pos.yMin, 0.0f));
@@ -409,10 +428,10 @@ namespace JSI
                 fr.vertices.Add(new Vector3(pos.xMax, pos.yMax, 0.0f));
 
                 Rect uv = fontCharacters[letter];
-                fr.uvs.Add(new Vector2(uv.xMin, uv.yMin));
-                fr.uvs.Add(new Vector2(uv.xMax, uv.yMin));
-                fr.uvs.Add(new Vector2(uv.xMin, uv.yMax));
-                fr.uvs.Add(new Vector2(uv.xMax, uv.yMax));
+                fr.uvs.Add(new Vector2(uv.xMin, (JUtil.manuallyInvertY) ? uv.yMax : uv.yMin));
+                fr.uvs.Add(new Vector2(uv.xMax, (JUtil.manuallyInvertY) ? uv.yMax : uv.yMin));
+                fr.uvs.Add(new Vector2(uv.xMin, (JUtil.manuallyInvertY) ? uv.yMin : uv.yMax));
+                fr.uvs.Add(new Vector2(uv.xMax, (JUtil.manuallyInvertY) ? uv.yMin : uv.yMax));
 
                 fr.colors32.Add(letterColor);
             }
