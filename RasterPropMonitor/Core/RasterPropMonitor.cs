@@ -179,6 +179,13 @@ namespace JSI
                 foreach (string layerID in textureLayerID.Split())
                 {
                     screenMat.SetTexture(layerID.Trim(), screenTexture);
+                    // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
+                    // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
+                    if (JUtil.manuallyInvertY)
+                    {
+                        screenMat.SetTextureScale(layerID.Trim(),  new Vector2(1.0f, -1.0f));
+                        screenMat.SetTextureOffset(layerID.Trim(),  new Vector2(0.0f, 1.0f));
+                    }
                 }
 
                 if (GameDatabase.Instance.ExistsTexture(noSignalTextureURL.EnforceSlashes()))
