@@ -1859,7 +1859,7 @@ namespace JSI
                 }
             }
 
-            if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9"))
+            if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
             {
                 JUtil.manuallyInvertY = true;
             }
