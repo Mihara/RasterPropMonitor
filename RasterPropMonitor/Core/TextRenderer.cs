@@ -127,6 +127,8 @@ namespace JSI
         private int cachedTextHash = -1;
         private int cachedOverlayTextHash = -1;
 
+        private readonly bool manuallyInvertY;
+
         private GameObject cameraBody;
         private Camera textCamera;
 
@@ -156,12 +158,18 @@ namespace JSI
                 throw new Exception("No font textures found");
             }
 
+            manuallyInvertY = false;
+            if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
+            {
+                manuallyInvertY = (UnityEngine.QualitySettings.antiAliasing > 0);
+            }
+
             screenPixelWidth = screenWidth;
             screenPixelHeight = screenHeight;
 
             screenXOffset = (float)screenPixelWidth * -0.5f;
             screenYOffset = (float)screenPixelHeight * 0.5f - fontLetterSize.y;
-            if (JUtil.manuallyInvertY)
+            if (manuallyInvertY)
             {
                 // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
                 // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
@@ -410,7 +418,7 @@ namespace JSI
                 // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
                 // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
                 float yPosition;
-                if (JUtil.manuallyInvertY)
+                if (manuallyInvertY)
                 {
                     yPosition = screenYOffset + ((scriptType == Script.Superscript) ? yPos + fontLetterHalfHeight : yPos);
                 }
@@ -428,10 +436,10 @@ namespace JSI
                 fr.vertices.Add(new Vector3(pos.xMax, pos.yMax, 0.0f));
 
                 Rect uv = fontCharacters[letter];
-                fr.uvs.Add(new Vector2(uv.xMin, (JUtil.manuallyInvertY) ? uv.yMax : uv.yMin));
-                fr.uvs.Add(new Vector2(uv.xMax, (JUtil.manuallyInvertY) ? uv.yMax : uv.yMin));
-                fr.uvs.Add(new Vector2(uv.xMin, (JUtil.manuallyInvertY) ? uv.yMin : uv.yMax));
-                fr.uvs.Add(new Vector2(uv.xMax, (JUtil.manuallyInvertY) ? uv.yMin : uv.yMax));
+                fr.uvs.Add(new Vector2(uv.xMin, (manuallyInvertY) ? uv.yMax : uv.yMin));
+                fr.uvs.Add(new Vector2(uv.xMax, (manuallyInvertY) ? uv.yMax : uv.yMin));
+                fr.uvs.Add(new Vector2(uv.xMin, (manuallyInvertY) ? uv.yMin : uv.yMax));
+                fr.uvs.Add(new Vector2(uv.xMax, (manuallyInvertY) ? uv.yMin : uv.yMax));
 
                 fr.colors32.Add(letterColor);
             }

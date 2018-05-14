@@ -176,12 +176,19 @@ namespace JSI
 
                 screenTexture = new RenderTexture(screenPixelWidth, screenPixelHeight, 24, RenderTextureFormat.ARGB32);
                 screenMat = internalProp.FindModelTransform(screenTransform).GetComponent<Renderer>().material;
+
+                bool manuallyInvertY = false;
+                if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
+                {
+                    manuallyInvertY = (UnityEngine.QualitySettings.antiAliasing > 0);
+                }
+
                 foreach (string layerID in textureLayerID.Split())
                 {
                     screenMat.SetTexture(layerID.Trim(), screenTexture);
                     // This code was written for a much older flavor of Unity, and the Unity 2017.1 update broke
                     // some assumptions about who managed the y-inversion issue between OpenGL and DX9.
-                    if (JUtil.manuallyInvertY)
+                    if (manuallyInvertY)
                     {
                         screenMat.SetTextureScale(layerID.Trim(),  new Vector2(1.0f, -1.0f));
                         screenMat.SetTextureOffset(layerID.Trim(),  new Vector2(0.0f, 1.0f));
