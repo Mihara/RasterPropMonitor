@@ -237,8 +237,6 @@ namespace JSI
         internal static Dictionary<string, Font> loadedFonts = new Dictionary<string, Font>();
         internal static Dictionary<string, Color32> globalColors = new Dictionary<string, Color32>();
 
-        internal static bool manuallyInvertY = false;
-
         internal static GameObject CreateSimplePlane(string name, float vectorSize, int drawingLayer)
         {
             return CreateSimplePlane(name, new Vector2(vectorSize, vectorSize), new Rect(0.0f, 0.0f, 1.0f, 1.0f), drawingLayer);
@@ -1857,11 +1855,6 @@ namespace JSI
                         RPMGlobals.debugShowOnly.Add(showOnly[i].Trim());
                     }
                 }
-            }
-
-            if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
-            {
-                JUtil.manuallyInvertY = true;
             }
 
             LoadAssets();
