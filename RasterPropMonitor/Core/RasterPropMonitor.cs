@@ -178,7 +178,7 @@ namespace JSI
                 screenMat = internalProp.FindModelTransform(screenTransform).GetComponent<Renderer>().material;
 
                 bool manuallyInvertY = false;
-                if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
+                if (SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 9") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 11") || SystemInfo.graphicsDeviceVersion.StartsWith("Direct3D 12"))
                 {
                     manuallyInvertY = (UnityEngine.QualitySettings.antiAliasing > 0);
                 }
