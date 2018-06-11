@@ -195,6 +195,6 @@ Global
 		$36.inheritsSet = Mono
 		$36.inheritsScope = text/plain
 		$36.scope = text/plain
-		version = 0.30.4
+		version = 0.30.5
 	EndGlobalSection
 EndGlobal
