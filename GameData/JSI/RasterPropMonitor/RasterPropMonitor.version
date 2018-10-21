@@ -2,12 +2,14 @@
   "NAME": "RasterPropMonitor",
   "URL": "https://raw.githubusercontent.com/Mihara/RasterPropMonitor/master/GameData/JSI/RasterPropMonitor/RasterPropMonitor.version",
   "DOWNLOAD": "https://github.com/Mihara/RasterPropMonitor/releases",
-  "VERSION": {
+  "VERSION":
+  {
     "MAJOR": 0,
     "MINOR": 30,
     "PATCH": 5
   },
-  "KSP_VERSION": {
+  "KSP_VERSION":
+  {
     "MAJOR": 1,
     "MINOR": 5,
     "PATCH": 0
@@ -17,5 +19,11 @@
   	"MAJOR": 1,
   	"MINOR": 4,
 	"PATCH": 0
+  },
+  "KSP_VERSION_MAX":
+  {
+    "MAJOR": 1,
+    "MINOR": 5,
+    "PATCH": 99
   }
 }
