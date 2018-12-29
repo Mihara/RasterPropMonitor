@@ -661,11 +661,11 @@ namespace JSI
 
             if (resourceAmount > 0.0f)
             {
-                float requesting = (resourceAmount * TimeWarp.deltaTime);
-                if (requesting > 0.0f)
+                double requesting = (resourceAmount * TimeWarp.deltaTime);
+                if (requesting > 0.0)
                 {
-                    float extracted = part.RequestResource(resourceName, requesting);
-                    if (extracted < 0.5f * requesting)
+                    double extracted = part.RequestResource(resourceName, requesting);
+                    if (extracted < 0.5 * requesting)
                     {
                         // Insufficient power - shut down
                         TurnOff(universalTime, true);

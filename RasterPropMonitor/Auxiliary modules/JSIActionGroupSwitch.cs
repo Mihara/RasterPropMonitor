@@ -784,8 +784,8 @@ namespace JSI
 
             if (consumingWhileActive && currentState && !forcedShutdown)
             {
-                float requesting = (consumeWhileActiveAmount * TimeWarp.deltaTime);
-                float extracted = part.RequestResource(consumeWhileActiveName, requesting);
+                double requesting = (consumeWhileActiveAmount * TimeWarp.deltaTime);
+                double extracted = part.RequestResource(consumeWhileActiveName, requesting);
                 if (Math.Abs(extracted - requesting) > Math.Abs(requesting / 2))
                 {
                     // We don't have enough of the resource or can't produce more negative resource, so we should shut down...
@@ -893,7 +893,7 @@ namespace JSI
                 // If we're consuming resources on toggle, do that now.
                 if ((consumingOnToggleUp && newState) || (consumingOnToggleDown && !newState))
                 {
-                    float extracted = part.RequestResource(consumeOnToggleName, consumeOnToggleAmount);
+                    double extracted = part.RequestResource(consumeOnToggleName, (double)consumeOnToggleAmount);
                     if (Math.Abs(extracted - consumeOnToggleAmount) > Math.Abs(consumeOnToggleAmount / 2))
                     {
                         // We don't have enough of the resource, so we force a shutdown on the next loop.

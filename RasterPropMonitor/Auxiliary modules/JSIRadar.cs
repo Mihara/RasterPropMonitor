@@ -160,9 +160,9 @@ namespace JSI
                 // Resources check
                 if (resourceAmount > 0.0f)
                 {
-                    float requested = resourceAmount * TimeWarp.fixedDeltaTime;
-                    float supplied = part.RequestResource(resourceId, requested);
-                    if (supplied < requested * 0.5f)
+                    double requested = resourceAmount * TimeWarp.fixedDeltaTime;
+                    double supplied = part.RequestResource(resourceId, requested);
+                    if (supplied < requested * 0.5)
                     {
                         powered = false;
                     }
