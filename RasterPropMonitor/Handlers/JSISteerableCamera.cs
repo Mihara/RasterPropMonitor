@@ -160,7 +160,7 @@ namespace JSI
         private Vector2 GetNormalizedScreenPosition(SteerableCameraParameters activeCamera, Vector3 directionVector, float cameraAspect)
         {
             // Transform direction using the active camera's rotation.
-            var targetTransformed = cameraObject.CameraRotation(activeCamera.currentYaw, -activeCamera.currentPitch).Inverse() * directionVector;
+            var targetTransformed = Quaternion.Inverse(cameraObject.CameraRotation(activeCamera.currentYaw, -activeCamera.currentPitch)) * directionVector;
 
             // (x, y) provided the lateral displacement.  (z) provides the "in front of / behind"
             var targetDisp = new Vector2(targetTransformed.x, -targetTransformed.y);
